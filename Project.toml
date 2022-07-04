@@ -1,0 +1,11 @@
+name = "Olive"
+uuid = "724ecaf6-c7a0-4c22-b37e-0bb7b4193da8"
+authors = ["emmac <emmettgb@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+Toolips = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
+ToolipsMarkdown = "33f7ff50-f2f2-41f0-8a96-482dce5c1514"
+ToolipsSession = "2fe55384-55bc-4df3-9d59-c817d405cd05"
