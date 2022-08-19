@@ -62,26 +62,14 @@ function topbar(c::Connection)
     darkicon = oliveicon("darkico", "dark_mode")
     sendicon = oliveicon("sendico", "send")
     on(c, darkicon, "click") do cm::ComponentModifier
-        if cm["olivemain"]["d"] == "0"
-            style!(cm, "olivebody", "background-color" => "#192841")
-            cm["olivemain"] = "d" => "1"
+        if cm["olivestyle"]["dark"] == "false"
             set_text!(cm, darkicon, "light_mode")
-            style!(cm, darkicon, "color" => "yellow")
-            style!(cm, fileicon, "color" => "white")
-            style!(cm, editicon, "color" => "white")
-            style!(cm, settingicon, "color" => "white")
-            style!(cm, sendicon, "color" => "white")
-            style!(cm, styleicon, "color" => "white")
+            set_children!(cm, "olivestyle", olivesheetdark()[:children])
+            cm["olivestyle"] = "dark" => "true"
         else
-            style!(cm, "olivebody", "background-color" => "white")
             set_text!(cm, darkicon, "dark_mode")
-            style!(cm, darkicon, "color" => "black")
-            style!(cm, fileicon, "color" => "black")
-            style!(cm, editicon, "color" => "black")
-            style!(cm, settingicon, "color" => "black")
-            style!(cm, sendicon, "color" => "black")
-            style!(cm, styleicon, "color" => "black")
-            cm["olivemain"] = "d" => "0"
+            set_children!(cm, "olivestyle", olivesheet()[:children])
+            cm["olivestyle"] = "dark" => "false"
         end
     end
     push!(leftmenu, explorericon, fileicon, editicon)

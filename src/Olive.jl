@@ -19,7 +19,7 @@ The start function comprises routes into a Vector{Route} and then constructs
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000,
     extensions::Vector = [Logger(), Session()])
-    rs = routes(route("/", main), fourofour)
+    rs = routes(main, fourofour)
     server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()
 end

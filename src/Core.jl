@@ -19,7 +19,7 @@ end
 
 function cell_style()
     st::Style = Style("div.cell", border = "2px solid gray", padding = "20px",
-    st["background-color"] = "white")
+    "background-color" => "white")
     animate!(st, cell_in())
     st::Style
 end
@@ -45,9 +45,9 @@ href = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,
 rel = "stylesheet")
 
 function iconstyle()
-    s = Style(".material-symbols-outlined", cursor = "pointer")
-    s["font-size"] = "100pt"
-    s:"hover":["color" => "orange"]
+    s = Style(".material-symbols-outlined", cursor = "pointer",
+    "font-size" => "100pt")
+    s:"hover":["color" => "orange", "transform" => "scale(1.1)"]
     s
 end
 function cellnumber_style()
@@ -57,9 +57,23 @@ function cellnumber_style()
 end
 
 function olivesheet()
-    st = sheet()
-    push!(st, cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
-    usingcell_style(), outputcell_style(), inputcell_style())
+    st = ToolipsDefaults.sheet("olivestyle", dark = false)
+    bdy = Style("body", "background-color" => "white")
+    push!(st, google_icons(),
+    cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
+    usingcell_style(), outputcell_style(), inputcell_style(), bdy)
+    st
+end
+
+function olivesheetdark()
+    st = ToolipsDefaults.sheet("olivestyle", dark = true)
+    bdy = Style("body", "background-color" => "#121212", "transition" => ".8s")
+    st[:children]["div"]["background-color"] = "#370083"
+    push!(st, google_icons(),
+    cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
+    usingcell_style(), outputcell_style(), inputcell_style(), bdy)
+    st
+    st
 end
 
 mutable struct OliveExtension <: Servable
@@ -68,10 +82,9 @@ end
 
 mutable struct OliveCore <: ServerExtension
     pages::Vector{Servable}
-    sessions::Dict{String, Pair{Vector{Cell}, String}}
-    pages::Dict{String, Function}
+    sessions::Dict{String, Pair{Vector{Any}, String}}
     extensions::Vector{OliveExtension}
-    users::Dict{String, String}
+    users::Dict{String, Vector{Servable}}
     function OliveCore()
         pages = ["login" => div("login")]
     end
