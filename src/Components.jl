@@ -82,7 +82,7 @@ end
 ==#
 function build_cells(v::Vector{Cell}, celltypes::Vector{CellType})
     [begin
-
+    
     end for cell in v]
 end
 
