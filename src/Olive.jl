@@ -3,8 +3,9 @@ using Toolips
 using ToolipsSession
 using ToolipsMarkdown: tmd, @tmd_str
 using ToolipsDefaults
-
-# using IpyJL
+import Toolips: AbstractRoute
+using IPy
+import IPy: Cell
 using Revise
 
 include("Core.jl")

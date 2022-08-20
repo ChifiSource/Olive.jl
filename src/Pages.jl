@@ -11,9 +11,16 @@ main = route("/") do c::Connection
     main = divider("olivemain", cell = "1", ex = "0")
     style!(main, "transition" => ".8s")
     push!(main, topbar(c))
-    on_keydown(c, "Enter") do cm::ComponentModifier
-        alert!(cm, "you pressed enter, yo!")
-    end
+    cont = cellcontainer("main")
+    mymd = mdcell("mymd")
+    push!(mymd, tmd"""# welcome to olive
+    here is a look at the UI elements of the olive interface
+    composed together! This is a markdown cell, in the future, you
+    will be able to double click to edit the raw text of this cell!
+    ## input cells:""")
+    myinp = inputcell("myinp")
+    push!(cont, mymd, myinp)
+    push!(main, cont)
     push!(olivebody, projectexplorer(), main)
     write!(c, olivebody)
 end
