@@ -80,21 +80,21 @@ end
 #==
     CELLS
 ==#
-function build_cells(v::Vector{Cell}, celltypes::Vector{CellType})
-    [begin
-    
-    end for cell in v]
+function cellcontainer(c::Connection, vc::Vector{Cell}, filename::String)
+    cells::Vector{Servable} = [begin
+        c[:OliveCore].celltypes[cell.ctype].cell(c, "cell$(vc.n)")
+    end for cell in vc]
 end
 
-function usingcell(name::String)
+function usingcell(c::Connection, name::String)
     divider(name, class = "usingcell")
 end
 
-function mdcell(name::String)
+function mdcell(c::Connection, name::String)
     divider(name, class = "cell")
 end
 
-function inputcell(name::String)
+function inputcell(c::Connection, name::String)
     outside = mdcell(name)
     inside = divider(name * "in", class = "input_cell", text = "hi", contenteditable = true)
     output = divider(name * "out", class = "output_cell", text = "hi")
@@ -102,7 +102,7 @@ function inputcell(name::String)
     outside
 end
 
-function cellcontainer(name::String)
+function cellcontainer(c::Connection, name::String)
     divider(name)
 end
 
