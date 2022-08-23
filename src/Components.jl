@@ -82,24 +82,25 @@ end
 ==#
 function cellcontainer(c::Connection, vc::Vector{Cell}, filename::String)
     cells::Vector{Servable} = [begin
-        c[:OliveCore].celltypes[cell.ctype].cell(c, "cell$(vc.n)")
+        cellcomp = c[:OliveCore].celltypes[cell.ctype].cell(c, "cell$(vc.n)")
+        c[:text] = cell.cont
+
     end for cell in vc]
 end
 
-function usingcell(c::Connection, name::String)
-    divider(name, class = "usingcell")
-end
-
-function mdcell(c::Connection, name::String)
-    divider(name, class = "cell")
-end
-
-function inputcell(c::Connection, name::String)
+function build(c::Connection, c::CellType{:input}, c::Cell)
     outside = mdcell(name)
-    inside = divider(name * "in", class = "input_cell", text = "hi", contenteditable = true)
+    inside = div(name * "in", class = "input_cell", text = "hi", contenteditable = true)
     output = divider(name * "out", class = "output_cell", text = "hi")
     push!(outside, inside, output)
     outside
+end
+function build(c::Connection, c::CellType{:using}, c::Cell)
+    divider(name, class = "usingcell")
+end
+
+function build(c::Connection, c::CellType{:md}, name::String)
+    cell::Component{:div} = div(name, class = "cell")
 end
 
 function cellcontainer(c::Connection, name::String)

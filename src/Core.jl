@@ -6,34 +6,26 @@ mutable struct OliveExtension
     component::AbstractComponent
 end
 
-mutable struct CellType
+mutable struct CellType{N}
     name::String
-    cell::Function
-    function CellType(name::String, evaluator::Function, cell::AbstsractComponent
-        writer::Function)
-        new(name, evaluator, cell, writer)
-    end
+    CellType(name::String) = new{Symbol(name)}(name)
 end
 
-function olivein(c::CellType, c::Cell)
+function olivein(c::CellType{:input}, c::Cell)
 
 end
 
-function evaluate(c::CellType, c::Cell)
+function evaluate(c::CellType{:input}, c::Cell)
 
 end
 
-function write(c::CellType, c::Cell)
+function write(c::CellType{:input}, c::Cell)
 
 end
 
-function mdevaluator(s::String)
-    tmd("celltmd", s)
+function evaluate(c::CellType{:md}, c::Cell)
+
 end
-
-const OliveInputCell = CellType("input", revise_evaluator, IPy.create_code)
-
-const OliveMarkdownCell = CellType("markdown", mdconverter, IPy.create_markdown)
 
 mutable struct OliveCore <: ServerExtension
     pages::Vector{AbstractRoute}
