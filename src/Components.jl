@@ -88,19 +88,19 @@ function cellcontainer(c::Connection, vc::Vector{Cell}, filename::String)
     end for cell in vc]
 end
 
-function build(c::Connection, c::CellType{:input}, c::Cell)
-    outside = mdcell(name)
-    inside = div(name * "in", class = "input_cell", text = "hi", contenteditable = true)
-    output = divider(name * "out", class = "output_cell", text = "hi")
+function build(c::Connection, cell::Cell{:code})
+    outside = div(class = cell)
+    inside = div("cell$(cell.n)", class = "input_cell", text = cell.source,
+     contenteditable = true)
+    number = h("cell", 1, text = cell.n, class = "cell_number")
+    output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
     push!(outside, inside, output)
     outside
 end
-function build(c::Connection, c::CellType{:using}, c::Cell)
-    divider(name, class = "usingcell")
-end
 
-function build(c::Connection, c::CellType{:md}, name::String)
-    cell::Component{:div} = div(name, class = "cell")
+function build(c::Connection, cell::Cell{:md})
+    tlcell = div("cell$(cell.n)", class = "cell")
+    tlcell[:children] = tmd("cell$(cell.n)tmd", cell.source)
 end
 
 function cellcontainer(c::Connection, name::String)

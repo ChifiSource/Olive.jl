@@ -11,15 +11,17 @@ main = route("/") do c::Connection
     main = divider("olivemain", cell = "1", ex = "0")
     style!(main, "transition" => ".8s")
     push!(main, topbar(c))
-    cont = cellcontainer("main")
-    mymd = mdcell("mymd")
-    push!(mymd, tmd"""# welcome to olive
-    here is a look at the UI elements of the olive interface
-    composed together! This is a markdown cell, in the future, you
-    will be able to double click to edit the raw text of this cell!
-    ## input cells:""")
-    myinp = inputcell("myinp")
-    push!(cont, mymd, myinp)
+    examplecells = [Cell(1, "md", """# hello
+    This is a test of the `build` method, which should have this cell showing
+    as markdown.""", ""), Cell(2, "code",
+    """function hi()
+            println("hello!")
+        end
+    """, "")]
+    cont = div("testcontainer")
+    for cell in examplecells
+        push!(cont, build(c, cell))
+    end
     push!(main, cont)
     push!(olivebody, projectexplorer(), main)
     write!(c, olivebody)
