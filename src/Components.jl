@@ -58,6 +58,17 @@ function cellnumber_style()
     st
 end
 
+function julia_style()
+    hljl_nf::Style = Style("span.hljl-nf", "color" => "blue")
+    hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", "font-weight" => "bold")
+    hljl_n::Style = Style("span.hljl-ts", "color" => "orange")
+    hljl_cs::Style = Style("span.hljl-cs", "color" => "gray")
+    hljl_k::Style = Style("span.hljl-k", "color" => "red", "font-weight" => "bold")
+    styles::Component{:sheet} = Component("tmds", "sheet")
+    push!(styles, hljl_k, hljl_nf, hljl_oB, hljl_n, hljl_cs)
+    styles::Component{:sheet}
+end
+
 function olivesheet()
     st = ToolipsDefaults.sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white")
@@ -91,7 +102,13 @@ end
 function build(c::Connection, cell::Cell{:code})
     outside = div(class = cell)
     inside = div("cell$(cell.n)", class = "input_cell", text = cell.source,
-     contenteditable = true)
+     contenteditable = true, lastlen = 1)
+     on(c, inside, "focusout") do cm::ComponentModifier
+
+     end
+     on(c, inside, "focus") do cm::ComponentModifier
+         cm["olivemain"] = "cell" => string(cell.n)
+     end
     number = h("cell", 1, text = cell.n, class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
     push!(outside, inside, output)
@@ -103,6 +120,7 @@ function build(c::Connection, cell::Cell{:md})
     innercell = tmd("cell$(cell.n)tmd", cell.source)
     on(c, tlcell, "dblclick") do cm::ComponentModifier
         set_text!(cm, tlcell, replace(cell.source, "\n" => "</br>"))
+        cm["olivemain"] = "cell" => string(cell.n)
         cm[tlcell] = "contenteditable" => "true"
     end
     tlcell[:children] = [innercell]

@@ -6,6 +6,7 @@ This function is temporarily being used to test Olive.
 """
 main = route("/") do c::Connection
     styles = olivesheet()
+    write!(c, julia_style())
     write!(c, styles)
     olivebody = body("olivebody")
     main = divider("olivemain", cell = "2", ex = "0")

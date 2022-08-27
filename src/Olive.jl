@@ -1,5 +1,6 @@
 module Olive
-import Base: write
+import Base: write, display
+using Highlights
 using Toolips
 using ToolipsSession
 using ToolipsMarkdown: tmd, @tmd_str
