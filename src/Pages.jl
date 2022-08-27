@@ -8,7 +8,7 @@ main = route("/") do c::Connection
     styles = olivesheet()
     write!(c, styles)
     olivebody = body("olivebody")
-    main = divider("olivemain", cell = "1", ex = "0")
+    main = divider("olivemain", cell = "2", ex = "0")
     style!(main, "transition" => ".8s")
     push!(main, topbar(c))
     examplecells = [Cell(1, "md", """# hello
@@ -19,6 +19,14 @@ main = route("/") do c::Connection
         end
     """, "")]
     cont = div("testcontainer")
+    modstr = """module Examp
+    x = 5
+    function evalin(ex::Expr)
+        eval(ex)
+    end
+    end
+    """
+    c[:OliveCore].sessions[getip(c)] = examplecells => modstr => eval(Meta.parse(modstr))
     on_keydown(c, "ArrowRight") do cm::ComponentModifier
         cellc = parse(Int64, cm[main]["cell"])
         evaluate(c, examplecells[cellc], cm)
