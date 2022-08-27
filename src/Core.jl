@@ -20,3 +20,11 @@ mutable struct OliveCore <: ServerExtension
         new(pages, :connection, sessions, extensions, users)
     end
 end
+
+function evaluate(c::Connection, cell::Cell{:md}, cm::ComponentModifier)
+    activemd = cm["cell$(cell.n)"]["text"]
+    cell.source = activemd
+    newtmd = tmd("cell$(cell.n)tmd", activemd)
+    set_children!(cm, "cell$(cell.n)", [newtmd])
+    cm["cell$(cell.n)"] = "contenteditable" => "false"
+end

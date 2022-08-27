@@ -100,7 +100,13 @@ end
 
 function build(c::Connection, cell::Cell{:md})
     tlcell = div("cell$(cell.n)", class = "cell")
-    tlcell[:children] = tmd("cell$(cell.n)tmd", cell.source)
+    innercell = tmd("cell$(cell.n)tmd", cell.source)
+    on(c, tlcell, "dblclick") do cm::ComponentModifier
+        set_text!(cm, tlcell, replace(cell.source, "\n" => "</br>"))
+        cm[tlcell] = "contenteditable" => "true"
+    end
+    tlcell[:children] = [innercell]
+    tlcell
 end
 
 function cellcontainer(c::Connection, name::String)

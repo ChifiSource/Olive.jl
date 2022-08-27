@@ -12,13 +12,17 @@ main = route("/") do c::Connection
     style!(main, "transition" => ".8s")
     push!(main, topbar(c))
     examplecells = [Cell(1, "md", """# hello
-    This is a test of the `build` method, which should have this cell showing
+    This is a test of the build method, which should have this cell showing
     as markdown.""", ""), Cell(2, "code",
     """function hi()
             println("hello!")
         end
     """, "")]
     cont = div("testcontainer")
+    on_keydown(c, "ArrowRight") do cm::ComponentModifier
+        cellc = parse(Int64, cm[main]["cell"])
+        evaluate(c, examplecells[cellc], cm)
+    end
     for cell in examplecells
         push!(cont, build(c, cell))
     end
