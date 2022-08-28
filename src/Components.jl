@@ -27,15 +27,17 @@ end
 
 function inputcell_style()
     st = Style("div.input_cell", border = "2px solid gray", padding = "20px",
-    "bordier-radius" => 30px, "margin-top" => 30px, "transition" => 1seconds)
+    "bordier-radius" => 30px, "margin-top" => 30px, "transition" => 1seconds,
+    "font-size" => 14pt)
     animate!(st, cell_in())
     st:"focus":["border-width" => 5px, "border-color" => "orange"]
     st::Style
 end
 
 function outputcell_style()
-    st = Style("div.output_cell", border = "2px solid pink", padding = "10px",
-    "margin-top" => 20px, "margin-right" => 200px, "border-radius" => 30px)
+    st = Style("div.output_cell", border = "0px", padding = "10px",
+    "margin-top" => 20px, "margin-right" => 200px, "border-radius" => 30px,
+    "font-size" => 14pt)
     animate!(st, cell_in())
     st::Style
 end
@@ -59,13 +61,14 @@ function cellnumber_style()
 end
 
 function julia_style()
-    hljl_nf::Style = Style("span.hljl-nf", "color" => "blue")
+    hljl_nf::Style = Style("span.hljl-nf", "color" => "#2B80FA")
     hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", "font-weight" => "bold")
     hljl_n::Style = Style("span.hljl-ts", "color" => "orange")
     hljl_cs::Style = Style("span.hljl-cs", "color" => "gray")
-    hljl_k::Style = Style("span.hljl-k", "color" => "red", "font-weight" => "bold")
-    styles::Component{:sheet} = Component("tmds", "sheet")
-    push!(styles, hljl_k, hljl_nf, hljl_oB, hljl_n, hljl_cs)
+    hljl_k::Style = Style("span.hljl-k", "color" => "#E45E9D", "font-weight" => "bold")
+    hljl_s::Style = Style("span.hljl-s", "color" => "#5DE3A4")
+    styles::Component{:sheet} = Component("codestyles", "sheet")
+    push!(styles, hljl_k, hljl_nf, hljl_oB, hljl_n, hljl_cs, hljl_s)
     styles::Component{:sheet}
 end
 
@@ -80,11 +83,18 @@ end
 
 function olivesheetdark()
     st = ToolipsDefaults.sheet("olivestyle", dark = true)
-    bdy = Style("body", "background-color" => "#121212", "transition" => ".8s")
-    st[:children]["div"]["background-color"] = "#370083"
+    bdy = Style("body", "background-color" => "#360C1F", "transition" => ".8s")
+    st[:children]["div"]["background-color"] = "#DB3080"
+    st[:children]["div"]["color"] = "white"
+    st[:children]["p"]["color"] = "white"
+    st[:children]["h1"]["color"] = "orange"
+    st[:children]["h2"]["color"] = "lightblue"
+    ipc = inputcell_style()
+    ipc["background-color"] = "#DABCDF"
+    ipc["border-width"] = 0px
     push!(st, google_icons(),
     cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
-    usingcell_style(), outputcell_style(), inputcell_style(), bdy)
+    usingcell_style(), outputcell_style(), ipc, bdy)
     st
 end
 
@@ -151,8 +161,6 @@ function topbar(c::Connection)
     style!(topbar, "border-style" => "solid", "border-color" => "black",
     "border-radius" => "5px")
     explorericon = oliveicon("explorerico", "drive_file_move_rtl")
-    projectlabel = h("projectname", 4, text = "HelloOlive.jl")
-    style!(projectlabel, "display" => "inline-block", "margin-bottom" => "5px")
     on(c, explorericon, "click") do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
             style!(cm, "projectexplorer", "width" => "250px")
@@ -187,7 +195,7 @@ function topbar(c::Connection)
     end
     push!(leftmenu, explorericon, fileicon, editicon)
     push!(rightmenu, styleicon, darkicon, settingicon, sendicon)
-    push!(topbar, leftmenu, projectlabel, rightmenu)
+    push!(topbar, leftmenu, rightmenu)
     topbar
 end
 
