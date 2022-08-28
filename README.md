@@ -6,7 +6,11 @@
 ### quickstart
 Olive.jl is not currently released, and it is recommended that users wait until the alpha (0.0.1) release before actually getting started with Olive.jl. However, you can still play around with what is available, and possibly work with the code yourself by getting a clone of this project:
 ```bash
+git clone https://github.com/ChifiSource/Olive.jl
+cd Olive.jl
+julia
 
+julia> include("dev.jl")
 ```
 As of right now, adding Olive as a Julia package will give a missing directory error, but in the future, you will be able to add Olive.jl with Pkg:
 ```julia
@@ -31,6 +35,9 @@ x += 5
 x = 1
 ```
 Olive will realize that cell 1 cannot be ran without cell 2 first being ran. However, instead of just reordering them implicitly, the end-user is presented with a hot-key to quickly fix the state by changing these cells, though this still remains optional!
+
+<img src = https://github.com/ChifiSource/image_dump/blob/main/olive/screenshots/ferfergerge.png>
+
 ### more advantages
 - Regular Julia projects (even more pure julia than Pluto.jl)
 - (customizable) HOTKEYS
