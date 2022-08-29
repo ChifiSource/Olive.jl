@@ -60,13 +60,21 @@ function cellnumber_style()
     st
 end
 
+function ipy_style()
+    Style("div.cell-ipynb",
+    "background-color" => "orange",
+     "width" => 20percent, "overflow-x" => "hidden", "border-color" => "gray",
+     "border-width" => 2px,
+    "padding" => 15px, "border-style" => "solid")::Style
+end
+
 function julia_style()
     hljl_nf::Style = Style("span.hljl-nf", "color" => "#2B80FA")
     hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", "font-weight" => "bold")
     hljl_n::Style = Style("span.hljl-ts", "color" => "orange")
     hljl_cs::Style = Style("span.hljl-cs", "color" => "gray")
     hljl_k::Style = Style("span.hljl-k", "color" => "#E45E9D", "font-weight" => "bold")
-    hljl_s::Style = Style("span.hljl-s", "color" => "#5DE3A4")
+    hljl_s::Style = Style("span.hljl-s", "color" => "#3FBA41")
     styles::Component{:sheet} = Component("codestyles", "sheet")
     push!(styles, hljl_k, hljl_nf, hljl_oB, hljl_n, hljl_cs, hljl_s)
     styles::Component{:sheet}
@@ -77,7 +85,7 @@ function olivesheet()
     bdy = Style("body", "background-color" => "white")
     push!(st, google_icons(),
     cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
-    usingcell_style(), outputcell_style(), inputcell_style(), bdy)
+    usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style())
     st
 end
 
@@ -113,9 +121,6 @@ function build(c::Connection, cell::Cell{:code})
     outside = div(class = cell)
     inside = div("cell$(cell.n)", class = "input_cell", text = cell.source,
      contenteditable = true, lastlen = 1)
-     on(c, inside, "focusout") do cm::ComponentModifier
-
-     end
      on(c, inside, "focus") do cm::ComponentModifier
          cm["olivemain"] = "cell" => string(cell.n)
      end
@@ -135,6 +140,23 @@ function build(c::Connection, cell::Cell{:md})
     end
     tlcell[:children] = [innercell]
     tlcell
+end
+
+
+function build(c::Connection, cell::Cell{:ipynb})
+    filecell = div("cell$(cell.n)", class = "cell-ipynb")
+    fname = Toolips.b("$(cell.source)", text = cell.source)
+    style!(fname, "color" => "white", "font-size" => 15pt)
+    push!(filecell, fname)
+    filecell
+end
+
+function build(c::Connection, cell::Cell{:jl})
+
+end
+
+function build(c::Connection, cell::Cell{:toml})
+
 end
 
 function cellcontainer(c::Connection, name::String)

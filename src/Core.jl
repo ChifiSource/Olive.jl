@@ -1,16 +1,13 @@
 
-mutable struct OliveExtension{T}
-    name::String
-    # bar, file, style
-    type::Symbol
-    component::AbstractComponent
-end
+
+# bar, file, style, cell, project
+abstract type OliveExtension <: Toolips.Servable end
 
 mutable struct OliveCore <: ServerExtension
     pages::Vector{AbstractRoute}
     type::Symbol
     sessions::Dict{String, Pair{Vector{Cell}, Pair{String, Module}}}
-    extensions::Vector{OliveExtension{<:Any}}
+    extensions::Vector{OliveExtension}
     users::Dict{String, Vector{Servable}}
     function OliveCore()
         pages = [main, fourofour]

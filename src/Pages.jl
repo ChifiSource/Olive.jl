@@ -4,7 +4,7 @@ main(c::Connection) -> _
 This function is temporarily being used to test Olive.
 
 """
-main = route("/") do c::Connection
+main = route("/session") do c::Connection
     styles = olivesheet()
     write!(c, julia_style())
     write!(c, styles)
@@ -39,6 +39,25 @@ main = route("/") do c::Connection
     push!(olivebody, projectexplorer(), main)
     write!(c, olivebody)
 end
+
+explorer = route("/") do c::Connection
+     styles = olivesheet()
+     write!(c, julia_style())
+     write!(c, styles)
+     olivebody = body("olivebody")
+     main = divider("olivemain", cell = "1", ex = "0")
+     style!(main, "overflow-x" => "hidden")
+     style!(main, "transition" => ".8s")
+     examplecells = [Cell(1, "ipynb", "hello.ipynb")]
+     cont = div("testcontainer", align = "center")
+     for cell in examplecells
+         push!(cont, build(c, cell))
+     end
+     push!(main, cont)
+     push!(olivebody,  main)
+     write!(c, olivebody)
+end
+
 
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
