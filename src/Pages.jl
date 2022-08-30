@@ -36,7 +36,9 @@ main = route("/session") do c::Connection
         push!(cont, build(c, cell))
     end
     push!(main, cont)
-    push!(olivebody, projectexplorer(), main)
+    pe = projectexplorer()
+    push!(pe, build(c, Cell(1, "ipynb", "example.ipynb")))
+    push!(olivebody, pe, main)
     write!(c, olivebody)
 end
 

@@ -50,7 +50,7 @@ rel = "stylesheet")
 
 function iconstyle()
     s = Style(".material-symbols-outlined", cursor = "pointer",
-    "font-size" => "100pt")
+    "font-size" => "100pt", "transition" => ".4s")
     s:"hover":["color" => "orange", "transform" => "scale(1.1)"]
     s
 end
@@ -63,9 +63,9 @@ end
 function ipy_style()
     Style("div.cell-ipynb",
     "background-color" => "orange",
-     "width" => 20percent, "overflow-x" => "hidden", "border-color" => "gray",
+     "width" => 75percent, "overflow-x" => "hidden", "border-color" => "gray",
      "border-width" => 2px,
-    "padding" => 15px, "border-style" => "solid")::Style
+    "padding" => 4px, "border-style" => "solid")::Style
 end
 
 function julia_style()
@@ -166,7 +166,7 @@ end
 function projectexplorer()
     pexplore = divider("projectexplorer")
     examplefile = ul("hello", text = "wow")
-    style!(pexplore, "background-color" => "gray", "position" => "fixed",
+    style!(pexplore, "background" => "transparent", "position" => "fixed",
     "z-index" => "1", "top" => "0", "overflow-x" => "hidden",
      "padding-top" => "30px", "width" => "0", "height" => "100%", "left" => "0",
      "transition" => "0.8s")
@@ -182,7 +182,7 @@ function topbar(c::Connection)
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
     "border-radius" => "5px")
-    explorericon = oliveicon("explorerico", "drive_file_move_rtl")
+    explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
     on(c, explorericon, "click") do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
             style!(cm, "projectexplorer", "width" => "250px")
@@ -198,12 +198,12 @@ function topbar(c::Connection)
             cm["olivemain"] = "ex" => "0"
         end
     end
-    fileicon = oliveicon("fileico", "list")
-    editicon = oliveicon("editico", "notes")
-    settingicon = oliveicon("settingicon", "settings")
-    styleicon = oliveicon("styleico", "display_settings")
-    darkicon = oliveicon("darkico", "dark_mode")
-    sendicon = oliveicon("sendico", "send")
+    fileicon = topbar_icon("fileico", "list")
+    editicon = topbar_icon("editico", "notes")
+    settingicon = topbar_icon("settingicon", "settings")
+    styleicon = topbar_icon("styleico", "display_settings")
+    darkicon = topbar_icon("darkico", "dark_mode")
+    sendicon = topbar_icon("sendico", "send")
     on(c, darkicon, "click") do cm::ComponentModifier
         if cm["olivestyle"]["dark"] == "false"
             set_text!(cm, darkicon, "light_mode")
@@ -221,9 +221,9 @@ function topbar(c::Connection)
     topbar
 end
 
-function oliveicon(name::String, icon::String)
+function topbar_icon(name::String, icon::String)
     ico = span(name, class = "material-symbols-outlined", text = icon,
      margin = "15px")
-     style!(ico, "font-size" => "35pt", "transition" => "1s")
+     style!(ico, "font-size" => "35pt")
      ico
 end
