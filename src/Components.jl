@@ -109,6 +109,20 @@ end
 #==
     CELLS
 ==#
+
+function unhighlight(x::String)
+    replace(x, "<pre class=\"hljl\">" => "", "</pre>" => "",
+    "</span>" => "",
+    "<span class=\"hljl-k\">" => "", "<span class=\"hljl-p\">" => "",
+    "<span class=\"hljl-t\">" => "", "<span class=\"hljl-cs\">" => "",
+    "<span class=\"hljl-oB\">" => "", "<span class=\"hljl-nf\">" => "",
+    "<span class=\"hljl-n\">" => "", "<span class=\"hljl-s\">" => "",
+    "<span class=\"hljl-ni\">" => "", "<b>" => "", "</b>" => "",
+    "<font color=\"#ff0000\">" => "", "</font>" => "", "<div>" => "\n",
+    "</div>" => "", "\n" => ";", "\n        " => ";")
+end
+
+
 function cellcontainer(c::Connection, vc::Vector{Cell}, filename::String)
     cells::Vector{Servable} = [begin
         cellcomp = c[:OliveCore].celltypes[cell.ctype].cell(c, "cell$(vc.n)")
@@ -123,6 +137,16 @@ function build(c::Connection, cell::Cell{:code})
      contenteditable = true, lastlen = 1)
      on(c, inside, "focus") do cm::ComponentModifier
          cm["olivemain"] = "cell" => string(cell.n)
+     end
+     on(c, inside, "keyup") do cm::ComponentModifier
+         rawcode = unhighlight(cm["cell$(cell.n)"]["text"])
+         if length(rawcode) == 0
+             return
+         end
+         lastc::Char = rawcode[length(rawcode)]
+         if (lastc == ' ' || lastc == '\n' || lastc == ';')
+
+         end
      end
     number = h("cell", 1, text = cell.n, class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)

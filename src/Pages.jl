@@ -21,14 +21,13 @@ main = route("/session") do c::Connection
     """, "")]
     cont = div("testcontainer")
     modstr = """module Examp
-    x = 5
-    function evalin(ex::Expr)
-        eval(ex)
+    function evalin(ex::Any)
+            eval(ex)
     end
-    end
-    """
+end"""
     c[:OliveCore].sessions[getip(c)] = examplecells => modstr => eval(Meta.parse(modstr))
     on_keydown(c, "ArrowRight") do cm::ComponentModifier
+        println("hah")
         cellc = parse(Int64, cm[main]["cell"])
         evaluate(c, examplecells[cellc], cm)
     end
