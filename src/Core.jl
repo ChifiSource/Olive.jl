@@ -10,7 +10,7 @@ mutable struct OliveCore <: ServerExtension
     extensions::Vector{OliveExtension}
     users::Dict{String, Vector{Servable}}
     function OliveCore()
-        pages = [main, fourofour]
+        pages = [main, fourofour, explorer]
         sessions = Dict{String, Pair{Vector{Cell}, String}}()
         users = Dict{String, Vector{Servable}}()
         extensions = Vector{OliveExtension}()
@@ -19,7 +19,7 @@ mutable struct OliveCore <: ServerExtension
 end
 
 mutable struct OliveDisplay <: AbstractDisplay
-    io::IO
+    io::IOBuffer
     OliveDisplay() = new(IOBuffer())::OliveDisplay
 end
 
@@ -36,6 +36,7 @@ function display(d::OliveDisplay, m::MIME{<:Any}, o::Any)
     end
     show(d.io, correctm(), o)
 end
+
 display(d::OliveDisplay, o::Any) = display(d, MIME{:nothing}(), o)
 
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
@@ -55,10 +56,18 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
         ret = String(i.data)
     end
     b = IOBuffer()
-    o = IOBuffer()
     highlight(b, MIME"text/html"(), rawcode, Highlights.Lexers.JuliaLexer)
     out = replace(String(b.data), "\n" => "", "        " => "\n        ",
     "end" => "\nend")
     set_text!(cm, "cell$(cell.n)", out)
-    set_text!(cm, "cell$(cell.n)out", ret)
+    od = OliveDisplay()
+    display( od,MIME"nothing"(), ret)
+    set_text!(cm, "cell$(cell.n)out", String(od.io.data))
+end
+
+function evaluate(c::Connection, cell::Cell{:md}, cm::ComponentModifier)
+    activemd = replace(cm["cell$(cell.n)"]["text"], "<div>" => "\n")
+    newtmd = tmd("cell$(cell.n)tmd", activemd)
+    set_children!(cm, "cell$(cell.n)", [newtmd])
+    cm["cell$(cell.n)"] = "contenteditable" => "false"
 end

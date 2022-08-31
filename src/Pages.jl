@@ -36,7 +36,7 @@ end"""
     end
     push!(main, cont)
     pe = projectexplorer()
-    push!(pe, build(c, Cell(1, "ipynb", "example.ipynb")))
+    push!(pe, build(c, Cell(1000, "ipynb", "example.ipynb")))
     push!(olivebody, pe, main)
     write!(c, olivebody)
 end
@@ -51,14 +51,23 @@ explorer = route("/") do c::Connection
      style!(main, "transition" => ".8s")
      examplecells = [Cell(1, "ipynb", "hello.ipynb")]
      cont = div("testcontainer", align = "center")
-     for cell in examplecells
-         push!(cont, build(c, cell))
-     end
+     testcells::Vector{Servable} = [build(c, cell) for cell in directory_cells(c)]
+     cont[:children] = testcells
      push!(main, cont)
      push!(olivebody,  main)
      write!(c, olivebody)
 end
 
+function directory_cells(c::Connection, dir::String = pwd())
+    routes = Toolips.route_from_dir(dir)
+    notdirs = [routes[r] for r in findall(x -> ~(isdir(x)), routes)]
+    [begin
+    splitdir::Vector{SubString} = split(path, "/")
+    fname::String = string(splitdir[length(splitdir)])
+    fending::String = string(split(fname, ".")[2])
+    Cell(e, fending, fname)
+    end for (e, path) in enumerate(notdirs)]::Vector{Cell}
+end
 
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))

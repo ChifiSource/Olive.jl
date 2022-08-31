@@ -68,6 +68,13 @@ function ipy_style()
     "padding" => 4px, "border-style" => "solid")::Style
 end
 
+function hidden_style()
+    Style("div.cell-hidden",
+    "background-color" => "gray",
+     "width" => 75percent, "overflow-x" => "hidden",
+    "padding" => 4px)::Style
+end
+
 function julia_style()
     hljl_nf::Style = Style("span.hljl-nf", "color" => "#2B80FA")
     hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", "font-weight" => "bold")
@@ -85,7 +92,8 @@ function olivesheet()
     bdy = Style("body", "background-color" => "white")
     push!(st, google_icons(),
     cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
-    usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style())
+    usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
+    hidden_style())
     st
 end
 
@@ -175,12 +183,28 @@ function build(c::Connection, cell::Cell{:ipynb})
     filecell
 end
 
-function build(c::Connection, cell::Cell{:jl})
+function build(c::Connection, cell::Cell{<:Any})
+    hiddencell = div("cell$(cell.n)", class = "cell-hidden")
+    name = a("cell$(cell.n)label", text = cell.source)
+    style!(name, "color" => "black")
+    push!(hiddencell, name)
+    hiddencell
+end
 
+function build(c::Connection, cell::Cell{:jl})
+    hiddencell = div("cell$(cell.n)", class = "cell-hidden")
+    name = a("cell$(cell.n)label", text = cell.source)
+    style!(name, "color" => "black")
+    push!(hiddencell, name)
+    hiddencell
 end
 
 function build(c::Connection, cell::Cell{:toml})
-
+    hiddencell = div("cell$(cell.n)", class = "cell-hidden")
+    name = a("cell$(cell.n)label", text = cell.source)
+    style!(name, "color" => "black")
+    push!(hiddencell, name)
+    hiddencell
 end
 
 function cellcontainer(c::Connection, name::String)
@@ -189,12 +213,10 @@ end
 
 function projectexplorer()
     pexplore = divider("projectexplorer")
-    examplefile = ul("hello", text = "wow")
     style!(pexplore, "background" => "transparent", "position" => "fixed",
     "z-index" => "1", "top" => "0", "overflow-x" => "hidden",
      "padding-top" => "30px", "width" => "0", "height" => "100%", "left" => "0",
      "transition" => "0.8s")
-    push!(pexplore, examplefile)
     pexplore
 end
 
