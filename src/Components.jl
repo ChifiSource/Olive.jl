@@ -61,18 +61,33 @@ function cellnumber_style()
 end
 
 function ipy_style()
-    Style("div.cell-ipynb",
+    s::Style = Style("div.cell-ipynb",
     "background-color" => "orange",
      "width" => 75percent, "overflow-x" => "hidden", "border-color" => "gray",
      "border-width" => 2px,
-    "padding" => 4px, "border-style" => "solid")::Style
+    "padding" => 4px, "border-style" => "solid", "transition" => "0.5s")
+    s:"hover":["scale" => "1.05"]
+    s::Style
+end
+
+function toml_style()
+    Style("div.cell-toml", "background-color" => "blue", "text-color" => "white",
+    "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
+    "transition" => "0.5s",
+    "border-style" => "solid", "width" => 75percent)
+end
+
+function jl_style()
+    Style("div.cell-jl", "background-color" => "#F55887", "text-color" => "white",
+    "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
+    "border-style" => "solid", "width" => 75percent, "transition" => "0.5s")
 end
 
 function hidden_style()
     Style("div.cell-hidden",
     "background-color" => "gray",
      "width" => 75percent, "overflow-x" => "hidden",
-    "padding" => 4px)::Style
+    "padding" => 4px, "transition" => "0.5s")::Style
 end
 
 function julia_style()
@@ -93,7 +108,7 @@ function olivesheet()
     push!(st, google_icons(),
     cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
-    hidden_style())
+    hidden_style(), jl_style(), toml_style())
     st
 end
 
@@ -110,7 +125,8 @@ function olivesheetdark()
     ipc["border-width"] = 0px
     push!(st, google_icons(),
     cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
-    usingcell_style(), outputcell_style(), ipc, bdy)
+    usingcell_style(), outputcell_style(), ipc, bdy, ipy_style(),
+    hidden_style(), jl_style(), toml_style())
     st
 end
 
@@ -177,11 +193,19 @@ end
 
 function build(c::Connection, cell::Cell{:ipynb})
     filecell = div("cell$(cell.n)", class = "cell-ipynb")
+    on(c, filecell, "click") do cm::ComponentModifier
+        cm["olivemain"] = "cell" => string(cell.n)
+    end
     fname = Toolips.b("$(cell.source)", text = cell.source)
     style!(fname, "color" => "white", "font-size" => 15pt)
     push!(filecell, fname)
     filecell
 end
+
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:ipynb})
+    fname = cm["cell$(cell.n)"]["text"]
+end
+
 
 function build(c::Connection, cell::Cell{<:Any})
     hiddencell = div("cell$(cell.n)", class = "cell-hidden")
@@ -192,17 +216,17 @@ function build(c::Connection, cell::Cell{<:Any})
 end
 
 function build(c::Connection, cell::Cell{:jl})
-    hiddencell = div("cell$(cell.n)", class = "cell-hidden")
+    hiddencell = div("cell$(cell.n)", class = "cell-jl")
     name = a("cell$(cell.n)label", text = cell.source)
-    style!(name, "color" => "black")
+    style!(name, "color" => "white")
     push!(hiddencell, name)
     hiddencell
 end
 
 function build(c::Connection, cell::Cell{:toml})
-    hiddencell = div("cell$(cell.n)", class = "cell-hidden")
+    hiddencell = div("cell$(cell.n)", class = "cell-toml")
     name = a("cell$(cell.n)label", text = cell.source)
-    style!(name, "color" => "black")
+    style!(name, "color" => "white")
     push!(hiddencell, name)
     hiddencell
 end

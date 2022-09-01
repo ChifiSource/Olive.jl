@@ -27,7 +27,6 @@ main = route("/session") do c::Connection
 end"""
     c[:OliveCore].sessions[getip(c)] = examplecells => modstr => eval(Meta.parse(modstr))
     on_keydown(c, "ArrowRight") do cm::ComponentModifier
-        println("hah")
         cellc = parse(Int64, cm[main]["cell"])
         evaluate(c, examplecells[cellc], cm)
     end
@@ -47,6 +46,10 @@ explorer = route("/") do c::Connection
      write!(c, styles)
      olivebody = body("olivebody")
      main = divider("olivemain", cell = "1", ex = "0")
+     on_keydown(c, "ArrowRight") do cm::ComponentModifier
+         cellc = parse(Int64, cm[main]["cell"])
+         evaluate(c, examplecells[cellc], cm)
+     end
      style!(main, "overflow-x" => "hidden")
      style!(main, "transition" => ".8s")
      examplecells = [Cell(1, "ipynb", "hello.ipynb")]
