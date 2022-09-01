@@ -41,8 +41,10 @@ display(d::OliveDisplay, o::Any) = display(d, MIME{:nothing}(), o)
 
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     rawcode = unhighlight(cm["cell$(cell.n)"]["text"])
-    execcode = replace(rawcode, "\n" => ";", "</br>" => ";")
+    execcode = replace(rawcode, "\n" => ";", "</br>" => ";",
+    "\n" => ";", "\n        " => ";")
     cell.source = rawcode
+    print(execcode)
     sinfo = c[:OliveCore].sessions[getip(c)]
     ret = ""
     i = IOBuffer()

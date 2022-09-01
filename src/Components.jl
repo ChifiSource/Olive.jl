@@ -143,7 +143,8 @@ function unhighlight(x::String)
     "<span class=\"hljl-n\">" => "", "<span class=\"hljl-s\">" => "",
     "<span class=\"hljl-ni\">" => "", "<b>" => "", "</b>" => "",
     "<font color=\"#ff0000\">" => "", "</font>" => "", "<div>" => "\n",
-    "</div>" => "", "\n" => ";", "\n        " => ";")
+    "</div>" => "", "<font color=\"#e45e9d\">" => "",
+    "<font color=\"#e45e9d\" face=\"monospace\"><span style=\"white-space: pre;\">" => "")
 end
 
 
