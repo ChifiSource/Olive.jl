@@ -5,34 +5,28 @@ This function is temporarily being used to test Olive.
 
 """
 main = route("/session") do c::Connection
+    # styles
     styles = olivesheet()
     write!(c, julia_style())
     write!(c, styles)
+    # args
+    args = getargs(c)
+    key = args[:key]
+    session = c[:OliveCore].sessions[key]
+    # main
     olivebody = body("olivebody")
-    main = divider("olivemain", cell = "2", ex = "0")
+    main = divider("olivemain", cell = "1", ex = "0")
     style!(main, "transition" => ".8s")
     push!(main, topbar(c))
-    examplecells = [Cell(1, "md", """# hello
-    This is a test of the build method, which should have this cell showing
-    as markdown.""", ""), Cell(2, "code",
-    """function hi()
-            println("hello!")
-        end
-    """, "")]
     cont = div("testcontainer")
-    modstr = """module Examp
-    function evalin(ex::Any)
-            eval(ex)
-    end
-end"""
-    c[:OliveCore].sessions[getip(c)] = examplecells => modstr => eval(Meta.parse(modstr))
     on_keydown(c, "ArrowRight") do cm::ComponentModifier
         cellc = parse(Int64, cm[main]["cell"])
         evaluate(c, examplecells[cellc], cm)
     end
-    for cell in examplecells
-        push!(cont, build(c, cell))
-    end
+    current_file = first(session.open)
+    println(current_file)
+    cells::Vector{Servable} = [build(c, cell) for cell in current_file[2][2]]
+    cont[:children] = cells
     push!(main, cont)
     pe = projectexplorer()
     push!(pe, build(c, Cell(1000, "ipynb", "example.ipynb")))
@@ -46,16 +40,16 @@ explorer = route("/") do c::Connection
      write!(c, styles)
      olivebody = body("olivebody")
      main = divider("olivemain", cell = "1", ex = "0")
+     cells::Vector{Cell} = directory_cells(c)
      on_keydown(c, "ArrowRight") do cm::ComponentModifier
          cellc = parse(Int64, cm[main]["cell"])
-         evaluate(c, examplecells[cellc], cm)
+         evaluate(c, cells[cellc], cm)
      end
      style!(main, "overflow-x" => "hidden")
      style!(main, "transition" => ".8s")
-     examplecells = [Cell(1, "ipynb", "hello.ipynb")]
      cont = div("testcontainer", align = "center")
-     testcells::Vector{Servable} = [build(c, cell) for cell in directory_cells(c)]
-     cont[:children] = testcells
+     cellcont::Vector{Servable} = [build(c, cell) for cell in cells]
+     cont[:children] = cellcont
      push!(main, cont)
      push!(olivebody,  main)
      write!(c, olivebody)
@@ -68,7 +62,7 @@ function directory_cells(c::Connection, dir::String = pwd())
     splitdir::Vector{SubString} = split(path, "/")
     fname::String = string(splitdir[length(splitdir)])
     fending::String = string(split(fname, ".")[2])
-    Cell(e, fending, fname)
+    Cell(e, fending, fname, path)
     end for (e, path) in enumerate(notdirs)]::Vector{Cell}
 end
 

@@ -64,7 +64,7 @@ version = "0.5.2"
 
 [[deps.IPy]]
 deps = ["JSON"]
-git-tree-sha1 = "eb5f667b40925c44831b2662ba21b4b414468da7"
+git-tree-sha1 = "84130b14dadf6dc8ca35a00cf2f389d99fa87b37"
 repo-rev = "Unstable"
 repo-url = "https://github.com/ChifiSource/IPy.jl"
 uuid = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"

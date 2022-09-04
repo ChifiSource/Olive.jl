@@ -203,11 +203,6 @@ function build(c::Connection, cell::Cell{:ipynb})
     filecell
 end
 
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:ipynb})
-    fname = cm["cell$(cell.n)"]["text"]
-end
-
-
 function build(c::Connection, cell::Cell{<:Any})
     hiddencell = div("cell$(cell.n)", class = "cell-hidden")
     name = a("cell$(cell.n)label", text = cell.source)
