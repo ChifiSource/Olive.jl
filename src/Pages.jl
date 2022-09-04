@@ -13,15 +13,23 @@ main = route("/session") do c::Connection
     args = getargs(c)
     key = args[:key]
     session = c[:OliveCore].sessions[key]
+    token = Component("olive-token", "token")
+    token[:text] = key
+    write!(c, token)
+
     # main
     olivebody = body("olivebody")
-    main = divider("olivemain", cell = "1", ex = "0")
+    main = divider("olivemain", cell = "1", ex = "0",
+    fname = first(session.open)[1])
     style!(main, "transition" => ".8s")
     push!(main, topbar(c))
     cont = div("testcontainer")
     on_keydown(c, "ArrowRight") do cm::ComponentModifier
         cellc = parse(Int64, cm[main]["cell"])
-        evaluate(c, examplecells[cellc], cm)
+        activefile = cm["olivemain"]["fname"]
+        println(c[:OliveCore].sessions)
+        newcell = session.open[activefile][2][cellc]
+        evaluate(c, newcell, cm)
     end
     current_file = first(session.open)
     println(current_file)

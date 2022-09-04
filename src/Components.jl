@@ -78,9 +78,11 @@ function toml_style()
 end
 
 function jl_style()
-    Style("div.cell-jl", "background-color" => "#F55887", "text-color" => "white",
+    s = Style("div.cell-jl", "background-color" => "#F55887", "text-color" => "white",
     "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
     "border-style" => "solid", "width" => 75percent, "transition" => "0.5s")
+    s:"hover":["scale" => "1.05"]
+    s::Style
 end
 
 function hidden_style()
@@ -213,6 +215,9 @@ end
 
 function build(c::Connection, cell::Cell{:jl})
     hiddencell = div("cell$(cell.n)", class = "cell-jl")
+    on(c, hiddencell, "click") do cm::ComponentModifier
+        cm["olivemain"] = "cell" => string(cell.n)
+    end
     name = a("cell$(cell.n)label", text = cell.source)
     style!(name, "color" => "white")
     push!(hiddencell, name)

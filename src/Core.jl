@@ -50,8 +50,10 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     execcode = replace(rawcode, "\n" => ";", "</br>" => ";",
     "\n" => ";", "\n        " => ";")
     cell.source = rawcode
+    key = cm["olive-token"]["text"]
+    fname = cm["olivemain"]["fname"]
     print(execcode)
-    sinfo = c[:OliveCore].sessions[getip(c)]
+    sinfo = c[:OliveCore].sessions[key].open[fname]
     ret = ""
     i = IOBuffer()
     try
@@ -63,7 +65,7 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
            check for using and always make the evaluation of that cell
              multi-threaded. ==#
 
-        ret = sinfo[2][2].evalin(Meta.parse(execcode))
+        ret = sinfo[1].evalin(Meta.parse(execcode))
     catch e
         throw(e)
         ret = e
@@ -84,6 +86,7 @@ end
 
 function evaluate(c::Connection, cell::Cell{:md}, cm::ComponentModifier)
     activemd = replace(cm["cell$(cell.n)"]["text"], "<div>" => "\n")
+    cell.source = activemd
     newtmd = tmd("cell$(cell.n)tmd", activemd)
     set_children!(cm, "cell$(cell.n)", [newtmd])
     cm["cell$(cell.n)"] = "contenteditable" => "false"
@@ -94,8 +97,12 @@ function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier)
 end
 
 function evaluate(c::Connection, cell::Cell{:ipynb}, cm::ComponentModifier)
-    println(cell)
     cs::Vector{Cell{<:Any}} = IPy.read_ipynb(cell.outputs)
+    load_session(c, cs, cm, cell.source, cell.outputs)
+end
+
+function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
+    cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
