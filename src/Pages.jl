@@ -14,6 +14,7 @@ main = route("/session") do c::Connection
     key = args[:key]
     session = c[:OliveCore].sessions[key]
     token = Component("olive-token", "token")
+    style!(token, "display" => "none")
     token[:text] = key
     write!(c, token)
 
@@ -69,9 +70,13 @@ function directory_cells(c::Connection, dir::String = pwd())
     [begin
     splitdir::Vector{SubString} = split(path, "/")
     fname::String = string(splitdir[length(splitdir)])
-    fending::String = string(split(fname, ".")[2])
+    fsplit = split(fname, ".")
+    fending::String = ""
+    if length(fsplit) > 1
+        fending = string(fsplit[2])
+    end
     Cell(e, fending, fname, path)
-    end for (e, path) in enumerate(notdirs)]::Vector{Cell}
+    end for (e, path) in enumerate(notdirs)]::AbstractVector
 end
 
 fourofour = route("404") do c::Connection

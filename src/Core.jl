@@ -45,6 +45,8 @@ end
 
 display(d::OliveDisplay, o::Any) = display(d, MIME{:nothing}(), o)
 
+"""this would be a great function to contribute to right now, or change the
+build function to create the feign textbox!"""
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     rawcode = unhighlight(cm["cell$(cell.n)"]["text"])
     execcode = replace(rawcode, "\n" => ";", "</br>" => ";",
@@ -52,7 +54,7 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     cell.source = rawcode
     key = cm["olive-token"]["text"]
     fname = cm["olivemain"]["fname"]
-    print(execcode)
+#    print(execcode)
     sinfo = c[:OliveCore].sessions[key].open[fname]
     ret = ""
     i = IOBuffer()

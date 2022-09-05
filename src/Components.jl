@@ -161,23 +161,28 @@ end
 function build(c::Connection, cell::Cell{:code})
     outside = div(class = cell)
     inside = div("cell$(cell.n)", class = "input_cell", text = cell.source,
-     contenteditable = true, lastlen = 1)
+     contenteditable = true, lastpos = 1)
+     style!(inside, "text-color" => "white !important")
+     b = IOBuffer()
+     highlight(b, MIME"text/html"(), cell.source,
+      Highlights.Lexers.JuliaLexer)
+     inside_cover = section("cellcover$(cell.n)", text = String(b.data))
      on(c, inside, "focus") do cm::ComponentModifier
          cm["olivemain"] = "cell" => string(cell.n)
      end
      on(c, inside, "keyup") do cm::ComponentModifier
-         rawcode = unhighlight(cm["cell$(cell.n)"]["text"])
+         rawcode = cm["cell$(cell.n)"]["text"]
          if length(rawcode) == 0
              return
          end
-         lastc::Char = rawcode[length(rawcode)]
-         if (lastc == ' ' || lastc == '\n' || lastc == ';')
-
-         end
+         b = IOBuffer()
+         highlight(b, MIME"text/html"(), replace(rawcode, "</br>" => "\n"),
+          Highlights.Lexers.JuliaLexer)
+         set_text!(cm, "cellcover$(cell.n)", String(b.data))
      end
     number = h("cell", 1, text = cell.n, class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
-    push!(outside, inside, output)
+    push!(outside, inside, inside_cover, output)
     outside
 end
 
@@ -245,14 +250,7 @@ function projectexplorer()
     pexplore
 end
 
-function topbar(c::Connection)
-    topbar = divider("menubar")
-    leftmenu = span("leftmenu", align = "left")
-    style!(leftmenu, "display" => "inline-block")
-    rightmenu = span("rightmenu", align = "right")
-    style!(rightmenu, "display" => "inline-block", "float" => "right")
-    style!(topbar, "border-style" => "solid", "border-color" => "black",
-    "border-radius" => "5px")
+function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
     on(c, explorericon, "click") do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
@@ -269,12 +267,11 @@ function topbar(c::Connection)
             cm["olivemain"] = "ex" => "0"
         end
     end
-    fileicon = topbar_icon("fileico", "list")
-    editicon = topbar_icon("editico", "notes")
-    settingicon = topbar_icon("settingicon", "settings")
-    styleicon = topbar_icon("styleico", "display_settings")
+    explorericon::Component{:span}
+end
+
+function dark_mode(c::Connection)
     darkicon = topbar_icon("darkico", "dark_mode")
-    sendicon = topbar_icon("sendico", "send")
     on(c, darkicon, "click") do cm::ComponentModifier
         if cm["olivestyle"]["dark"] == "false"
             set_text!(cm, darkicon, "light_mode")
@@ -286,10 +283,31 @@ function topbar(c::Connection)
             cm["olivestyle"] = "dark" => "false"
         end
     end
-    push!(leftmenu, explorericon, fileicon, editicon)
-    push!(rightmenu, styleicon, darkicon, settingicon, sendicon)
+    darkicon::Component{:span}
+end
+
+function settings(c::Connection)
+    settingicon = topbar_icon("settingicon", "settings")
+    settingicon::Component{:span}
+end
+
+function cellmenu(c::Connection)
+    cellicon = topbar_icon("editico", "notes")
+    cellicon::Component{:span}
+end
+
+function topbar(c::Connection)
+    topbar = divider("menubar")
+    leftmenu = span("leftmenu", align = "left")
+    style!(leftmenu, "display" => "inline-block")
+    rightmenu = span("rightmenu", align = "right")
+    style!(rightmenu, "display" => "inline-block", "float" => "right")
+    style!(topbar, "border-style" => "solid", "border-color" => "black",
+    "border-radius" => "5px")
+    push!(leftmenu, explorer_icon(c), cellmenu(c))
+    push!(rightmenu, settings(c))
     push!(topbar, leftmenu, rightmenu)
-    topbar
+    topbar::Component{:div}
 end
 
 function topbar_icon(name::String, icon::String)
