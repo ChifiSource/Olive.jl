@@ -1,6 +1,6 @@
 <div align = "center">
-<img src = https://github.com/ChifiSource/image_dump/blob/main/olive/default.png width = 400>
-<h5>📓| pure julia notebooks |📓</h5>
+<img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/olive/olivefullcover.png width = 1000>
+<h5>| pre-release |</h5>
 </div>
 
 ### quickstart
