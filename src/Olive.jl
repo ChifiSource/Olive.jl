@@ -1,4 +1,5 @@
 module Olive
+using Pkg
 import Base: write, display
 using Highlights
 using Toolips
@@ -9,6 +10,7 @@ import Toolips: AbstractRoute, AbstractConnection, AbstractComponent
 using IPy
 import IPy: Cell
 using Revise
+
 
 include("Core.jl")
 include("Components.jl")
@@ -27,4 +29,8 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
     server.start()
 end
 
+function create(name::String)
+    Toolips.new_webapp(name)
+    Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
+end
 end # - module
