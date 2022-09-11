@@ -9,6 +9,7 @@ using ToolipsDefaults
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent
 using IPy
 import IPy: Cell
+using Crayons
 using Revise
 
 
@@ -32,21 +33,43 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
         olivehomedir = "%SystemDrive%/Program Files/olive"
         olivedir = "olive"
     end
-    if ~(isdir(homedir * olivedir))
+    extensions::Vector{ServerExtension} = [Logger(),
+    Session(["/", "/session"]), OliveCore()]
+    if ~(isdir("$homedir/$olivedir"))
         try
             cd(homedir)
-            Toolips.new_webapp("Olive")
+            Toolips.new_webapp(olivedir)
         catch
             throw("Unable to access your applications directory.")
         end
-        nano("")
-        rs = routes(setup)
+        open("$homedir/$olivedir/src/olive.jl", "w") do o
+            write(o, """
+module $olivedir
+using Toolips
+using ToolipsSession
+using Olive
+using Olive.Extensions: dark_mode
 
+function build(group::UserGroup)
+    myolive = OliveCore()
+    load!(myolive, dark_mode)
+    myolive::OliveCore
+end
+
+function start(ip::String, port::Int64)
+    server = OliveServer(build())
+end
+end # module
+                     """)
+        end
+        rs = routes(setup)
+        server = ServerTemplate(IP, PORT, rs, extensions = extensions)
+        return(st.start())::Toolips.WebServer
     end
-    extensions::Vector{ServerExtension} = [Logger(), Session(["/", "/session"]), OliveCore()]
-    rs = routes(main, fourofour, explorer)
+
+    rs = routes(main, fourofour, explorer, viewer)
     server = ServerTemplate(IP, PORT, rs, extensions = extensions)
-    server.start()
+    server.start()::Toolips.WebServer
 end
 
 OliveServer() = ServerTemplate(ip, port, [setup],

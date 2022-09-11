@@ -5,6 +5,7 @@
     Which is awesome, by the way. Anyway, cells are sprung into existence via
     a file cell. For example, we would implement a toml reader into Cells by
     creating a toml category and a toml section cell and then making a simple name.
+    Below then is the infastructure to surround the cells, cell pages etc.
 ==#
 
 function unhighlight(x::String)
@@ -189,4 +190,21 @@ end"""
     push!(session.open, fname => mod => cs)
     push!(c[:OliveCore].sessions, key => session)
     redirect!(cm, "/session?key=$key")
+end
+
+mutable struct CellGroup{T} <: Servable
+    cells::Vector{Cell{<:Any}}
+    f::Function
+    function CellGroup(type::String, cells::Vector{Cell{<:Any}})
+        f(c::Connection) = [build(cell) for cell in cells]::Vector{Servable}
+        new{type}(cells, f)::Servable
+    end
+end
+
+mutable struct CellWindow <: Servable
+    groups::Vector{CellGroup{<:Any}}
+    active::Int64
+    function CellWindow(v::Vector{CellGroup})
+
+    end
 end
