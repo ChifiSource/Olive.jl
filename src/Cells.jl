@@ -21,15 +21,6 @@ function unhighlight(x::String)
     "<font color=\"#e45e9d\" face=\"monospace\"><span style=\"white-space: pre;\">" => "")
 end
 
-
-function cellcontainer(c::Connection, vc::Vector{Cell}, filename::String)
-    cells::Vector{Servable} = [begin
-        cellcomp = c[:OliveCore].celltypes[cell.ctype].cell(c, "cell$(vc.n)")
-        c[:text] = cell.cont
-
-    end for cell in vc]
-end
-
 function build(c::Connection, cell::Cell{:code})
     outside = div(class = cell)
     inside = div("cell$(cell.n)", class = "input_cell", text = cell.source,
@@ -195,16 +186,52 @@ end
 mutable struct CellGroup{T} <: Servable
     cells::Vector{Cell{<:Any}}
     f::Function
-    function CellGroup(type::String, cells::Vector{Cell{<:Any}})
-        f(c::Connection) = [build(cell) for cell in cells]::Vector{Servable}
-        new{type}(cells, f)::Servable
+    n::Int64
+    function CellGroup(type::String, n::Int64, cells::Vector{Cell{<:Any}})
+        f(c::Connection) = write!(c,
+        [build(c, cell) for cell in cells]::Vector{Servable})
+        new{Symbol(type)}(cells, f, n)::Servable
     end
 end
 
-mutable struct CellWindow <: Servable
-    groups::Vector{CellGroup{<:Any}}
+function build(cg::CellGroup{:file}, label::String)
+    lbl = h2("cellgroup$label-path", text = crllgroup)
+    container = div("cellgroup$label")
+end
+
+mutable struct Explorer <: Servable
+    token::Component{:token}
+    groups::Vector{CellGroup{:file}}
+    f::Function
     active::Int64
-    function CellWindow(v::Vector{CellGroup})
+    data::Dict{Symbol, Any}
+    function Explorer(v::Vector{CellGroup})
+        f(c::Connection)
+    end
+end
+
+mutable struct OliveSession <: Servable
+    token::Component{:token}
+    groups::Vector{CellGroup{<:Any}}
+    f::Function
+    active::Int64
+    data::Dict{Symbol, Any}
+    function OliveSession(v::Vector{CellGroup})
 
     end
+end
+
+function directory_cells(c::Connection, dir::String = pwd())
+    routes = Toolips.route_from_dir(dir)
+    notdirs = [routes[r] for r in findall(x -> ~(isdir(x)), routes)]
+    [begin
+    splitdir::Vector{SubString} = split(path, "/")
+    fname::String = string(splitdir[length(splitdir)])
+    fsplit = split(fname, ".")
+    fending::String = ""
+    if length(fsplit) > 1
+        fending = string(fsplit[2])
+    end
+    Cell(e, fending, fname, path)
+    end for (e, path) in enumerate(notdirs)]::AbstractVector
 end

@@ -64,20 +64,7 @@ explorer = route("/") do c::Connection
      write!(c, olivebody)
 end
 
-function directory_cells(c::Connection, dir::String = pwd())
-    routes = Toolips.route_from_dir(dir)
-    notdirs = [routes[r] for r in findall(x -> ~(isdir(x)), routes)]
-    [begin
-    splitdir::Vector{SubString} = split(path, "/")
-    fname::String = string(splitdir[length(splitdir)])
-    fsplit = split(fname, ".")
-    fending::String = ""
-    if length(fsplit) > 1
-        fending = string(fsplit[2])
-    end
-    Cell(e, fending, fname, path)
-    end for (e, path) in enumerate(notdirs)]::AbstractVector
-end
+
 
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))

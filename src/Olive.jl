@@ -48,11 +48,10 @@ module $olivedir
 using Toolips
 using ToolipsSession
 using Olive
-using Olive.Extensions: dark_mode
 
 function build(group::UserGroup)
     myolive = OliveCore()
-    load!(myolive, dark_mode)
+    load!(myolive)
     myolive::OliveCore
 end
 
@@ -71,6 +70,10 @@ end # module
     server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()::Toolips.WebServer
 end
+
+load!(olivecore::OliveCore, ext::OliveExtension{<:Any} ...) = [load!(olivecore,
+ext) for ext in ext]
+
 
 OliveServer() = ServerTemplate(ip, port, [setup],
 extensions = [Logger(), Session(["/", "/session"]), OliveCore()])::ServerTemplate
