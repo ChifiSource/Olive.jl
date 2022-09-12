@@ -1,21 +1,135 @@
+"""
+Created in February, 2022 by
+[chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
+by team
+[toolips](https://github.com/orgs/ChifiSource/teams/toolips)
+This software is MIT-licensed.
+#### | olive | - | custom developer |
+Welcome to olive! olive is an integrated development environment written in
+julia and for other languages and data editing. Crucially, olive is abstract
+    in definition and allows for the creation of unique types for names.
+##### Module Composition
+- [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
+"""
 module Olive
-using Pkg
 import Base: write, display
-using Highlights
-using Toolips
-using ToolipsSession
-using ToolipsMarkdown: tmd, @tmd_str
-using ToolipsDefaults
-import Toolips: AbstractRoute, AbstractConnection, AbstractComponent
 using IPy
-import IPy: Cell
+using Highlights
 using Crayons
+using Pkg
+using Toolips
+import Toolips: AbstractRoute, AbstractConnection, AbstractComponent
+using ToolipsSession
+using ToolipsDefaults
+using ToolipsMarkdown: tmd, @tmd_str
+using ToolipsBase64
 using Revise
+
+
+#==Olive filemap
+An Olive.jl filemap for everyone to help develop this project easier! Thanks
+for considering helping with the development of Olive.jl. If you care to join
+the chifi organization, you may fill out a form [here]().
+- [Olive.jl](./src/Olive.jl)
+-- deps/includes
+-- default routes
+-- extension loader
+-- Server Defaults
+- [Core.jl](./src/Core.jl)
+-- server extension
+-- display
+-- filetracker
+- [UI.jl](./src/UI.jl)
+-- styles
+- [Extensions.jl](./src/Extensions.jl)
+==#
+
 
 
 include("Core.jl")
 include("Cells.jl")
 include("UI.jl")
+
+"""
+main(c::Connection) -> _
+--------------------
+This function is temporarily being used to test Olive.
+
+"""
+main = route("/session") do c::Connection
+    # styles
+    styles = olivesheet()
+    write!(c, julia_style())
+    write!(c, styles)
+    # args
+    args = getargs(c)
+    key = args[:key]
+    session = c[:OliveCore].sessions[key]
+    token = Component("olive-token", "token")
+    style!(token, "display" => "none")
+    token[:text] = key
+    write!(c, token)
+
+    # main
+    olivebody = body("olivebody")
+    main = divider("olivemain", cell = "1", ex = "0",
+    fname = first(session.open)[1])
+    style!(main, "transition" => ".8s")
+    push!(main, topbar(c))
+    cont = div("testcontainer")
+    on_keydown(c, "ArrowRight") do cm::ComponentModifier
+        cellc = parse(Int64, cm[main]["cell"])
+        activefile = cm["olivemain"]["fname"]
+        println(c[:OliveCore].sessions)
+        newcell = session.open[activefile][2][cellc]
+        evaluate(c, newcell, cm)
+    end
+    current_file = first(session.open)
+    println(current_file)
+    cells::Vector{Servable} = [build(c, cell) for cell in current_file[2][2]]
+    cont[:children] = cells
+    push!(main, cont)
+    pe = projectexplorer()
+    push!(pe, build(c, Cell(1000, "ipynb", "example.ipynb")))
+    push!(olivebody, pe, main)
+    write!(c, olivebody)
+end
+
+explorer = route("/") do c::Connection
+     styles = olivesheet()
+     write!(c, julia_style())
+     write!(c, styles)
+     olivebody = body("olivebody")
+     main = divider("olivemain", cell = "1", ex = "0")
+     cells::Vector{Cell} = directory_cells(c)
+     on_keydown(c, "ArrowRight") do cm::ComponentModifier
+         cellc = parse(Int64, cm[main]["cell"])
+         evaluate(c, cells[cellc], cm)
+     end
+     style!(main, "overflow-x" => "hidden")
+     style!(main, "transition" => ".8s")
+     cont = div("testcontainer", align = "center")
+     cellcont::Vector{Servable} = [build(c, cell) for cell in cells]
+     cont[:children] = cellcont
+     push!(main, cont)
+     push!(olivebody,  main)
+     write!(c, olivebody)
+end
+
+first_start = route("/") do c::Connection
+    header_ = tmd"""
+    #### a little bit of information
+
+    ```julia
+    import
+    ```
+    """
+end
+
+fourofour = route("404") do c::Connection
+    write!(c, p("404message", text = "404, not found!"))
+end
+
 """
 start(IP::String, PORT::Integer, extensions::Vector{Any}) -> ::Toolips.WebServer
 --------------------
@@ -36,34 +150,41 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
     extensions::Vector{ServerExtension} = [Logger(),
     Session(["/", "/session"]), OliveCore()]
     if ~(isdir("$homedir/$olivedir"))
+        @info "welcome to olive! we will generate your base project directory."
         try
             cd(homedir)
             Toolips.new_webapp(olivedir)
         catch
-            throw("Unable to access your applications directory.")
+            throw("unable to access your applications directory.")
         end
         open("$homedir/$olivedir/src/olive.jl", "w") do o
             write(o, """
-module $olivedir
-using Toolips
-using ToolipsSession
-using Olive
+            module $olivedir
+            using Toolips
+            using ToolipsSession
+            using Olive
+            #==Olive try:
+            using Olive: Extensions
+            ==#
+            \"\"\"
+            ### build(group::UserGroup{<:Any}) -> ::OliveCore
+            the `build` function serves to assemble any named type. Our `build`
+            function can be changed
+            "\"\"
+            function build(group::UserGroup{<:Any})
+                myolive = OliveCore()
+                OliveSetupServer(myolive)::WebServer
+            end
 
-function build(group::UserGroup)
-    myolive = OliveCore()
-    load!(myolive)
-    myolive::OliveCore
-end
-
-function start(ip::String, port::Int64)
-    server = OliveServer(build())
-end
-end # module
-                     """)
+            function start(ip::String, port::Int64)
+                server = build()
+                uri::String = ip * ":" * port
+                link::String = authlink!(server)
+                c[:Logger].log("server started | " * link)
+            end
+            end # module""")
         end
-        rs = routes(setup)
-        server = ServerTemplate(IP, PORT, rs, extensions = extensions)
-        return(st.start())::Toolips.WebServer
+        @info "olive files created!"
     end
 
     rs = routes(main, fourofour, explorer, viewer)
@@ -71,12 +192,18 @@ end # module
     server.start()::Toolips.WebServer
 end
 
+function start(ip::String = "127.0.0.1", PORT::Int64 = 8000;
+    devmode::Bool = false, )
+
+end
+
 load!(olivecore::OliveCore, ext::OliveExtension{<:Any} ...) = [load!(olivecore,
 ext) for ext in ext]
 
 
-OliveServer() = ServerTemplate(ip, port, [setup],
-extensions = [Logger(), Session(["/", "/session"]), OliveCore()])::ServerTemplate
+OliveSetupServer(oc::OliveCore) = ServerTemplate(ip, port, [setup],
+extensions = [Logger(), Session(["/", "/session"]), oc])::ServerTemplate
+OliveServer() =
 OliveSetup(ip::String, port::Int64) = ServerTemplate(ip, port)
 
 function create(name::String)

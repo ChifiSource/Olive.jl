@@ -1,14 +1,14 @@
-
-
-# bar, file, style, cell, project
-abstract type OliveExtension <: Toolips.Servable end
-
 mutable struct OliveSession
     environment::String
     open::Dict{String, Pair{Module, Vector{Cell}}}
     function OliveSession()
         new("", Dict{String, Vector{Cell}}())
     end
+end
+
+OliveLogger() = Logger()
+function OliveServer(oc::OliveCore)
+
 end
 
 mutable struct OliveCore <: ServerExtension
