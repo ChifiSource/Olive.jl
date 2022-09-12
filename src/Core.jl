@@ -1,12 +1,5 @@
-mutable struct OliveSession
-    environment::String
-    open::Dict{String, Pair{Module, Vector{Cell}}}
-    function OliveSession()
-        new("", Dict{String, Vector{Cell}}())
-    end
-end
-
 OliveLogger() = Logger()
+
 function OliveServer(oc::OliveCore)
 
 end
@@ -29,9 +22,10 @@ mutable struct OliveDisplay <: AbstractDisplay
     OliveDisplay() = new(IOBuffer())::OliveDisplay
 end
 
-function display(d::OliveDisplay, m::MIME{<:Any}, o::Any)
+function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
     T::Type = typeof(o)
-    mymimes = [MIME"text/html", MIME"text/svg", MIME"text/plain"]
+    mymimes = [MIME"text/html", MIME"text/svg", MIME"image/png",
+     MIME"text/plain"]
     mmimes = [m.sig.parameters[3] for m in methods(show, [IO, Any, T])]
     correctm = nothing
     for m in mymimes
@@ -40,7 +34,18 @@ function display(d::OliveDisplay, m::MIME{<:Any}, o::Any)
             break
         end
     end
+    display(d.io, correctm(), o)
+end
+
+function display(d::OliveDisplay, m::MIME"text/html", o::Any)
     show(d.io, correctm(), o)
 end
 
-display(d::OliveDisplay, o::Any) = display(d, MIME{:nothing}(), o)
+function display(d::OliveDisplay, m::MIME"text/html", o::Any)
+    show(d.io, correctm(), o)
+end
+
+function display(d::OliveDisplay, m::MIME"image/png")
+
+end
+display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
