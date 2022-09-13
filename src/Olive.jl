@@ -14,19 +14,19 @@ julia and for other languages and data editing. Crucially, olive is abstract
 module Olive
 import Base: write, display
 using IPy
+using IPy: Cell
 using Highlights
-using Crayons
 using Pkg
 using Toolips
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent
 using ToolipsSession
+import ToolipsSession: Modifier
 using ToolipsDefaults
 using ToolipsMarkdown: tmd, @tmd_str
 using ToolipsBase64
 using Revise
 
-
-#==Olive filemap
+#==olive filemap
 An Olive.jl filemap for everyone to help develop this project easier! Thanks
 for considering helping with the development of Olive.jl. If you care to join
 the chifi organization, you may fill out a form [here]().
@@ -44,11 +44,9 @@ the chifi organization, you may fill out a form [here]().
 - [Extensions.jl](./src/Extensions.jl)
 ==#
 
-
-
 include("Core.jl")
-include("Cells.jl")
 include("UI.jl")
+include("Extensions.jl")
 
 """
 main(c::Connection) -> _
@@ -95,6 +93,31 @@ main = route("/session") do c::Connection
     write!(c, olivebody)
 end
 
+#==output
+Toolips.Route("/", #1)
+==#
+
+dev = route("/") do c::Connection
+    styles = olivesheet()
+    write!(c, julia_style())
+    write!(c, styles)
+    olivebody = body("olivebody")
+    main = divider("olivemain", cell = "1", ex = "0")
+    cells::Vector{Cell} = directory_cells(c)
+    on_keydown(c, "ArrowRight") do cm::ComponentModifier
+        cellc = parse(Int64, cm[main]["cell"])
+        evaluate(c, cells[cellc], cm)
+    end
+    style!(main, "overflow-x" => "hidden")
+    style!(main, "transition" => ".8s")
+    cont = div("testcontainer", align = "center")
+    cellcont::Vector{Servable} = [build(c, cell) for cell in cells]
+    cont[:children] = cellcont
+    push!(main, cont)
+    push!(olivebody,  main)
+    write!(c, olivebody)
+end
+
 explorer = route("/") do c::Connection
      styles = olivesheet()
      write!(c, julia_style())
@@ -109,22 +132,24 @@ explorer = route("/") do c::Connection
      style!(main, "overflow-x" => "hidden")
      style!(main, "transition" => ".8s")
      cont = div("testcontainer", align = "center")
+     testcell = Cell{:code}(length(cells) + 1)
+     push!(cells, testcell)
      cellcont::Vector{Servable} = [build(c, cell) for cell in cells]
      cont[:children] = cellcont
      push!(main, cont)
      push!(olivebody,  main)
      write!(c, olivebody)
 end
+#==output
+Toolips.Route("/", #1)
+==#
 
 first_start = route("/") do c::Connection
-    header_ = tmd"""
-    #### a little bit of information
 
-    ```julia
-    import
-    ```
-    """
 end
+#==output
+Toolips.Route("/", #1)
+==#
 
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
@@ -171,7 +196,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
             the `build` function serves to assemble any named type. Our `build`
             function can be changed
             "\"\"
-            function build(group::UserGroup{<:Any})
+            function build(m::Module, group::UserGroup{<:Any})
                 myolive = OliveCore()
                 OliveSetupServer(myolive)::WebServer
             end
@@ -192,14 +217,18 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
     server.start()::Toolips.WebServer
 end
 
-function start(ip::String = "127.0.0.1", PORT::Int64 = 8000;
-    devmode::Bool = false, )
+OliveSetupServer(oc::OliveCore) = WebServer()
 
+OliveServer(oc::OliveCore) = WebServer(extensions = [oc, Logger()])
+
+OliveDevServer(oc::OliveCore) = begin
+    rs = routes(dev, fourofour, main)
+    WebServer(extensions = [oc, Logger(), Session(["/", "/session"])], routes = rs).start()
 end
 
-load!(olivecore::OliveCore, ext::OliveExtension{<:Any} ...) = [load!(olivecore,
-ext) for ext in ext]
-
+function start(;devmode::Bool)
+    OliveDevServer(OliveCore("Dev")).start()
+end
 
 OliveSetupServer(oc::OliveCore) = ServerTemplate(ip, port, [setup],
 extensions = [Logger(), Session(["/", "/session"]), oc])::ServerTemplate

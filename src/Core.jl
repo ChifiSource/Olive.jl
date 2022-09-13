@@ -1,21 +1,38 @@
-OliveLogger() = Logger()
-
-function OliveServer(oc::OliveCore)
-
-end
-
 mutable struct OliveCore <: ServerExtension
-    pages::Vector{AbstractRoute}
+    name::String
+    data::Dict{Symbol, Any}
     type::Symbol
-    sessions::Dict{String, OliveSession}
-    extensions::Vector{OliveExtension}
-    function OliveCore()
-        pages = [main, fourofour, explorer]
-        sessions = Dict{String, OliveSession}()
-        extensions = Vector{OliveExtension}()
-        new(pages, :connection, sessions, extensions)
+    function OliveCore(mod::String)
+        data = Dict{Symbol, Any}()
+        data[:public] = "public/"
+        data[:home] = "~/.olive"
+        data[:wd] = pwd()
+        data[:macros] = Vector{String}(["#==olive"])
+        new(mod, data, :connection)
     end
 end
+
+build(f::Function, m::Module) = build(f, string(m))::OliveCore
+
+build(f::Function, s::String) = f(OliveCore(s))
+
+build(cell::Cell{<:Any}, s::String = "code") = begin
+
+end
+
+is_cell(cell::Cell{<:Any}, s::String) = begin
+
+end
+
+function getindex(oc::OliveCore, s::String)
+
+end
+
+function setindex!(oc::OliveCore)
+
+end
+
+OliveLogger() = Logger()
 
 mutable struct OliveDisplay <: AbstractDisplay
     io::IOBuffer
@@ -41,11 +58,12 @@ function display(d::OliveDisplay, m::MIME"text/html", o::Any)
     show(d.io, correctm(), o)
 end
 
-function display(d::OliveDisplay, m::MIME"text/html", o::Any)
+function display(d::OliveDisplay, m::MIME"image/png", o::Any)
     show(d.io, correctm(), o)
 end
 
 function display(d::OliveDisplay, m::MIME"image/png")
 
 end
+
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)

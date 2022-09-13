@@ -199,7 +199,9 @@ end
 function exec_format()
 
 end
+build(f::Function, m::Module) = begin
 
+end
 function build(c::Connection, cell::Cell{:code})
     outside = div(class = cell)
     inside = div("cell$(cell.n)", class = "input_cell", text = cell.source,
