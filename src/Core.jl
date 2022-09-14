@@ -1,24 +1,44 @@
 mutable struct OliveCore <: ServerExtension
     name::String
     data::Dict{Symbol, Any}
+    projects::Vector{Project{<:Any}}
     type::Symbol
     function OliveCore(mod::String)
+        projects = UserGroup(projects)
+        root = UserGroup(mod)
         data = Dict{Symbol, Any}()
-        data[:public] = "public/"
         data[:home] = "~/.olive"
+        data[:public] = "public/"
+        data[:projects] = Vector{String}("julia")
         data[:wd] = pwd()
+        data
         data[:macros] = Vector{String}(["#==olive"])
         new(mod, data, :connection)
+    end
+end
+
+mutable struct Project{name <: Any} <: Servable
+    f::Function
+    dir::String
+    permissions::Vector{UserGroup{<:Any}}()
+    Project(type::String, uri::String, group::UserGroup{<:Any}) = begin
+        permissions::Vector{Pair{UserGroup, String}} = Vector{Pair{UserGroup{<:Any}, String}}()
+        f(c::Connection) = begin
+
+        end
+        new{Symbol(type)}(f, dir, group, permissions)
+    end
+end
+
+function is_project(proj::Project{<:Any})
+    if contains(read(uri, String), "Toolips")
+        new{}
     end
 end
 
 build(f::Function, m::Module) = build(f, string(m))::OliveCore
 
 build(f::Function, s::String) = f(OliveCore(s))
-
-build(cell::Cell{<:Any}, s::String = "code") = begin
-
-end
 
 is_cell(cell::Cell{<:Any}, s::String) = begin
 
@@ -32,7 +52,8 @@ function setindex!(oc::OliveCore)
 
 end
 
-OliveLogger() = Logger()
+OliveLogger() = Logger(Dict(1 => Crayon(foreground = :magenta, bold = true))
+        prefix = "olive ! >")
 
 mutable struct OliveDisplay <: AbstractDisplay
     io::IOBuffer

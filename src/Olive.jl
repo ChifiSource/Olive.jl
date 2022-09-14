@@ -219,11 +219,11 @@ end
 
 OliveSetupServer(oc::OliveCore) = WebServer()
 
-OliveServer(oc::OliveCore) = WebServer(extensions = [oc, Logger()])
+OliveServer(oc::OliveCore) = WebServer(extensions = [oc, OliveLogger()])
 
 OliveDevServer(oc::OliveCore) = begin
     rs = routes(dev, fourofour, main)
-    WebServer(extensions = [oc, Logger(), Session(["/", "/session"])], routes = rs).start()
+    WebServer(extensions = [oc, OliveLogger(), Session(["/", "/session"])], routes = rs).start()
 end
 
 function start(;devmode::Bool)
