@@ -1,17 +1,37 @@
 mutable struct Project{name <: Any} <: Servable
     name::String
     dir::String
-    mod::Module
+    open::Vector{String, Module}
     groups::Dict{String, String}
-    Project(type::String, uri::String,
+    Project(type::String, uri::String, open::Vector{String} = uri * "src/$type.jl";
     permisssions::Dict{String, String} = Dict("host" => "we") = begin
+        mod = eval(Meta.parse())
         new{Symbol(type)}(type, dir, mod, permissions)
     end
+    Project(name::String, dir::String) = begin
+
+    end
+end
+
+function write!(c::AbstractConnection, p::Project{<:Any})
+    projectlabel = h(3, "$(p.name)-heading", text = p.name)
+    push!()
+    projectdir = a("$(p.name)-directory", text = p.dir)
+end
+
+function labelproject(c::Vector{Cell})
+
+end
+
+
+
+function olive_sheet(c::Connection, p::Project{<:Any})
+
 end
 
 function new_project(name::String, dir::String,
     groups::Dict{String, String} = Dict("host" => "we"))
-
+    pe = projectexplorer()
 end
 
 function build(c::Connection, p::Project{<:Any}, cells::Vector{Cell{<:Any}})
@@ -24,7 +44,7 @@ function build(c::Connection, p::Project{<:Any}, cells::Vector{Cell{<:Any}})
 
     end
     if can_write(c, p)
-        
+
     end
 end
 

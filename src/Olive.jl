@@ -70,9 +70,9 @@ main = route("/session") do c::Connection
 
     # main
     olivebody = body("olivebody")
-    main = divider("olivemain", cell = "1", ex = "0",
+
     fname = first(session.open)[1])
-    style!(main, "transition" => ".8s")
+
     push!(main, topbar(c))
     cont = div("testcontainer")
     on_keydown(c, "ArrowRight") do cm::ComponentModifier
@@ -87,8 +87,6 @@ main = route("/session") do c::Connection
     cells::Vector{Servable} = [build(c, cell) for cell in current_file[2][2]]
     cont[:children] = cells
     push!(main, cont)
-    pe = projectexplorer()
-    push!(pe, build(c, Cell(1000, "ipynb", "example.ipynb")))
     push!(olivebody, pe, main)
     write!(c, olivebody)
 end
@@ -98,16 +96,15 @@ Toolips.Route("/", #1)
 ==#
 
 dev = route("/") do c::Connection
+    # styles
     styles = olivesheet()
     write!(c, julia_style())
     write!(c, styles)
-    olivebody = body("olivebody")
-    main = divider("olivemain", cell = "1", ex = "0")
-    cells::Vector{Cell} = directory_cells(c)
-    on_keydown(c, "ArrowRight") do cm::ComponentModifier
-        cellc = parse(Int64, cm[main]["cell"])
-        evaluate(c, cells[cellc], cm)
-    end
+
+    # make dev project
+    cells = Vector{Cell}(Cell(1, ))
+    plabel =
+    project = Project("olive", pwd(), )
     style!(main, "overflow-x" => "hidden")
     style!(main, "transition" => ".8s")
     cont = div("testcontainer", align = "center")
@@ -116,6 +113,7 @@ dev = route("/") do c::Connection
     push!(main, cont)
     push!(olivebody,  main)
     write!(c, olivebody)
+
 end
 
 explorer = route("/") do c::Connection
@@ -144,7 +142,7 @@ end
 Toolips.Route("/", #1)
 ==#
 
-first_start = route("/") do c::Connection
+setup = route("/") do c::Connection
 
 end
 #==output
@@ -223,7 +221,8 @@ OliveServer(oc::OliveCore) = WebServer(extensions = [oc, OliveLogger()])
 
 OliveDevServer(oc::OliveCore) = begin
     rs = routes(dev, fourofour, main)
-    WebServer(extensions = [oc, OliveLogger(), Session(["/", "/session"])], routes = rs).start()
+    WebServer(extensions = [oc, OliveLogger(), Session(["/", "/session"])],
+    routes = rs)
 end
 
 function start(;devmode::Bool)

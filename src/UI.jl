@@ -161,6 +161,19 @@ function topbar_icon(name::String, icon::String)
      ico
 end
 
+function olive_body(c::Connection, p::Project{<:Any})
+    olivebody = body("olivebody")
+    style!(main, "overflow-x" => "hidden", "transition" => ".8s")
+    cont = olive_main(c, p)
+    olive_body
+end
+
+function olive_main(c::Connection, p::Project{<:Any})
+    main = ToolipsDefaults.tabbedview(c, "olivemain")
+    main
+    style!(main, "transition" => ".8s")
+end
+
 function build(c::Connection, cell::Cell{<:Any})
     hiddencell = div("cell$(cell.n)", class = "cell-hidden")
     name = a("cell$(cell.n)label", text = cell.source)
@@ -336,9 +349,8 @@ function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
-function load_session(c::Connection, cs::Vector{Cell{<:Any}},
+function olive_project(c::Connection, cs::Vector{Cell{<:Any}},
     cm::ComponentModifier, fname::String, fpath::String)
-    session = OliveSession()
     key = ToolipsSession.gen_ref()
     modstr = """module Examp
     function evalin(ex::Any)
@@ -350,6 +362,8 @@ end"""
     push!(session.open, fname => mod => cs)
     push!(c[:OliveCore].sessions, key => session)
     redirect!(cm, "/session?key=$key")
+    Project(fname, fpat, permisssions = Dict("host" => "we", group(c) => "we",
+    "public" => "e")::Project{<:Any}
 end
 
 mutable struct CellGroup{T} <: Servable
