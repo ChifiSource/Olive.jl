@@ -349,23 +349,6 @@ function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
-function olive_project(c::Connection, cs::Vector{Cell{<:Any}},
-    cm::ComponentModifier, fname::String, fpath::String)
-    key = ToolipsSession.gen_ref()
-    modstr = """module Examp
-    function evalin(ex::Any)
-            eval(ex)
-    end
-end"""
-
-    mod = eval(Meta.parse(modstr))
-    push!(session.open, fname => mod => cs)
-    push!(c[:OliveCore].sessions, key => session)
-    redirect!(cm, "/session?key=$key")
-    Project(fname, fpat, permisssions = Dict("host" => "we", group(c) => "we",
-    "public" => "e")::Project{<:Any}
-end
-
 mutable struct CellGroup{T} <: Servable
     cells::Vector{Cell{<:Any}}
     f::Function
@@ -380,28 +363,6 @@ end
 function build(cg::CellGroup{:file}, label::String)
     lbl = h2("cellgroup$label-path", text = crllgroup)
     container = div("cellgroup$label")
-end
-
-mutable struct Explorer <: Servable
-    token::Component{:token}
-    groups::Vector{CellGroup{:file}}
-    f::Function
-    active::Int64
-    data::Dict{Symbol, Any}
-    function Explorer(v::Vector{CellGroup})
-        f(c::Connection)
-    end
-end
-
-mutable struct OliveSession <: Servable
-    token::Component{:token}
-    groups::Vector{CellGroup{<:Any}}
-    f::Function
-    active::Int64
-    data::Dict{Symbol, Any}
-    function OliveSession(v::Vector{CellGroup})
-
-    end
 end
 
 function directory_cells(c::Connection, dir::String = pwd())

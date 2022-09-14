@@ -55,42 +55,19 @@ This function is temporarily being used to test Olive.
 
 """
 main = route("/session") do c::Connection
-    # styles
-    styles = olivesheet()
-    write!(c, julia_style())
-    write!(c, styles)
-    # args
-    args = getargs(c)
-    key = args[:key]
-    session = c[:OliveCore].sessions[key]
-    token = Component("olive-token", "token")
-    style!(token, "display" => "none")
-    token[:text] = key
-    write!(c, token)
-
-    # main
-    olivebody = body("olivebody")
-
-    fname = first(session.open)[1])
-
-    push!(main, topbar(c))
-    cont = div("testcontainer")
-    on_keydown(c, "ArrowRight") do cm::ComponentModifier
-        cellc = parse(Int64, cm[main]["cell"])
-        activefile = cm["olivemain"]["fname"]
-        println(c[:OliveCore].sessions)
-        newcell = session.open[activefile][2][cellc]
-        evaluate(c, newcell, cm)
-    end
-    current_file = first(session.open)
-    println(current_file)
-    cells::Vector{Servable} = [build(c, cell) for cell in current_file[2][2]]
-    cont[:children] = cells
-    push!(main, cont)
-    push!(olivebody, pe, main)
-    write!(c, olivebody)
+    project::Servable = first(c[:OliveCore].open[getip(c)])
+    write!(c, project)
 end
 
+explorer = route("/") do c::Connection
+    homedir = c[:OliveCore].data[:home]
+    pubdir = c[:OliveCore].data[:public]
+    wd = c[:OliveCore].data[:wd]
+
+    if wd == pwd || wd == homedir
+
+    end
+ end
 #==output
 Toolips.Route("/", #1)
 ==#
@@ -102,8 +79,7 @@ dev = route("/") do c::Connection
     write!(c, styles)
 
     # make dev project
-    cells = Vector{Cell}(Cell(1, ))
-    plabel =
+    cells = Vector{Cell}(Cell(1))
     project = Project("olive", pwd(), )
     style!(main, "overflow-x" => "hidden")
     style!(main, "transition" => ".8s")
@@ -116,28 +92,6 @@ dev = route("/") do c::Connection
 
 end
 
-explorer = route("/") do c::Connection
-     styles = olivesheet()
-     write!(c, julia_style())
-     write!(c, styles)
-     olivebody = body("olivebody")
-     main = divider("olivemain", cell = "1", ex = "0")
-     cells::Vector{Cell} = directory_cells(c)
-     on_keydown(c, "ArrowRight") do cm::ComponentModifier
-         cellc = parse(Int64, cm[main]["cell"])
-         evaluate(c, cells[cellc], cm)
-     end
-     style!(main, "overflow-x" => "hidden")
-     style!(main, "transition" => ".8s")
-     cont = div("testcontainer", align = "center")
-     testcell = Cell{:code}(length(cells) + 1)
-     push!(cells, testcell)
-     cellcont::Vector{Servable} = [build(c, cell) for cell in cells]
-     cont[:children] = cellcont
-     push!(main, cont)
-     push!(olivebody,  main)
-     write!(c, olivebody)
-end
 #==output
 Toolips.Route("/", #1)
 ==#

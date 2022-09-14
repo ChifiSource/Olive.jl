@@ -1,32 +1,62 @@
 mutable struct Project{name <: Any} <: Servable
     name::String
     dir::String
-    open::Vector{String, Module}
+    open::Dict{String, Pair{Module, Vector{Cell}}}
     groups::Dict{String, String}
-    Project(type::String, uri::String, open::Vector{String} = uri * "src/$type.jl";
+    Project{T}(name::String, uri::String, open::Vector{String},
+    uri::String * "src/$type.jl";
     permisssions::Dict{String, String} = Dict("host" => "we") = begin
         mod = eval(Meta.parse())
         new{Symbol(type)}(type, dir, mod, permissions)
     end
-    Project(name::String, dir::String) = begin
-
+    Project(name::String, dir::String, permissions::Dict{String, String}) = begin
+        mod = eval()
+        new{:olive}(name, dir, mod, permissions)
     end
 end
 
+function build(c::AbstractConnection, p::Project{<:Any})
+    p.open = [modstr = """module $(p.name)
+    Pkg.activate("$(p.dir)")
+    function evalin(ex::Any)
+            eval(ex)
+    end
+    end"""
+    eval(Meta.parse(modstr)) => n[2] for n in values(p.open)]::Vector{Pair{String, Module}}
+    push!(c[:OliveCore].open[getip(c)], p)
+    cells = [build(c, cell) for cell in first(p.open)[2]]
+    pages = olive
+end
+
+function build(c::AbstractConnection, p::Project{:root}, pr::String)
+
+end
+
+function build(f::Function, c::Project{:home}, pr::String)
+
+end
+
+function build(c::Connection, p::Project{:files}, pr::String)
+    cells = directory_cells(c, dir)
+    if length(cells) > 0
+        filecells = first(open)[1]
+    else
+
+    end
+    cellheading =
+    write!(c, proj)
+end
+
+function build(c::AbstractConnection, p::Project{:explorer})
+
+end
+
 function write!(c::AbstractConnection, p::Project{<:Any})
-    projectlabel = h(3, "$(p.name)-heading", text = p.name)
-    push!()
-    projectdir = a("$(p.name)-directory", text = p.dir)
-end
-
-function labelproject(c::Vector{Cell})
-
-end
-
-
-
-function olive_sheet(c::Connection, p::Project{<:Any})
-
+    styles = olivesheet()
+    write!(c, julia_style())
+    write!(c, styles)
+    main = divider("olivemain", cell = "1", ex = "0") = build(c, p)
+    write!()
 end
 
 function new_project(name::String, dir::String,
@@ -53,21 +83,19 @@ can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)
 can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
 mutable struct OliveCore <: ServerExtension
+    type::Symbol
     name::String
     data::Dict{Symbol, Any}
-    open::Vector{Pair{String, AbstractVector}}
-    type::Symbol
+    open::Vector{Pair{String, Project}}
+    pages::Vector{Servable}
     function OliveCore(mod::String)
-        projects = UserGroup(projects)
-        root = UserGroup(mod)
         data = Dict{Symbol, Any}()
         data[:home] = "~/.olive"
-        data[:public] = "public/"
-        data[:projects] = Vector{String}("julia")
+        data[:public] = "projects"
         data[:wd] = pwd()
         data
         data[:macros] = Vector{String}(["#==olive"])
-        new(mod, data, :connection)
+        new(:connection, mod, data, open, pages)
     end
 end
 
