@@ -187,6 +187,7 @@ end
 function center_text(cc::AbstractConnection, m::Modifier)
 
 end
+
 #==
     CELLS
     This file implements `build` and `evaluate` for Olive.jl. Creating the base
@@ -196,12 +197,6 @@ end
     creating a toml category and a toml section cell and then making a simple name.
     Below then is the infastructure to surround the cells, cell pages etc.
 ==#
-function exec_format()
-
-end
-build(f::Function, m::Module) = begin
-
-end
 function build(c::Connection, cell::Cell{:code})
     outside = div(class = cell)
     inside = div("cell$(cell.n)", class = "input_cell", text = cell.source,
@@ -210,7 +205,6 @@ function build(c::Connection, cell::Cell{:code})
      b = IOBuffer()
      highlight(b, MIME"text/html"(), cell.source,
       Highlights.Lexers.JuliaLexer)
-     inside_cover = section("cellcover$(cell.n)", text = String(b.data))
      on(c, inside, "focus") do cm::ComponentModifier
          cm["olivemain"] = "cell" => string(cell.n)
      end
