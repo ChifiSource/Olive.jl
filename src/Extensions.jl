@@ -8,7 +8,7 @@ function inputcell_style()
     st = Style("div.input_cell", border = "2px solid gray", padding = "20px",
     "bordier-radius" => 30px, "margin-top" => 30px, "transition" => 1seconds,
     "font-size" => 14pt)
-    animate!(st, cell_in())
+    animate!(st, fade_up())
     st:"focus":["border-width" => 5px, "border-color" => "orange"]
     st::Style
 end
@@ -17,7 +17,7 @@ function outputcell_style()
     st = Style("div.output_cell", border = "0px", padding = "10px",
     "margin-top" => 20px, "margin-right" => 200px, "border-radius" => 30px,
     "font-size" => 14pt)
-    animate!(st, cell_in())
+    animate!(st, fade_up())
     st::Style
 end
 function ipy_style()

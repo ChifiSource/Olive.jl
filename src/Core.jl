@@ -18,32 +18,10 @@ function build(c::AbstractConnection, p::Project{<:Any})
     end"""
     [begin n = eval(Meta.parse(modstr)) => n[2]  end for n in values(p.open)]
     push!(c[:OliveCore].open, string(getip(c)) => p)
-    cells = [build(c, cell) for cell in first(p.open)[2][2]]
-    
+    [build(c, cell) for cell in first(p.open)[2][2]]
 end
 
-function build(c::AbstractConnection, p::Project{:root}, pr::String)
-
-end
-
-function build(f::Function, c::Project{:home}, pr::String)
-
-end
-
-function build(c::Connection, p::Project{:files}, pr::String)
-    mainoverview = section("projectoverview")
-    nmhd = h(3, "projectname", text = p.name)
-    subt = a("projectdir")
-    cells = directory_cells(c, dir)
-    if length(cells) > 0
-        filecells = first(open)[1]
-    else
-
-    end
-    write!(c, proj)
-end
-
-function build(c::AbstractConnection, p::Project{:explorer})
+function build(c::AbstractConnection, p::Project{:home})
 
 end
 
@@ -109,8 +87,9 @@ function setindex!(oc::OliveCore)
 end
 
 OliveLogger() = Logger(Dict{Any, Crayon}(
-    1 => Crayon(foreground = :magenta, bold = true)),
-        prefix = "olive ! >")
+    1 => Crayon(foreground = :blue),
+         :time_crayon => Crayon(foreground = :blue),
+        :message_crayon => Crayon(foreground = :light_magenta, bold = true)), prefix = "🫒 olive> ")
 
 mutable struct OliveDisplay <: AbstractDisplay
     io::IOBuffer

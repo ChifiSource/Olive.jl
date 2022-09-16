@@ -10,7 +10,7 @@ end
 
 function load_spinner()
     mys = Style("img.loadicon")
-    animate!(mys, load)
+    animate!(mys, spin_forever())
     mys::Style
 end
 
@@ -26,14 +26,14 @@ end
 function usingcell_style()
     st::Style = Style("div.usingcell", border = "0px solid gray", padding = "40px",
     "border-radius" => 5px, "background-color" => "#CCCCFF")
-    animate!(st, cell_in()); st::Style
+    animate!(st, fade_up()); st::Style
 end
 
 function cell_style()
     st::Style = Style("div.cell", "border-color" => "gray", padding = "20px",
     "background-color" => "white")
     st:"focus":["border-width" => 2px]
-    animate!(st, cell_in())
+    animate!(st, fade_up())
     st::Style
 end
 
@@ -73,7 +73,7 @@ function olivesheet()
     st = ToolipsDefaults.sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white")
     push!(st, google_icons(), load_spinner(), spin_forever(),
-    cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
+    fade_up(), iconstyle(), cellnumber_style(), hdeps_style(),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
     hidden_style(), jl_style(), toml_style())
     st
@@ -91,7 +91,7 @@ function olivesheetdark()
     ipc["background-color"] = "#DABCDF"
     ipc["border-width"] = 0px
     push!(st, google_icons(),
-    cell_in(), iconstyle(), cellnumber_style(), hdeps_style(),
+    fade_up(), iconstyle(), cellnumber_style(), hdeps_style(),
     usingcell_style(), outputcell_style(), ipc, bdy, ipy_style(),
     hidden_style(), jl_style(), toml_style())
     st
@@ -173,17 +173,18 @@ function topbar_icon(name::String, icon::String)
      ico
 end
 
-function olive_body(c::Connection, p::Project{<:Any})
+function olive_body(c::Connection)
     olivebody = body("olivebody")
-    style!(main, "overflow-x" => "hidden", "transition" => ".8s")
-    cont = olive_main(c, p)
-    olive_body
+    style!(olivebody, "overflow-x" => "hidden", "transition" => ".8s")
+    olivebody::Component{:body}
 end
 
-function olive_main(c::Connection, p::Project{<:Any})
-    main = ToolipsDefaults.tabbedview(c, "olivemain")
-    main
+function olive_main(c::Connection, projects::Vector{Servable})
+    main = ToolipsDefaults.tabbedview(c, "olivemain", [build(c, project) for project in projects])
+    main["selected"] = first(projects).name
+    main["cell"] = 1; main["ex"] = 0
     style!(main, "transition" => ".8s")
+    main::Component{:div}
 end
 
 function build(c::Connection, cell::Cell{<:Any})
@@ -194,13 +195,6 @@ function build(c::Connection, cell::Cell{<:Any})
     hiddencell
 end
 
-build(f::Function, c::Connection) = begin
-    c::AbstractComponent = f(c)
-    if typeof(c) <: Toolips.StyleComponent
-
-    end
-end
-
 function cell_up!(c::AbstractConnection, cm::Modifier)
 
 end
@@ -208,11 +202,6 @@ end
 function cell_down!(c::AbstractConnection, cm::Modifier)
 
 end
-
-function center_text(cc::AbstractConnection, m::Modifier)
-
-end
-
 #==
     CELLS
     This file implements `build` and `evaluate` for Olive.jl. Creating the base
@@ -298,6 +287,10 @@ function cellcontainer(c::Connection, name::String)
     divider(name)
 end
 
+function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier)
+
+end
+
 """this would be a great function to contribute to right now, or change the
 build function to create the feign textbox!"""
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
@@ -347,10 +340,6 @@ function evaluate(c::Connection, cell::Cell{:markdown}, cm::ComponentModifier)
     cm["cell$(cell.n)"] = "contenteditable" => "false"
 end
 
-function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier)
-
-end
-
 function evaluate(c::Connection, cell::Cell{:ipynb}, cm::ComponentModifier)
     cs::Vector{Cell{<:Any}} = IPy.read_ipynb(cell.outputs)
     load_session(c, cs, cm, cell.source, cell.outputs)
@@ -359,22 +348,6 @@ end
 function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
     cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
     load_session(c, cs, cm, cell.source, cell.outputs)
-end
-
-mutable struct CellGroup{T} <: Servable
-    cells::Vector{Cell{<:Any}}
-    f::Function
-    n::Int64
-    function CellGroup(type::String, n::Int64, cells::Vector{Cell{<:Any}})
-        f(c::Connection) = write!(c,
-        [build(c, cell) for cell in cells]::Vector{Servable})
-        new{Symbol(type)}(cells, f, n)::Servable
-    end
-end
-
-function build(cg::CellGroup{:file}, label::String)
-    lbl = h2("cellgroup$label-path", text = crllgroup)
-    container = div("cellgroup$label")
 end
 
 function directory_cells(c::Connection, dir::String = pwd())
@@ -395,7 +368,7 @@ end
 function olive_loadicon()
     iconb64 = """data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAMS0lEQVR4Xu1af2xVVx0/575Xyq8QWcuMi3GSqRsaZWMDW6bESqKZCduEtqyIkOgMGUzFBZYsLvpk4iJjhEzHUmwZZayNOJwMR4HBIDEOnP/rZlzmlDDd2HRkW3+8d+/x++N8zzn3vZb32tcOEnqT9t1377nnnO/n+/l+vt9z7tPqMj/0ZW6/mgBgggGXOQITIXCZE2BCBD+QEDjRtrVe1ajrIpX5lDHxtVrpa7RWtcg+rQ38T9ATAyZSr2RM/HIS6b/l+/pfaurJnRtvho4bAGCWPvHN7QvAsmWRUnPQSH8YBdfgFrbCq3APL+BHxIAovKfUX3Sc7F+45/4XxwuIMQcgp3LRzW0zF0ZZ1RopM1uCjAdKwE4yjA4PAHyJ2OiMbcctuK0x5tXI6F8f6Ro8Bf2HSFaNy5gBgL58fuWjjdrEK0xkrsaZoVMVUdw62nqWrtuLBAIYT/Zb7/tJCVhsc6T1a4nJdzc+njsFbTySVcAwJgAcuuWR2tor9AYT6QbnWTHWjiAMEM8yCAY0AD+tgQQAfydgPE62DYQOtjfq9BX/fmPrJ3t/MVCF7YFjqujlWNv2Dytdcx94+hoxjkAgC5nWOGkPgDeMdMCKINIlSgAQogKD48HAhnxN2AOPvVKI4k0LO3NvVzH96tLgcy3tHzM1hZ9E2tSnJ+EN8UZKCwuK2GQBiMgyeM4LoJ+cLtYOaEpsMW/GBbOpcXfuH6MFYdQhcHhl+0d0kt8aqWhGSGM3EZggG4NaIFQXVvA1DgHOAKwBMbX39Kf0yAcA5bxPF1g7QCDP1xi9cd6u3NnRgDAqAA5945EZGTPpITDiKjc/oXI4CwsCGVsUBs6YIAQyCgEItQ0AgOdSmcPphAdTJ+ZsPKA3NjyZOz9SEEYMAKa5hrYr79daz2fvyoEeR08FWQpuojcjoXUJCF4EMQR0AICwh8YIM0kglGE2SUzy4oKOTQ+MOwCH79ixQkdRGw/E3vLURE8XpWliAbaB62CIN8wWQzqG4kemHafon3GFkoioLZI86p4dyBSju+Z15J4aCQgjYsCJtvb6vNKPGp1M9YP42CQC0KRDFrDRw4UBZQGsA1ICyNT3qo+iKiOKrtBg1CZIse/rQuHueY8/+GalIIwIgMNt7fcC9b/InadLWxnQlbjkcXu1RAskE4QhgIawCEod4NMng+TGoFAyTi1SNUai/nBj5wNbxhyAY1//ZV1+yqROGIyrVXuEsRoKGCu/nzRpARrhwsCGQAZCwFaBAgA+J8LHlaIHnAoha/pQtQVkBeiw/86bdj5c0UKqYgb0tnWs1sY0OyMtJdMVnp+cM8CBwDSOwMtMb5gnshjTGyAgAih1gPO+LY9TYhtUj+yHdFUMBdVTN3Ru7qqEBRUBsK9lX2Z65p090OEMT3U7KKm3HOkqjtcCKGz2oFAAw4nCNu7hPiIhKZCuI0voYQkJzARSHwwdethaQDJGnX/n79nVTSdzhXIgVATAs60di2AGG8meIPalnqdBApHynYpA+nDQUOz48IDVH2UBBkaYQepPfSIY3sNhBgkNC5KCYwNU1Ztv7Nh8ekwA+P3yzvUwucXSGc7JWCBKjHWh4db0du0P3qR8iEteNNYufzMIErKE/8jTQnun8sXrA4tPYF1KFGEOwILjN+zcvH1sAGjd1QkAXJnqzBUngTpTA7v8TaUtvobeJhYBCzL0PH7CH5XAyBI8t7me1NaeB/2myGZTIPVOoRiGhz5zffvP7qoaAIj/KdOid/cN21FAUTJOJgGG+ALJs4FAsJQn4y0A6P0MsIHEkTIFHv45b3hwL839kin+d+D1lqbdu/svBEJZDeht6bwW9ui2lkNSipKwHQsdekc2RZgBFAKQ/jK6oGrgU6uCyiIwmBKLVoROZ0o8XHZGyLQNcx/b8nJVABxo7WyKdOYe3wkbFf6/EDt4Zec3PBgUrPQSlc0MAgB5MB7qSxA8DhEGiVKk2x+8gAkhAw2rE4opQZ4k267fueVEVQA8s7zrFjBiLXfCAwx3MDA0crBIClpTKuMQqIHPbGZA1Wb74DMPxuepb6cBJYPIuLCnDCHiv/kZFdNZx2bH5371896qADjY0tUM29Wri80PoUify+RgokOCJeAYYsDMqf8BFhTSK8GygVme/tTCJF1z27dccHFUdqgQgAqH9c1ElB01/HAY7YWkVv2vb5YqFCah72kn8MKH5xi3ExUM1d9fAxd0rTs6vzoAnmnedRvI851+YjBJqDJS34vnVWSFvAWgacKjVAmYjCrEk9RgPA3+JtF3kwBnKI7ZiHAlMWLwaSi947tH51cZAnfsXWxMsj6VYksMDL1hb4IhZICLDzaKVvxgbBxnMfEBCLVgPJwnoArwjElI/mxgw/ei52Xo8myBseJk2/ePN1QnggdanoBXWcamwXBzKmUdG0vEIKULtFISGdV5cB2NhHMAIUmyqmDA+7jAjAEM/BTgAAjJ+GJ0yI7hGCHA0Kh5vWHtifnVpUEohKbXqsGe9IA+VlPR4Br5CsWVLaCkdA5IocdpowyMjE0NRBTGP5wndhVA3zEG/KLYdR2ADOVucBRXRVq9MfheS+5kU3WFEI5woHnvY+DWj9JoxRKQQmYIw5EMYDzTAjyPFAcvo9cNGAzZn+KevgML/CsRAIj4Xx4ISTa+9gT4jDqz9rnG6kthHP/p5r3rI6UXF+32WdOL12K+iLXlDC5MbGECuoBix6UQhUICDEBmoC5Q4UugSAL1eiCMoEVxGdG1YXZ87bGGsVkM/a65ZyGs/u7zzi4twsN45bBIxzAZKxpAKQ89i9kAjcVNJgiB2LLErh+pG8ceV0/SSbE+pEOEmjy47ujCF1IEHeJLucRLj+S+lMvOrftEFxTwbkOE5jZE3qZtDolTVwewugulOedbAGwI4FcURupXwCImWLBtOIRrT+PSTIll5+uOnFnVqlr9jsowSFQEAD7722Xdq2FDFLbEhqvv2Ouc5yV2+ZxrP05tribAnE+hwBrAAEA7uM5jcJgw0H5diX2k94TkmdBCs++uIzc/Uc77eL9iALqXdNdPro064JnUpqhPf+B5twpB7/o45gl7AJLQSAoBBoiMdsIn+0Jul3DINGuXWT4s4P18nM9+++7jn39rTAHAzvYv7b4XXorQtnhqG0RELvC838ELCxu/2KX7MTOAvYxCiP1afB2A/icTnPU4i4RHUVicBO8/XInxI2IANoaaYBb8hqddm0xNWOWVFCzkYbSKX4rx+tTndGEE6YLNAAwCG+hZkA4F3wbPsGjyZjIT9fu6f/K6NSdvqmhLfMQA4AP7l/Yshx9CrBRPlCyOredc3LtZh96Hi67ocfvDZE8SqD7rAWuAC6MAKBfBdhIAV9d3eheN36sxnAy+HP3M0jk/hH2rBcVUJFpTLS/rJaFqkffJML6GdQEbaY21AKQWQkFFWCKA9DQyzPz5bO/zPx3pb4gqFkFPNqX2fGXPtMnTJ2+DrOBej0uZy9ZYBQ8WMqk3eAIAxTyuHTB1irftdooTQzZQhJLAdZOxvzIw5uyU+EP3rDo6971wnpWcjwoA7Ljn1p6rMtnMQ9poqg3kHfBQ3uf71lgrHpLaWAOgzgz6YDEMp8ZriDA1Sp8A3HkIlQ1rjix6vRKDi9uMGgAC4faej2d19kcQDrO4KOE6gL1qrQ4qQh/H4DlxI63+fNXolB7rBxGYIKWyAY4t5+LB7I/XHPvCP0djvO9ptE/DcweXHKzvzw7kwDtXMz0lA1hAQu/L5C1YXOpKnk+VF25tkJqaCCeOA78dTPr0pjUnmypW/KHMrIoB0mH7koNTZ2bzPwDvN6SpKwVO0e6OFUqiOr0PC8pnAoyZlALU5V26d/pd1bf1e71fu/g/kwtQ1T23/aYximpWwCtqYINshDDRnHAFqc0ZaJXfp1SbNYq0QKvoNei7+1vPfvkU9FmSgUdD5DFhQDgwpsk5t362MdaZ5VpHs9lIe0iBJCkQfe9CQPYMuG0qRQLdYcNg378O//GFkaa5cqCMOQDhgE/e/vSCjMoui5X5tOUzsSHFDieCzBR3YCpN1F9h3bh/1aGv/qmcIaO9P64AyKS6QSjh/Dp4YzBbRZn6ODF18LvfOhDAOtQAIPPbsAQ+B6/g3oKECKKmX+1T/S+tObikKoGrBJQPBIBKJnKx2kwAcLGQv1TGnWDApeKJizWPCQZcLOQvlXEvewb8H3Q/FIx7ey30AAAAAElFTkSuQmCC"""
     myimg = img("olive-loader", src = iconb64, class = "loadicon")
-    animate!(myimg, load)
+    animate!(myimg, spin_forever())
 end
 
 function olive_cover()

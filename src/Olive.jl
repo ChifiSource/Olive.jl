@@ -18,7 +18,7 @@ using IPy: Cell
 using Highlights
 using Pkg
 using Toolips
-import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon
+import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!
 using ToolipsSession
 import ToolipsSession: Modifier
 using ToolipsDefaults
@@ -76,11 +76,10 @@ dev = route("/") do c::Connection
     fakemod::Module = Module()
     project::Project{<:Any} = Project("Dev", pwd())
     push!(project.open, "Dev" => fakemod => cells)
-    print("proj built")
-    proj::Component{:body} = build(c, project)
-
+    proj::Vector{Servable} = build(c, project)
     icon = olive_loadicon()
-    style!(icon, "transform" => translateX(50percent), "transform" => "translateX(50percent)")
+    bod = olive_body(c)
+    write!(c, olivesheet())
     write!(c, icon)
     write!(c, proj)
 end
@@ -164,7 +163,9 @@ OliveDevServer(oc::OliveCore) = begin
 end
 
 function start(;devmode::Bool)
-    OliveDevServer(OliveCore("Dev")).start()
+    s = OliveDevServer(OliveCore("Dev"))
+    s.start()
+    s[:Logger].log("started new olive server in devmode.")
 end
 
 OliveSetupServer(oc::OliveCore) = ServerTemplate(ip, port, [setup],
