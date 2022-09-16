@@ -74,9 +74,11 @@ dev = route("/") do c::Connection
     dir = pwd()
     cells::Vector{Cell} = directory_cells(c, dir)
     fakemod::Module = Module()
-    project::Project{<:Any} = Project("Dev", pwd(), cells)
+    project::Project{<:Any} = Project("Dev", pwd())
     push!(project.open, "Dev" => fakemod => cells)
+    print("proj built")
     proj::Component{:body} = build(c, project)
+
     icon = olive_loadicon()
     style!(icon, "transform" => translateX(50percent), "transform" => "translateX(50percent)")
     write!(c, icon)

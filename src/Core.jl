@@ -3,24 +3,23 @@ mutable struct Project{name <: Any} <: Servable
     dir::String
     open::Dict{String, Pair{Module, Vector{Cell}}}
     groups::Dict{String, String}
-    Project(name::String, dir::String;
-    groups::Dict{String, String} = "root" => "rw") = begin
+    function Project(name::String, dir::String)
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
+        groups::Dict{String, String} = Dict("root" => "rw")
         new{Symbol(name)}(name, dir, open, groups)
     end
 end
 
 function build(c::AbstractConnection, p::Project{<:Any})
     modstr = """module $(p.name)
-    Pkg.activate("$(p.dir)")
     function evalin(ex::Any)
             eval(ex)
     end
     end"""
-    p.open = [begin eval(Meta.parse(modstr)) => n[2]  end for n in values(p.open)]::Vector{Pair{String, Module}}
-    push!(c[:OliveCore].open[getip(c)], p)
-    cells = [build(c, cell) for cell in first(p.open)[2]]
-    pages = olive
+    [begin n = eval(Meta.parse(modstr)) => n[2]  end for n in values(p.open)]
+    push!(c[:OliveCore].open, string(getip(c)) => p)
+    cells = [build(c, cell) for cell in first(p.open)[2][2]]
+    
 end
 
 function build(c::AbstractConnection, p::Project{:root}, pr::String)
