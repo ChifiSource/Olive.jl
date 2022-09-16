@@ -71,17 +71,26 @@ explorer = route("/") do c::Connection
 
 dev = route("/") do c::Connection
     # make dev project
-    dir = pwd()
-    cells::Vector{Cell} = directory_cells(c, dir)
-    fakemod::Module = Module()
-    project::Project{<:Any} = Project("Dev", pwd())
-    push!(project.open, "Dev" => fakemod => cells)
-    proj::Vector{Servable} = build(c, project)
+    loader_body = div("loaderbody", align = "center")
+    style!(loader_body, "margin-top" => 10percent)
+    write!(c, olivesheet())
     icon = olive_loadicon()
     bod = olive_body(c)
-    write!(c, olivesheet())
-    write!(c, icon)
-    write!(c, proj)
+    on(c, bod, "load") do cm::ComponentModifier
+        cells::Vector{Cell} = directory_cells(c, dir)
+        fakemod::Module = Module()
+        project::Project{:files} = Project{:files}("dirname", pwd())
+        push!(project.open, "files" => fakemod => cells)
+        proj = build(c, project)
+        style!(cm, icon, "opacity" => 0percent)
+        observe!(c, cm, "setcallback", 50000) do cm
+            set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([proj])))
+        end
+    end
+    push!(loader_body, icon)
+    push!(bod, loader_body)
+    write!(c, bod)
+    dir = pwd()
 end
 
 setup = route("/") do c::Connection

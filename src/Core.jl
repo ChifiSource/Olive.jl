@@ -8,6 +8,11 @@ mutable struct Project{name <: Any} <: Servable
         groups::Dict{String, String} = Dict("root" => "rw")
         new{Symbol(name)}(name, dir, open, groups)
     end
+    Project{T}(name::String, dir::String) where {T <: Any} = begin
+        open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
+        groups::Dict{String, String} = Dict("root" => "rw")
+        new{T}(name, dir, open, groups)
+    end
 end
 
 function build(c::AbstractConnection, p::Project{<:Any})
@@ -21,16 +26,15 @@ function build(c::AbstractConnection, p::Project{<:Any})
     [build(c, cell) for cell in first(p.open)[2][2]]
 end
 
-function build(c::AbstractConnection, p::Project{:home})
-
-end
-
-function write!(c::AbstractConnection, p::Project{<:Any})
-    styles = olivesheet()
-    write!(c, julia_style())
-    write!(c, styles)
+function build(c::AbstractConnection, p::Project{:files})
     main = div("olive-main", cell = "1", ex = "0")
-    write!(c. main)
+    overview = div("file$(p.name)", align = "center")
+    style!(overview, "margin-top" => 5percent, "border-style" => "solid",
+    "border-width" => 3px, "border-radius" => 10px, "width" => "20%")
+    push!(overview, h("heading$(p.name)", 1, text = p.name))
+    push!(c[:OliveCore].open, string(getip(c)) => p)
+    [push!(overview, build(c, cell)) for cell in first(p.open)[2][2]]
+    overview
 end
 
 function new_project(name::String, dir::String,
