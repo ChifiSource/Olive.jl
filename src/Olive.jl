@@ -18,7 +18,7 @@ using IPy: Cell
 using Highlights
 using Pkg
 using Toolips
-import Toolips: AbstractRoute, AbstractConnection, AbstractComponent
+import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon
 using ToolipsSession
 import ToolipsSession: Modifier
 using ToolipsDefaults
@@ -68,40 +68,24 @@ explorer = route("/") do c::Connection
 
     end
  end
-#==output
-Toolips.Route("/", #1)
-==#
 
 dev = route("/") do c::Connection
-    # styles
-    styles = olivesheet()
-    write!(c, julia_style())
-    write!(c, styles)
-
     # make dev project
-    cells = Vector{Cell}(Cell(1))
-    project = Project("olive", pwd(), )
-    style!(main, "overflow-x" => "hidden")
-    style!(main, "transition" => ".8s")
-    cont = div("testcontainer", align = "center")
-    cellcont::Vector{Servable} = [build(c, cell) for cell in cells]
-    cont[:children] = cellcont
-    push!(main, cont)
-    push!(olivebody,  main)
-    write!(c, olivebody)
-
+    dir = pwd()
+    cells::Vector{Cell} = directory_cells(c, dir)
+    fakemod::Module = Module()
+    project::Project{<:Any} = Project("Dev", pwd(), cells)
+    push!(project.open, "Dev" => fakemod => cells)
+    proj::Component{:body} = build(c, project)
+    icon = olive_loadicon()
+    style!(icon, "transform" => translateX(50percent), "transform" => "translateX(50percent)")
+    write!(c, icon)
+    write!(c, proj)
 end
-
-#==output
-Toolips.Route("/", #1)
-==#
 
 setup = route("/") do c::Connection
 
 end
-#==output
-Toolips.Route("/", #1)
-==#
 
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
@@ -168,8 +152,6 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
     server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()::Toolips.WebServer
 end
-
-OliveSetupServer(oc::OliveCore) = WebServer()
 
 OliveServer(oc::OliveCore) = WebServer(extensions = [oc, OliveLogger()])
 
