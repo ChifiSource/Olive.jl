@@ -60,13 +60,25 @@ main = route("/session") do c::Connection
 end
 
 explorer = route("/") do c::Connection
-    homedir = c[:OliveCore].data[:home]
-    pubdir = c[:OliveCore].data[:public]
-    wd = c[:OliveCore].data[:wd]
-
-    if wd == pwd || wd == homedir
-
+    loader_body = div("loaderbody", align = "center")
+    style!(loader_body, "margin-top" => 10percent)
+    write!(c, olivesheet())
+    icon = olive_loadicon()
+    bod = olive_body(c)
+    on(c, bod, "load") do cm::ComponentModifier
+        cells::Vector{Cell} = directory_cells(c, dir)
+        fakemod::Module = Module()
+        project::Project{:files} = Project{:files}("dirname", pwd())
+        push!(project.open, "files" => fakemod => cells)
+        proj = build(c, project)
+        style!(cm, icon, "opacity" => 0percent)
+        observe!(c, cm, "setcallback", 50000) do cm
+            set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([proj])))
+        end
     end
+    push!(loader_body, icon)
+    push!(bod, loader_body)
+    write!(c, bod)
  end
 
 dev = route("/") do c::Connection
@@ -124,7 +136,7 @@ function create_project(homedir::String = homedir(), olivedir::String = ".olive"
             #==Olive try:
             using Olive: Extensions
             ==#
-            build(oc::OliveCore) do oc::OliveCore
+            build(core::OliveCore) do oc::OliveCore
                 oc::OliveCore
             end
             end # module""")
@@ -150,7 +162,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     startup_path::String = pwd()
     homedirec::String = homedir()
     olivedir::String = "olive"
-    oc = OliveCore("olive")
+    oc::OliveCore = OliveCore("olive")
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if ~(isdir("$homedirec/$olivedir"))
         proj = create_project(homedirec, olivedir)
@@ -164,7 +176,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     end
     server = ServerTemplate(IP, PORT, rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session"])])
-    server.start(); server::ToolipsServer
+    server.start(); server::Toolips.ToolipsServer
 end
 
 OliveServer(oc::OliveCore) = WebServer(extensions = [oc, OliveLogger(),
