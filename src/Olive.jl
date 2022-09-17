@@ -101,30 +101,15 @@ fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
 end
 
-"""
-start(IP::String, PORT::Integer, extensions::Vector{Any}) -> ::Toolips.WebServer
---------------------
-The start function comprises routes into a Vector{Route} and then constructs
-    a ServerTemplate before starting and returning the WebServer.
-"""
-function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
-    startup_path::String = pwd()
-    homedir::String = "~/"
-    olivedir::String = ".olive"
-    @static if Sys.isapple()
-        olivehomedir = "/Applications"
-        olivedir = "olive"
-    elseif Sys.iswindows()
-        olivehomedir = "%SystemDrive%/Program Files/olive"
-        olivedir = "olive"
-    end
-    extensions::Vector{ServerExtension} = [Logger(),
-    Session(["/", "/session"]), OliveCore()]
-    if ~(isdir("$homedir/$olivedir"))
-        @info "welcome to olive! we will generate your base project directory."
-        try
-            cd(homedir)
-            Toolips.new_webapp(olivedir)
+function create_project(homedir::String = homedir(), olivedir::String = ".olive")
+        @info "welcome to olive! to use olive, you will need to setup a project directory."
+        @info "we can put this at $homedir/$olivedir, is this okay with you?"
+        print("y or n: ")
+        response = readline()
+        if response == "y"
+            try
+                cd(homedir)
+                Toolips.new_webapp(olivedir)
         catch
             throw("unable to access your applications directory.")
         end
@@ -134,56 +119,66 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
             using Toolips
             using ToolipsSession
             using Olive
+            using Olive: OliveCore
+            import Olive: build
             #==Olive try:
             using Olive: Extensions
             ==#
-            \"\"\"
-            ### build(group::UserGroup{<:Any}) -> ::OliveCore
-            the `build` function serves to assemble any named type. Our `build`
-            function can be changed
-            "\"\"
-            function build(m::Module, group::UserGroup{<:Any})
-                myolive = OliveCore()
-                OliveSetupServer(myolive)::WebServer
-            end
-
-            function start(ip::String, port::Int64)
-                server = build()
-                uri::String = ip * ":" * port
-                link::String = authlink!(server)
-                c[:Logger].log("server started | " * link)
+            build(oc::OliveCore) do oc::OliveCore
+                oc::OliveCore
             end
             end # module""")
         end
-        @info "olive files created!"
+        @info "olive files created! welcome to olive! "
     end
-
-    rs = routes(main, fourofour, explorer, viewer)
-    server = ServerTemplate(IP, PORT, rs, extensions = extensions)
-    server.start()::Toolips.WebServer
 end
 
-OliveServer(oc::OliveCore) = WebServer(extensions = [oc, OliveLogger()])
+"""
+start(IP::String, PORT::Integer, extensions::Vector{Any}) -> ::Toolips.WebServer
+--------------------
+The start function comprises routes into a Vector{Route} and then constructs
+    a ServerTemplate before starting and returning the WebServer.
+"""
+function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
+    devmode::Bool = false)
+    if devmode
+        s = OliveDevServer(OliveCore("Dev"))
+        s.start()
+        s[:Logger].log("started new olive server in devmode.")
+        return
+    end
+    startup_path::String = pwd()
+    homedirec::String = homedir()
+    olivedir::String = "olive"
+    oc = OliveCore("olive")
+    rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
+    if ~(isdir("$homedirec/$olivedir"))
+        proj = create_project(homedirec, olivedir)
+        Pkg.activate("$homedirec/$olivedir/.")
+        rs = routes(setup, fourofour)
+    else
+        Pkg.activate("$homedirec/$olivedir")
+        olmod = eval(Meta.parse(read("$homedirec/$olivedir/src/olive.jl", String)))
+        olmod.build(oc)
+        rs = routes(fourofour, session, explorer)
+    end
+    server = ServerTemplate(IP, PORT, rs, extensions = [OliveLogger(),
+    oc, Session(["/", "/session"])])
+    server.start(); server::ToolipsServer
+end
+
+OliveServer(oc::OliveCore) = WebServer(extensions = [oc, OliveLogger(),
+Session(["/", "/session"])])
 
 OliveDevServer(oc::OliveCore) = begin
     rs = routes(dev, fourofour, main)
     WebServer(extensions = [oc, OliveLogger(), Session(["/", "/session"])],
     routes = rs)
 end
-
-function start(;devmode::Bool)
-    s = OliveDevServer(OliveCore("Dev"))
-    s.start()
-    s[:Logger].log("started new olive server in devmode.")
-end
-
-OliveSetupServer(oc::OliveCore) = ServerTemplate(ip, port, [setup],
-extensions = [Logger(), Session(["/", "/session"]), oc])::ServerTemplate
-OliveServer() =
-OliveSetup(ip::String, port::Int64) = ServerTemplate(ip, port)
-
 function create(name::String)
     Toolips.new_webapp(name)
     Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
 end
+
+export OliveCore, build
 end # - module

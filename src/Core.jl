@@ -76,7 +76,7 @@ mutable struct OliveCore <: ServerExtension
     end
 end
 
-build(f::Function, s::String) = f(OliveCore(s))
+build(f::Function, oc::OliveCore) = f(oc)
 
 is_cell(cell::Cell{<:Any}, s::String) = begin
 
