@@ -55,8 +55,7 @@ This function is temporarily being used to test Olive.
 
 """
 main = route("/session") do c::Connection
-    project::Servable = first(c[:OliveCore].open[getip(c)])
-    write!(c, project)
+    
 end
 
 explorer = route("/") do c::Connection

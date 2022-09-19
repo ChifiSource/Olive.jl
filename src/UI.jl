@@ -266,8 +266,12 @@ end
 
 function build(c::Connection, cell::Cell{:jl})
     hiddencell = div("cell$(cell.n)", class = "cell-jl")
+    style!(hiddencell, "cursor" => "pointer")
     on(c, hiddencell, "click") do cm::ComponentModifier
         cm["olivemain"] = "cell" => string(cell.n)
+    end
+    on(c, hiddencell, "dblclick") do cm::ComponentModifier
+        evaluate()
     end
     name = a("cell$(cell.n)label", text = cell.source)
     style!(name, "color" => "white")
