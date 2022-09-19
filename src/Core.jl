@@ -15,6 +15,14 @@ mutable struct Project{name <: Any} <: Servable
     end
 end
 
+function project_fromfiles(n::String, dir::String)
+    cells::Vector{Cell} = directory_cells(dir)
+    project::Project{:files} = Project{:files}(n, dir)
+    fakemod::Module = Module()
+    push!(project.open, "files" => fakemod => cells)
+    project::Project{:files}
+end
+
 function build(c::AbstractConnection, p::Project{<:Any})
     modstr = """module $(p.name)
     function evalin(ex::Any)
@@ -62,17 +70,16 @@ can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
 mutable struct OliveCore <: ServerExtension
     type::Symbol
-    name::String
     data::Dict{Symbol, Any}
     open::Vector{Pair{String, Project{<:Any}}}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
-        data[:home] = "~/.olive"
-        data[:public] = "projects"
+        data[:home] = homedir() * "/olive"
+        data[:public] = homedir() * "/olive/public"
         data[:wd] = pwd()
         projopen = Vector{Pair{String, Project{<:Any}}}()
         data[:macros] = Vector{String}(["#==olive"])
-        new(:connection, mod, data, projopen)
+        new(:connection, data, projopen)
     end
 end
 

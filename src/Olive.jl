@@ -66,14 +66,13 @@ explorer = route("/") do c::Connection
     icon = olive_loadicon()
     bod = olive_body(c)
     on(c, bod, "load") do cm::ComponentModifier
-        cells::Vector{Cell} = directory_cells(c, dir)
-        fakemod::Module = Module()
-        project::Project{:files} = Project{:files}("dirname", pwd())
-        push!(project.open, "files" => fakemod => cells)
-        proj = build(c, project)
+        homeproj = project_fromfiles("root", c[:OliveCore].data[:home])
+        publicproj = project_fromfiles("public", c[:OliveCore].data[:public])
+        pubproj = build(c, publicproj)
+        homeproj = build(c, homeproj)
         style!(cm, icon, "opacity" => 0percent)
         observe!(c, cm, "setcallback", 50000) do cm
-            set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([proj])))
+            set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([pubproj, homeproj])))
         end
     end
     push!(loader_body, icon)
@@ -131,12 +130,11 @@ function create_project(homedir::String = homedir(), olivedir::String = ".olive"
             using Toolips
             using ToolipsSession
             using Olive
-            using Olive: OliveCore
-            import Olive: build
+            using Olive: build
             #==Olive try:
             using Olive: Extensions
             ==#
-            build(core::OliveCore) do oc::OliveCore
+            build(oc::OliveCore) = begin
                 oc::OliveCore
             end
             end # module""")
@@ -171,8 +169,8 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     else
         Pkg.activate("$homedirec/$olivedir")
         olmod = eval(Meta.parse(read("$homedirec/$olivedir/src/olive.jl", String)))
-        olmod.build(oc)
-        rs = routes(fourofour, session, explorer)
+        Base.invokelatest(olmod.build, oc)
+        rs = routes(fourofour, main, explorer)
     end
     server = ServerTemplate(IP, PORT, rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session"])])

@@ -350,7 +350,7 @@ function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
-function directory_cells(c::Connection, dir::String = pwd())
+function directory_cells(dir::String = pwd())
     routes = Toolips.route_from_dir(dir)
     notdirs = [routes[r] for r in findall(x -> ~(isdir(x)), routes)]
     [begin
