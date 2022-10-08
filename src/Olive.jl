@@ -55,7 +55,20 @@ This function is temporarily being used to test Olive.
 
 """
 main = route("/session") do c::Connection
-    
+    write!(c, olivesheet())
+    open::Vector{Project{<:Any}} = c[:OliveCore].open[getip(c)]
+    ui_topbar::Component{:div} = topbar(c)
+    ui_explorer::Component{:div} = projectexplorer()
+    ui_tabs::Vector{Servable} = Vector{Servable}()
+    [begin
+        if typeof(project) == Project{:files}
+            push!(ui_explorer, build(c, project))
+        else
+            push!(ui_tabs, project)
+        end
+    end for project in open]
+    write!(c, ui_topbar)
+    write!(c, [ui_explorer, ui_tabs])
 end
 
 explorer = route("/") do c::Connection
@@ -91,6 +104,7 @@ dev = route("/") do c::Connection
         fakemod::Module = Module()
         project::Project{:files} = Project{:files}("dirname", pwd())
         push!(project.open, "files" => fakemod => cells)
+        c[:OliveCore].open[getip(c)] = [project]
         proj = build(c, project)
         style!(cm, icon, "opacity" => 0percent)
         observe!(c, cm, "setcallback", 50000) do cm

@@ -64,6 +64,7 @@ function build(c::Connection, p::Project{<:Any}, cells::Vector{Cell{<:Any}})
     end
 end
 
+
 can_read(c::Connection, p::Project{<:Any}) = group(c) in values(p.group)
 can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)])
 can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
@@ -71,13 +72,13 @@ can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 mutable struct OliveCore <: ServerExtension
     type::Symbol
     data::Dict{Symbol, Any}
-    open::Vector{Pair{String, Project{<:Any}}}
+    open::Dict{String, Vector{Project{<:Any}}}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         data[:home] = homedir() * "/olive"
         data[:public] = homedir() * "/olive/public"
         data[:wd] = pwd()
-        projopen = Vector{Pair{String, Project{<:Any}}}()
+        projopen = Dict{String, Vector{Project{<:Any}}}()
         data[:macros] = Vector{String}(["#==olive"])
         new(:connection, data, projopen)
     end
