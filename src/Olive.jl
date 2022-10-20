@@ -55,6 +55,7 @@ This function is temporarily being used to test Olive.
 
 """
 main = route("/session") do c::Connection
+    # TODO Keymap bindings here
     write!(c, olivesheet())
     open::Vector{Project{<:Any}} = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
@@ -67,6 +68,7 @@ main = route("/session") do c::Connection
             push!(ui_tabs, project)
         end
     end for project in open]
+    olivemain = olive_main(c, projects)
     write!(c, ui_topbar)
     write!(c, [ui_explorer, ui_tabs])
 end
@@ -94,27 +96,24 @@ explorer = route("/") do c::Connection
 
 dev = route("/") do c::Connection
     # make dev project
-    loader_body = div("loaderbody", align = "center")
-    style!(loader_body, "margin-top" => 10percent)
     write!(c, olivesheet())
-    icon = olive_loadicon()
-    bod = olive_body(c)
-    on(c, bod, "load") do cm::ComponentModifier
-        cells::Vector{Cell} = directory_cells(c, dir)
-        fakemod::Module = Module()
-        project::Project{:files} = Project{:files}("dirname", pwd())
-        push!(project.open, "files" => fakemod => cells)
-        c[:OliveCore].open[getip(c)] = [project]
-        proj = build(c, project)
-        style!(cm, icon, "opacity" => 0percent)
-        observe!(c, cm, "setcallback", 50000) do cm
-            set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([proj])))
+    myproj = Project{:olive}("hello", "ExampleProject")
+    
+    c[:OliveCore].open[getip(c)] =
+    open::Vector{Project{<:Any}} = c[:OliveCore].open[getip(c)]
+    ui_topbar::Component{:div} = topbar(c)
+    ui_explorer::Component{:div} = projectexplorer()
+    ui_tabs::Vector{Servable} = Vector{Servable}()
+    [begin
+        if typeof(project) == Project{:files}
+            push!(ui_explorer, build(c, project))
+        else
+            push!(ui_tabs, project)
         end
-    end
-    push!(loader_body, icon)
-    push!(bod, loader_body)
-    write!(c, bod)
-    dir = pwd()
+    end for project in open]
+    olivemain = olive_main(c, projects)
+    write!(c, ui_topbar)
+    write!(c, [ui_explorer, ui_tabs])
 end
 
 setup = route("/") do c::Connection
