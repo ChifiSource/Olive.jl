@@ -72,13 +72,13 @@ can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 mutable struct OliveCore <: ServerExtension
     type::Symbol
     data::Dict{Symbol, Any}
-    open::Dict{String, Project{<:Any}}
+    open::Dict{String, Vector{Project{<:Any}}}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         data[:home] = homedir() * "/olive"
         data[:public] = homedir() * "/olive/public"
         data[:wd] = pwd()
-        projopen = Dict{String, Project{<:Any}}()
+        projopen = Dict{String, Vector{Project{<:Any}}}()
         data[:macros] = Vector{String}(["#==olive"])
         new(:connection, data, projopen)
     end

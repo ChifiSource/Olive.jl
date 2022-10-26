@@ -95,24 +95,25 @@ explorer = route("/") do c::Connection
  end
 
 dev = route("/") do c::Connection
-    # make dev project
     write!(c, olivesheet())
+    # this belongs in the evaluate function for a file, prior to redirect
     myproj = Project{:olive}("hello", "ExampleProject")
-    c[:OliveCore].open[getip(c)] = myproj
+    c[:OliveCore].open[getip(c)] = [myproj]
+    # this belongs in the "/session" route.
     open = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
     ui_tabs::Vector{Servable} = Vector{Servable}()
-    projects = [begin
+    [begin
         if typeof(project) == Project{:files}
             push!(ui_explorer, build(c, project))
         else
             push!(ui_tabs, project)
         end
-    end for project in myproj.open]
-    olivemain = olive_main(c, projects)
+    end for project in open]
+    olivemain = olive_main(c, ui_tabs)
     write!(c, ui_topbar)
-    write!(c, [ui_explorer, ui_tabs])
+    write!(c, [ui_explorer, olivemain])
 end
 
 setup = route("/") do c::Connection

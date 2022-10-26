@@ -180,8 +180,7 @@ function olive_body(c::Connection)
 end
 
 function olive_main(c::Connection, projects::Vector{Servable})
-    main = ToolipsDefaults.tabbedview(c, "olivemain", [build(c, project) for project in projects])
-    main["selected"] = first(projects).name
+    main = ToolipsDefaults.tabbedview(c, "olivemain", projects)
     main["cell"] = 1; main["ex"] = 0
     style!(main, "transition" => ".8s")
     main::Component{:div}
