@@ -103,13 +103,13 @@ dev = route("/") do c::Connection
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
     ui_tabs::Vector{Servable} = Vector{Servable}()
-    [begin
+    projects = [begin
         if typeof(project) == Project{:files}
             push!(ui_explorer, build(c, project))
         else
             push!(ui_tabs, project)
         end
-    end for project in open]
+    end for project in myproj.open]
     olivemain = olive_main(c, projects)
     write!(c, ui_topbar)
     write!(c, [ui_explorer, ui_tabs])
