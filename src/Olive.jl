@@ -98,9 +98,8 @@ dev = route("/") do c::Connection
     # make dev project
     write!(c, olivesheet())
     myproj = Project{:olive}("hello", "ExampleProject")
-    
-    c[:OliveCore].open[getip(c)] =
-    open::Vector{Project{<:Any}} = c[:OliveCore].open[getip(c)]
+    c[:OliveCore].open[getip(c)] = myproj
+    open = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
     ui_tabs::Vector{Servable} = Vector{Servable}()
