@@ -30,8 +30,10 @@ function build(c::AbstractConnection, p::Project{<:Any})
     end
     end"""
     [begin n = eval(Meta.parse(modstr)) => n[2]  end for n in values(p.open)]
-    push!(c[:OliveCore].open, string(getip(c)) => p)
-    [build(c, cell) for cell in first(p.open)[2][2]]
+    push!(c[:OliveCore].open[getip(c)], p)
+    frstcells = first(p.open)[2][2]
+    println(frstcells)
+    Vector{Servable}([build(c, cell) for cell in frstcells])::Vector{Servable}
 end
 
 function build(c::AbstractConnection, p::Project{:files})
@@ -40,7 +42,11 @@ function build(c::AbstractConnection, p::Project{:files})
     style!(overview, "margin-top" => 5percent, "border-style" => "solid",
     "border-width" => 3px, "border-radius" => 10px, "width" => "20%")
     push!(overview, h("heading$(p.name)", 1, text = p.name))
-    push!(c[:OliveCore].open, string(getip(c)) => p)
+    if ~(getip(c) in keys(c[:OliveCore].open))
+        c[:OliveCore].open[getip(c)] = [p]
+    else
+        push!(c[:OliveCore].open[string(getip(c))], p)
+    end
     [push!(overview, build(c, cell)) for cell in first(p.open)[2][2]]
     overview
 end

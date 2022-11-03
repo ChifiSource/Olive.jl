@@ -212,8 +212,8 @@ end
 ==#
 function build(c::Connection, cell::Cell{:code})
     outside = div(class = cell)
-    inside = div("cell$(cell.n)", class = "input_cell", text = cell.source,
-     contenteditable = true, lastpos = 1)
+    inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = cell.source)
+    inside[:class] = "input_cell"
      style!(inside, "text-color" => "white !important")
      b = IOBuffer()
      highlight(b, MIME"text/html"(), cell.source,
@@ -222,14 +222,14 @@ function build(c::Connection, cell::Cell{:code})
          cm["olivemain"] = "cell" => string(cell.n)
      end
      on(c, inside, "keyup") do cm::ComponentModifier
-         rawcode = cm["cell$(cell.n)"]["text"]
+         rawcode = cm["cell$(cell.n)"]["rawtext"]
          if length(rawcode) == 0
              return
          end
-#==         b = IOBuffer()
-         highlight(b, MIME"text/html"(), replace(rawcode, "</br>" => "\n"),
+         b = IOBuffer()
+         highlight(b, MIME"text/html"(), rawcode,
           Highlights.Lexers.JuliaLexer)
-         set_text!(cm, "cellcover$(cell.n)", String(b.data)) ==#
+         set_text!(cm, "cell$(cell.n)", String(b.data))
      end
     number = h("cell", 1, text = cell.n, class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
@@ -255,13 +255,14 @@ function build(c::Connection, cell::Cell{:ipynb})
     on(c, filecell, "click") do cm::ComponentModifier
         cm["olivemain"] = "cell" => string(cell.n)
     end
+    on(c, filecell, "dblclick") do cm::ComponentModifier
+        evaluate(c, cell, cm)
+    end
     fname = a("$(cell.source)", text = cell.source)
     style!(fname, "color" => "white", "font-size" => 15pt)
     push!(filecell, fname)
     filecell
 end
-
-
 
 function build(c::Connection, cell::Cell{:jl})
     hiddencell = div("cell$(cell.n)", class = "cell-jl")
@@ -270,7 +271,7 @@ function build(c::Connection, cell::Cell{:jl})
         cm["olivemain"] = "cell" => string(cell.n)
     end
     on(c, hiddencell, "dblclick") do cm::ComponentModifier
-        evaluate()
+        evaluate(c, cell, cm)
     end
     name = a("cell$(cell.n)label", text = cell.source)
     style!(name, "color" => "white")
@@ -293,6 +294,7 @@ end
 function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier)
 
 end
+
 
 """this would be a great function to contribute to right now, or change the
 build function to create the feign textbox!"""
@@ -343,6 +345,19 @@ function evaluate(c::Connection, cell::Cell{:markdown}, cm::ComponentModifier)
     cm["cell$(cell.n)"] = "contenteditable" => "false"
 end
 
+function load_session(c::Connection, cs::Vector{Cell{<:Any}},
+    cm::ComponentModifier, source::String, fpath::String)
+    myproj = Project{:olive}("hello", "ExampleProject")
+    modstr = """module null
+    function evalin(ex::Any)
+            eval(ex)
+    end
+    end"""
+    push!(myproj.open, "source" => eval(Meta.parse(modstr)) => cs)
+    c[:OliveCore].open[getip(c)] = [myproj]
+    redirect!(cm, "/session")
+end
+
 function evaluate(c::Connection, cell::Cell{:ipynb}, cm::ComponentModifier)
     cs::Vector{Cell{<:Any}} = IPy.read_ipynb(cell.outputs)
     load_session(c, cs, cm, cell.source, cell.outputs)
@@ -352,6 +367,8 @@ function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
     cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
+
+
 
 function directory_cells(dir::String = pwd())
     routes = Toolips.route_from_dir(dir)

@@ -57,7 +57,7 @@ This function is temporarily being used to test Olive.
 main = route("/session") do c::Connection
     # TODO Keymap bindings here
     write!(c, olivesheet())
-    open::Vector{Project{<:Any}} = c[:OliveCore].open[getip(c)]
+    open = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
     ui_tabs::Vector{Servable} = Vector{Servable}()
@@ -65,12 +65,14 @@ main = route("/session") do c::Connection
         if typeof(project) == Project{:files}
             push!(ui_explorer, build(c, project))
         else
-            push!(ui_tabs, project)
+            push!(ui_tabs, div(project.name))
         end
     end for project in open]
-    olivemain = olive_main(c, projects)
-    write!(c, ui_topbar)
-    write!(c, [ui_explorer, ui_tabs])
+    olivemain = olive_main(c, ui_tabs)
+    projopen = first(values(open))
+    insert!(olivemain[:children], 1, ui_topbar)
+    olivemain[:children]["olivemain-contents"][:children] = build(c, projopen)
+    write!(c, [ui_explorer, olivemain])
 end
 
 explorer = route("/") do c::Connection
@@ -95,25 +97,24 @@ explorer = route("/") do c::Connection
  end
 
 dev = route("/") do c::Connection
+    loader_body = div("loaderbody", align = "center")
+    style!(loader_body, "margin-top" => 10percent)
     write!(c, olivesheet())
-    # this belongs in the evaluate function for a file, prior to redirect
-    myproj = Project{:olive}("hello", "ExampleProject")
-    c[:OliveCore].open[getip(c)] = [myproj]
-    # this belongs in the "/session" route.
-    open = c[:OliveCore].open[getip(c)]
-    ui_topbar::Component{:div} = topbar(c)
-    ui_explorer::Component{:div} = projectexplorer()
-    ui_tabs::Vector{Servable} = Vector{Servable}()
-    [begin
-        if typeof(project) == Project{:files}
-            push!(ui_explorer, build(c, project))
-        else
-            push!(ui_tabs, project)
+    icon = olive_loadicon()
+    bod = olive_body(c)
+    on(c, bod, "load") do cm::ComponentModifier
+        homeproj = project_fromfiles("root", c[:OliveCore].data[:home])
+        publicproj = project_fromfiles("public", c[:OliveCore].data[:public])
+        pubproj = build(c, publicproj)
+        homeproj = build(c, homeproj)
+        style!(cm, icon, "opacity" => 0percent)
+        observe!(c, cm, "setcallback", 50000) do cm
+            set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([pubproj, homeproj])))
         end
-    end for project in open]
-    olivemain = olive_main(c, ui_tabs)
-    write!(c, ui_topbar)
-    write!(c, [ui_explorer, olivemain])
+    end
+    push!(loader_body, icon)
+    push!(bod, loader_body)
+    write!(c, bod)
 end
 
 setup = route("/") do c::Connection
