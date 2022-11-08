@@ -1,17 +1,31 @@
 mutable struct Project{name <: Any} <: Servable
     name::String
     dir::String
-    open::Dict{String, Pair{Module, Vector{Cell}}}
+    environment::String
+    open::Dict{String, Vector{Cell}}
+    mod::Module
     groups::Dict{String, String}
     function Project(name::String, dir::String)
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
         groups::Dict{String, String} = Dict("root" => "rw")
-        new{Symbol(name)}(name, dir, open, groups)
+        modstr = """module $(p.name)
+        function evalin(ex::Any)
+                eval(ex)
+        end
+        end"""
+        mod::Module = eval(modstr)
+        new{Symbol(name)}(name, dir, open, mod, groups)::Project{<:Any}
     end
     Project{T}(name::String, dir::String) where {T <: Any} = begin
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
         groups::Dict{String, String} = Dict("root" => "rw")
-        new{T}(name, dir, open, groups)
+        modstr = """module $(p.name)
+        function evalin(ex::Any)
+                eval(ex)
+        end
+        end"""
+        mod::Module = eval(modstr)
+        new{T}(name, dir, open, mod, groups)::Project{<:Any}
     end
 end
 
@@ -24,15 +38,8 @@ function project_fromfiles(n::String, dir::String)
 end
 
 function build(c::AbstractConnection, p::Project{<:Any})
-    modstr = """module $(p.name)
-    function evalin(ex::Any)
-            eval(ex)
-    end
-    end"""
-    [begin n = eval(Meta.parse(modstr)) => n[2]  end for n in values(p.open)]
     push!(c[:OliveCore].open[getip(c)], p)
-    frstcells = first(p.open)[2][2]
-    println(frstcells)
+    frstcells::Vector{Cell} = first(p.open)[2]
     Vector{Servable}([build(c, cell) for cell in frstcells])::Vector{Servable}
 end
 
