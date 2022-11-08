@@ -16,4 +16,4 @@ Logger -> Logs messages into both a file folder and the terminal.
 Files -> Routes the files from the public directory.
 Session -> ToolipsSession; allows us to make Servables reactive. See ?(on)
 ==#
-OliveServer = Olive.start(IP, PORT)
+OliveDevServer = Olive.start(devmode = true)
