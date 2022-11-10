@@ -8,9 +8,10 @@ Olive.jl is a customizable Integrated Development Environment for Julia programm
 - Extensibility
 - Deployability
 - Customization
+- Interactive capabilities
+- Toolips bonuses -- there will be more of these as time goes on
 
-and more!
-##### using olive
+The goal with Olive is to replace the conventional IDE with a mutable IDE -- allowing creators to create however they like to create with the flexibility of custom cells and extensions!
 
 ##### tech stack
 Olive is fueled by a web of other Chifi projects. Olives.jl is [Toolips](https://github.com/ChifiSource#Toolips)-based. Thus, many dependencies are Toolips extensions, here is a look at that list:
