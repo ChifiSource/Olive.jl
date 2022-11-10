@@ -1,4 +1,6 @@
 mutable struct Project{name <: Any} <: Servable
+    user::String
+    clipboard::String
     name::String
     dir::String
     environment::String
@@ -29,12 +31,12 @@ mutable struct Project{name <: Any} <: Servable
     end
 end
 
-function project_fromfiles(n::String, dir::String)
-    cells::Vector{Cell} = directory_cells(dir)
-    project::Project{:files} = Project{:files}(n, dir)
-    fakemod::Module = Module()
-    push!(project.open, "files" => fakemod => cells)
-    project::Project{:files}
+mutable struct Directory <: Servable
+    uri::String
+    access::Dict{String, Pair}
+    function Directory()
+
+    end
 end
 
 function build(c::AbstractConnection, p::Project{<:Any})
@@ -43,54 +45,18 @@ function build(c::AbstractConnection, p::Project{<:Any})
     Vector{Servable}([build(c, cell) for cell in frstcells])::Vector{Servable}
 end
 
-function build(c::AbstractConnection, p::Project{:files})
-    main = div("olive-main", cell = "1", ex = "0")
-    overview = div("file$(p.name)", align = "center")
-    style!(overview, "margin-top" => 5percent, "border-style" => "solid",
-    "border-width" => 3px, "border-radius" => 10px, "width" => "20%")
-    push!(overview, h("heading$(p.name)", 1, text = p.name))
-    if ~(getip(c) in keys(c[:OliveCore].open))
-        c[:OliveCore].open[getip(c)] = [p]
-    else
-        push!(c[:OliveCore].open[string(getip(c))], p)
-    end
-    [push!(overview, build(c, cell)) for cell in first(p.open)[2][2]]
-    overview
-end
-
-function new_project(name::String, dir::String,
-    groups::Dict{String, String} = Dict("host" => "we"))
-    pe = projectexplorer()
-end
-
-function build(c::Connection, p::Project{<:Any}, cells::Vector{Cell{<:Any}})
-    newcells::Vector{Servable} = [build(cell) for cell in cells]
-    gr = group(c)
-    if ~(canread(c, p))
-        return
-    end
-    if can_evaluate(c, p)
-
-    end
-    if can_write(c, p)
-
-    end
-end
-
-
 can_read(c::Connection, p::Project{<:Any}) = group(c) in values(p.group)
 can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)])
 can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
 mutable struct OliveCore <: ServerExtension
     type::Symbol
-    data::Dict{Symbol, Any}
+    directory::Vector{Directory}
     open::Dict{String, Vector{Project{<:Any}}}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         data[:home] = homedir() * "/olive"
         data[:public] = homedir() * "/olive/public"
-        data[:wd] = pwd()
         projopen = Dict{String, Vector{Project{<:Any}}}()
         data[:macros] = Vector{String}(["#==olive"])
         new(:connection, data, projopen)

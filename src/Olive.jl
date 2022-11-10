@@ -198,6 +198,10 @@ OliveDevServer(oc::OliveCore) = begin
     WebServer(extensions = [oc, OliveLogger(), Session(["/", "/session"])],
     routes = rs)
 end
+
+#== TODO Create creates a new server at the current directory, making Olive.jl
+deployable!
+==#
 function create(name::String)
     Toolips.new_webapp(name)
     Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
