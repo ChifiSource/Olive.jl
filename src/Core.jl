@@ -1,3 +1,29 @@
+
+mutable struct Directory <: Servable
+    uri::String
+    access::Dict{String, Pair}
+    function Directory()
+
+    end
+end
+
+mutable struct OliveExtension{P <: Any}
+    OliveExtension(f::Function, name::String) = new{name}(f, data)::OliveExtension{<:Any}
+    OliveExtension
+end
+
+mutable struct OliveModifier <: AbstractComponentModifier
+    changes::Vector{String}
+    client_data::Dict{Symbol, Any}
+    function OliveModifier(html::String)
+
+    end
+end
+
+function build(om::ComponentModifier, oe::OliveExtension{<:Any})
+    @warn "The extension $(typeof(oe)) tried to load, but has no build function."
+end
+
 mutable struct Project{name <: Any} <: Servable
     user::String
     clipboard::String
@@ -31,14 +57,6 @@ mutable struct Project{name <: Any} <: Servable
     end
 end
 
-mutable struct Directory <: Servable
-    uri::String
-    access::Dict{String, Pair}
-    function Directory()
-
-    end
-end
-
 function build(c::AbstractConnection, p::Project{<:Any})
     push!(c[:OliveCore].open[getip(c)], p)
     frstcells::Vector{Cell} = first(p.open)[2]
@@ -48,6 +66,13 @@ end
 can_read(c::Connection, p::Project{<:Any}) = group(c) in values(p.group)
 can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)])
 can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
+
+function load_extensions!(cm::ComponentModifier)
+    signatures = [m.sig.parameters[2] for m in methods(build, [Modifier, OliveExtension])]
+    for sig in signatures
+        build(cm, sig())
+    end
+end
 
 mutable struct OliveCore <: ServerExtension
     type::Symbol
