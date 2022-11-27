@@ -67,10 +67,10 @@ main = route("/session") do c::Connection
             push!(ui_tabs, div(project.name))
         end
     end for project in open]
-    olivemain = olive_main(c, ui_tabs)
+    olivemain = olive_main()
     projopen = first(values(open))
     insert!(olivemain[:children], 1, ui_topbar)
-    olivemain[:children]["olivemain-contents"][:children] = build(c, projopen)
+    olivemain[:children] = build(c, projopen)
     write!(c, [ui_explorer, olivemain])
 end
 

@@ -211,8 +211,7 @@ function olive_body(c::Connection)
 end
 
 function olive_main(location::String = "session")
-    main = div("olivemain", cell = 1, ex = 0, selected = "", page = location)
-    main["cell"] = 1; main["ex"] = 0
+    main = div("olivemain", cell = 1,  selected = "", page = location, ex = 0)
     style!(main, "transition" => ".8s")
     main::Component{:div}
 end
@@ -260,7 +259,10 @@ function build(c::Connection, cell::Cell{:code})
          b = IOBuffer()
          highlight(b, MIME"text/html"(), rawcode,
           Highlights.Lexers.JuliaLexer)
-         set_text!(cm, "cell$(cell.n)", String(b.data))
+        # set_text!(cm, "cell$(cell.n)", String(b.data))
+     end
+     bind!(c, inside, "Enter", :shift) do cm::ComponentModifier
+         
      end
     number = h("cell", 1, text = cell.n, class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
@@ -377,12 +379,10 @@ end
 function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     cm::ComponentModifier, source::String, fpath::String)
     myproj = Project{:olive}("hello", "ExampleProject")
-    modstr = """module null
-    function evalin(ex::Any)
-            eval(ex)
-    end
-    end"""
-    push!(myproj.open, "source" => eval(Meta.parse(modstr)) => cs)
+    #==
+    TODO Name project, activate environment in evalin
+    ==#
+    push!(myproj.open, "source" =>  cs)
     c[:OliveCore].open[getip(c)] = [myproj]
     redirect!(cm, "/session")
 end

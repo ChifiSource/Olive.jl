@@ -1,4 +1,56 @@
 """
+### OliveExtension{P <: Any}
+The OliveExtension is a symbolic type that is used by the `build` function in
+order to create extensions using an OliveModifier. This is used to alter
+the OliveUI as it is loaded!
+##### example
+```
+# this is your olive root file:
+module olive
+using Olive
+import Olive: build
+
+                            # vv the name of your extension ! vv
+function build(om::OliveModifier, oe::OliveExtension{:myextension})
+    alert!(om, "hello!")
+end
+```
+------------------
+##### field info
+
+------------------
+##### constructors
+
+"""
+mutable struct OliveExtension{P <: Any} end
+
+
+mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
+    rootc::Dict{String, AbstractComponent}
+    changes::Vector{String}
+    data::Dict{Symbol, Any}
+    function OliveModifier(c::Connection, cm::ComponentModifier)
+        new(cm.rootc, cm.changes, c[:OliveCore].client_data[getip(c)])
+    end
+end
+
+"""
+**Olive Core**
+### build(om::OliveModifier, oe::OliveExtension{<:Any})
+------------------
+This is the base `build` function. These functions are ran whenever an extension
+is loaded into your root project. This function is not meant to be called, but
+extended and written
+#### example
+```
+
+```
+"""
+function build(om::OliveModifier, oe::OliveExtension{<:Any})
+
+end
+
+"""
 ### Directory{T <: Any}
 - uri::String
 - access::Dict{String, Vector{String}}
@@ -55,7 +107,7 @@ using  MyDirectories
 ```
 """
 build(c::Connection, dir::Directory{<:Any}) = begin
-    container = div("$(dir.uri)", align = "left")
+    container = section("$(dir.uri)", align = "left")
     dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     cells = Vector{Servable}()
     push!(cells, dirtop)
@@ -63,58 +115,50 @@ build(c::Connection, dir::Directory{<:Any}) = begin
         push!(cells, build(c, cell))
     end
     container[:children] = cells
-    on(c, container, "focusenter") do cm::ComponentModifier
+    on(c, container, "click") do cm::ComponentModifier
         cm["olivemain"] = "selected" => dir.uri
     end
     return(container)
 end
 
-mutable struct OliveExtension{P <: Any} end
 
-
-mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
-    rootc::Dict{String, AbstractComponent}
-    changes::Vector{String}
-    data::Dict{Symbol, Any}
-    function OliveModifier(c::Connection, cm::ComponentModifier)
-        new(cm.rootc, Vector{String}(), c[:OliveCore].client_data[getip(c)])
-    end
-end
-
-function build(om::OliveModifier, oe::OliveExtension{<:Any})
-    @warn "The extension $(typeof(oe)) tried to load, but has no build function."
-end
 
 mutable struct Project{name <: Any} <: Servable
-    user::String
-    clipboard::String
     name::String
     dir::String
     environment::String
     open::Dict{String, Vector{Cell}}
     mod::Module
     groups::Dict{String, String}
-    function Project(name::String, dir::String)
+    function Project(name::String, dir::String; environment::String = "")
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
         groups::Dict{String, String} = Dict("root" => "rw")
-        modstr = """module $(p.name)
+        modstr = """module $(name)
+        using Pkg
+        Pkg.activate($environment)
         function evalin(ex::Any)
                 eval(ex)
         end
         end"""
-        mod::Module = eval(modstr)
-        new{Symbol(name)}(name, dir, open, mod, groups)::Project{<:Any}
+        mod::Module = eval(Meta.parse(modstr))
+        if environment == ""
+            environment = dir
+        end
+        new{Symbol(name)}(name, dir, environment, open, mod, groups)::Project{<:Any}
     end
-    Project{T}(name::String, dir::String) where {T <: Any} = begin
+    Project{T}(name::String, dir::String; environment::String = "") where {T <: Any} = begin
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
         groups::Dict{String, String} = Dict("root" => "rw")
-        modstr = """module $(p.name)
+        modstr = """module $(name)
         function evalin(ex::Any)
                 eval(ex)
         end
         end"""
-        mod::Module = eval(modstr)
-        new{T}(name, dir, open, mod, groups)::Project{<:Any}
+        mod::Module = eval(Meta.parse(modstr))
+        if environment == ""
+            environment = dir
+        end
+        new{T}(name, dir, environment, open, mod, groups)::Project{<:Any}
     end
 end
 
@@ -129,13 +173,15 @@ can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)
 can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
 function load_extensions!(c::Connection, cm::ComponentModifier)
-    signatures = [m.sig.parameters[3] for m in methods(build, [Modifier, OliveExtension])]
+    olmod = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
     mod = OliveModifier(c, cm)
+    Base.invokelatest(olmod.build, mod, OliveExtension{:invoker}())
+    signatures = [m.sig.parameters[3] for m in methods(olmod.build, [Modifier, OliveExtension])]
     for sig in signatures
         if sig == OliveExtension{<:Any}
             continue
         end
-        build(mod, sig())
+        Base.invokelatest(olmod.build, mod, sig())
     end
 end
 
