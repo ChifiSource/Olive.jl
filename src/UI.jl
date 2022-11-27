@@ -330,8 +330,6 @@ end
 
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     rawcode = cm["cell$(cell.n)"]["text"]
-    rawcomps = ToolipsSession.htmlcomponent(rawcode, [""])
-    rawcode = join(c["text"] for c in rawcomps)
     execcode = replace(rawcode, "\n" => ";", "</br>" => ";",
     "\n" => ";", "\n" => ";")
     cell.source = execcode
@@ -360,7 +358,7 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
         ret = "loading"
     end
     b = IOBuffer()
-    highlight(b, MIME"text/html"(), execcode, Highlights.Lexers.JuliaLexer)
+    highlight(b, MIME"text/html"(), rawcode, Highlights.Lexers.JuliaLexer)
     out = replace(String(b.data), "\n" => "", "        " => "\n        ",
     "end" => "\nend")
     set_text!(cm, "cell$(cell.n)", out)

@@ -246,11 +246,11 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
 end
 
 function display(d::OliveDisplay, m::MIME"text/html", o::Any)
-    show(d.io, correctm(), o)
+    show(d.io, m, o)
 end
 
 function display(d::OliveDisplay, m::MIME"image/png", o::Any)
-    show(d.io, correctm(), o)
+    show(d.io, m, o)
 end
 
 function display(d::OliveDisplay, m::MIME"image/png", o::Any)
@@ -258,7 +258,7 @@ function display(d::OliveDisplay, m::MIME"image/png", o::Any)
 end
 
 function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
-    string(o)
+    show(d.io, m, o)
 end
 
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
