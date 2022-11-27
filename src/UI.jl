@@ -211,7 +211,14 @@ function olive_body(c::Connection)
 end
 
 function olive_main(c::Connection, projects::Vector{Servable})
-    main = ToolipsDefaults.tabbedview(c, "olivemain", projects)
+    main = div("olivemaib", cell = 1, ex = 0, selected = "", page = "session")
+    main["cell"] = 1; main["ex"] = 0
+    style!(main, "transition" => ".8s")
+    main::Component{:div}
+end
+
+function olive_main(c::Connection, dirs::Vector{Directory})
+    main = div("olivemaib", cell = 1, ex = 0, selected = "", page = "home")
     main["cell"] = 1; main["ex"] = 0
     style!(main, "transition" => ".8s")
     main::Component{:div}

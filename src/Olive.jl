@@ -86,7 +86,7 @@ explorer = route("/") do c::Connection
         publicproj = Directory(c[:OliveCore].data[:public],
         "public" => "rw")
         style!(cm, icon, "opacity" => 0percent)
-        observe!(c, cm, "setcallback", 50000) do cm
+        script!!(c, cm, "setcallback", 50000) do cm
             set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([pubproj, homeproj])))
         end
         load_extensions!(c, cm)

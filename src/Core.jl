@@ -27,18 +27,51 @@ mutable struct Directory{T <: Any}
     end
 end
 
-build(c::Connection, dir::Directory) = begin
-    container = section("$uri", )
+"""
+**Interface**
+### build(c::Connection, dir::Directory{<:Any}) -> ::Component{:div}
+------------------
+The catchall/default `build` function. If you want to add a custom directory,
+create an OliveaExtension and
+#### example
+```
+
+```
+custom directory example
+```
+# In your Olive root: ('~/olive/src/olive.jl' by default)
+module MyDirectories
+    import Olive: build
+    build(c::Connection, dir::Directory{:mydir}) = begin
+
+    end
+    # we will replace the directories with ours
+    build(om::OliveModifier, oe::OliveExtension{:loadmydir})
+        set_children!()
+    end
+end
+
+using  MyDirectories
+```
+"""
+build(c::Connection, dir::Directory{<:Any}) = begin
+    container = section(dir.uri)
+    container[:children] = [build(c, cell) for cell in dir.cells]
+    on(c, container, "focusenter") do cm::ComponentModifier
+        cm["olivemain"] = "selected" => dir.uri
+    end
+    container
 end
 
 mutable struct OliveExtension{P <: Any} end
 
-mutable struct OliveModifier <: AbstractComponentModifier
-    session::Bool
-    changes::Vector{String}
-    client_data::Dict{Symbol, Any}
-    function OliveModifier(ip::String, cm::ComponentModifier, oc::OliveCore)
 
+mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
+    rootc::Dict{String, AbstractComponent}
+    changes::Vector{String}
+    data::Dict{Symbol, Any}
+    function OliveModifier(c::Connection, cm::ComponentModifier)
+        new(cm.rootc, Vector{String}(), c[:OliveCore].client_data[getip(c)])
     end
 end
 
@@ -91,23 +124,24 @@ can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
 function load_extensions!(c::Connection, cm::ComponentModifier)
     signatures = [m.sig.parameters[2] for m in methods(build, [Modifier, OliveExtension])]
-    mod = OliveModifier(cm, c[:OliveCore])
+    mod = OliveModifier(c, cm)
     for sig in signatures
-        build(cm, sig())
+        build(mod, sig())
     end
 end
 
 mutable struct OliveCore <: ServerExtension
     type::Symbol
-    directory::Vector{Directory}
+    data::Dict{Symbol, Any}
+    client_data::Dict{String, Dict{Symbol, Any}}
     open::Dict{String, Vector{Project{<:Any}}}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         data[:home] = homedir() * "/olive"
         data[:public] = homedir() * "/olive/public"
         projopen = Dict{String, Vector{Project{<:Any}}}()
-        data[:macros] = Vector{String}(["#==olive"])
-        new(:connection, data, projopen)
+        client_data = Dict{String, Dict{Symbol, Any}}()
+        new(:connection, data, client_data, projopen)
     end
 end
 
