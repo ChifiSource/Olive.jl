@@ -55,8 +55,10 @@ using  MyDirectories
 ```
 """
 build(c::Connection, dir::Directory{<:Any}) = begin
-    container = div("dir", align = "left")
+    container = div("$(dir.uri)", align = "left")
+    dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     cells = Vector{Servable}()
+    push!(cells, dirtop)
     for cell in dir.cells
         push!(cells, build(c, cell))
     end

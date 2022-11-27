@@ -130,13 +130,12 @@ function create_project(homedir::String = homedir(), olivedir::String = ".olive"
             using Toolips
             using ToolipsSession
             using Olive
-            using Olive: build
-            #==Olive try:
-            using Olive: Extensions
-            ==#
+            import Olive: build
+
             build(oc::OliveCore) = begin
                 oc::OliveCore
             end
+
             end # module""")
         end
         @info "olive files created! welcome to olive! "
@@ -192,6 +191,29 @@ deployable!
 function create(name::String)
     Toolips.new_webapp(name)
     Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
+    open("$name/src/$name.jl") do io
+        write!(io, """
+        module $name
+        using Toolips
+        using ToolipsSession
+        using Olive
+        import Olive: build
+
+        build(oc::OliveCore) = begin
+            oc::OliveCore
+        end
+
+        build(om::OliveModifier, oe::OliveExtension{:$name})
+
+        end
+
+        function start()
+
+        end
+
+        end # module
+        """)
+    end
 end
 
 export OliveCore, build
