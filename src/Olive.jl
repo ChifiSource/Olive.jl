@@ -84,10 +84,14 @@ explorer = route("/") do c::Connection
         homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
         publicproj = Directory(c[:OliveCore].data[:public],
         "public" => "rw")
-        style!(cm, icon, "opacity" => 0percent)
+        dirs = [homeproj, publicproj]
+        main = olive_main("files")
+        for dir in dirs
+            push!(main[:children], build(c, dir))
+        end
         script!(c, cm, "loadcallback") do cm
-            set_children!(cm, bod, vcat(olivesheet(),
-            Vector{Servable}([build(c, homeproj), build(c, publicproj)])))
+            style!(cm, icon, "opacity" => 0percent)
+            set_children!(cm, bod, [olivesheet(), main])
         end
         load_extensions!(c, cm)
     end

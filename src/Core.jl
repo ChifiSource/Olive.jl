@@ -55,12 +55,16 @@ using  MyDirectories
 ```
 """
 build(c::Connection, dir::Directory{<:Any}) = begin
-    container = section(dir.uri)
-    container[:children] = [build(c, cell) for cell in dir.cells]
+    container = div("dir", align = "left")
+    cells = Vector{Servable}()
+    for cell in dir.cells
+        push!(cells, build(c, cell))
+    end
+    container[:children] = cells
     on(c, container, "focusenter") do cm::ComponentModifier
         cm["olivemain"] = "selected" => dir.uri
     end
-    container
+    return(container)
 end
 
 mutable struct OliveExtension{P <: Any} end
@@ -125,7 +129,6 @@ can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 function load_extensions!(c::Connection, cm::ComponentModifier)
     signatures = [m.sig.parameters[3] for m in methods(build, [Modifier, OliveExtension])]
     mod = OliveModifier(c, cm)
-    println(signatures)
     for sig in signatures
         if sig == OliveExtension{<:Any}
             continue
