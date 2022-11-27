@@ -18,12 +18,12 @@ gives the directory name and creates a collapsable.
 """
 mutable struct Directory{T <: Any}
     uri::String
-    access::Dict{String, Vector{String}}
+    access::Dict{String, String}
     cells::Vector{Cell}
     dirs::Vector{Directory}
-    function Directory(uri::String, access::Vector{Pair{String, String}} ...; type::Symbol = :olive)
+    function Directory(uri::String, access::Pair{String, String} ...; type::Symbol = :olive)
         file_cells, dirs = directory_cells(uri, access ...)
-        new{type}(uri, Dict(access ...). cells)
+        new{type}(uri, Dict(access ...), file_cells)
     end
 end
 
@@ -123,25 +123,35 @@ can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)
 can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
 function load_extensions!(c::Connection, cm::ComponentModifier)
-    signatures = [m.sig.parameters[2] for m in methods(build, [Modifier, OliveExtension])]
+    signatures = [m.sig.parameters[3] for m in methods(build, [Modifier, OliveExtension])]
     mod = OliveModifier(c, cm)
+    println(signatures)
     for sig in signatures
+        if sig == OliveExtension{<:Any}
+            continue
+        end
         build(mod, sig())
     end
 end
 
 mutable struct OliveCore <: ServerExtension
-    type::Symbol
+    type::Vector{Symbol}
     data::Dict{Symbol, Any}
     client_data::Dict{String, Dict{Symbol, Any}}
     open::Dict{String, Vector{Project{<:Any}}}
+    f::Function
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         data[:home] = homedir() * "/olive"
         data[:public] = homedir() * "/olive/public"
         projopen = Dict{String, Vector{Project{<:Any}}}()
         client_data = Dict{String, Dict{Symbol, Any}}()
-        new(:connection, data, client_data, projopen)
+        f(c::Connection) = begin
+            if ~(getip(c) in keys(client_data))
+                push!(client_data, getip(c) => Dict{Symbol, Any}())
+            end
+        end
+        new([:connection, :func], data, client_data, projopen, f)
     end
 end
 
