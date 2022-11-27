@@ -71,7 +71,7 @@ main = route("/session") do c::Connection
     projopen = first(values(open))
     insert!(olivemain[:children], 1, ui_topbar)
     olivemain[:children] = build(c, projopen)
-    write!(c, [ui_explorer, olivemain])
+    write!(c, [ui_explorer, ui_topbar, olivemain])
 end
 
 explorer = route("/") do c::Connection

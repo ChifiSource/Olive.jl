@@ -241,7 +241,7 @@ end
     Below then is the infastructure to surround the cells, cell pages etc.
 ==#
 function build(c::Connection, cell::Cell{:code})
-    outside = div(class = cell)
+    outside = div("cellcontainer$(cell.n)", class = cell)
     inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = cell.source)
     inside[:class] = "input_cell"
      style!(inside, "text-color" => "white !important")
@@ -252,7 +252,7 @@ function build(c::Connection, cell::Cell{:code})
          cm["olivemain"] = "cell" => string(cell.n)
      end
      on(c, inside, "keyup") do cm::ComponentModifier
-         rawcode = cm["cell$(cell.n)"]["rawtext"]
+         rawcode = cm["cell$(cell.n)"]["text"]
          if length(rawcode) == 0
              return
          end
@@ -262,7 +262,7 @@ function build(c::Connection, cell::Cell{:code})
         # set_text!(cm, "cell$(cell.n)", String(b.data))
      end
      bind!(c, inside, "Enter", :shift) do cm::ComponentModifier
-         
+         evaluate(c, cell, cm)
      end
     number = h("cell", 1, text = cell.n, class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
@@ -329,14 +329,14 @@ function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier)
 end
 
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
-    rawcode = unhighlight(cm["cell$(cell.n)"]["text"])
+    rawcode = cm["cell$(cell.n)"]["text"]
+    rawcomps = ToolipsSession.htmlcomponent(rawcode, [""])
+    rawcode = join(c["text"] for c in rawcomps)
     execcode = replace(rawcode, "\n" => ";", "</br>" => ";",
-    "\n" => ";", "\n        " => ";")
-    cell.source = rawcode
-    key = cm["olive-token"]["text"]
-    fname = cm["olivemain"]["fname"]
-#    print(execcode)
-    sinfo = c[:OliveCore].sessions[key].open[fname]
+    "\n" => ";", "\n" => ";")
+    cell.source = execcode
+    selected = cm["olivemain"]["selected"]
+    proj = first(c[:OliveCore].open[getip(c)])
     ret = ""
     i = IOBuffer()
     try
@@ -348,23 +348,24 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
            check for using and always make the evaluation of that cell
              multi-threaded.
              TODO this is a continuing problem==#
-        ret = sinfo[1].evalin(Meta.parse(execcode))
+        ret = proj.mod.evalin(execcode)
     catch e
         throw(e)
         ret = e
     end
+    println(ret)
     if isnothing(ret)
         # spawn load-bar observer... perhaps we should send this back in
         # a new request?
         ret = "loading"
     end
     b = IOBuffer()
-    highlight(b, MIME"text/html"(), rawcode, Highlights.Lexers.JuliaLexer)
+    highlight(b, MIME"text/html"(), execcode, Highlights.Lexers.JuliaLexer)
     out = replace(String(b.data), "\n" => "", "        " => "\n        ",
     "end" => "\nend")
     set_text!(cm, "cell$(cell.n)", out)
     od = OliveDisplay()
-    display( od,MIME"nothing"(), ret)
+    display(od,MIME"olive"(), ret)
     set_text!(cm, "cell$(cell.n)out", String(od.io.data))
 end
 

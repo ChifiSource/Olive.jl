@@ -137,7 +137,7 @@ mutable struct Project{name <: Any} <: Servable
         using Pkg
         Pkg.activate($environment)
         function evalin(ex::Any)
-                eval(ex)
+                eval(Meta.parse(ex))
         end
         end"""
         mod::Module = eval(Meta.parse(modstr))
@@ -151,7 +151,7 @@ mutable struct Project{name <: Any} <: Servable
         groups::Dict{String, String} = Dict("root" => "rw")
         modstr = """module $(name)
         function evalin(ex::Any)
-                eval(ex)
+                eval(Meta.parse(ex))
         end
         end"""
         mod::Module = eval(Meta.parse(modstr))
@@ -242,7 +242,7 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
             break
         end
     end
-    display(d.io, correctm(), o)
+    display(d, correctm(), o)
 end
 
 function display(d::OliveDisplay, m::MIME"text/html", o::Any)
@@ -253,8 +253,12 @@ function display(d::OliveDisplay, m::MIME"image/png", o::Any)
     show(d.io, correctm(), o)
 end
 
-function display(d::OliveDisplay, m::MIME"image/png")
+function display(d::OliveDisplay, m::MIME"image/png", o::Any)
 
+end
+
+function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
+    string(o)
 end
 
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
