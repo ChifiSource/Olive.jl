@@ -364,7 +364,7 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     set_text!(cm, "cell$(cell.n)", out)
     od = OliveDisplay()
     display(od,MIME"olive"(), ret)
-    set_text!(cm, "cell$(cell.n)out", String(od.io.data))
+#    set_text!(cm, "cell$(cell.n)out", String(od.io.data))
 end
 
 function evaluate(c::Connection, cell::Cell{:markdown}, cm::ComponentModifier)
