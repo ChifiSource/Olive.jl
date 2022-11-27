@@ -1,26 +1,48 @@
+"""
+### Directory{T <: Any}
+- uri::String
+- access::Dict{String, Vector{String}}
+- cells::Vector{Cell}
 
-mutable struct Directory <: Servable
+The directory type holds Directory information and file cells on startup. It
+is build with the `Olive.build(c::Connection, dir::Directory{<:Any})` method. `T`
+represents the type of directory to render. By default, this is :olive, which
+gives the directory name and creates a collapsable.
+##### example
+```
+
+```
+------------------
+##### constructors
+- Directory(uri::String, access::Pair{String, String} ...; type::Symbol = :olive)
+"""
+mutable struct Directory{T <: Any}
     uri::String
-    access::Dict{String, Pair}
-    function Directory()
-
+    access::Dict{String, Vector{String}}
+    cells::Vector{Cell}
+    dirs::Vector{Directory}
+    Directory(uri::String, access::Pair{String, String} ...; type::Symbol = :olive)
+        file_cells, dirs = directory_cells(uri, access ...)
+        new{type}(uri, Dict(access ...). cells)
     end
 end
 
-mutable struct OliveExtension{P <: Any}
-    OliveExtension(f::Function, name::String) = new{name}(f, data)::OliveExtension{<:Any}
-    OliveExtension
+build(c::Connection, dir::Directory) = begin
+    container = section("$uri", )
 end
+
+mutable struct OliveExtension{P <: Any} end
 
 mutable struct OliveModifier <: AbstractComponentModifier
+    session::Bool
     changes::Vector{String}
     client_data::Dict{Symbol, Any}
-    function OliveModifier(html::String)
+    function OliveModifier(ip::String, cm::ComponentModifier, oc::OliveCore)
 
     end
 end
 
-function build(om::ComponentModifier, oe::OliveExtension{<:Any})
+function build(om::OliveModifier, oe::OliveExtension{<:Any})
     @warn "The extension $(typeof(oe)) tried to load, but has no build function."
 end
 
@@ -67,8 +89,9 @@ can_read(c::Connection, p::Project{<:Any}) = group(c) in values(p.group)
 can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)])
 can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
-function load_extensions!(cm::ComponentModifier)
+function load_extensions!(c::Connection, cm::ComponentModifier)
     signatures = [m.sig.parameters[2] for m in methods(build, [Modifier, OliveExtension])]
+    mod = OliveModifier(cm, c[:OliveCore])
     for sig in signatures
         build(cm, sig())
     end

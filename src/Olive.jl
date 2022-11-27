@@ -1,4 +1,4 @@
-"""
+ """
 Created in February, 2022 by
 [chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
 by team
@@ -82,14 +82,14 @@ explorer = route("/") do c::Connection
     icon = olive_loadicon()
     bod = olive_body(c)
     on(c, bod, "load") do cm::ComponentModifier
-        homeproj = project_fromfiles("root", c[:OliveCore].data[:home])
-        publicproj = project_fromfiles("public", c[:OliveCore].data[:public])
-        pubproj = build(c, publicproj)
-        homeproj = build(c, homeproj)
+        homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
+        publicproj = Directory(c[:OliveCore].data[:public],
+        "public" => "rw")
         style!(cm, icon, "opacity" => 0percent)
         observe!(c, cm, "setcallback", 50000) do cm
             set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([pubproj, homeproj])))
         end
+        load_extensions!(c, cm)
     end
     push!(loader_body, icon)
     push!(bod, loader_body)

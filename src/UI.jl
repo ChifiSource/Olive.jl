@@ -397,10 +397,11 @@ function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
-function directory_cells(dir::String = pwd())
+function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
     routes = Toolips.route_from_dir(dir)
     notdirs = [routes[r] for r in findall(x -> ~(isdir(x)), routes)]
-    [begin
+    dirs = [Directory(dir, access ...) for dir in findall(x -> isdir(x), routes)]
+    return([begin
     splitdir::Vector{SubString} = split(path, "/")
     fname::String = string(splitdir[length(splitdir)])
     fsplit = split(fname, ".")
@@ -409,7 +410,7 @@ function directory_cells(dir::String = pwd())
         fending = string(fsplit[2])
     end
     Cell(e, fending, fname, path)
-    end for (e, path) in enumerate(notdirs)]::AbstractVector
+end for (e, path) in enumerate(notdirs)]::AbstractVector, dirs)
 end
 
 function olive_loadicon()
