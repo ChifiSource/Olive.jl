@@ -46,7 +46,6 @@ the chifi organization, you may fill out a form [here]().
 
 include("Core.jl")
 include("UI.jl")
-include("Extensions.jl")
 
 """
 main(c::Connection) -> _
@@ -97,24 +96,7 @@ explorer = route("/") do c::Connection
  end
 
 dev = route("/") do c::Connection
-    loader_body = div("loaderbody", align = "center")
-    style!(loader_body, "margin-top" => 10percent)
-    write!(c, olivesheet())
-    icon = olive_loadicon()
-    bod = olive_body(c)
-    on(c, bod, "load") do cm::ComponentModifier
-        homeproj = project_fromfiles("root", c[:OliveCore].data[:home])
-        publicproj = project_fromfiles("public", c[:OliveCore].data[:public])
-        pubproj = build(c, publicproj)
-        homeproj = build(c, homeproj)
-        style!(cm, icon, "opacity" => 0percent)
-        observe!(c, cm, "setcallback", 50000) do cm
-            set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([pubproj, homeproj])))
-        end
-    end
-    push!(loader_body, icon)
-    push!(bod, loader_body)
-    write!(c, bod)
+    explorer(c)
 end
 
 setup = route("/") do c::Connection

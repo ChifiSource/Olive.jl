@@ -21,7 +21,7 @@ mutable struct Directory{T <: Any}
     access::Dict{String, Vector{String}}
     cells::Vector{Cell}
     dirs::Vector{Directory}
-    Directory(uri::String, access::Pair{String, String} ...; type::Symbol = :olive)
+    function Directory(uri::String, access::Vector{Pair{String, String}} ...; type::Symbol = :olive)
         file_cells, dirs = directory_cells(uri, access ...)
         new{type}(uri, Dict(access ...). cells)
     end
