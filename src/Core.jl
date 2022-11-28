@@ -106,13 +106,13 @@ end
 using  MyDirectories
 ```
 """
-build(c::Connection, dir::Directory{<:Any}) = begin
+build(c::Connection, cm, dir::Directory{<:Any}) = begin
     container = section("$(dir.uri)", align = "left")
     dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     cells = Vector{Servable}()
     push!(cells, dirtop)
     for cell in dir.cells
-        push!(cells, build(c, cell))
+        push!(cells, build(c, cm, cell))
     end
     container[:children] = cells
     on(c, container, "click") do cm::ComponentModifier
@@ -162,10 +162,10 @@ mutable struct Project{name <: Any} <: Servable
     end
 end
 
-function build(c::AbstractConnection, p::Project{<:Any})
+function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     push!(c[:OliveCore].open[getip(c)], p)
     frstcells::Vector{Cell} = first(p.open)[2]
-    Vector{Servable}([build(c, cell) for cell in frstcells])::Vector{Servable}
+    Vector{Servable}([build(c, cm, cell) for cell in frstcells])::Vector{Servable}
 end
 
 can_read(c::Connection, p::Project{<:Any}) = group(c) in values(p.group)

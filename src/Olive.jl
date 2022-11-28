@@ -60,18 +60,32 @@ main = route("/session") do c::Connection
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
     ui_tabs::Vector{Servable} = Vector{Servable}()
-    [begin
-        if typeof(project) == Project{:files}
-            push!(ui_explorer, build(c, project))
-        else
-            push!(ui_tabs, div(project.name))
-        end
-    end for project in open]
+    style!(ui_topbar, "opacity" => "0%", "transition" => 2seconds)
     olivemain = olive_main()
-    projopen = first(values(open))
-    insert!(olivemain[:children], 1, ui_topbar)
-    olivemain[:children] = build(c, projopen)
-    write!(c, [ui_explorer, ui_topbar, olivemain])
+    olivemain[:children] = [ToolipsDefaults.progress("myprog")]
+    ui_explorer[:children] = [olive_loadicon()]
+    bod = body("mainbody")
+    push!(bod, ui_explorer, ui_topbar, olivemain)
+    write!(c, bod)
+    on(c, "load") do cm::ComponentModifier
+        projopen = first(values(open))
+        cells = build(c, cm, projopen)
+
+        set_children!(cm, olivemain, cells)
+        style!(cm, ui_topbar, "opacity" => "100%")
+        next!(c, ui_topbar, cm) do cm2::ComponentModifier
+            for (each_cell, jlcell) in zip(cells, first(values(projopen.open)))
+                on(c, cm, each_cell, "focus") do cm3::ComponentModifier
+                    cm3["olivemain"] = "cell" => string(jlcell.n)
+                end
+                bind!(c, cm2, each_cell, "Enter", :shift) do cm3::ComponentModifier
+                    evaluate(c, jlcell, cm3)
+    #                append!(cm3, "olivemain", build(c, cm2, Cell(100, "code", "")))
+                end
+            end
+        end
+    end
+
 end
 
 explorer = route("/") do c::Connection
@@ -87,7 +101,7 @@ explorer = route("/") do c::Connection
         dirs = [homeproj, publicproj]
         main = olive_main("files")
         for dir in dirs
-            push!(main[:children], build(c, dir))
+            push!(main[:children], build(c, cm, dir))
         end
         script!(c, cm, "loadcallback") do cm
             style!(cm, icon, "opacity" => 0percent)

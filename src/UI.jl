@@ -211,12 +211,12 @@ function olive_body(c::Connection)
 end
 
 function olive_main(location::String = "session")
-    main = div("olivemain", cell = 1,  selected = "", page = location, ex = 0)
+    main = div("olivemain", cell = 1,  selected = "", ex = 0)
     style!(main, "transition" => ".8s")
     main::Component{:div}
 end
 
-function build(c::Connection, cell::Cell{<:Any})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any})
     hiddencell = div("cell$(cell.n)", class = "cell-hidden")
     name = a("cell$(cell.n)label", text = cell.source)
     style!(name, "color" => "black")
@@ -240,40 +240,22 @@ end
     creating a toml category and a toml section cell and then making a simple name.
     Below then is the infastructure to surround the cells, cell pages etc.
 ==#
-function build(c::Connection, cell::Cell{:code})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     outside = div("cellcontainer$(cell.n)", class = cell)
     inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = cell.source)
     inside[:class] = "input_cell"
      style!(inside, "text-color" => "white !important")
-     b = IOBuffer()
-     highlight(b, MIME"text/html"(), cell.source,
-      Highlights.Lexers.JuliaLexer)
-     on(c, inside, "focus") do cm::ComponentModifier
-         cm["olivemain"] = "cell" => string(cell.n)
-     end
-     on(c, inside, "keyup") do cm::ComponentModifier
-         rawcode = cm["cell$(cell.n)"]["text"]
-         if length(rawcode) == 0
-             return
-         end
-         b = IOBuffer()
-         highlight(b, MIME"text/html"(), rawcode,
-          Highlights.Lexers.JuliaLexer)
-        # set_text!(cm, "cell$(cell.n)", String(b.data))
-     end
-     bind!(c, inside, "Enter", :shift) do cm::ComponentModifier
-         evaluate(c, cell, cm)
-     end
+     style!(outside, "transition" => 1seconds)
     number = h("cell", 1, text = cell.n, class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
     push!(outside, inside, output)
     outside
 end
 
-function build(c::Connection, cell::Cell{:markdown})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown})
     tlcell = div("cell$(cell.n)", class = "cell")
     innercell = tmd("cell$(cell.n)tmd", cell.source)
-    on(c, tlcell, "dblclick") do cm::ComponentModifier
+    on(c, cm, tlcell, "dblclick") do cm::ComponentModifier
         set_text!(cm, tlcell, replace(cell.source, "\n" => "</br>"))
         cm["olivemain"] = "cell" => string(cell.n)
         cm[tlcell] = "contenteditable" => "true"
@@ -283,12 +265,12 @@ function build(c::Connection, cell::Cell{:markdown})
 end
 
 
-function build(c::Connection, cell::Cell{:ipynb})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:ipynb})
     filecell = div("cell$(cell.n)", class = "cell-ipynb")
-    on(c, filecell, "click") do cm::ComponentModifier
+    on(c, cm, filecell, "click") do cm::ComponentModifier
         cm["olivemain"] = "cell" => string(cell.n)
     end
-    on(c, filecell, "dblclick") do cm::ComponentModifier
+    on(c, cm, filecell, "dblclick") do cm::ComponentModifier
         evaluate(c, cell, cm)
     end
     fname = a("$(cell.source)", text = cell.source)
@@ -297,13 +279,13 @@ function build(c::Connection, cell::Cell{:ipynb})
     filecell
 end
 
-function build(c::Connection, cell::Cell{:jl})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:jl})
     hiddencell = div("cell$(cell.n)", class = "cell-jl")
     style!(hiddencell, "cursor" => "pointer")
-    on(c, hiddencell, "click") do cm::ComponentModifier
+    on(c, cm, hiddencell, "click") do cm::ComponentModifier
         cm["olivemain"] = "cell" => string(cell.n)
     end
-    on(c, hiddencell, "dblclick") do cm::ComponentModifier
+    on(c, cm, hiddencell, "dblclick") do cm::ComponentModifier
         evaluate(c, cell, cm)
     end
     name = a("cell$(cell.n)label", text = cell.source)
@@ -312,7 +294,7 @@ function build(c::Connection, cell::Cell{:jl})
     hiddencell
 end
 
-function build(c::Connection, cell::Cell{:toml})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:toml})
     hiddencell = div("cell$(cell.n)", class = "cell-toml")
     name = a("cell$(cell.n)label", text = cell.source)
     style!(name, "color" => "white")
@@ -331,7 +313,7 @@ end
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     rawcode = cm["cell$(cell.n)"]["text"]
     execcode = replace(rawcode, "\n" => ";", "</br>" => ";",
-    "\n" => ";", "\n" => ";")
+    "\n" => ";", "\n" => ";", "<div>" => "\n", "</div>" => "")
     cell.source = execcode
     selected = cm["olivemain"]["selected"]
     proj = first(c[:OliveCore].open[getip(c)])
@@ -357,14 +339,9 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
         # a new request?
         ret = "loading"
     end
-    b = IOBuffer()
-    highlight(b, MIME"text/html"(), rawcode, Highlights.Lexers.JuliaLexer)
-    out = replace(String(b.data), "\n" => "", "        " => "\n        ",
-    "end" => "\nend")
-    set_text!(cm, "cell$(cell.n)", out)
     od = OliveDisplay()
     display(od,MIME"olive"(), ret)
-#    set_text!(cm, "cell$(cell.n)out", String(od.io.data))
+    set_text!(cm, "cell$(cell.n)out", String(od.io.data))
 end
 
 function evaluate(c::Connection, cell::Cell{:markdown}, cm::ComponentModifier)
