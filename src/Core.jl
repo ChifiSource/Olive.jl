@@ -34,6 +34,10 @@ mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     end
 end
 
+getindex(om::OliveModifier, symb::Symbol) = om.data[symb]
+
+setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, smb)
+
 """
 **Olive Core**
 ### build(om::OliveModifier, oe::OliveExtension{<:Any})
@@ -55,14 +59,12 @@ end
 - uri::String
 - access::Dict{String, Vector{String}}
 - cells::Vector{Cell}
-
 The directory type holds Directory information and file cells on startup. It
 is build with the `Olive.build(c::Connection, dir::Directory{<:Any})` method. `T`
 represents the type of directory to render. By default, this is :olive, which
 gives the directory name and creates a collapsable.
 ##### example
 ```
-
 ```
 ------------------
 ##### constructors
@@ -106,13 +108,13 @@ end
 using  MyDirectories
 ```
 """
-build(c::Connection, cm, dir::Directory{<:Any}) = begin
+build(c::Connection, cm, dir::Directory{<:Any}, m::Module) = begin
     container = section("$(dir.uri)", align = "left")
     dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     cells = Vector{Servable}()
     push!(cells, dirtop)
     for cell in dir.cells
-        push!(cells, build(c, cm, cell))
+        push!(cells, Base.invokelatest(m.build, c, cm, cell))
     end
     container[:children] = cells
     on(c, container, "click") do cm::ComponentModifier
@@ -120,8 +122,6 @@ build(c::Connection, cm, dir::Directory{<:Any}) = begin
     end
     return(container)
 end
-
-
 
 mutable struct Project{name <: Any} <: Servable
     name::String
@@ -163,17 +163,17 @@ mutable struct Project{name <: Any} <: Servable
 end
 
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
+    m = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
     push!(c[:OliveCore].open[getip(c)], p)
     frstcells::Vector{Cell} = first(p.open)[2]
-    Vector{Servable}([build(c, cm, cell) for cell in frstcells])::Vector{Servable}
+    Vector{Servable}([Base.invokelatest(m.build, c, cm, cell) for cell in frstcells])::Vector{Servable}
 end
 
 can_read(c::Connection, p::Project{<:Any}) = group(c) in values(p.group)
 can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)])
 can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
-function load_extensions!(c::Connection, cm::ComponentModifier)
-    olmod = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
+function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
     mod = OliveModifier(c, cm)
     Base.invokelatest(olmod.build, mod, OliveExtension{:invoker}())
     signatures = [m.sig.parameters[3] for m in methods(olmod.build, [Modifier, OliveExtension])]

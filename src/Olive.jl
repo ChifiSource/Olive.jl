@@ -12,7 +12,7 @@ julia and for other languages and data editing. Crucially, olive is abstract
 - [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
 """
 module Olive
-import Base: write, display
+import Base: write, display, getindex, setindex!
 using IPy
 using IPy: Cell
 using Highlights
@@ -26,16 +26,17 @@ using ToolipsMarkdown: tmd, @tmd_str
 using ToolipsBase64
 using Revise
 
-#==olive filemap
-An Olive.jl filemap for everyone to help develop this project easier! Thanks
-for considering helping with the development of Olive.jl. If you care to join
-the chifi organization, you may fill out a form [here]().
-- [Olive.jl](./src/Olive.jl)
--- deps/includes
+#==
+- Olive.jl./src/Olive.jl
+-- deps/includes  (you are here)
 -- default routes
 -- extension loader
 -- Server Defaults
 - [Core.jl](./src/Core.jl)
+-- OliveExtensions
+-- OliveModifiers
+-- Directories
+-- Projects
 -- server extension
 -- display
 -- filetracker
@@ -55,6 +56,7 @@ This function is temporarily being used to test Olive.
 """
 main = route("/session") do c::Connection
     # TODO Keymap bindings here
+    c[:OliveCore].client_data[getip(c)][:selected] = "session"
     write!(c, olivesheet())
     open = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
@@ -68,9 +70,9 @@ main = route("/session") do c::Connection
     push!(bod, ui_explorer, ui_topbar, olivemain)
     write!(c, bod)
     on(c, "load") do cm::ComponentModifier
+        olmod = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
         projopen = first(values(open))
-        cells = build(c, cm, projopen)
-
+        cells = Base.invokelatest(olmod.build, c, cm, projopen)
         set_children!(cm, olivemain, cells)
         style!(cm, ui_topbar, "opacity" => "100%")
         next!(c, ui_topbar, cm) do cm2::ComponentModifier
@@ -84,30 +86,33 @@ main = route("/session") do c::Connection
                 end
             end
         end
+        load_extensions!(c, cm, olmod)
     end
 
 end
 
 explorer = route("/") do c::Connection
+    c[:OliveCore].client_data[getip(c)][:selected] = "files"
     loader_body = div("loaderbody", align = "center")
     style!(loader_body, "margin-top" => 10percent)
     write!(c, olivesheet())
     icon = olive_loadicon()
     bod = olive_body(c)
     on(c, bod, "load") do cm::ComponentModifier
+        olmod = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
         homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
         publicproj = Directory(c[:OliveCore].data[:public],
         "public" => "rw")
         dirs = [homeproj, publicproj]
         main = olive_main("files")
         for dir in dirs
-            push!(main[:children], build(c, cm, dir))
+            push!(main[:children], build(c, cm, dir, olmod))
         end
         script!(c, cm, "loadcallback") do cm
             style!(cm, icon, "opacity" => 0percent)
             set_children!(cm, bod, [olivesheet(), main])
         end
-        load_extensions!(c, cm)
+        load_extensions!(c, cm, olmod)
     end
     push!(loader_body, icon)
     push!(bod, loader_body)

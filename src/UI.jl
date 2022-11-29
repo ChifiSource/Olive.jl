@@ -241,14 +241,15 @@ end
     Below then is the infastructure to surround the cells, cell pages etc.
 ==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
+    text = replace(cell.source, "\n" => "&nbsp;")
     outside = div("cellcontainer$(cell.n)", class = cell)
-    inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = cell.source)
+    inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = text)
     inside[:class] = "input_cell"
      style!(inside, "text-color" => "white !important")
      style!(outside, "transition" => 1seconds)
-    number = h("cell", 1, text = cell.n, class = "cell_number")
+    number = h("cell", 1, text = "$(cell.n)", class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
-    push!(outside, inside, output)
+    push!(outside, number, inside, output)
     outside
 end
 
@@ -294,14 +295,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:jl})
     hiddencell
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:toml})
-    hiddencell = div("cell$(cell.n)", class = "cell-toml")
-    name = a("cell$(cell.n)label", text = cell.source)
-    style!(name, "color" => "white")
-    push!(hiddencell, name)
-    hiddencell
-end
-
 function cellcontainer(c::Connection, name::String)
     divider(name)
 end
@@ -311,7 +304,8 @@ function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier)
 end
 
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
-    rawcode = cm["cell$(cell.n)"]["text"]
+    rawcode = cm["rawcell$(cell.n)"]["text"]
+    print(rawcode)
     execcode = replace(rawcode, "\n" => ";", "</br>" => ";",
     "\n" => ";", "\n" => ";", "<div>" => "\n", "</div>" => "")
     cell.source = execcode
