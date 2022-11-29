@@ -305,7 +305,6 @@ end
 
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     rawcode = cm["rawcell$(cell.n)"]["text"]
-    print(rawcode)
     execcode = replace(rawcode, "\n" => ";", "</br>" => ";",
     "\n" => ";", "\n" => ";", "<div>" => "\n", "</div>" => "")
     cell.source = execcode
@@ -324,14 +323,14 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
              TODO this is a continuing problem==#
         ret = proj.mod.evalin(execcode)
     catch e
-        throw(e)
         ret = e
     end
-    println(ret)
     if isnothing(ret)
-        # spawn load-bar observer... perhaps we should send this back in
-        # a new request?
-        ret = "loading"
+        #==
+        What is discussed above would be helpful here, display any STDOUT --
+        we can either do that OR we can find all symbols of print or show and
+        do them into the OliveDisplay
+        ==#
     end
     od = OliveDisplay()
     display(od,MIME"olive"(), ret)

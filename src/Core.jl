@@ -135,8 +135,9 @@ mutable struct Project{name <: Any} <: Servable
         groups::Dict{String, String} = Dict("root" => "rw")
         modstr = """module $(name)
         using Pkg
-        Pkg.activate($environment)
+
         function evalin(ex::Any)
+                Pkg.activate("$environment")
                 eval(Meta.parse(ex))
         end
         end"""
@@ -146,11 +147,14 @@ mutable struct Project{name <: Any} <: Servable
         end
         new{Symbol(name)}(name, dir, environment, open, mod, groups)::Project{<:Any}
     end
-    Project{T}(name::String, dir::String; environment::String = "") where {T <: Any} = begin
+    Project{T}(name::String, dir::String; environment::String = dir) where {T <: Any} = begin
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
         groups::Dict{String, String} = Dict("root" => "rw")
         modstr = """module $(name)
+        using Pkg
+
         function evalin(ex::Any)
+                Pkg.activate("$environment")
                 eval(Meta.parse(ex))
         end
         end"""
