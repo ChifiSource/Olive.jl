@@ -224,11 +224,11 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any})
     hiddencell
 end
 
-function cell_up!(c::AbstractConnection, cm::Modifier)
+function cell_up!(c::AbstractConnection, cm::ComponentModifier)
 
 end
 
-function cell_down!(c::AbstractConnection, cm::Modifier)
+function cell_down!(c::AbstractConnection, cm::ComponentModifier)
 
 end
 #==

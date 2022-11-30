@@ -257,12 +257,28 @@ function display(d::OliveDisplay, m::MIME"image/png", o::Any)
     show(d.io, m, o)
 end
 
-function display(d::OliveDisplay, m::MIME"image/png", o::Any)
-
-end
-
 function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
     show(d.io, m, o)
 end
 
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
+
+function bind!(c::Connection, cm::ComponentModifier, comp::Component{<:Any},
+    cell::Cell{<:Any})
+    if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
+        c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
+        :evaluate => ("Enter", :shift),
+        :delete => ("Delete", :ctrl, :shift),
+        :up => ("ArrowUp", :ctrl, :shift),
+        :down => ("ArrowDown", :ctrl, :shift),
+        :copy => ("C", :ctrl, :shift),
+        :paste => ("V", :ctrl, :shift),
+        :cut => ("X", :ctrl, :shift)
+        )
+    end
+    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+    bind!(c, cm, comp, keybindings[:evaluate] ...) do cm3::ComponentModifier
+        evaluate(c, cell, cm3)
+#       append!(cm3, "olivemain", build(c, cm2, Cell(100, "code", "")))
+    end
+end

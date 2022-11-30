@@ -18,9 +18,9 @@ using IPy: Cell
 using Highlights
 using Pkg
 using Toolips
-import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!
+import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier
 using ToolipsSession
-import ToolipsSession: Modifier
+import ToolipsSession: bind!, AbstractComponentModifier
 using ToolipsDefaults
 using ToolipsMarkdown: tmd, @tmd_str
 using ToolipsBase64
@@ -80,10 +80,7 @@ main = route("/session") do c::Connection
                 on(c, cm, each_cell, "focus") do cm3::ComponentModifier
                     cm3["olivemain"] = "cell" => string(jlcell.n)
                 end
-                bind!(c, cm2, each_cell, "Enter", :shift) do cm3::ComponentModifier
-                    evaluate(c, jlcell, cm3)
-    #                append!(cm3, "olivemain", build(c, cm2, Cell(100, "code", "")))
-                end
+                bind!(c, cm2, each_cell, jlcell)
             end
         end
         load_extensions!(c, cm, olmod)
