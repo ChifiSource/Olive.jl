@@ -210,8 +210,8 @@ function olive_body(c::Connection)
     olivebody::Component{:body}
 end
 
-function olive_main(location::String = "session")
-    main = div("olivemain", cell = 1,  selected = "", ex = 0)
+function olive_main(selected::String = "project")
+    main = div("olivemain", cell = 1,  selected = selected, ex = 0)
     style!(main, "transition" => ".8s")
     main::Component{:div}
 end
@@ -309,7 +309,7 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     "\n" => ";", "\n" => ";", "<div>" => "\n", "</div>" => "")
     cell.source = execcode
     selected = cm["olivemain"]["selected"]
-    proj = first(c[:OliveCore].open[getip(c)])
+    proj = c[:OliveCore].open[getip(c)]
     ret = ""
     i = IOBuffer()
     try
@@ -352,7 +352,7 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     TODO Name project, activate environment in evalin
     ==#
     push!(myproj.open, "source" =>  cs)
-    c[:OliveCore].open[getip(c)] = [myproj]
+    c[:OliveCore].open[getip(c)] = myproj
     redirect!(cm, "/session")
 end
 

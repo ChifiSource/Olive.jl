@@ -129,10 +129,8 @@ mutable struct Project{name <: Any} <: Servable
     environment::String
     open::Dict{String, Vector{Cell}}
     mod::Module
-    groups::Dict{String, String}
     function Project(name::String, dir::String; environment::String = "")
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
-        groups::Dict{String, String} = Dict("root" => "rw")
         modstr = """module $(name)
         using Pkg
 
@@ -145,7 +143,7 @@ mutable struct Project{name <: Any} <: Servable
         if environment == ""
             environment = dir
         end
-        new{Symbol(name)}(name, dir, environment, open, mod, groups)::Project{<:Any}
+        new{Symbol(name)}(name, dir, environment, open, mod)::Project{<:Any}
     end
     Project{T}(name::String, dir::String; environment::String = dir) where {T <: Any} = begin
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
@@ -162,13 +160,13 @@ mutable struct Project{name <: Any} <: Servable
         if environment == ""
             environment = dir
         end
-        new{T}(name, dir, environment, open, mod, groups)::Project{<:Any}
+        new{T}(name, dir, environment, open, mod)::Project{<:Any}
     end
 end
 
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     m = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
-    push!(c[:OliveCore].open[getip(c)], p)
+    c[:OliveCore].open[getip(c)] = p
     frstcells::Vector{Cell} = first(p.open)[2]
     Vector{Servable}([Base.invokelatest(m.build, c, cm, cell) for cell in frstcells])::Vector{Servable}
 end
@@ -193,17 +191,17 @@ mutable struct OliveCore <: ServerExtension
     type::Vector{Symbol}
     data::Dict{Symbol, Any}
     client_data::Dict{String, Dict{Symbol, Any}}
-    open::Dict{String, Vector{Project{<:Any}}}
+    open::Dict{String, Project{<:Any}}
     f::Function
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         data[:home] = homedir() * "/olive"
         data[:public] = homedir() * "/olive/public"
-        projopen = Dict{String, Vector{Project{<:Any}}}()
+        projopen = Dict{String, Project{<:Any}}()
         client_data = Dict{String, Dict{Symbol, Any}}()
         f(c::Connection) = begin
             if ~(getip(c) in keys(client_data))
-                push!(client_data, getip(c) => Dict{Symbol, Any}())
+                push!(client_data, getip(c) => Dict{Symbol, Any}(:open => ""))
             end
         end
         new([:connection, :func], data, client_data, projopen, f)
@@ -281,4 +279,10 @@ function bind!(c::Connection, cm::ComponentModifier, comp::Component{<:Any},
         evaluate(c, cell, cm3)
 #       append!(cm3, "olivemain", build(c, cm2, Cell(100, "code", "")))
     end
+#==    bind!(c, cm, comp, keybindings[:delete] ...) do cm3::ComponentModifier
+        remove!(cm3, comp)
+        projopen = cm["olivemain"]["selected"]
+        pos = findall(fc -> fc.n == cell.n, c[:OliveCore].open[getip(c)].open[projopen])
+        deleteat!(c[:OliveCore].open[getip(c)][open].open[projopen], pos)
+    end ==#
 end

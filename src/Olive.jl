@@ -63,20 +63,21 @@ main = route("/session") do c::Connection
     ui_explorer::Component{:div} = projectexplorer()
     ui_tabs::Vector{Servable} = Vector{Servable}()
     style!(ui_topbar, "opacity" => "0%", "transition" => 2seconds)
-    olivemain = olive_main()
-    olivemain[:children] = [ToolipsDefaults.progress("myprog")]
+    olivemain = olive_main(first(open.open)[1])
+    prog = ToolipsDefaults.progress("myprog")
+    style!(prog, "color" => "pink !important", "transition" => 1seconds)
+    olivemain[:children] = [prog]
     ui_explorer[:children] = [olive_loadicon()]
     bod = body("mainbody")
     push!(bod, ui_explorer, ui_topbar, olivemain)
     write!(c, bod)
     on(c, "load") do cm::ComponentModifier
         olmod = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
-        projopen = first(values(open))
-        cells = Base.invokelatest(olmod.build, c, cm, projopen)
+        cells = Base.invokelatest(olmod.build, c, cm, open)
         set_children!(cm, olivemain, cells)
         style!(cm, ui_topbar, "opacity" => "100%")
         next!(c, ui_topbar, cm) do cm2::ComponentModifier
-            for (each_cell, jlcell) in zip(cells, first(values(projopen.open)))
+            for (each_cell, jlcell) in zip(cells, first(values(open.open)))
                 on(c, cm, each_cell, "focus") do cm3::ComponentModifier
                     cm3["olivemain"] = "cell" => string(jlcell.n)
                 end
