@@ -241,9 +241,11 @@ end
     Below then is the infastructure to surround the cells, cell pages etc.
 ==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
-    text = replace(cell.source, "\n" => "&nbsp;")
+    text = replace(cell.source, "\n" => "</br>")
+    tm = TextModifier(text)
+    ToolipsMarkdown.julia_block!(tm)
     outside = div("cellcontainer$(cell.n)", class = cell)
-    inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = text)
+    inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = string(tm))
     inside[:class] = "input_cell"
      style!(inside, "text-color" => "white !important")
      style!(outside, "transition" => 1seconds)
@@ -305,9 +307,12 @@ end
 
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     rawcode = cm["rawcell$(cell.n)"]["text"]
-    execcode = replace(rawcode, "\n" => ";", "</br>" => ";",
-    "\n" => ";", "\n" => ";", "<div>" => "\n", "</div>" => "")
+    execcode = replace(rawcode, "<div>" => "\n", "</div>" => "")
     cell.source = execcode
+    text = replace(cell.source, "\n" => "</br>;")
+    tm = TextModifier(text)
+    ToolipsMarkdown.julia_block!(tm)
+    set_text!(cm, "cell$(cell.n)", string(tm))
     selected = cm["olivemain"]["selected"]
     proj = c[:OliveCore].open[getip(c)]
     ret = ""
@@ -321,7 +326,7 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
            check for using and always make the evaluation of that cell
              multi-threaded.
              TODO this is a continuing problem==#
-        ret = proj.mod.evalin(execcode)
+        ret = proj.mod.evalin(Meta.parse(execcode))
     catch e
         ret = e
     end
@@ -380,6 +385,57 @@ function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
     end
     Cell(e, fending, fname, path)
 end for (e, path) in enumerate(notdirs)]::AbstractVector, dirs)
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:toml})
+    hiddencell = div("cell$(cell.n)", class = "cell-toml")
+    name = a("cell$(cell.n)label", text = cell.source)
+    on(c, hiddencell, "dblclick") do cm::ComponentModifier
+        evaluate(c, cell, cm)
+    end
+    style!(name, "color" => "white")
+    push!(hiddencell, name)
+    hiddencell
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory})
+   catheading = h("cell$(cell.n)heading", 2, text = cell.source, contenteditable = true)
+    contents = section("cell$(cell.n)")
+    push!(contents, catheading)
+    v = string(cell.outputs)
+    equals = a("equals", text = " = ")
+    style!(equals, "color" => "gray")
+    for (k, v) in cell.outputs
+        key_div = div("keydiv")
+        push!(key_div,
+        a("$(cell.n)$k", text = string(k), contenteditable = true), equals,
+        a("$(cell.n)$k$v", text = string(v), contenteditable = true))
+        push!(contents, key_div)
+    end
+    contents
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlval})
+        key_div = div("cell$(cell.n)")
+        k = cell.source
+        v = string(cell.outputs)
+        equals = a("equals", text = " = ")
+        style!(equals, "color" => "gray")
+        push!(key_div,
+        a("$(cell.n)$k", text = string(k), contenteditable = true), equals,
+        a("$(cell.n)$k$v", text = string(v), contenteditable = true))
+        key_div
+end
+
+function evaluate(c::Connection, cell::Cell{:toml}, cm::ComponentModifier)
+    toml_cats = TOML.parse(read(cell.outputs, String))
+    cs::Vector{Cell{<:Any}} = [begin if typeof(keycategory[2]) <: AbstractDict
+        Cell(e, "tomlcategory", keycategory[1], keycategory[2])
+    else
+        Cell(e, "tomlval", keycategory[1], keycategory[2])
+    end
+    end for (e, keycategory) in enumerate(toml_cats)]
+    Olive.load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
 function olive_loadicon()

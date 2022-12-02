@@ -110,8 +110,15 @@ using  MyDirectories
 """
 build(c::Connection, cm, dir::Directory{<:Any}, m::Module) = begin
     container = section("$(dir.uri)", align = "left")
-    dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     cells = Vector{Servable}()
+    if "Project.toml" in readdir(dir.uri)
+        toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
+        String))
+        projname = toml_cats["name"]
+        envtop = h("headingenv$(dir.uri)", 2, text = projname)
+        push!(cells, envtop)
+    end
+    dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     push!(cells, dirtop)
     for cell in dir.cells
         push!(cells, Base.invokelatest(m.build, c, cm, cell))
@@ -136,7 +143,7 @@ mutable struct Project{name <: Any} <: Servable
 
         function evalin(ex::Any)
                 Pkg.activate("$environment")
-                eval(Meta.parse(ex))
+                eval(ex)
         end
         end"""
         mod::Module = eval(Meta.parse(modstr))
@@ -153,7 +160,7 @@ mutable struct Project{name <: Any} <: Servable
 
         function evalin(ex::Any)
                 Pkg.activate("$environment")
-                eval(Meta.parse(ex))
+                eval(ex)
         end
         end"""
         mod::Module = eval(Meta.parse(modstr))
@@ -165,10 +172,13 @@ mutable struct Project{name <: Any} <: Servable
 end
 
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
-    m = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
     c[:OliveCore].open[getip(c)] = p
     frstcells::Vector{Cell} = first(p.open)[2]
-    Vector{Servable}([Base.invokelatest(m.build, c, cm, cell) for cell in frstcells])::Vector{Servable}
+    retvs = Vector{Servable}()
+    for cell in frstcells
+        push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell))
+    end
+    retvs::Vector{Servable}
 end
 
 can_read(c::Connection, p::Project{<:Any}) = group(c) in values(p.group)
@@ -177,17 +187,18 @@ can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
 function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
     mod = OliveModifier(c, cm)
-    Base.invokelatest(olmod.build, mod, OliveExtension{:invoker}())
+    Base.invokelatest(c[:OliveCore].olmod.build, mod, OliveExtension{:invoker}())
     signatures = [m.sig.parameters[3] for m in methods(olmod.build, [Modifier, OliveExtension])]
     for sig in signatures
         if sig == OliveExtension{<:Any}
             continue
         end
-        Base.invokelatest(olmod.build, mod, sig())
+        Base.invokelatest(c[:OliveCore].olmod.build, mod, sig())
     end
 end
 
 mutable struct OliveCore <: ServerExtension
+    olmod::Module
     type::Vector{Symbol}
     data::Dict{Symbol, Any}
     client_data::Dict{String, Dict{Symbol, Any}}
@@ -197,6 +208,7 @@ mutable struct OliveCore <: ServerExtension
         data = Dict{Symbol, Any}()
         data[:home] = homedir() * "/olive"
         data[:public] = homedir() * "/olive/public"
+        m = eval(Meta.parse(read(data[:home] * "/src/olive.jl", String)))
         projopen = Dict{String, Project{<:Any}}()
         client_data = Dict{String, Dict{Symbol, Any}}()
         f(c::Connection) = begin
@@ -204,7 +216,7 @@ mutable struct OliveCore <: ServerExtension
                 push!(client_data, getip(c) => Dict{Symbol, Any}(:open => ""))
             end
         end
-        new([:connection, :func], data, client_data, projopen, f)
+        new(m, [:connection, :func], data, client_data, projopen, f)
     end
 end
 

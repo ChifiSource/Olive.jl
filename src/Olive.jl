@@ -15,16 +15,17 @@ module Olive
 import Base: write, display, getindex, setindex!
 using IPy
 using IPy: Cell
-using Highlights
 using Pkg
 using Toolips
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier
 using ToolipsSession
 import ToolipsSession: bind!, AbstractComponentModifier
 using ToolipsDefaults
-using ToolipsMarkdown: tmd, @tmd_str
+using ToolipsMarkdown
 using ToolipsBase64
+using TOML
 using Revise
+
 
 #==
 - Olive.jl./src/Olive.jl
@@ -72,8 +73,8 @@ main = route("/session") do c::Connection
     push!(bod, ui_explorer, ui_topbar, olivemain)
     write!(c, bod)
     on(c, "load") do cm::ComponentModifier
-        olmod = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
-        cells = Base.invokelatest(olmod.build, c, cm, open)
+        olmod = c[:OliveCore].olmod
+        cells = Base.invokelatest(c[:OliveCore].olmod.build, c, cm, open)
         set_children!(cm, olivemain, cells)
         style!(cm, ui_topbar, "opacity" => "100%")
         next!(c, ui_topbar, cm) do cm2::ComponentModifier
@@ -97,7 +98,7 @@ explorer = route("/") do c::Connection
     icon = olive_loadicon()
     bod = olive_body(c)
     on(c, bod, "load") do cm::ComponentModifier
-        olmod = eval(Meta.parse(read(c[:OliveCore].data[:home] * "/src/olive.jl", String)))
+        olmod = c[:OliveCore].olmod
         homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
         publicproj = Directory(c[:OliveCore].data[:public],
         "public" => "rw")
