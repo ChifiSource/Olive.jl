@@ -255,11 +255,11 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.Toolips]]
 deps = ["Crayons", "Dates", "HTTP", "ParseNotEval", "Pkg", "Sockets"]
-git-tree-sha1 = "1927f46f6e2d3b76cbf8affe400d613e71b6b790"
-repo-rev = "main"
-repo-url = "https://github.com/ChifiSource/Toolips.jl.git"
+git-tree-sha1 = "59c130695ae0a367d74efa3c56d3ef6d3a2d6cb7"
+repo-rev = "Unstable"
+repo-url = "https://github.com/ChifiSource/Toolips.jl"
 uuid = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
-version = "0.2.2"
+version = "0.2.3"
 
 [[deps.ToolipsAuth]]
 deps = ["SHA", "Toolips", "ToolipsSession"]
@@ -280,12 +280,10 @@ uuid = "1710be6b-e895-498d-ba35-e3ff0dac7995"
 version = "0.1.0"
 
 [[deps.ToolipsMarkdown]]
-deps = ["Markdown", "Toolips"]
-git-tree-sha1 = "9248ccc0d0114e73a0169b2687a6d27199fb722d"
-repo-rev = "main"
-repo-url = "https://github.com/ChifiSource/ToolipsMarkdown.jl.git"
+deps = ["Highlights", "Markdown", "Toolips"]
+path = "../ToolipsMarkdown"
 uuid = "33f7ff50-f2f2-41f0-8a96-482dce5c1514"
-version = "0.1.1"
+version = "0.1.2"
 
 [[deps.ToolipsSession]]
 deps = ["Dates", "ParseNotEval", "Random", "Toolips"]
