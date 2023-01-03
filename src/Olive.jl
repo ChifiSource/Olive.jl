@@ -78,7 +78,6 @@ main = route("/session") do c::Connection
         set_children!(cm, olivemain, cells)
         style!(cm, ui_topbar, "opacity" => "100%")
         next!(c, ui_topbar, cm) do cm2::ComponentModifier
-
         end
         load_extensions!(c, cm, olmod)
     end

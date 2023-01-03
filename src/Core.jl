@@ -269,3 +269,31 @@ function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
 end
 
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
+
+function bind!(c::Connection, km::ToolipsSession.KeyMap, cell::Component{:div}, cells::Vector{Cell})
+    if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
+        c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
+        :evaluate => ("Enter", :shift),
+        :delete => ("Delete", :ctrl, :shift),
+        :up => ("ArrowUp", :ctrl, :shift),
+        :down => ("ArrowDown", :ctrl, :shift),
+        :copy => ("C", :ctrl, :shift),
+        :paste => ("V", :ctrl, :shift),
+        :cut => ("X", :ctrl, :shift)
+        )
+    end
+    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+    bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
+        evaluate(c, cell, cm)
+#       append!(cm3, "olivemain", build(c, cm2, Cell(100, "code", "")))
+    end
+    bind!(km, "P") do cm::ComponentModifier
+        alert!(cm, "works!")
+    end
+#==    bind!(c, cm, comp, keybindings[:delete] ...) do cm3::ComponentModifier
+        remove!(cm3, comp)
+        projopen = cm["olivemain"]["selected"]
+        pos = findall(fc -> fc.n == cell.n, c[:OliveCore].open[getip(c)].open[projopen])
+        deleteat!(c[:OliveCore].open[getip(c)][open].open[projopen], pos)
+    end ==#
+end
