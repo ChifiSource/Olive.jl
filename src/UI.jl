@@ -243,11 +243,17 @@ end
     Below then is the infastructure to surround the cells, cell pages etc.
 ==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
+
     text = replace(cell.source, "\n" => "</br>")
     tm = TextModifier(text)
     ToolipsMarkdown.julia_block!(tm)
     outside = div("cellcontainer$(cell.n)", class = cell)
     inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = string(tm))
+    codebox_cover = div("codecover$(cell.n)")
+    style!(codebox_cover, "position" => "absolute", "z-index" => "5", "pointer-events" => "none",
+    "background" => "transparent")
+    maininputbox = div("maininputbox")
+    style!(maininputbox, "display" => "inline-block", "width" => 60percent, "padding" => 0px)
     interiorbox = div("cellinterior$(cell.n)")
     inside[:class] = "input_cell"
     sidebox = div("cellside$(cell.n)")
@@ -258,10 +264,45 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     style!(sidebox, "display" => "inline-block", "background-color" => "gray",
     "border-top-right-radius" => 0px, "border-bottom-right-radius" => 0px,
     "margin-top" => 0px)
-     style!(inside, "text-color" => "white !important", "display" => "inline-block",
+     style!(inside,# "color" => "white !important",
      "width" => 60percent, "border-bottom-left-radius" => 0px, "min-height" => 50px)
      style!(outside, "transition" => 1seconds)
-     push!(interiorbox, sidebox, inside)
+     push!(maininputbox, codebox_cover, inside)
+     push!(interiorbox, sidebox, maininputbox)
+     on(c, inside, "keydown") do cm2::ComponentModifier
+         # this should actually be bound to each time space is pressed :)
+         rt = replace(cm2["cell$(cell.n)"]["text"], "</br>" => "\n", "<br>" => "\n")
+         println("raw: $rt")
+         tm = TextModifier(rt)
+         ToolipsMarkdown.julia_block!(tm)
+         s = string(tm)
+         set_text!(cm2, codebox_cover, s)
+     end
+     if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
+         c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
+         :evaluate => ("Enter", :shift),
+         :delete => ("Delete", :ctrl, :shift),
+         :up => ("ArrowUp", :ctrl, :shift),
+         :down => ("ArrowDown", :ctrl, :shift),
+         :copy => ("C", :ctrl, :shift),
+         :paste => ("V", :ctrl, :shift),
+         :cut => ("X", :ctrl, :shift)
+         )
+     end
+     keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+     bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
+         evaluate(c, cell, cm)
+ #       append!(cm3, "olivemain", build(c, cm2, Cell(100, "code", "")))
+     end
+     bind!(km, "P") do cm::ComponentModifier
+         alert!(cm, "works!")
+     end
+ #==    bind!(c, cm, comp, keybindings[:delete] ...) do cm3::ComponentModifier
+         remove!(cm3, comp)
+         projopen = cm["olivemain"]["selected"]
+         pos = findall(fc -> fc.n == cell.n, c[:OliveCore].open[getip(c)].open[projopen])
+         deleteat!(c[:OliveCore].open[getip(c)][open].open[projopen], pos)
+     end ==#
     number = a("cell", text = "$(cell.n)", class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
     push!(sidebox, cell_drag, number, cell_run)
@@ -324,9 +365,6 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     execcode = replace(rawcode, "<div>" => "\n", "</div>" => "")
     cell.source = execcode
     text = replace(cell.source, "\n" => "</br>")
-    tm = TextModifier(text)
-    ToolipsMarkdown.julia_block!(tm)
-    set_text!(cm, "cell$(cell.n)", string(tm))
     selected = cm["olivemain"]["selected"]
     proj = c[:OliveCore].open[getip(c)]
     ret = ""
@@ -387,7 +425,6 @@ end
 
 function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
     files = readdir(dir)
-    println(files)
     return([build_file_cell(e, path) for (e, path) in enumerate(files)]::AbstractVector)
 end
 

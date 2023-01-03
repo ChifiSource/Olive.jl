@@ -78,12 +78,7 @@ main = route("/session") do c::Connection
         set_children!(cm, olivemain, cells)
         style!(cm, ui_topbar, "opacity" => "100%")
         next!(c, ui_topbar, cm) do cm2::ComponentModifier
-            for (each_cell, jlcell) in zip(cells, first(values(open.open)))
-                on(c, cm, each_cell, "focus") do cm3::ComponentModifier
-                    cm3["olivemain"] = "cell" => string(jlcell.n)
-                end
-                bind!(c, cm2, each_cell, jlcell)
-            end
+
         end
         load_extensions!(c, cm, olmod)
     end
