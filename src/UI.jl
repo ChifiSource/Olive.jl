@@ -3,7 +3,7 @@ Default
     Styles
 ==#
 function cellnumber_style()
-    st = Style("h1.cell_number", color = "white")
+    st = Style("a.cell_number", color = "white", "font-size" => 15pt, "padding" => 7px)
     st["font-family"] = "'Rubik', sans-serif"
     st
 end
@@ -251,17 +251,20 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     interiorbox = div("cellinterior$(cell.n)")
     inside[:class] = "input_cell"
     sidebox = div("cellside$(cell.n)")
+    cell_drag = topbar_icon("cell$(cell.n)drag", "drag_indicator")
+    cell_run = topbar_icon("cell$(cell.n)drag", "not_started")
+    style!(cell_drag, "color" => "white", "font-size" => 17pt)
+    style!(cell_run, "color" => "white", "font-size" => 17pt)
     style!(sidebox, "display" => "inline-block", "background-color" => "gray",
     "border-top-right-radius" => 0px, "border-bottom-right-radius" => 0px,
     "margin-top" => 0px)
      style!(inside, "text-color" => "white !important", "display" => "inline-block",
-     "width" => 60percent, "border-top-left-radius" => 0px,
-     "border-bottom-left-radius" => 0px, "min-height" => 50px)
+     "width" => 60percent, "border-bottom-left-radius" => 0px, "min-height" => 50px)
      style!(outside, "transition" => 1seconds)
      push!(interiorbox, sidebox, inside)
-    number = h("cell", 1, text = "$(cell.n)", class = "cell_number")
+    number = a("cell", text = "$(cell.n)", class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
-    push!(sidebox, number)
+    push!(sidebox, cell_drag, number, cell_run)
     push!(outside, interiorbox, output)
     outside
 end
@@ -383,19 +386,24 @@ function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
 end
 
 function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
-    routes = Toolips.route_from_dir(dir)
-    notdirs = [routes[r] for r in findall(x -> ~(isdir(x)), routes)]
-    dirs = [Directory(dir, access ...) for dir in findall(x -> isdir(x), routes)]
-    return([begin
-    splitdir::Vector{SubString} = split(path, "/")
-    fname::String = string(splitdir[length(splitdir)])
-    fsplit = split(fname, ".")
-    fending::String = ""
-    if length(fsplit) > 1
-        fending = string(fsplit[2])
+    files = readdir(dir)
+    println(files)
+    return([build_file_cell(e, path) for (e, path) in enumerate(files)]::AbstractVector)
+end
+
+function build_file_cell(e::Int64, path::String)
+    if ~(isdir(path))
+        splitdir::Vector{SubString} = split(path, "/")
+        fname::String = string(splitdir[length(splitdir)])
+        fsplit = split(fname, ".")
+        fending::String = ""
+        if length(fsplit) > 1
+            fending = string(fsplit[2])
+        end
+        Cell(e, fending, fname, path)
+    else
+        Cell(e, "dir", path, path)
     end
-    Cell(e, fending, fname, path)
-end for (e, path) in enumerate(notdirs)]::AbstractVector, dirs)
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:toml})

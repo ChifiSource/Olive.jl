@@ -1,8 +1,8 @@
 """
 ### OliveExtension{P <: Any}
 The OliveExtension is a symbolic type that is used by the `build` function in
-order to create extensions using an OliveModifier. This is used to alter
-the OliveUI as it is loaded!
+order to create extensions using an OliveModifier. This constructor should only
+be called internally. Instead, simply use methods to define your extension.
 ##### example
 ```
 # this is your olive root file:
@@ -16,11 +16,8 @@ function build(om::OliveModifier, oe::OliveExtension{:myextension})
 end
 ```
 ------------------
-##### field info
-
-------------------
 ##### constructors
-
+OliveExtension{}
 """
 mutable struct OliveExtension{P <: Any} end
 
@@ -50,19 +47,20 @@ extended and written
 
 ```
 """
-function build(om::OliveModifier, oe::OliveExtension{<:Any})
+build(om::OliveModifier, oe::OliveExtension{<:Any}) = return
+
+function build(om::OliveModifier, oe::OliveExtension{:settings})
 
 end
 
 """
-### Directory{T <: Any}
+### Directory
 - uri::String
 - access::Dict{String, Vector{String}}
 - cells::Vector{Cell}
 The directory type holds Directory information and file cells on startup. It
-is build with the `Olive.build(c::Connection, dir::Directory{<:Any})` method. `T`
-represents the type of directory to render. By default, this is :olive, which
-gives the directory name and creates a collapsable.
+is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds
+cells and directories
 ##### example
 ```
 ```
@@ -70,14 +68,13 @@ gives the directory name and creates a collapsable.
 ##### constructors
 - Directory(uri::String, access::Pair{String, String} ...; type::Symbol = :olive)
 """
-mutable struct Directory{T <: Any}
+mutable struct Directory
     uri::String
     access::Dict{String, String}
     cells::Vector{Cell}
-    dirs::Vector{Directory}
-    function Directory(uri::String, access::Pair{String, String} ...; type::Symbol = :olive)
-        file_cells, dirs = directory_cells(uri, access ...)
-        new{type}(uri, Dict(access ...), file_cells)
+    function Directory(uri::String, access::Pair{String, String} ...)
+        file_cells = directory_cells(uri, access ...)
+        new(uri, Dict(access ...), file_cells)
     end
 end
 
@@ -108,7 +105,7 @@ end
 using  MyDirectories
 ```
 """
-build(c::Connection, cm, dir::Directory{<:Any}, m::Module) = begin
+build(c::Connection, cm::ComponentModifier, dir::Directory, m::Module) = begin
     container = section("$(dir.uri)", align = "left")
     cells = Vector{Servable}()
     if "Project.toml" in readdir(dir.uri)
