@@ -1,3 +1,10 @@
+#== map (your welcome)
+- extenssions (OliveExtension{}, OliveModifier, build)
+- Directories
+- Projects
+- OliveCore
+- OliveDisplay
+==#
 """
 ### OliveExtension{P <: Any}
 The OliveExtension is a symbolic type that is used by the `build` function in
@@ -21,7 +28,26 @@ OliveExtension{}
 """
 mutable struct OliveExtension{P <: Any} end
 
+"""
+### OliveModifier <: ToolipsSession.AbstractComponentModifier
+The OliveModifier is used whenever an extension is loaded with a `build`
+function.
+##### example
+```
+# this is your olive root file:
+module olive
+using Olive
+import Olive: build
 
+                            # vv the name of your extension ! vv
+function build(om::OliveModifier, oe::OliveExtension{:myextension})
+    alert!(om, "hello!")
+end
+```
+------------------
+##### constructors
+OliveExtension{}
+"""
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     rootc::Dict{String, AbstractComponent}
     changes::Vector{String}
@@ -270,7 +296,8 @@ end
 
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
 
-function bind!(c::Connection, km::ToolipsSession.KeyMap, cell::Component{:div}, cells::Vector{Cell})
+function bind!(c::Connection, km::ToolipsSession.KeyMap, cm::ComponentModifier,
+    cells::Vector{Cell})
     if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
         c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
         :evaluate => ("Enter", :shift),
@@ -279,21 +306,38 @@ function bind!(c::Connection, km::ToolipsSession.KeyMap, cell::Component{:div}, 
         :down => ("ArrowDown", :ctrl, :shift),
         :copy => ("C", :ctrl, :shift),
         :paste => ("V", :ctrl, :shift),
-        :cut => ("X", :ctrl, :shift)
+        :cut => ("X", :ctrl, :shift),
+        :new => ("Space", :shift)
         )
     end
     keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
     bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
-        evaluate(c, cell, cm)
-#       append!(cm3, "olivemain", build(c, cm2, Cell(100, "code", "")))
+        selected = cm["olivemain"]["selected"]
+        evaluate(c, cells[selected], cm)
+       append!(cm, "olivemain", build(c, cm, Cell(100, "code", "")))
     end
-    bind!(km, "P") do cm::ComponentModifier
-        alert!(cm, "works!")
-    end
-#==    bind!(c, cm, comp, keybindings[:delete] ...) do cm3::ComponentModifier
-        remove!(cm3, comp)
+    bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
+        selected = cm["olivemain"]["selected"]
+        cell_selected = cells[selected]
+        remove!(cm, "cell$(cell_selected.n)")
         projopen = cm["olivemain"]["selected"]
         pos = findall(fc -> fc.n == cell.n, c[:OliveCore].open[getip(c)].open[projopen])
         deleteat!(c[:OliveCore].open[getip(c)][open].open[projopen], pos)
-    end ==#
+    end
+    bind!(km, keybindings[:up] ...) do  cm::ComponentModifier
+
+    end
+    bind!(km, keybindings[:down] ...) do cm::ComponentModifier
+
+    end
+    bind!(km, keybindings[:copy] ...) do cm::ComponentModifier
+
+    end
+    bind!(km, keybindings[:new] ...) do cm::ComponentModifier
+        newcell = Cell(length(cells) + 1, "code", "",
+        id = ToolipsSession.gen_ref())
+        push!(cells, newcell)
+        append!(cm, "olivemain", build(c, cm, newcell))
+    end
+    bind!(c, cm, km)
 end

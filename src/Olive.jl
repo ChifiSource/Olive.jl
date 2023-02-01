@@ -56,10 +56,9 @@ This function is temporarily being used to test Olive.
 
 """
 main = route("/session") do c::Connection
-    # TODO Keymap bindings here
     c[:OliveCore].client_data[getip(c)][:selected] = "session"
     write!(c, olivesheet())
-    open = c[:OliveCore].open[getip(c)]
+    open::Project{<:Any} = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
     ui_tabs::Vector{Servable} = Vector{Servable}()
@@ -73,11 +72,16 @@ main = route("/session") do c::Connection
     push!(bod, ui_explorer, ui_topbar, olivemain)
     write!(c, bod)
     on(c, "load") do cm::ComponentModifier
-        olmod = c[:OliveCore].olmod
         cells = Base.invokelatest(c[:OliveCore].olmod.build, c, cm, open)
+        km = ToolipsSession.KeyMap()
+        bind!(c, km, cm, first(open.open)[2])
+        olmod = c[:OliveCore].olmod
         set_children!(cm, olivemain, cells)
         style!(cm, ui_topbar, "opacity" => "100%")
         next!(c, ui_topbar, cm) do cm2::ComponentModifier
+            set_children!(cm2, ui_explorer, Vector{Servable}([begin
+            build(c, cm2, cell)
+        end for cell in directory_cells(open.dir)]))
         end
         load_extensions!(c, cm, olmod)
     end
