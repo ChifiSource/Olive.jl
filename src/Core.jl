@@ -314,10 +314,10 @@ function bind!(c::Connection, km::ToolipsSession.KeyMap, cm::ComponentModifier,
     bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
         selected = cm["olivemain"]["selected"]
         evaluate(c, cells[selected], cm)
-       append!(cm, "olivemain", build(c, cm, Cell(100, "code", "")))
+       append!(cm, "olivemain", build(c, cm, Cell(100, "code", "", id = ToolipsSession.gen_ref())))
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
-        selected = cm["olivemain"]["selected"]
+        selected = cm["olivemain"]["cell"]
         cell_selected = cells[selected]
         remove!(cm, "cell$(cell_selected.n)")
         projopen = cm["olivemain"]["selected"]

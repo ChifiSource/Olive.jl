@@ -13,7 +13,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     ToolipsMarkdown.julia_block!(tm)
     outside = div("cellcontainer$(cell.n)", class = cell)
     inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = string(tm))
-    on(c, inside, "focusenter") do cm::ComponentModifier
+    on(c, inside, "focus") do cm::ComponentModifier
         cm["olivemain"] = "selected" => cell.id
     end
     codebox_cover = div("codecover$(cell.n)")
@@ -168,9 +168,9 @@ end
 function evaluate(c::Connection, cell::Cell{:toml}, cm::ComponentModifier)
     toml_cats = TOML.parse(read(cell.outputs, String))
     cs::Vector{Cell{<:Any}} = [begin if typeof(keycategory[2]) <: AbstractDict
-        Cell(e, "tomlcategory", keycategory[1], keycategory[2])
+        Cell(e, "tomlcategory", keycategory[1], keycategory[2], id = ToolipsSession.gen_ref())
     else
-        Cell(e, "tomlval", keycategory[1], keycategory[2])
+        Cell(e, "tomlval", keycategory[1], keycategory[2], id = ToolipsSession.gen_ref())
     end
     end for (e, keycategory) in enumerate(toml_cats)]
     Olive.load_session(c, cs, cm, cell.source, cell.outputs)
@@ -191,6 +191,7 @@ end
 
 function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
     cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
+    [c.id = ToolipsSession.gen_ref() for c in cs]
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
