@@ -17,3 +17,5 @@ ToolipsSession = "2fe55384-55bc-4df3-9d59-c817d405cd05"
 
 [compat]
 julia = "1.5"
+Toolips = "0.2.3"
+ToolipsSession = "0.3.0"
