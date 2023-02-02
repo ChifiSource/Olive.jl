@@ -148,7 +148,7 @@ build(c::Connection, cm::ComponentModifier, dir::Directory, m::Module) = begin
     end
     container[:children] = cells
     on(c, container, "click") do cm::ComponentModifier
-        cm["olivemain"] = "selected" => dir.uri
+        cm["olivemain"] = "cell" => dir.uri
     end
     return(container)
 end
@@ -307,22 +307,22 @@ function bind!(c::Connection, km::ToolipsSession.KeyMap, cm::ComponentModifier,
         :copy => ("C", :ctrl, :shift),
         :paste => ("V", :ctrl, :shift),
         :cut => ("X", :ctrl, :shift),
-        :new => ("Space", :shift)
+        :new => ("N", :shift)
         )
     end
     keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
     bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
-        selected = cm["olivemain"]["selected"]
+        selected = cm["olivemain"]["cell"]
         evaluate(c, cells[selected], cm)
        append!(cm, "olivemain", build(c, cm, Cell(100, "code", "", id = ToolipsSession.gen_ref())))
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
         selected = cm["olivemain"]["cell"]
+        print(selected)
         cell_selected = cells[selected]
-        remove!(cm, "cell$(cell_selected.n)")
-        projopen = cm["olivemain"]["selected"]
-        pos = findall(fc -> fc.n == cell.n, c[:OliveCore].open[getip(c)].open[projopen])
-        deleteat!(c[:OliveCore].open[getip(c)][open].open[projopen], pos)
+        println(cell_selected)
+        remove!(cm, "cellcontainer$(cell_selected.n)")
+        deleteat!(cells, findall(c -> c.id == selected, cells)[1])
     end
     bind!(km, keybindings[:up] ...) do  cm::ComponentModifier
 
@@ -337,7 +337,7 @@ function bind!(c::Connection, km::ToolipsSession.KeyMap, cm::ComponentModifier,
         newcell = Cell(length(cells) + 1, "code", "",
         id = ToolipsSession.gen_ref())
         push!(cells, newcell)
-        append!(cm, "olivemain", build(c, cm, newcell))
+        set_children!(cm, "olivemain", Vector{Servable}([build(c, cm, cel) for cel in cells]))
     end
     bind!(c, cm, km)
 end

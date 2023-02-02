@@ -14,7 +14,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     outside = div("cellcontainer$(cell.n)", class = cell)
     inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = string(tm))
     on(c, inside, "focus") do cm::ComponentModifier
-        cm["olivemain"] = "selected" => cell.id
+        cm["olivemain"] = "cell" => cell.id
     end
     codebox_cover = div("codecover$(cell.n)")
     style!(codebox_cover, "position" => "absolute", "z-index" => "5", "pointer-events" => "none",
