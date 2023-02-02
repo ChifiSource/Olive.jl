@@ -314,7 +314,11 @@ function bind!(c::Connection, km::ToolipsSession.KeyMap, cm::ComponentModifier,
     bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
         selected = cm["olivemain"]["cell"]
         evaluate(c, cells[selected], cm)
-       append!(cm, "olivemain", build(c, cm, Cell(100, "code", "", id = ToolipsSession.gen_ref())))
+        new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
+        push!(cells, new_cell)
+       set_children!(cm, "olivemain",
+       Vector{Servable}([build(c, cm, cel) for cel in cells]))
+       focus!(cm, "cell$(new_cell.n)")
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
         selected = cm["olivemain"]["cell"]
