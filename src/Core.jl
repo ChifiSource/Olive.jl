@@ -1,92 +1,245 @@
+#== map (your welcome)
+- extenssions (OliveExtension{}, OliveModifier, build)
+- Directories
+- Projects
+- OliveCore
+- OliveDisplay
+==#
+"""
+### OliveExtension{P <: Any}
+The OliveExtension is a symbolic type that is used by the `build` function in
+order to create extensions using an OliveModifier. This constructor should only
+be called internally. Instead, simply use methods to define your extension.
+##### example
+```
+# this is your olive root file:
+module olive
+using Olive
+import Olive: build
+
+                            # vv the name of your extension ! vv
+function build(om::OliveModifier, oe::OliveExtension{:myextension})
+    alert!(om, "hello!")
+end
+```
+------------------
+##### constructors
+OliveExtension{}
+"""
+mutable struct OliveExtension{P <: Any} end
+
+"""
+### OliveModifier <: ToolipsSession.AbstractComponentModifier
+The OliveModifier is used whenever an extension is loaded with a `build`
+function.
+##### example
+```
+# this is your olive root file:
+module olive
+using Olive
+import Olive: build
+
+                            # vv the name of your extension ! vv
+function build(om::OliveModifier, oe::OliveExtension{:myextension})
+    alert!(om, "hello!")
+end
+```
+------------------
+##### constructors
+OliveExtension{}
+"""
+mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
+    rootc::Dict{String, AbstractComponent}
+    changes::Vector{String}
+    data::Dict{Symbol, Any}
+    function OliveModifier(c::Connection, cm::ComponentModifier)
+        new(cm.rootc, cm.changes, c[:OliveCore].client_data[getip(c)])
+    end
+end
+
+getindex(om::OliveModifier, symb::Symbol) = om.data[symb]
+
+setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, smb)
+
+"""
+**Olive Core**
+### build(om::OliveModifier, oe::OliveExtension{<:Any})
+------------------
+This is the base `build` function. These functions are ran whenever an extension
+is loaded into your root project. This function is not meant to be called, but
+extended and written
+#### example
+```
+
+```
+"""
+build(om::OliveModifier, oe::OliveExtension{<:Any}) = return
+
+function build(om::OliveModifier, oe::OliveExtension{:settings})
+
+end
+
+"""
+### Directory
+- uri::String
+- access::Dict{String, Vector{String}}
+- cells::Vector{Cell}
+The directory type holds Directory information and file cells on startup. It
+is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds
+cells and directories
+##### example
+```
+```
+------------------
+##### constructors
+- Directory(uri::String, access::Pair{String, String} ...; type::Symbol = :olive)
+"""
+mutable struct Directory
+    uri::String
+    access::Dict{String, String}
+    cells::Vector{Cell}
+    function Directory(uri::String, access::Pair{String, String} ...)
+        file_cells = directory_cells(uri, access ...)
+        new(uri, Dict(access ...), file_cells)
+    end
+end
+
+"""
+**Interface**
+### build(c::Connection, dir::Directory{<:Any}) -> ::Component{:div}
+------------------
+The catchall/default `build` function. If you want to add a custom directory,
+create an OliveaExtension and
+#### example
+```
+
+```
+custom directory example
+```
+# In your Olive root: ('~/olive/src/olive.jl' by default)
+module MyDirectories
+    import Olive: build
+    build(c::Connection, dir::Directory{:mydir}) = begin
+
+    end
+    # we will replace the directories with ours
+    build(om::OliveModifier, oe::OliveExtension{:loadmydir})
+        set_children!()
+    end
+end
+
+using  MyDirectories
+```
+"""
+build(c::Connection, cm::ComponentModifier, dir::Directory, m::Module) = begin
+    container = section("$(dir.uri)", align = "left")
+    cells = Vector{Servable}()
+    if "Project.toml" in readdir(dir.uri)
+        toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
+        String))
+        projname = toml_cats["name"]
+        envtop = h("headingenv$(dir.uri)", 2, text = projname)
+        push!(cells, envtop)
+    end
+    dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
+    push!(cells, dirtop)
+    for cell in dir.cells
+        push!(cells, Base.invokelatest(m.build, c, cm, cell))
+    end
+    container[:children] = cells
+    on(c, container, "click") do cm::ComponentModifier
+        cm["olivemain"] = "cell" => dir.uri
+    end
+    return(container)
+end
+
 mutable struct Project{name <: Any} <: Servable
     name::String
     dir::String
-    open::Dict{String, Pair{Module, Vector{Cell}}}
-    groups::Dict{String, String}
-    function Project(name::String, dir::String)
+    environment::String
+    open::Dict{String, Vector{Cell}}
+    mod::Module
+    function Project(name::String, dir::String; environment::String = "")
+        open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
+        modstr = """module $(name)
+        using Pkg
+
+        function evalin(ex::Any)
+                Pkg.activate("$environment")
+                eval(ex)
+        end
+        end"""
+        mod::Module = eval(Meta.parse(modstr))
+        if environment == ""
+            environment = dir
+        end
+        new{Symbol(name)}(name, dir, environment, open, mod)::Project{<:Any}
+    end
+    Project{T}(name::String, dir::String; environment::String = dir) where {T <: Any} = begin
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
         groups::Dict{String, String} = Dict("root" => "rw")
-        new{Symbol(name)}(name, dir, open, groups)
-    end
-    Project{T}(name::String, dir::String) where {T <: Any} = begin
-        open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
-        groups::Dict{String, String} = Dict("root" => "rw")
-        new{T}(name, dir, open, groups)
-    end
-end
+        modstr = """module $(name)
+        using Pkg
 
-function project_fromfiles(n::String, dir::String)
-    cells::Vector{Cell} = directory_cells(dir)
-    project::Project{:files} = Project{:files}(n, dir)
-    fakemod::Module = Module()
-    push!(project.open, "files" => fakemod => cells)
-    project::Project{:files}
-end
-
-function build(c::AbstractConnection, p::Project{<:Any})
-    modstr = """module $(p.name)
-    function evalin(ex::Any)
-            eval(ex)
-    end
-    end"""
-    [begin n = eval(Meta.parse(modstr)) => n[2]  end for n in values(p.open)]
-    push!(c[:OliveCore].open[getip(c)], p)
-    frstcells = first(p.open)[2][2]
-    println(frstcells)
-    Vector{Servable}([build(c, cell) for cell in frstcells])::Vector{Servable}
-end
-
-function build(c::AbstractConnection, p::Project{:files})
-    main = div("olive-main", cell = "1", ex = "0")
-    overview = div("file$(p.name)", align = "center")
-    style!(overview, "margin-top" => 5percent, "border-style" => "solid",
-    "border-width" => 3px, "border-radius" => 10px, "width" => "20%")
-    push!(overview, h("heading$(p.name)", 1, text = p.name))
-    if ~(getip(c) in keys(c[:OliveCore].open))
-        c[:OliveCore].open[getip(c)] = [p]
-    else
-        push!(c[:OliveCore].open[string(getip(c))], p)
-    end
-    [push!(overview, build(c, cell)) for cell in first(p.open)[2][2]]
-    overview
-end
-
-function new_project(name::String, dir::String,
-    groups::Dict{String, String} = Dict("host" => "we"))
-    pe = projectexplorer()
-end
-
-function build(c::Connection, p::Project{<:Any}, cells::Vector{Cell{<:Any}})
-    newcells::Vector{Servable} = [build(cell) for cell in cells]
-    gr = group(c)
-    if ~(canread(c, p))
-        return
-    end
-    if can_evaluate(c, p)
-
-    end
-    if can_write(c, p)
-
+        function evalin(ex::Any)
+                Pkg.activate("$environment")
+                eval(ex)
+        end
+        end"""
+        mod::Module = eval(Meta.parse(modstr))
+        if environment == ""
+            environment = dir
+        end
+        new{T}(name, dir, environment, open, mod)::Project{<:Any}
     end
 end
 
+function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
+    c[:OliveCore].open[getip(c)] = p
+    frstcells::Vector{Cell} = first(p.open)[2]
+    retvs = Vector{Servable}()
+    for cell in frstcells
+        push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell))
+    end
+    retvs::Vector{Servable}
+end
 
 can_read(c::Connection, p::Project{<:Any}) = group(c) in values(p.group)
 can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)])
 can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
 
+function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
+    mod = OliveModifier(c, cm)
+    Base.invokelatest(c[:OliveCore].olmod.build, mod, OliveExtension{:invoker}())
+    signatures = [m.sig.parameters[3] for m in methods(olmod.build, [Modifier, OliveExtension])]
+    for sig in signatures
+        if sig == OliveExtension{<:Any}
+            continue
+        end
+        Base.invokelatest(c[:OliveCore].olmod.build, mod, sig())
+    end
+end
+
 mutable struct OliveCore <: ServerExtension
-    type::Symbol
+    olmod::Module
+    type::Vector{Symbol}
     data::Dict{Symbol, Any}
-    open::Dict{String, Vector{Project{<:Any}}}
+    client_data::Dict{String, Dict{Symbol, Any}}
+    open::Dict{String, Project{<:Any}}
+    f::Function
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         data[:home] = homedir() * "/olive"
         data[:public] = homedir() * "/olive/public"
-        data[:wd] = pwd()
-        projopen = Dict{String, Vector{Project{<:Any}}}()
-        data[:macros] = Vector{String}(["#==olive"])
-        new(:connection, data, projopen)
+        m = eval(Meta.parse(read(data[:home] * "/src/olive.jl", String)))
+        projopen = Dict{String, Project{<:Any}}()
+        client_data = Dict{String, Dict{Symbol, Any}}()
+        f(c::Connection) = begin
+            if ~(getip(c) in keys(client_data))
+                push!(client_data, getip(c) => Dict{Symbol, Any}(:open => ""))
+            end
+        end
+        new(m, [:connection, :func], data, client_data, projopen, f)
     end
 end
 
@@ -126,19 +279,69 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
             break
         end
     end
-    display(d.io, correctm(), o)
+    display(d, correctm(), o)
 end
 
 function display(d::OliveDisplay, m::MIME"text/html", o::Any)
-    show(d.io, correctm(), o)
+    show(d.io, m, o)
 end
 
 function display(d::OliveDisplay, m::MIME"image/png", o::Any)
-    show(d.io, correctm(), o)
+    show(d.io, m, o)
 end
 
-function display(d::OliveDisplay, m::MIME"image/png")
-
+function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
+    show(d.io, m, o)
 end
 
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
+
+function bind!(c::Connection, km::ToolipsSession.KeyMap, cm::ComponentModifier,
+    cells::Vector{Cell})
+    if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
+        c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
+        :evaluate => ("Enter", :shift),
+        :delete => ("Delete", :ctrl, :shift),
+        :up => ("ArrowUp", :ctrl, :shift),
+        :down => ("ArrowDown", :ctrl, :shift),
+        :copy => ("C", :ctrl, :shift),
+        :paste => ("V", :ctrl, :shift),
+        :cut => ("X", :ctrl, :shift),
+        :new => ("N", :shift)
+        )
+    end
+    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+    bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
+        selected = cm["olivemain"]["cell"]
+        evaluate(c, cells[selected], cm)
+        new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
+        push!(cells, new_cell)
+       set_children!(cm, "olivemain",
+       Vector{Servable}([build(c, cm, cel) for cel in cells]))
+       focus!(cm, "cell$(new_cell.n)")
+    end
+    bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
+        selected = cm["olivemain"]["cell"]
+        print(selected)
+        cell_selected = cells[selected]
+        println(cell_selected)
+        remove!(cm, "cellcontainer$(cell_selected.n)")
+        deleteat!(cells, findall(c -> c.id == selected, cells)[1])
+    end
+    bind!(km, keybindings[:up] ...) do  cm::ComponentModifier
+
+    end
+    bind!(km, keybindings[:down] ...) do cm::ComponentModifier
+
+    end
+    bind!(km, keybindings[:copy] ...) do cm::ComponentModifier
+
+    end
+    bind!(km, keybindings[:new] ...) do cm::ComponentModifier
+        newcell = Cell(length(cells) + 1, "code", "",
+        id = ToolipsSession.gen_ref())
+        push!(cells, newcell)
+        set_children!(cm, "olivemain", Vector{Servable}([build(c, cm, cel) for cel in cells]))
+    end
+    bind!(c, cm, km)
+end

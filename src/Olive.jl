@@ -1,4 +1,4 @@
-"""
+ """
 Created in February, 2022 by
 [chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
 by team
@@ -12,30 +12,31 @@ julia and for other languages and data editing. Crucially, olive is abstract
 - [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
 """
 module Olive
-import Base: write, display
+import Base: write, display, getindex, setindex!
 using IPy
 using IPy: Cell
-using Highlights
 using Pkg
 using Toolips
-import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!
+import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier
 using ToolipsSession
-import ToolipsSession: Modifier
+import ToolipsSession: bind!, AbstractComponentModifier
 using ToolipsDefaults
-using ToolipsMarkdown: tmd, @tmd_str
-using ToolipsBase64
+using ToolipsMarkdown
+using TOML
 using Revise
 
-#==olive filemap
-An Olive.jl filemap for everyone to help develop this project easier! Thanks
-for considering helping with the development of Olive.jl. If you care to join
-the chifi organization, you may fill out a form [here]().
-- [Olive.jl](./src/Olive.jl)
--- deps/includes
+
+#==
+- Olive.jl./src/Olive.jl
+-- deps/includes  (you are here)
 -- default routes
 -- extension loader
 -- Server Defaults
 - [Core.jl](./src/Core.jl)
+-- OliveExtensions
+-- OliveModifiers
+-- Directories
+-- Projects
 -- server extension
 -- display
 -- filetracker
@@ -46,7 +47,6 @@ the chifi organization, you may fill out a form [here]().
 
 include("Core.jl")
 include("UI.jl")
-include("Extensions.jl")
 
 """
 main(c::Connection) -> _
@@ -55,41 +55,60 @@ This function is temporarily being used to test Olive.
 
 """
 main = route("/session") do c::Connection
-    # TODO Keymap bindings here
+    c[:OliveCore].client_data[getip(c)][:selected] = "session"
     write!(c, olivesheet())
-    open = c[:OliveCore].open[getip(c)]
+    open::Project{<:Any} = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
     ui_tabs::Vector{Servable} = Vector{Servable}()
-    [begin
-        if typeof(project) == Project{:files}
-            push!(ui_explorer, build(c, project))
-        else
-            push!(ui_tabs, div(project.name))
+    style!(ui_topbar, "opacity" => "0%", "transition" => 2seconds)
+    olivemain = olive_main(first(open.open)[1])
+    prog = ToolipsDefaults.progress("myprog")
+    style!(prog, "color" => "pink !important", "transition" => 1seconds)
+    olivemain[:children] = [prog]
+    ui_explorer[:children] = [olive_loadicon()]
+    bod = body("mainbody")
+    push!(bod, ui_explorer, ui_topbar, olivemain)
+    write!(c, bod)
+    on(c, "load") do cm::ComponentModifier
+        cells = Base.invokelatest(c[:OliveCore].olmod.build, c, cm, open)
+        km = ToolipsSession.KeyMap()
+        bind!(c, km, cm, first(open.open)[2])
+        olmod = c[:OliveCore].olmod
+        set_children!(cm, olivemain, cells)
+        style!(cm, ui_topbar, "opacity" => "100%")
+        next!(c, ui_topbar, cm) do cm2::ComponentModifier
+            set_children!(cm2, ui_explorer, Vector{Servable}([begin
+            build(c, cm2, cell)
+        end for cell in directory_cells(open.dir)]))
         end
-    end for project in open]
-    olivemain = olive_main(c, ui_tabs)
-    projopen = first(values(open))
-    insert!(olivemain[:children], 1, ui_topbar)
-    olivemain[:children]["olivemain-contents"][:children] = build(c, projopen)
-    write!(c, [ui_explorer, olivemain])
+        load_extensions!(c, cm, olmod)
+    end
+
 end
 
 explorer = route("/") do c::Connection
+    c[:OliveCore].client_data[getip(c)][:selected] = "files"
     loader_body = div("loaderbody", align = "center")
     style!(loader_body, "margin-top" => 10percent)
     write!(c, olivesheet())
     icon = olive_loadicon()
     bod = olive_body(c)
     on(c, bod, "load") do cm::ComponentModifier
-        homeproj = project_fromfiles("root", c[:OliveCore].data[:home])
-        publicproj = project_fromfiles("public", c[:OliveCore].data[:public])
-        pubproj = build(c, publicproj)
-        homeproj = build(c, homeproj)
-        style!(cm, icon, "opacity" => 0percent)
-        observe!(c, cm, "setcallback", 50000) do cm
-            set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([pubproj, homeproj])))
+        olmod = c[:OliveCore].olmod
+        homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
+        publicproj = Directory(c[:OliveCore].data[:public],
+        "public" => "rw")
+        dirs = [homeproj, publicproj]
+        main = olive_main("files")
+        for dir in dirs
+            push!(main[:children], build(c, cm, dir, olmod))
         end
+        script!(c, cm, "loadcallback") do cm
+            style!(cm, icon, "opacity" => 0percent)
+            set_children!(cm, bod, [olivesheet(), main])
+        end
+        load_extensions!(c, cm, olmod)
     end
     push!(loader_body, icon)
     push!(bod, loader_body)
@@ -97,24 +116,7 @@ explorer = route("/") do c::Connection
  end
 
 dev = route("/") do c::Connection
-    loader_body = div("loaderbody", align = "center")
-    style!(loader_body, "margin-top" => 10percent)
-    write!(c, olivesheet())
-    icon = olive_loadicon()
-    bod = olive_body(c)
-    on(c, bod, "load") do cm::ComponentModifier
-        homeproj = project_fromfiles("root", c[:OliveCore].data[:home])
-        publicproj = project_fromfiles("public", c[:OliveCore].data[:public])
-        pubproj = build(c, publicproj)
-        homeproj = build(c, homeproj)
-        style!(cm, icon, "opacity" => 0percent)
-        observe!(c, cm, "setcallback", 50000) do cm
-            set_children!(cm, bod, vcat(olivesheet(), Vector{Servable}([pubproj, homeproj])))
-        end
-    end
-    push!(loader_body, icon)
-    push!(bod, loader_body)
-    write!(c, bod)
+    explorer.page(c)
 end
 
 setup = route("/") do c::Connection
@@ -143,13 +145,12 @@ function create_project(homedir::String = homedir(), olivedir::String = ".olive"
             using Toolips
             using ToolipsSession
             using Olive
-            using Olive: build
-            #==Olive try:
-            using Olive: Extensions
-            ==#
+            import Olive: build
+
             build(oc::OliveCore) = begin
                 oc::OliveCore
             end
+
             end # module""")
         end
         @info "olive files created! welcome to olive! "
@@ -198,9 +199,36 @@ OliveDevServer(oc::OliveCore) = begin
     WebServer(extensions = [oc, OliveLogger(), Session(["/", "/session"])],
     routes = rs)
 end
+
+#== TODO Create creates a new server at the current directory, making Olive.jl
+deployable!
+==#
 function create(name::String)
     Toolips.new_webapp(name)
     Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
+    open("$name/src/$name.jl") do io
+        write!(io, """
+        module $name
+        using Toolips
+        using ToolipsSession
+        using Olive
+        import Olive: build
+
+        build(oc::OliveCore) = begin
+            oc::OliveCore
+        end
+
+        build(om::OliveModifier, oe::OliveExtension{:$name})
+
+        end
+
+        function start()
+
+        end
+
+        end # module
+        """)
+    end
 end
 
 export OliveCore, build
