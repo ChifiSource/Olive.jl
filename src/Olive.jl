@@ -22,7 +22,6 @@ using ToolipsSession
 import ToolipsSession: bind!, AbstractComponentModifier
 using ToolipsDefaults
 using ToolipsMarkdown
-using ToolipsBase64
 using TOML
 using Revise
 
