@@ -1,4 +1,5 @@
-function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+    args ...)
     hiddencell = div("cell$(cell.n)", class = "cell-hidden")
     name = a("cell$(cell.n)label", text = cell.source)
     style!(name, "color" => "black")
@@ -7,22 +8,24 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any})
 end
 
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
+    cells::Vector{Cell})
+    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+    km = ToolipsSession.KeyMap()
     text = replace(cell.source, "\n" => "</br>")
-    tm = TextModifier(text)
+#==    tm = TextModifier(text)
     ToolipsMarkdown.julia_block!(tm)
+    ==#
     outside = div("cellcontainer$(cell.n)", class = cell)
-    inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = string(tm))
-    on(c, inside, "focus") do cm::ComponentModifier
-        cm["olivemain"] = "cell" => cell.id
-    end
-    on(c, inside, "keyup") do cm::ComponentModifier
+    inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = text)
+    on(c, cm, inside, "change") do cm::ComponentModifier
         cell.source = cm[inside]["text"]
     end
     maininputbox = div("maininputbox")
     style!(maininputbox, "width" => 60percent, "padding" => 0px)
     interiorbox = div("cellinterior$(cell.n)")
     inside[:class] = "input_cell"
+    # bottom box
     bottombox = div("cellside$(cell.n)")
     cell_drag = topbar_icon("cell$(cell.n)drag", "drag_indicator")
     cell_run = topbar_icon("cell$(cell.n)drag", "not_started")
@@ -41,10 +44,30 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
     push!(bottombox, cell_drag, number, cell_run)
     push!(outside, interiorbox, output)
+    bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
+        evaluate(c, cell, cm)
+        new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
+    #==    push!(cells, new_cell)
+       set_children!(cm, "olivemain",
+       Vector{Servable}([build(c, cm, cel) for cel in cells]))
+       focus!(cm, "cell$(new_cell.n)") ==#
+    end
+    bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
+        remove!(cm, "cellcontainer$(cell_selected.n)")
+        deleteat!(cells, findall(c -> c.id == selected, cells)[1])
+    end
+    bind!(km, keybindings[:new] ...) do cm::ComponentModifier
+        newcell = Cell(length(cells) + 1, "code", "",
+        id = ToolipsSession.gen_ref())
+        push!(cells, newcell)
+        set_children!(cm, "olivemain", Vector{Servable}([build(c, cm, cel) for cel in cells]))
+    end
+    bind!(c, inside, km)
     outside
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
+    cells::Vector{Cell})
     tlcell = div("cell$(cell.n)", class = "cell")
     innercell = tmd("cell$(cell.n)tmd", cell.source)
     on(c, cm, tlcell, "dblclick") do cm::ComponentModifier
@@ -57,13 +80,13 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown})
 end
 
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:ipynb})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:ipynb},
+    d::Directory)
     filecell = div("cell$(cell.n)", class = "cell-ipynb")
     on(c, cm, filecell, "click") do cm::ComponentModifier
         cm["olivemain"] = "cell" => string(cell.n)
     end
     on(c, cm, filecell, "dblclick") do cm::ComponentModifier
-        @warn "hola"
         evaluate(c, cell, cm)
     end
     fname = a("$(cell.source)", text = cell.source)
@@ -72,7 +95,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:ipynb})
     filecell
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:jl})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:jl},
+    d::Directory)
     hiddencell = div("cell$(cell.n)", class = "cell-jl")
     style!(hiddencell, "cursor" => "pointer")
     on(c, cm, hiddencell, "click") do cm::ComponentModifier
@@ -87,7 +111,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:jl})
     hiddencell
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:toml})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:toml},
+    d::Directory)
     hiddencell = div("cell$(cell.n)", class = "cell-toml")
     name = a("cell$(cell.n)label", text = cell.source)
     on(c, hiddencell, "dblclick") do cm::ComponentModifier
@@ -98,7 +123,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:toml})
     hiddencell
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory},
+    cells::Vector{Cell})
    catheading = h("cell$(cell.n)heading", 2, text = cell.source, contenteditable = true)
     contents = section("cell$(cell.n)")
     push!(contents, catheading)
@@ -115,7 +141,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory})
     contents
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlval})
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlval},
+    cells::Vector{Cell})
         key_div = div("cell$(cell.n)")
         k = cell.source
         v = string(cell.outputs)
@@ -183,7 +210,6 @@ end
 
 function evaluate(c::Connection, cell::Cell{:ipynb}, cm::ComponentModifier)
     cs::Vector{Cell{<:Any}} = IPy.read_ipynb(cell.outputs)
-    @warn "yes"
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 

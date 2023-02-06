@@ -61,28 +61,38 @@ main = route("/session") do c::Connection
     open::Project{<:Any} = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
+    olivemain::Component{:div} = olive_main(first(open.open)[1])
     ui_tabs::Vector{Servable} = Vector{Servable}()
+    prog::Component{:progress} = ToolipsDefaults.progress("myprog")
     style!(ui_topbar, "opacity" => "0%", "transition" => 2seconds)
-    olivemain = olive_main(first(open.open)[1])
-    prog = ToolipsDefaults.progress("myprog")
-    style!(prog, "color" => "pink !important", "transition" => 1seconds)
     olivemain[:children] = [prog]
     ui_explorer[:children] = [olive_loadicon()]
     bod = body("mainbody")
     push!(bod, ui_explorer, ui_topbar, olivemain)
     write!(c, bod)
+    #bindcheck!(c)
+    if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
+        c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
+        :evaluate => ("Enter", :shift),
+        :delete => ("Delete", :ctrl, :shift),
+        :up => ("ArrowUp", :ctrl, :shift),
+        :down => ("ArrowDown", :ctrl, :shift),
+        :copy => ("C", :ctrl, :shift),
+        :paste => ("V", :ctrl, :shift),
+        :cut => ("X", :ctrl, :shift),
+        :new => ("N", :shift)
+        )
+    end
     on(c, "load") do cm::ComponentModifier
-        cells = Base.invokelatest(c[:OliveCore].olmod.build, c, cm, open)
-        km = ToolipsSession.KeyMap()
-        bind!(c, km, cm, first(open.open)[2])
-        olmod = c[:OliveCore].olmod
-        set_children!(cm, olivemain, cells)
+        cells::Vector{Servable} = Base.invokelatest(c[:OliveCore].olmod.build, c,
+         cm, open)
+        olmod::Module = c[:OliveCore].olmod
         style!(cm, ui_topbar, "opacity" => "100%")
-        next!(c, ui_topbar, cm) do cm2::ComponentModifier
-            set_children!(cm2, ui_explorer, Vector{Servable}([begin
-            build(c, cm2, cell)
-        end for cell in directory_cells(open.dir)]))
-        end
+        set_children!(cm, olivemain, cells)
+    #    next!(c, ui_topbar, cm) do cm2::ComponentModifier
+    #        set_children!(cm2, ui_explorer, Vector{Servable}([begin
+    #        build(c, cm2, cell)
+    #    end for cell in directory_cells(open.dir)]))
         load_extensions!(c, cm, olmod)
     end
 
@@ -115,6 +125,7 @@ explorer = route("/") do c::Connection
     push!(bod, loader_body)
     write!(c, bod)
  end
+
 
 dev = route("/") do c::Connection
     explorer.page(c)
