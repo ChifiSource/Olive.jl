@@ -19,10 +19,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     on(c, inside, "keyup") do cm::ComponentModifier
         cell.source = cm[inside]["text"]
     end
-    codebox_cover = div("codecover$(cell.n)")
-    style!(codebox_cover, "position" => "absolute", "z-index" => "5", "pointer-events" => "none",
-    "background" => "transparent", "height" => 100percent, "width" => 100percent,
-    "padding" => 20px, "font-size" => 14pt)
     maininputbox = div("maininputbox")
     style!(maininputbox, "width" => 60percent, "padding" => 0px)
     interiorbox = div("cellinterior$(cell.n)")
@@ -35,11 +31,11 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     style!(bottombox, "background-color" => "gray",
     "border-top-right-radius" => 0px, "border-top-left-radius" => 0px,
     "margin-top" => 0px, "width" => 10percent)
-     style!(inside,# "color" => "white !important",
+     style!(inside,
      "width" => 80percent, "border-bottom-left-radius" => 0px, "min-height" => 50px,
      "position" => "relative", "margin-top" => 0px)
      style!(outside, "transition" => 1seconds)
-     push!(maininputbox, codebox_cover, inside)
+     push!(maininputbox, inside)
      push!(interiorbox, maininputbox, bottombox)
     number = a("cell", text = "$(cell.n)", class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
@@ -193,7 +189,6 @@ end
 
 function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
     cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
-    [c.id = ToolipsSession.gen_ref() for c in cs]
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
@@ -211,8 +206,8 @@ function build_file_cell(e::Int64, path::String, dir::String)
         if length(fsplit) > 1
             fending = string(fsplit[2])
         end
-        Cell(e, fending, fname, dir * "/" * path, id = ToolipsSession.gen_ref())
+        Cell(e, fending, fname, dir * "/" * path)
     else
-        Cell(e, "dir", path, path, id = ToolipsSession.gen_ref())
+        Cell(e, "dir", path, path)
     end
 end
