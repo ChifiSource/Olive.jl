@@ -59,7 +59,7 @@ end
 
 getindex(om::OliveModifier, symb::Symbol) = om.data[symb]
 
-setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, smb)
+setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
 
 """
 **Olive Core**
