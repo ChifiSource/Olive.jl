@@ -9,7 +9,6 @@ function inputcell_style()
     st = Style("div.input_cell", border = "2px solid gray", padding = "20px",
     "bordier-radius" => 30px, "margin-top" => 30px, "transition" => 1seconds,
     "font-size" => 14pt)
-    animate!(st, fade_up())
     st::Style
 end
 
@@ -17,14 +16,13 @@ function outputcell_style()
     st = Style("div.output_cell", border = "0px", padding = "10px",
     "margin-top" => 20px, "margin-right" => 200px, "border-radius" => 30px,
     "font-size" => 14pt)
-    animate!(st, fade_up())
     st::Style
 end
 function ipy_style()
     s::Style = Style("div.cell-ipynb",
     "background-color" => "orange",
      "width" => 75percent, "overflow-x" => "hidden", "border-color" => "gray",
-     "border-width" => 2px,
+     "border-width" => 2px, "cursor" => "pointer",
     "padding" => 4px, "border-style" => "solid", "transition" => "0.5s")
     s:"hover":["scale" => "1.05"]
     s::Style
@@ -59,19 +57,11 @@ function load_spinner()
     mys::Style
 end
 
-function fade_up()
-    cellin = Animation("fade_up", length = 1.5)
-    cellin[:from] = "opacity" => "0%"
-    cellin[:from] = "transform" => "translateY(100%)"
-    cellin[:to] = "opacity" => "100%"
-    cellin[:to] = "transform" =>  "translateY(0%)"
-    cellin::Animation
-end
 
 function usingcell_style()
     st::Style = Style("div.usingcell", border = "0px solid gray", padding = "40px",
     "border-radius" => 5px, "background-color" => "#CCCCFF")
-    animate!(st, fade_up()); st::Style
+    st::Style
 end
 
 function cell_style()
@@ -79,7 +69,7 @@ function cell_style()
     "background-color" => "white", "border-top-left-radius" => 0px,
     "border-bottom-left-radius" => 0px)
     st:"focus":["border-width" => 2px]
-    animate!(st, fade_up())
+    fade_up()
     st::Style
 end
 
@@ -117,28 +107,10 @@ end
 
 function olivesheet()
     st = ToolipsDefaults.sheet("olivestyle", dark = false)
-    bdy = Style("body", "background-color" => "white")
+    bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
     push!(st, google_icons(), load_spinner(), spin_forever(),
-    fade_up(), iconstyle(), cellnumber_style(), hdeps_style(),
+    iconstyle(), cellnumber_style(), hdeps_style(),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
-    hidden_style(), jl_style(), toml_style())
-    st
-end
-
-function olivesheetdark()
-    st = ToolipsDefaults.sheet("olivestyle", dark = true)
-    bdy = Style("body", "background-color" => "#360C1F", "transition" => ".8s")
-    st[:children]["div"]["background-color"] = "#DB3080"
-    st[:children]["div"]["color"] = "white"
-    st[:children]["p"]["color"] = "white"
-    st[:children]["h1"]["color"] = "orange"
-    st[:children]["h2"]["color"] = "lightblue"
-    ipc = inputcell_style()
-    ipc["background-color"] = "#DABCDF"
-    ipc["border-width"] = 0px
-    push!(st, google_icons(),
-    fade_up(), iconstyle(), cellnumber_style(), hdeps_style(),
-    usingcell_style(), outputcell_style(), ipc, bdy, ipy_style(),
     hidden_style(), jl_style(), toml_style())
     st
 end
@@ -211,7 +183,7 @@ end
 
 function olive_main(selected::String = "project")
     main = div("olivemain", cell = 1,  selected = selected, ex = 0)
-    style!(main, "transition" => ".8s")
+    style!(main, "transition" => ".8s", "overflow-x" => "hidden")
     main::Component{:div}
 end
 

@@ -16,10 +16,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     on(c, inside, "focus") do cm::ComponentModifier
         cm["olivemain"] = "cell" => cell.id
     end
-    codebox_cover = div("codecover$(cell.n)")
-    style!(codebox_cover, "position" => "absolute", "z-index" => "5", "pointer-events" => "none",
-    "background" => "transparent", "height" => 100percent, "width" => 100percent,
-    "padding" => 20px, "font-size" => 14pt)
+    on(c, inside, "keyup") do cm::ComponentModifier
+        cell.source = cm[inside]["text"]
+    end
     maininputbox = div("maininputbox")
     style!(maininputbox, "width" => 60percent, "padding" => 0px)
     interiorbox = div("cellinterior$(cell.n)")
@@ -32,11 +31,11 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code})
     style!(bottombox, "background-color" => "gray",
     "border-top-right-radius" => 0px, "border-top-left-radius" => 0px,
     "margin-top" => 0px, "width" => 10percent)
-     style!(inside,# "color" => "white !important",
+     style!(inside,
      "width" => 80percent, "border-bottom-left-radius" => 0px, "min-height" => 50px,
      "position" => "relative", "margin-top" => 0px)
      style!(outside, "transition" => 1seconds)
-     push!(maininputbox, codebox_cover, inside)
+     push!(maininputbox, inside)
      push!(interiorbox, maininputbox, bottombox)
     number = a("cell", text = "$(cell.n)", class = "cell_number")
     output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
@@ -64,6 +63,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:ipynb})
         cm["olivemain"] = "cell" => string(cell.n)
     end
     on(c, cm, filecell, "dblclick") do cm::ComponentModifier
+        @warn "hola"
         evaluate(c, cell, cm)
     end
     fname = a("$(cell.source)", text = cell.source)
@@ -132,37 +132,34 @@ function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier)
 end
 
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
-    rawcode = cm["rawcell$(cell.n)"]["text"]
-    execcode = replace(rawcode, "<div>" => "\n", "</div>" => "")
-    cell.source = execcode
-    text = replace(cell.source, "\n" => "</br>")
-    selected = cm["olivemain"]["selected"]
-    proj = c[:OliveCore].open[getip(c)]
-    ret = ""
+    # get code
+    rawcode::String = cm["rawcell$(cell.n)"]["text"]
+    execcode::String = replace(rawcode, "<div>" => "\n", "</div>" => "")
+    text::String = replace(cell.source, "\n" => "</br>")
+    # get project
+    selected::String = cm["olivemain"]["selected"]
+    proj::Project{<:Any} = c[:OliveCore].open[getip(c)]
+    #== evaluate
+    SOME NOTES -- `i` below is meant to eventually be passed through `evalin`.
+    We need to find a way to make this buffer write anything that comes through
+    stdout, that way if something is printed or otherwise it can still be
+    displayed instead of entirely relying on returns.
+    ==#
+    ret::Any = ""
     i = IOBuffer()
     try
-        #== if we sent `i` through this function, maybe we could observe output?
-         for example, if someone adds a package; we could have the percentage
-          of the package adding? We also need to start parsing the execcode
-             and observing c's permissions.
-         actually, with the implementation of the using cell, we will just
-           check for using and always make the evaluation of that cell
-             multi-threaded.
-             TODO this is a continuing problem==#
         ret = proj.mod.evalin(Meta.parse(execcode))
     catch e
         ret = e
     end
-    if isnothing(ret)
-        #==
-        What is discussed above would be helpful here, display any STDOUT --
-        we can either do that OR we can find all symbols of print or show and
-        do them into the OliveDisplay
-        ==#
-    end
+    # output
     od = OliveDisplay()
-    display(od,MIME"olive"(), ret)
-    set_text!(cm, "cell$(cell.n)out", String(od.io.data))
+    display(od, MIME"olive"(), ret)
+    outp::String = String(od.io.data)
+    set_text!(cm, "cell$(cell.n)out", outp)
+    # mutate cell
+    cell.outputs = outp
+    cell.source = text
 end
 
 function evaluate(c::Connection, cell::Cell{:toml}, cm::ComponentModifier)
@@ -186,21 +183,21 @@ end
 
 function evaluate(c::Connection, cell::Cell{:ipynb}, cm::ComponentModifier)
     cs::Vector{Cell{<:Any}} = IPy.read_ipynb(cell.outputs)
+    @warn "yes"
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
 function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
     cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
-    [c.id = ToolipsSession.gen_ref() for c in cs]
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
 function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
     files = readdir(dir)
-    return([build_file_cell(e, path) for (e, path) in enumerate(files)]::AbstractVector)
+    return([build_file_cell(e, path, dir) for (e, path) in enumerate(files)]::AbstractVector)
 end
 
-function build_file_cell(e::Int64, path::String)
+function build_file_cell(e::Int64, path::String, dir::String)
     if ~(isdir(path))
         splitdir::Vector{SubString} = split(path, "/")
         fname::String = string(splitdir[length(splitdir)])
@@ -209,8 +206,8 @@ function build_file_cell(e::Int64, path::String)
         if length(fsplit) > 1
             fending = string(fsplit[2])
         end
-        Cell(e, fending, fname, path, id = ToolipsSession.gen_ref())
+        Cell(e, fending, fname, dir * "/" * path)
     else
-        Cell(e, "dir", path, path, id = ToolipsSession.gen_ref())
+        Cell(e, "dir", path, path)
     end
 end

@@ -3,6 +3,8 @@
 <h6>| 0.0.2 |</h6>
 </div>
 
+
+**no, this project is not in a usable state yet.** But it is getting close!
 ##### welcome to olive
 Olive.jl is a customizable Integrated Development Environment for Julia programming in a notebook-like environment. Executable blocks of code are surrounded by Markdown in a far more reproducible form than ever before. Olive features
 - Extensibility
