@@ -62,7 +62,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         push!(cells, newcell)
         set_children!(cm, "olivemain", Vector{Servable}([build(c, cm, cel) for cel in cells]))
     end
-    bind!(c, inside, km)
+    bind!(c, cm, inside, km)
     outside
 end
 
