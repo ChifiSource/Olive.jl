@@ -94,13 +94,15 @@ cells and directories
 ##### constructors
 - Directory(uri::String, access::Pair{String, String} ...; type::Symbol = :olive)
 """
-mutable struct Directory
+mutable struct Directory{S <: Any}
+    dirtype::String
     uri::String
     access::Dict{String, String}
     cells::Vector{Cell}
-    function Directory(uri::String, access::Pair{String, String} ...)
+    function Directory(uri::String, access::Pair{String, String} ...;
+        dirtype::String = "olive")
         file_cells = directory_cells(uri, access ...)
-        new(uri, Dict(access ...), file_cells)
+        new{Symbol(dirtype)}(dirtype, uri, Dict(access ...), file_cells)
     end
 end
 
@@ -120,7 +122,7 @@ custom directory example
 
 ```
 """
-build(c::Connection, cm::ComponentModifier, dir::Directory, m::Module) = begin
+build(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}, m::Module) = begin
     container = section("$(dir.uri)", align = "left")
     cells = Vector{Servable}()
     if "Project.toml" in readdir(dir.uri)

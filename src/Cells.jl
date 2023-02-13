@@ -60,7 +60,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         newcell = Cell(length(cells) + 1, "code", "",
         id = ToolipsSession.gen_ref())
         push!(cells, newcell)
-        set_children!(cm, "olivemain", Vector{Servable}([build(c, cm, cel) for cel in cells]))
+        append!(cm, "olivemain", build(c, cm, newcell, cells))
+        println("appended")
     end
     bind!(c, cm, inside, km)
     outside

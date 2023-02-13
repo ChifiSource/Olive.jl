@@ -58,18 +58,16 @@ This function is temporarily being used to test Olive.
 main = route("/session") do c::Connection
     c[:OliveCore].client_data[getip(c)][:selected] = "session"
     write!(c, olivesheet())
-    open::Project{<:Any} = c[:OliveCore].open[getip(c)]
+    proj_open::Project{<:Any} = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
-    olivemain::Component{:div} = olive_main(first(open.open)[1])
+    olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
     ui_tabs::Vector{Servable} = Vector{Servable}()
     prog::Component{:progress} = ToolipsDefaults.progress("myprog")
-    style!(ui_topbar, "opacity" => "0%", "transition" => 2seconds)
     olivemain[:children] = [prog]
     ui_explorer[:children] = [olive_loadicon()]
     bod = body("mainbody")
-    push!(bod, ui_explorer, ui_topbar, olivemain)
-    write!(c, bod)
+    push!(bod, ui_explorer, olivemain)
     #bindcheck!(c)
     if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
         c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
@@ -80,22 +78,21 @@ main = route("/session") do c::Connection
         :copy => ("C", :ctrl, :shift),
         :paste => ("V", :ctrl, :shift),
         :cut => ("X", :ctrl, :shift),
-        :new => ("N", :shift)
+        :new => ("Q", :ctrl, :shift)
         )
     end
+    olmod::Module = c[:OliveCore].olmod
+    mainpane = div("olivemain-pane")
+    push!(olivemain, ui_topbar, mainpane)
     on(c, "load") do cm::ComponentModifier
-        cells::Vector{Servable} = Base.invokelatest(c[:OliveCore].olmod.build, c,
-         cm, open)
-        olmod::Module = c[:OliveCore].olmod
-        style!(cm, ui_topbar, "opacity" => "100%")
-        set_children!(cm, olivemain, cells)
-    #    next!(c, ui_topbar, cm) do cm2::ComponentModifier
-    #        set_children!(cm2, ui_explorer, Vector{Servable}([begin
-    #        build(c, cm2, cell)
-    #    end for cell in directory_cells(open.dir)]))
         load_extensions!(c, cm, olmod)
-    end
+        cells::Vector{Servable} = Base.invokelatest(olmod.build, c,
+        cm, proj_open)
+        mainpane[:children] = cells
+        set_children!(cm, "olivemain", [ui_topbar, mainpane])
 
+    end
+    write!(c, bod)
 end
 
 explorer = route("/") do c::Connection
