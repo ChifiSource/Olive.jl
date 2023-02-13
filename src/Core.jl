@@ -94,13 +94,15 @@ cells and directories
 ##### constructors
 - Directory(uri::String, access::Pair{String, String} ...; type::Symbol = :olive)
 """
-mutable struct Directory
+mutable struct Directory{S <: Any}
+    dirtype::String
     uri::String
     access::Dict{String, String}
     cells::Vector{Cell}
-    function Directory(uri::String, access::Pair{String, String} ...)
+    function Directory(uri::String, access::Pair{String, String} ...;
+        dirtype::String = "olive")
         file_cells = directory_cells(uri, access ...)
-        new(uri, Dict(access ...), file_cells)
+        new{Symbol(dirtype)}(dirtype, uri, Dict(access ...), file_cells)
     end
 end
 
@@ -117,21 +119,10 @@ create an OliveaExtension and
 custom directory example
 ```
 # In your Olive root: ('~/olive/src/olive.jl' by default)
-module MyDirectories
-    import Olive: build
-    build(c::Connection, dir::Directory{:mydir}) = begin
 
-    end
-    # we will replace the directories with ours
-    build(om::OliveModifier, oe::OliveExtension{:loadmydir})
-        set_children!()
-    end
-end
-
-using  MyDirectories
 ```
 """
-build(c::Connection, cm::ComponentModifier, dir::Directory, m::Module) = begin
+build(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}, m::Module) = begin
     container = section("$(dir.uri)", align = "left")
     cells = Vector{Servable}()
     if "Project.toml" in readdir(dir.uri)
@@ -144,7 +135,7 @@ build(c::Connection, cm::ComponentModifier, dir::Directory, m::Module) = begin
     dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     push!(cells, dirtop)
     for cell in dir.cells
-        push!(cells, Base.invokelatest(m.build, c, cm, cell))
+        push!(cells, Base.invokelatest(m.build, c, cm, cell, dir))
     end
     container[:children] = cells
     on(c, container, "click") do cm::ComponentModifier
@@ -198,9 +189,10 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     c[:OliveCore].open[getip(c)] = p
     frstcells::Vector{Cell} = first(p.open)[2]
     retvs = Vector{Servable}()
-    for cell in frstcells
-        push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell))
-    end
+    [begin
+        push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
+        frstcells))
+    end for cell in frstcells]
     retvs::Vector{Servable}
 end
 
@@ -295,53 +287,3 @@ function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
 end
 
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
-
-function bind!(c::Connection, km::ToolipsSession.KeyMap, cm::ComponentModifier,
-    cells::Vector{Cell})
-    if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
-        c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
-        :evaluate => ("Enter", :shift),
-        :delete => ("Delete", :ctrl, :shift),
-        :up => ("ArrowUp", :ctrl, :shift),
-        :down => ("ArrowDown", :ctrl, :shift),
-        :copy => ("C", :ctrl, :shift),
-        :paste => ("V", :ctrl, :shift),
-        :cut => ("X", :ctrl, :shift),
-        :new => ("N", :shift)
-        )
-    end
-    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
-    bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
-        selected = cm["olivemain"]["cell"]
-        evaluate(c, cells[selected], cm)
-        new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
-        push!(cells, new_cell)
-       set_children!(cm, "olivemain",
-       Vector{Servable}([build(c, cm, cel) for cel in cells]))
-       focus!(cm, "cell$(new_cell.n)")
-    end
-    bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
-        selected = cm["olivemain"]["cell"]
-        print(selected)
-        cell_selected = cells[selected]
-        println(cell_selected)
-        remove!(cm, "cellcontainer$(cell_selected.n)")
-        deleteat!(cells, findall(c -> c.id == selected, cells)[1])
-    end
-    bind!(km, keybindings[:up] ...) do  cm::ComponentModifier
-
-    end
-    bind!(km, keybindings[:down] ...) do cm::ComponentModifier
-
-    end
-    bind!(km, keybindings[:copy] ...) do cm::ComponentModifier
-
-    end
-    bind!(km, keybindings[:new] ...) do cm::ComponentModifier
-        newcell = Cell(length(cells) + 1, "code", "",
-        id = ToolipsSession.gen_ref())
-        push!(cells, newcell)
-        set_children!(cm, "olivemain", Vector{Servable}([build(c, cm, cel) for cel in cells]))
-    end
-    bind!(c, cm, km)
-end

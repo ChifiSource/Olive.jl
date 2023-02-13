@@ -58,34 +58,41 @@ This function is temporarily being used to test Olive.
 main = route("/session") do c::Connection
     c[:OliveCore].client_data[getip(c)][:selected] = "session"
     write!(c, olivesheet())
-    open::Project{<:Any} = c[:OliveCore].open[getip(c)]
+    proj_open::Project{<:Any} = c[:OliveCore].open[getip(c)]
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
+    olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
     ui_tabs::Vector{Servable} = Vector{Servable}()
-    style!(ui_topbar, "opacity" => "0%", "transition" => 2seconds)
-    olivemain = olive_main(first(open.open)[1])
-    prog = ToolipsDefaults.progress("myprog")
-    style!(prog, "color" => "pink !important", "transition" => 1seconds)
+    prog::Component{:progress} = ToolipsDefaults.progress("myprog")
     olivemain[:children] = [prog]
     ui_explorer[:children] = [olive_loadicon()]
     bod = body("mainbody")
-    push!(bod, ui_explorer, ui_topbar, olivemain)
-    write!(c, bod)
-    on(c, "load") do cm::ComponentModifier
-        cells = Base.invokelatest(c[:OliveCore].olmod.build, c, cm, open)
-        km = ToolipsSession.KeyMap()
-        bind!(c, km, cm, first(open.open)[2])
-        olmod = c[:OliveCore].olmod
-        set_children!(cm, olivemain, cells)
-        style!(cm, ui_topbar, "opacity" => "100%")
-        next!(c, ui_topbar, cm) do cm2::ComponentModifier
-            set_children!(cm2, ui_explorer, Vector{Servable}([begin
-            build(c, cm2, cell)
-        end for cell in directory_cells(open.dir)]))
-        end
-        load_extensions!(c, cm, olmod)
+    push!(bod, ui_explorer, olivemain)
+    #bindcheck!(c)
+    if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
+        c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
+        :evaluate => ("Enter", :shift),
+        :delete => ("Delete", :ctrl, :shift),
+        :up => ("ArrowUp", :ctrl, :shift),
+        :down => ("ArrowDown", :ctrl, :shift),
+        :copy => ("C", :ctrl, :shift),
+        :paste => ("V", :ctrl, :shift),
+        :cut => ("X", :ctrl, :shift),
+        :new => ("Q", :ctrl, :shift)
+        )
     end
+    olmod::Module = c[:OliveCore].olmod
+    mainpane = div("olivemain-pane")
+    push!(olivemain, ui_topbar, mainpane)
+    on(c, "load") do cm::ComponentModifier
+        load_extensions!(c, cm, olmod)
+        cells::Vector{Servable} = Base.invokelatest(olmod.build, c,
+        cm, proj_open)
+        mainpane[:children] = cells
+        set_children!(cm, "olivemain", [ui_topbar, mainpane])
 
+    end
+    write!(c, bod)
 end
 
 explorer = route("/") do c::Connection
@@ -115,6 +122,7 @@ explorer = route("/") do c::Connection
     push!(bod, loader_body)
     write!(c, bod)
  end
+
 
 dev = route("/") do c::Connection
     explorer.page(c)
