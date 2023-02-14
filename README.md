@@ -1,6 +1,6 @@
 <div align = "center">
 <img src = https://github.com/ChifiSource/image_dump/blob/main/olive/olive2over.png>
-<h6>| 0.0.6 |</h6>
+<h6>| 0.0.7 |</h6>
 </div>
 
 
