@@ -140,6 +140,31 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:toml},
     hiddencell
 end
 
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:setup})
+    maincell = section("cell$(cell.n)", align = "center")
+    push!(maincell, olive_cover())
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:filebrowser})
+
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:dirselector})
+
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:tutorial})
+
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:option})
+
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:defaults})
+
+end
+
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory},
     cells::Vector{Cell})
    catheading = h("cell$(cell.n)heading", 2, text = cell.source, contenteditable = true)

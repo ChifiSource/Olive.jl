@@ -135,7 +135,9 @@ dev = route("/") do c::Connection
 end
 
 setup = route("/") do c::Connection
-
+    write!(c, olivesheet())
+    cells = [Cell(1, "setup", "welcome to olive"), Cell(2, "")]
+    write!(c, [build(cell) for cell in cells]
 end
 
 fourofour = route("404") do c::Connection
