@@ -1,3 +1,19 @@
+"""
+**Interface**
+### build(c::Connection, dir::Directory{<:Any}) -> ::Component{:div}
+------------------
+The catchall/default `build` function. If you want to add a custom directory,
+create an OliveaExtension and
+#### example
+```
+
+```
+custom directory example
+```
+# In your Olive root: ('~/olive/src/olive.jl' by default)
+
+```
+"""
 function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     args ...)
     hiddencell = div("cell$(cell.n)", class = "cell-hidden")

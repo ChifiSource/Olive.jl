@@ -122,7 +122,7 @@ custom directory example
 
 ```
 """
-build(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}, m::Module) = begin
+build(c::Connection, dir::Directory{<:Any}, m::Module) = begin
     container = section("$(dir.uri)", align = "left")
     cells = Vector{Servable}()
     if "Project.toml" in readdir(dir.uri)
@@ -147,6 +147,7 @@ end
 mutable struct Project{name <: Any} <: Servable
     name::String
     dir::String
+    directories::Vector{Directory{<:Any}}
     environment::String
     open::Dict{String, Vector{Cell}}
     mod::Module
@@ -164,7 +165,8 @@ mutable struct Project{name <: Any} <: Servable
         if environment == ""
             environment = dir
         end
-        new{Symbol(name)}(name, dir, environment, open, mod)::Project{<:Any}
+        new{Symbol(name)}(name, dir, Vector{Directory{<:Any}}(),
+         environment, open, mod)::Project{<:Any}
     end
     Project{T}(name::String, dir::String; environment::String = dir) where {T <: Any} = begin
         open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
@@ -181,7 +183,7 @@ mutable struct Project{name <: Any} <: Servable
         if environment == ""
             environment = dir
         end
-        new{T}(name, dir, environment, open, mod)::Project{<:Any}
+        new{T}(name, dir, Vector{Directory{<:Any}}(), environment, open, mod)::Project{<:Any}
     end
 end
 
@@ -196,9 +198,13 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     retvs::Vector{Servable}
 end
 
-can_read(c::Connection, p::Project{<:Any}) = group(c) in values(p.group)
-can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", p.groups[group(c)])
-can_write(c::Connection, p::Project{<:Any}) = contains("w", p.groups[group(c)])
+function group(c::Connection)
+
+end
+
+can_read(c::Connection, d::Directory{<:Any}) = contains("r", d.access[group(c)])
+can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", d.access[group(c)])
+can_write(c::Connection, p::Project{<:Any}) = contains("w", d.access[group(c)])
 
 function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
     mod = OliveModifier(c, cm)

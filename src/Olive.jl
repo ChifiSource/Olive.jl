@@ -63,8 +63,6 @@ main = route("/session") do c::Connection
     ui_explorer::Component{:div} = projectexplorer()
     olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
     ui_tabs::Vector{Servable} = Vector{Servable}()
-    prog::Component{:progress} = ToolipsDefaults.progress("myprog")
-    olivemain[:children] = [prog]
     ui_explorer[:children] = [olive_loadicon()]
     bod = body("mainbody")
     push!(bod, ui_explorer, olivemain)
@@ -83,14 +81,21 @@ main = route("/session") do c::Connection
     end
     olmod::Module = c[:OliveCore].olmod
     mainpane = div("olivemain-pane")
+    homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
+    publicproj = Directory(c[:OliveCore].data[:public],
+    "public" => "rw")
+    directories = (homeproj, publicproj)
+    ui_topbar[:children] = Vector{Servable}([begin
+   Base.invokelatest(olmod.build, c, d, olmod)
+    end for d in directories])
     push!(olivemain, ui_topbar, mainpane)
     on(c, "load") do cm::ComponentModifier
+        proj_open.directories = [homeproj, publicproj]
         load_extensions!(c, cm, olmod)
         cells::Vector{Servable} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
         mainpane[:children] = cells
         set_children!(cm, "olivemain", [ui_topbar, mainpane])
-
     end
     write!(c, bod)
 end
@@ -106,11 +111,11 @@ explorer = route("/") do c::Connection
         olmod = c[:OliveCore].olmod
         homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
         publicproj = Directory(c[:OliveCore].data[:public],
-        "public" => "rw")
+        "root" => "rw")
         dirs = [homeproj, publicproj]
         main = olive_main("files")
         for dir in dirs
-            push!(main[:children], build(c, cm, dir, olmod))
+            push!(main[:children], build(c, dir, olmod))
         end
         script!(c, cm, "loadcallback") do cm
             style!(cm, icon, "opacity" => 0percent)
@@ -122,6 +127,7 @@ explorer = route("/") do c::Connection
     push!(bod, loader_body)
     write!(c, bod)
  end
+
 
 
 dev = route("/") do c::Connection
