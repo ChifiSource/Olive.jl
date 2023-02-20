@@ -14,7 +14,7 @@ custom directory example
 
 ```
 """
-function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+function build(c::Connection, cell::Cell{<:Any},
     args ...)
     hiddencell = div("cell$(cell.n)", class = "cell-hidden")
     name = a("cell$(cell.n)label", text = cell.source)
@@ -23,6 +23,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     hiddencell
 end
 
+function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+    args ...)
+    hiddencell = div("cell$(cell.n)", class = "cell-hidden")
+    name = a("cell$(cell.n)label", text = cell.source)
+    style!(name, "color" => "black")
+    push!(hiddencell, name)
+    hiddencell
+end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell})
@@ -97,13 +105,10 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
 end
 
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:ipynb},
-    d::Directory)
+function build(c::Connection, cell::Cell{:ipynb},
+    d::Directory{<:Any})
     filecell = div("cell$(cell.n)", class = "cell-ipynb")
-    on(c, cm, filecell, "click") do cm::ComponentModifier
-        cm["olivemain"] = "cell" => string(cell.n)
-    end
-    on(c, cm, filecell, "dblclick") do cm::ComponentModifier
+    on(c, filecell, "dblclick") do cm::ComponentModifier
         evaluate(c, cell, cm)
     end
     fname = a("$(cell.source)", text = cell.source)
@@ -112,14 +117,11 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:ipynb},
     filecell
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:jl},
-    d::Directory)
+function build(c::Connection, cell::Cell{:jl},
+    d::Directory{<:Any})
     hiddencell = div("cell$(cell.n)", class = "cell-jl")
     style!(hiddencell, "cursor" => "pointer")
-    on(c, cm, hiddencell, "click") do cm::ComponentModifier
-        cm["olivemain"] = "cell" => string(cell.n)
-    end
-    on(c, cm, hiddencell, "dblclick") do cm::ComponentModifier
+    on(c, hiddencell, "dblclick") do cm::ComponentModifier
         evaluate(c, cell, cm)
     end
     name = a("cell$(cell.n)label", text = cell.source)
@@ -128,7 +130,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:jl},
     hiddencell
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:toml},
+function build(c::Connection, cell::Cell{:toml},
     d::Directory)
     hiddencell = div("cell$(cell.n)", class = "cell-toml")
     name = a("cell$(cell.n)label", text = cell.source)
@@ -143,6 +145,7 @@ end
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:setup})
     maincell = section("cell$(cell.n)", align = "center")
     push!(maincell, olive_cover())
+    maincell
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:filebrowser})
@@ -216,10 +219,15 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     ==#
     ret::Any = ""
     i = IOBuffer()
-    try
-        ret = proj.mod.evalin(Meta.parse(execcode))
-    catch e
-        ret = e
+    redirect_stdout(i) do
+        try
+            ret = proj.mod.evalin(Meta.parse(execcode))
+        catch e
+            ret = e
+        end
+    end
+    if ret == nothing
+        ret = String(i.data)
     end
     # output
     od = OliveDisplay()

@@ -135,7 +135,7 @@ build(c::Connection, dir::Directory{<:Any}, m::Module) = begin
     dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     push!(cells, dirtop)
     for cell in dir.cells
-        push!(cells, Base.invokelatest(m.build, c, cm, cell, dir))
+        push!(cells, Base.invokelatest(m.build, c, cell, dir))
     end
     container[:children] = cells
     on(c, container, "click") do cm::ComponentModifier

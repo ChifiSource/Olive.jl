@@ -85,7 +85,7 @@ main = route("/session") do c::Connection
     publicproj = Directory(c[:OliveCore].data[:public],
     "public" => "rw")
     directories = (homeproj, publicproj)
-    ui_topbar[:children] = Vector{Servable}([begin
+    ui_explorer[:children] = Vector{Servable}([begin
    Base.invokelatest(olmod.build, c, d, olmod)
     end for d in directories])
     push!(olivemain, ui_topbar, mainpane)
@@ -137,7 +137,7 @@ end
 setup = route("/") do c::Connection
     write!(c, olivesheet())
     cells = [Cell(1, "setup", "welcome to olive"), Cell(2, "")]
-    write!(c, [build(cell) for cell in cells]
+    write!(c, [build(cell) for cell in cells])
 end
 
 fourofour = route("404") do c::Connection
