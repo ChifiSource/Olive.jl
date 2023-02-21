@@ -16,8 +16,8 @@ custom directory example
 """
 function build(c::Connection, cell::Cell{<:Any},
     args ...)
-    hiddencell = div("cell$(cell.n)", class = "cell-hidden")
-    name = a("cell$(cell.n)label", text = cell.source)
+    hiddencell = div("cell$(cell.id)", class = "cell-hidden")
+    name = a("cell$(cell.id)label", text = cell.source)
     style!(name, "color" => "black")
     push!(hiddencell, name)
     hiddencell
@@ -25,8 +25,8 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     args ...)
-    hiddencell = div("cell$(cell.n)", class = "cell-hidden")
-    name = a("cell$(cell.n)label", text = cell.source)
+    hiddencell = div("cell$(cell.id)", class = "cell-hidden")
+    name = a("cell$(cell.id)label", text = cell.source)
     style!(name, "color" => "black")
     push!(hiddencell, name)
     hiddencell
@@ -41,7 +41,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     ToolipsMarkdown.julia_block!(tm)
     ==#
     outside = div("cellcontainer$(cell.n)", class = cell)
-    inside = ToolipsDefaults.textdiv("cell$(cell.n)", text = text)
+    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = text)
     on(c, cm, inside, "change") do cm::ComponentModifier
         cell.source = cm[inside]["text"]
     end
@@ -51,8 +51,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     inside[:class] = "input_cell"
     # bottom box
     bottombox = div("cellside$(cell.n)")
-    cell_drag = topbar_icon("cell$(cell.n)drag", "drag_indicator")
-    cell_run = topbar_icon("cell$(cell.n)drag", "not_started")
+    cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
+    cell_run = topbar_icon("cell$(cell.id)drag", "not_started")
     style!(cell_drag, "color" => "white", "font-size" => 17pt)
     style!(cell_run, "color" => "white", "font-size" => 17pt)
     style!(bottombox, "background-color" => "gray",
@@ -65,11 +65,15 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
      push!(maininputbox, inside)
      push!(interiorbox, maininputbox, bottombox)
     number = a("cell", text = "$(cell.n)", class = "cell_number")
-    output = divider("cell$(cell.n)" * "out", class = "output_cell", text = cell.outputs)
+    output = divider("cell$(cell.id)" * "out", class = "output_cell", text = cell.outputs)
     push!(bottombox, cell_drag, number, cell_run)
     push!(outside, interiorbox, output)
-    bind!(km, keybindings[:evaluate] ...) do cm::ComponentModifier
-        evaluate(c, cell, cm)
+    on(c, cell_run, "click") do cm2::ComponentModifier
+            evaluate(c, cell, cm2)
+    end
+    bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
+        println("hi")
+        evaluate(c, cell, cm2)
         new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
     #==    push!(cells, new_cell)
        set_children!(cm, "olivemain",
@@ -93,8 +97,8 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     cells::Vector{Cell})
-    tlcell = div("cell$(cell.n)", class = "cell")
-    innercell = tmd("cell$(cell.n)tmd", cell.source)
+    tlcell = div("cell$(cell.id)", class = "cell")
+    innercell = tmd("cell$(cell.id)tmd", cell.source)
     on(c, cm, tlcell, "dblclick") do cm::ComponentModifier
         set_text!(cm, tlcell, replace(cell.source, "\n" => "</br>"))
         cm["olivemain"] = "cell" => string(cell.n)
@@ -107,7 +111,7 @@ end
 
 function build(c::Connection, cell::Cell{:ipynb},
     d::Directory{<:Any})
-    filecell = div("cell$(cell.n)", class = "cell-ipynb")
+    filecell = div("cell$(cell.id)", class = "cell-ipynb")
     on(c, filecell, "dblclick") do cm::ComponentModifier
         evaluate(c, cell, cm)
     end
@@ -119,12 +123,12 @@ end
 
 function build(c::Connection, cell::Cell{:jl},
     d::Directory{<:Any})
-    hiddencell = div("cell$(cell.n)", class = "cell-jl")
+    hiddencell = div("cell$(cell.id)", class = "cell-jl")
     style!(hiddencell, "cursor" => "pointer")
     on(c, hiddencell, "dblclick") do cm::ComponentModifier
         evaluate(c, cell, cm)
     end
-    name = a("cell$(cell.n)label", text = cell.source)
+    name = a("cell$(cell.id)label", text = cell.source)
     style!(name, "color" => "white")
     push!(hiddencell, name)
     hiddencell
@@ -132,8 +136,8 @@ end
 
 function build(c::Connection, cell::Cell{:toml},
     d::Directory)
-    hiddencell = div("cell$(cell.n)", class = "cell-toml")
-    name = a("cell$(cell.n)label", text = cell.source)
+    hiddencell = div("cell$(cell.id)", class = "cell-toml")
+    name = a("cell$(cell.id)label", text = cell.source)
     on(c, hiddencell, "dblclick") do cm::ComponentModifier
         evaluate(c, cell, cm)
     end
@@ -143,7 +147,7 @@ function build(c::Connection, cell::Cell{:toml},
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:setup})
-    maincell = section("cell$(cell.n)", align = "center")
+    maincell = section("cell$(cell.id)", align = "center")
     push!(maincell, olive_cover())
     maincell
 end
@@ -170,8 +174,8 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory},
     cells::Vector{Cell})
-   catheading = h("cell$(cell.n)heading", 2, text = cell.source, contenteditable = true)
-    contents = section("cell$(cell.n)")
+   catheading = h("cell$(cell.id)heading", 2, text = cell.source, contenteditable = true)
+    contents = section("cell$(cell.id)")
     push!(contents, catheading)
     v = string(cell.outputs)
     equals = a("equals", text = " = ")
@@ -188,7 +192,7 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlval},
     cells::Vector{Cell})
-        key_div = div("cell$(cell.n)")
+        key_div = div("cell$(cell.id)")
         k = cell.source
         v = string(cell.outputs)
         equals = a("equals", text = " = ")
@@ -205,7 +209,7 @@ end
 
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     # get code
-    rawcode::String = cm["rawcell$(cell.n)"]["text"]
+    rawcode::String = cm["rawcell$(cell.id)"]["text"]
     execcode::String = replace(rawcode, "<div>" => "\n", "</div>" => "")
     text::String = replace(cell.source, "\n" => "</br>")
     # get project
@@ -218,22 +222,17 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     displayed instead of entirely relying on returns.
     ==#
     ret::Any = ""
-    i = IOBuffer()
-    redirect_stdout(i) do
-        try
-            ret = proj.mod.evalin(Meta.parse(execcode))
-        catch e
-            ret = e
-        end
-    end
-    if ret == nothing
-        ret = String(i.data)
+    i = fdio(1)
+    try
+        ret = proj.mod.evalin(Meta.parse(execcode), i)
+    catch e
+        ret = e
     end
     # output
     od = OliveDisplay()
     display(od, MIME"olive"(), ret)
-    outp::String = String(od.io.data)
-    set_text!(cm, "cell$(cell.n)out", outp)
+    outp::String = String(take!(i)) * String(od.io.data)
+    set_text!(cm, "cell$(cell.id)out", outp)
     # mutate cell
     cell.outputs = outp
     cell.source = text
@@ -251,11 +250,11 @@ function evaluate(c::Connection, cell::Cell{:toml}, cm::ComponentModifier)
 end
 
 function evaluate(c::Connection, cell::Cell{:markdown}, cm::ComponentModifier)
-    activemd = replace(cm["cell$(cell.n)"]["text"], "<div>" => "\n")
+    activemd = replace(cm["cell$(cell.id)"]["text"], "<div>" => "\n")
     cell.source = activemd
-    newtmd = tmd("cell$(cell.n)tmd", activemd)
-    set_children!(cm, "cell$(cell.n)", [newtmd])
-    cm["cell$(cell.n)"] = "contenteditable" => "false"
+    newtmd = tmd("cell$(cell.id)tmd", activemd)
+    set_children!(cm, "cell$(cell.id)", [newtmd])
+    cm["cell$(cell.id)"] = "contenteditable" => "false"
 end
 
 function evaluate(c::Connection, cell::Cell{:ipynb}, cm::ComponentModifier)

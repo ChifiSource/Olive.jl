@@ -66,7 +66,6 @@ main = route("/session") do c::Connection
     ui_explorer[:children] = [olive_loadicon()]
     bod = body("mainbody")
     push!(bod, ui_explorer, olivemain)
-    #bindcheck!(c)
     if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
         c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
         :evaluate => ("Enter", :shift),
@@ -95,7 +94,7 @@ main = route("/session") do c::Connection
         cells::Vector{Servable} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
         mainpane[:children] = cells
-        set_children!(cm, "olivemain", [ui_topbar, mainpane])
+        set_children!(cm, "olivemain-pane", [mainpane])
     end
     write!(c, bod)
 end
