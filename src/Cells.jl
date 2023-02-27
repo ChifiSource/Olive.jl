@@ -52,7 +52,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     # bottom box
     bottombox = div("cellside$(cell.n)")
     cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
-    cell_run = topbar_icon("cell$(cell.id)drag", "not_started")
+    cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
     style!(cell_drag, "color" => "white", "font-size" => 17pt)
     style!(cell_run, "color" => "white", "font-size" => 17pt)
     style!(bottombox, "background-color" => "gray",
@@ -72,13 +72,17 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             evaluate(c, cell, cm2)
     end
     bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
-        println("hi")
         evaluate(c, cell, cm2)
-        new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
-    #==    push!(cells, new_cell)
-       set_children!(cm, "olivemain",
-       Vector{Servable}([build(c, cm, cel) for cel in cells]))
-       focus!(cm, "cell$(new_cell.n)") ==#
+        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+        if pos == length(cells)
+            new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
+            push!(cells, new_cell)
+            append!(cm2, "olivemain", build(c, cm2, new_cell, cells))
+            focus!(cm2, "cell$(new_cell.id)")
+            return
+        end
+        next_cell = cells[pos + 1]
+        focus!(cm2, "cell$(next_cell.id)")
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
         remove!(cm, "cellcontainer$(cell_selected.n)")
@@ -222,16 +226,16 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     displayed instead of entirely relying on returns.
     ==#
     ret::Any = ""
-    i = fdio(1)
     try
-        ret = proj.mod.evalin(Meta.parse(execcode), i)
+        ret = proj.mod.evalin(Meta.parse(execcode))
     catch e
         ret = e
     end
+
     # output
     od = OliveDisplay()
     display(od, MIME"olive"(), ret)
-    outp::String = String(take!(i)) * String(od.io.data)
+    outp::String = String(od.io.data)
     set_text!(cm, "cell$(cell.id)out", outp)
     # mutate cell
     cell.outputs = outp

@@ -156,13 +156,9 @@ mutable struct Project{name <: Any} <: Servable
         modstr = """module $(name)
         using Pkg
 
-        function evalin(ex::Any, i::Any)
+        function evalin(ex::Any)
                 Pkg.activate("$environment")
-                ret = ""
-                redirect_stdio(stdout = i) do
-                    ret = eval(ex)
-                end
-                ret
+                ret = eval(ex)
         end
         end"""
         mod::Module = eval(Meta.parse(modstr))
@@ -178,13 +174,9 @@ mutable struct Project{name <: Any} <: Servable
         modstr = """module $(name)
         using Pkg
 
-        function evalin(ex::Any, i::Any)
+        function evalin(ex::Any)
                 Pkg.activate("$environment")
-                ret = ""
-                redirect_stdio(stdout = i) do
-                    ret = eval(ex)
-                end
-                ret
+                ret = eval(ex)
         end
         end"""
         mod::Module = eval(Meta.parse(modstr))
