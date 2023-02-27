@@ -93,7 +93,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         id = ToolipsSession.gen_ref())
         push!(cells, newcell)
         append!(cm, "olivemain", build(c, cm, newcell, cells))
-        println("appended")
     end
     bind!(c, cm, inside, km)
     outside
@@ -150,9 +149,14 @@ function build(c::Connection, cell::Cell{:toml},
     hiddencell
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:setup})
+function build(c::Connection, cell::Cell{:setup})
     maincell = section("cell$(cell.id)", align = "center")
     push!(maincell, olive_cover())
+    push!(maincell, h("setupheading", 1, text = "welcome !"))
+    push!(maincell, p("setuptext", text = """Olive requires a home directory
+    in order to store your configuration, please select a home directory
+    in the cell below. Olive will create a `/olive` directory in the chosen
+    directory."""))
     maincell
 end
 
@@ -160,8 +164,49 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:filebrowser})
 
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:dirselector})
+function build_returner(c::Connection, path::String)
+    returner_div = div("returner")
+    style!(returner_div, "background-color" => "red", "cursor" => "pointer")
+    push!(returner_div, a("returnerbutt", text = "..."))
+    on(c, returner_div, "click") do cm::ComponentModifier
+        paths = split(path, "/")
+        path = join(paths[1:length(paths) - 1], "/")
+        set_text!(cm, "selector", path)
+        set_children!(cm, "filebox", Vector{Servable}(vcat(
+        build_returner(c, path),
+        [build_comp(c, path, f) for f in readdir(path)]))::Vector{Servable})
+    end
+    returner_div
+end
 
+function build_comp(c::Connection, path::String, dir::String)
+    if isdir(path * "/" * dir)
+        maincomp = div("$dir")
+        style!(maincomp, "background-color" => "lightblue", "cursor" => "pointer")
+        push!(maincomp, a("$dir-a", text = dir))
+        on(c, maincomp, "click") do cm::ComponentModifier
+            path = path * "/" * dir
+            set_text!(cm, "selector", path)
+            children = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])::Vector{Servable}
+            set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
+        end
+        return(maincomp)::Component{:div}
+    end
+    maincomp = div("$dir")
+    push!(maincomp, a("$dir-a", text = dir))
+    maincomp::Component{:div}
+end
+
+function build(c::Connection, cell::Cell{:dirselect})
+    selector_indicator = h("selector", 4, text = cell.source)
+    path = cell.source
+    filebox = section("filebox")
+    style!(filebox, "height" => 40percent, "overflow-y" => "scroll")
+    filebox[:children] = vcat(Vector{Servable}([build_returner(c, path)]),
+    Vector{Servable}([build_comp(c, path, f) for f in readdir(path)]))
+    cellover = div("dirselectover")
+    push!(cellover, selector_indicator, filebox)
+    cellover
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:tutorial})

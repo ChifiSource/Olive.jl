@@ -135,31 +135,30 @@ end
 
 setup = route("/") do c::Connection
     write!(c, olivesheet())
-    cells = [Cell(1, "setup", "welcome to olive"), Cell(2, "")]
-    write!(c, [build(cell) for cell in cells])
+    cells = [Cell(1, "setup", "welcome to olive"),
+    Cell(2, "dirselect", c[:OliveCore].data[:home])]
+    write!(c, Vector{Servable}([build(c, cell) for cell in cells]))
+    confirm_button = button("confirm", text = "confirm")
+    on(c, confirm_button, "click") do cm::ComponentModifier
+        create_project(cm["selector"]["text"])
+    end
+    write!(c, confirm_button)
 end
 
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
 end
 
-function create_project(homedir::String = homedir(), olivedir::String = ".olive")
-        @info "welcome to olive! to use olive, you will need to setup a project directory."
-        @info "we can put this at $homedir/$olivedir, is this okay with you?"
-        print("y or n: ")
-        response = readline()
-        if response == "y"
-            try
-                cd(homedir)
-                Toolips.new_webapp(olivedir)
+function create_project(homedir::String = homedir(), olivedir::String = "olive")
+        try
+            cd(homedir)
+            Pkg.generate("olive")
         catch
             throw("unable to access your applications directory.")
         end
         open("$homedir/$olivedir/src/olive.jl", "w") do o
             write(o, """
             module $olivedir
-            using Toolips
-            using ToolipsSession
             using Olive
             import Olive: build
 
@@ -170,7 +169,6 @@ function create_project(homedir::String = homedir(), olivedir::String = ".olive"
             end # module""")
         end
         @info "olive files created! welcome to olive! "
-    end
 end
 
 """
@@ -187,22 +185,21 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         s[:Logger].log("started new olive server in devmode.")
         return
     end
-    startup_path::String = pwd()
-    homedirec::String = homedir()
-    olivedir::String = "olive"
     oc::OliveCore = OliveCore("olive")
+    oc.data[:wd] = pwd()
+    oc.data[:home] = homedir()
+    homedirec = oc.data[:home]
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
-    if ~(isdir("$homedirec/$olivedir"))
-        proj = create_project(homedirec, olivedir)
-        Pkg.activate("$homedirec/$olivedir/.")
+    if ~(isdir("$homedirec/olive"))
         rs = routes(setup, fourofour)
     else
-        Pkg.activate("$homedirec/$olivedir")
-        olmod = eval(Meta.parse(read("$homedirec/$olivedir/src/olive.jl", String)))
+        Pkg.activate("$homedirec/olive")
+        olmod = eval(Meta.parse(read("$homedirec/olive/src/olive.jl", String)))
         Base.invokelatest(olmod.build, oc)
+        oc.olmod = olmod
         rs = routes(fourofour, main, explorer)
     end
-    server = ServerTemplate(IP, PORT, rs, extensions = [OliveLogger(),
+    server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session"])])
     server.start(); server::Toolips.ToolipsServer
 end

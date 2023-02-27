@@ -227,9 +227,7 @@ mutable struct OliveCore <: ServerExtension
     f::Function
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
-        data[:home] = homedir() * "/olive"
-        data[:public] = homedir() * "/olive/public"
-        m = eval(Meta.parse(read(data[:home] * "/src/olive.jl", String)))
+        m = eval(Meta.parse("module olive end"))
         projopen = Dict{String, Project{<:Any}}()
         client_data = Dict{String, Dict{Symbol, Any}}()
         f(c::Connection) = begin
