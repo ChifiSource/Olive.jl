@@ -81,15 +81,13 @@ main = route("/session") do c::Connection
     olmod::Module = c[:OliveCore].olmod
     mainpane = div("olivemain-pane")
     homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
-    publicproj = Directory(c[:OliveCore].data[:public],
-    "public" => "rw")
-    directories = (homeproj, publicproj)
+    directories = [homeproj]
     ui_explorer[:children] = Vector{Servable}([begin
    Base.invokelatest(olmod.build, c, d, olmod)
     end for d in directories])
     push!(olivemain, ui_topbar, mainpane)
     on(c, "load") do cm::ComponentModifier
-        proj_open.directories = [homeproj, publicproj]
+        proj_open.directories = [homeproj]
         load_extensions!(c, cm, olmod)
         cells::Vector{Servable} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
@@ -109,9 +107,7 @@ explorer = route("/") do c::Connection
     on(c, bod, "load") do cm::ComponentModifier
         olmod = c[:OliveCore].olmod
         homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
-        publicproj = Directory(c[:OliveCore].data[:public],
-        "root" => "rw")
-        dirs = [homeproj, publicproj]
+        dirs = [homeproj]
         main = olive_main("files")
         for dir in dirs
             push!(main[:children], build(c, dir, olmod))
@@ -194,6 +190,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         rs = routes(setup, fourofour)
     else
         Pkg.activate("$homedirec/olive")
+        oc.data[:home] = "$homedirec/olive"
         olmod = eval(Meta.parse(read("$homedirec/olive/src/olive.jl", String)))
         Base.invokelatest(olmod.build, oc)
         oc.olmod = olmod
@@ -244,5 +241,5 @@ function create(name::String)
     end
 end
 
-export OliveCore, build
+export OliveCore, build, Pkg, TOML, Toolips, ToolipsSession
 end # - module
