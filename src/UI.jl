@@ -111,7 +111,9 @@ function olivesheet()
     push!(st, google_icons(), load_spinner(), spin_forever(),
     iconstyle(), cellnumber_style(), hdeps_style(),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
-    hidden_style(), jl_style(), toml_style())
+    hidden_style(), jl_style(), toml_style(),
+    Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
+    Style("progress::-webkit-progress-bar", "background-color" => "whitesmoke"))
     st
 end
 
