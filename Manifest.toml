@@ -19,9 +19,9 @@ version = "0.1.7"
 
 [[deps.CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
-git-tree-sha1 = "0e5c14c3bb8a61b3d53b2c0620570c332c8d0663"
+git-tree-sha1 = "4f619d394ac521dc59cb80a2cd8f78578e483a9d"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-version = "1.2.0"
+version = "1.2.1"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -57,7 +57,9 @@ version = "1.7.4"
 
 [[deps.IPy]]
 deps = ["JSON", "Random"]
-path = "/home/emmac/dev/odddata/IpyJL"
+git-tree-sha1 = "db85480f49bb6235e36c1259fd57b9e22274771d"
+repo-rev = "Unstable"
+repo-url = "https://github.com/ChifiSource/IPy.jl"
 uuid = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
 version = "0.1.0"
 
@@ -84,9 +86,9 @@ version = "0.21.3"
 
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "b289a36229c94e326282f36b3e24416a08dc7bd9"
+git-tree-sha1 = "d9ae7a9081d9b1a3b2a5c1d3dac5e2fdaafbd538"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.21"
+version = "0.9.22"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -145,20 +147,6 @@ uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
-[[deps.Olive]]
-deps = ["IPy", "OliveDefaults", "Pkg", "Revise", "TOML", "Toolips", "ToolipsBase64", "ToolipsDefaults", "ToolipsMarkdown", "ToolipsSession"]
-path = "/home/emmac/dev/toolips/Olive"
-uuid = "724ecaf6-c7a0-4c22-b37e-0bb7b4193da8"
-version = "0.0.1"
-
-[[deps.OliveDefaults]]
-deps = ["IPy", "Olive", "Toolips", "ToolipsMarkdown", "ToolipsSession"]
-git-tree-sha1 = "371798608562abcfaaf2b2d836f826fc6af03d3b"
-repo-rev = "main"
-repo-url = "https://github.com/ChifiSource/OliveDefaults.jl"
-uuid = "e77a118b-390d-4d2d-aafb-9981e922ce67"
-version = "0.1.0"
-
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
 git-tree-sha1 = "6503b77492fd7fcb9379bf73cd31035670e3c509"
@@ -184,9 +172,9 @@ version = "0.1.0"
 
 [[deps.Parsers]]
 deps = ["Dates", "SnoopPrecompile"]
-git-tree-sha1 = "946b56b2135c6c10bbb93efad8a78b699b6383ab"
+git-tree-sha1 = "6f4fbcd1ad45905a5dee3f4256fabb49aa2110c6"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.5.6"
+version = "2.5.7"
 
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -256,11 +244,11 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.Toolips]]
 deps = ["Crayons", "Dates", "HTTP", "ParseNotEval", "Pkg", "Sockets"]
-git-tree-sha1 = "79f5dc8a1b0b678260865acdc2c002aab4a53101"
+git-tree-sha1 = "8ed3bbf2b912dc82340900aa81adcebd465ba992"
 repo-rev = "Unstable"
 repo-url = "https://github.com/ChifiSource/Toolips.jl"
 uuid = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
-version = "0.2.3"
+version = "0.2.4"
 
 [[deps.ToolipsBase64]]
 deps = ["Base64", "Toolips", "ToolipsSession"]
@@ -270,13 +258,15 @@ version = "0.1.2"
 
 [[deps.ToolipsDefaults]]
 deps = ["Toolips", "ToolipsSession"]
-git-tree-sha1 = "513c9d3bfc7268dc820ac77dffdd85877b070ddf"
+git-tree-sha1 = "983874ee3700e406be3333e73fe06ad886f1dc19"
+repo-rev = "Unstable"
+repo-url = "https://github.com/ChifiSource/ToolipsDefaults.jl.git"
 uuid = "1710be6b-e895-498d-ba35-e3ff0dac7995"
 version = "0.1.0"
 
 [[deps.ToolipsMarkdown]]
 deps = ["Markdown", "Toolips"]
-git-tree-sha1 = "0779b4f1c86563b4f30f7c699f247f7ecc7ba8be"
+git-tree-sha1 = "cfc2864f33fbb5f36d7554862503750ae5cea337"
 repo-rev = "Unstable"
 repo-url = "https://github.com/ChifiSource/ToolipsMarkdown.jl.git"
 uuid = "33f7ff50-f2f2-41f0-8a96-482dce5c1514"
@@ -284,7 +274,7 @@ version = "0.1.2"
 
 [[deps.ToolipsSession]]
 deps = ["Dates", "ParseNotEval", "Random", "Toolips"]
-git-tree-sha1 = "fc73c7910860aaa547d2ddb511cb0ee6ee36bb00"
+git-tree-sha1 = "9944030e184f421f68cdc828d82488214a12cca7"
 repo-rev = "Unstable"
 repo-url = "https://github.com/ChifiSource/ToolipsSession.jl.git"
 uuid = "2fe55384-55bc-4df3-9d59-c817d405cd05"
@@ -297,9 +287,9 @@ uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.9.11"
 
 [[deps.URIs]]
-git-tree-sha1 = "ac00576f90d8a259f2c9d823e91d1de3fd44d348"
+git-tree-sha1 = "074f993b0ca030848b897beff716d93aca60f06a"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
-version = "1.4.1"
+version = "1.4.2"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
