@@ -32,6 +32,39 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     hiddencell
 end
 
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
+    cells::Vector{Cell})
+    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+    km = ToolipsSession.KeyMap()
+    bind!(km, "Backspace") do cm2::ComponentModifier
+        if cm2[inside]["text"] == ""
+            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+            new_cell = Cell(pos, "code", "")
+            cells[pos] = new_cell
+            cell = new_cell
+            remove!(cm, outside)
+            ToolipsSession.insert!(cm, "olivemain", pos, build(c, cm, new_cell, cells))
+            focus!(cm, "cell$(cell.id)")
+        end
+    end
+    outside = div("cellcontainer$(cell.id)", class = cell)
+    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.source)
+    style!(inside, "width" => 80percent, "border-bottom-left-radius" => 0px,
+    "min-height" => 50px,
+     "position" => "relative", "margin-top" => 0px,
+     "background-color" => "blue", "color" => "white")
+    push!(outside, inside)
+    bind!(c, cm, inside, km)
+    outside
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
+    cells::Vector{Cell})
+    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+
+end
+
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell})
     keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
@@ -40,9 +73,26 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
 #==    tm = TextModifier(text)
     ToolipsMarkdown.julia_block!(tm)
     ==#
-    outside = div("cellcontainer$(cell.n)", class = cell)
+    outside = div("cellcontainer$(cell.id)", class = cell)
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = text)
-    on(c, cm, inside, "change") do cm::ComponentModifier
+    on(c, cm, inside, "input") do cm::ComponentModifier
+        curr = cm[inside]["text"]
+        if curr == "]"
+            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+            new_cell = Cell(pos, "pkgrepl", "")
+            cells[pos] = new_cell
+            cell = new_cell
+            remove!(cm, outside)
+            ToolipsSession.insert!(cm, "olivemain", pos, build(c, cm, new_cell, cells))
+            focus!(cm, "cell$(cell.id)")
+        elseif curr == ";"
+            alert!(cm, "bashcell")
+        elseif curr == "\\"
+            alert!(cm, "olivecell")
+        end
+        #== TODO
+        Syntax highlighting here.
+        ==#
         cell.source = cm[inside]["text"]
     end
     maininputbox = div("maininputbox")
@@ -85,14 +135,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         focus!(cm2, "cell$(next_cell.id)")
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
-        remove!(cm, "cellcontainer$(cell_selected.n)")
-        deleteat!(cells, findall(c -> c.id == selected, cells)[1])
+        remove!(cm, "cellcontainer$(cell.id)")
+        deleteat!(cells, findall(c -> c.id == cell.id, cells)[1])
     end
     bind!(km, keybindings[:new] ...) do cm::ComponentModifier
-        newcell = Cell(length(cells) + 1, "code", "",
-        id = ToolipsSession.gen_ref())
-        push!(cells, newcell)
-        append!(cm, "olivemain", build(c, cm, newcell, cells))
+        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+        newcell = Cell(pos + 1, "code", "")
+        insert!(cells, pos + 1, newcell)
+        ToolipsSession.insert!(cm, "olivemain", pos + 1, build(c, cm, newcell, cells))
     end
     bind!(c, cm, inside, km)
     outside
