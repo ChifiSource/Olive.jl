@@ -89,9 +89,9 @@ main = route("/session") do c::Connection
     on(c, "load") do cm::ComponentModifier
         proj_open.directories = [homeproj]
         load_extensions!(c, cm, olmod)
-        cells::Vector{Servable} = Base.invokelatest(olmod.build, c,
+        window::Component{:div} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
-        mainpane[:children] = cells
+        push!(mainpane, window)
         set_children!(cm, "olivemain-pane", [mainpane])
     end
     write!(c, bod)

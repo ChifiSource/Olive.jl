@@ -196,7 +196,8 @@ end
 function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     cm::ComponentModifier, source::String, fpath::String)
     myproj = Project{:olive}("hello", "ExampleProject")
-    push!(myproj.open, "source" =>  cs)
+    fsplit = split(fpath, "/")
+    push!(myproj.open, fsplit[length(fsplit)] =>  cs)
     c[:OliveCore].open[getip(c)] = myproj
     redirect!(cm, "/session")
 end

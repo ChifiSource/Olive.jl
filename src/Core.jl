@@ -190,12 +190,15 @@ end
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     c[:OliveCore].open[getip(c)] = p
     frstcells::Vector{Cell} = first(p.open)[2]
+    name = first(p.open)[1]
     retvs = Vector{Servable}()
     [begin
         push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        frstcells))
+        frstcells, name))
     end for cell in frstcells]
-    retvs::Vector{Servable}
+    proj_window = div(name)
+    proj_window[:children] = retvs
+    proj_window::Component{:div}
 end
 
 function group(c::Connection)

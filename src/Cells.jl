@@ -66,7 +66,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
-    cells::Vector{Cell})
+    cells::Vector{Cell}, windowname::String)
     keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
     km = ToolipsSession.KeyMap()
     text = replace(cell.source, "\n" => "</br>")
@@ -83,7 +83,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             cells[pos] = new_cell
             cell = new_cell
             remove!(cm, outside)
-            ToolipsSession.insert!(cm, "olivemain", pos, build(c, cm, new_cell, cells))
+            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell, cells))
             focus!(cm, "cell$(cell.id)")
         elseif curr == ";"
             alert!(cm, "bashcell")
@@ -127,12 +127,24 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         if pos == length(cells)
             new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
             push!(cells, new_cell)
-            append!(cm2, "olivemain", build(c, cm2, new_cell, cells))
+            append!(cm2, windowname, build(c, cm2, new_cell, cells, windowname))
             focus!(cm2, "cell$(new_cell.id)")
             return
         end
         next_cell = cells[pos + 1]
         focus!(cm2, "cell$(next_cell.id)")
+    end
+    bind!(km, keybindings[:up] ...) do cm::ComponentModifier
+        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+        switchcell = cells[pos - 1]
+        cells[pos - 1] = cell
+        cells[pos] = switchcell
+        remove!(cm, "cellcontainer$(switchcell.id)")
+        remove!(cm, "cellcontainer$(cell.id)")
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, cells,
+        windowname))
+        ToolipsSession.insert!(cm, windowname, pos - 1, build(c, cm, cell, cells,
+        windowname))
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
         remove!(cm, "cellcontainer$(cell.id)")
@@ -140,16 +152,17 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     end
     bind!(km, keybindings[:new] ...) do cm::ComponentModifier
         pos = findall(lcell -> lcell.id == cell.id, cells)[1]
-        newcell = Cell(pos + 1, "code", "")
+        newcell = Cell(pos, "code", "")
         insert!(cells, pos, newcell)
-        ToolipsSession.insert!(cm, "olivemain", pos + 1, build(c, cm, newcell, cells))
+        ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, newcell,
+        cells, windowname))
     end
     bind!(c, cm, inside, km)
     outside
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
-    cells::Vector{Cell})
+    cells::Vector{Cell}, windowname::String)
     tlcell = div("cell$(cell.id)", class = "cell")
     innercell = tmd("cell$(cell.id)tmd", cell.source)
     on(c, cm, tlcell, "dblclick") do cm::ComponentModifier
