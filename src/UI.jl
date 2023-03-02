@@ -151,11 +151,6 @@ function settings(c::Connection)
     settingicon::Component{:span}
 end
 
-function cellmenu(c::Connection)
-    cellicon = topbar_icon("editico", "notes")
-    cellicon::Component{:span}
-end
-
 function topbar(c::Connection)
     topbar = divider("menubar")
     leftmenu = span("leftmenu", align = "left")
@@ -164,7 +159,7 @@ function topbar(c::Connection)
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
     "border-radius" => "5px")
-    push!(leftmenu, explorer_icon(c), cellmenu(c))
+    push!(leftmenu, explorer_icon(c))
     push!(rightmenu, settings(c))
     push!(topbar, leftmenu, rightmenu)
     topbar::Component{:div}

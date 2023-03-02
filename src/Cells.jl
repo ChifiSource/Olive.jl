@@ -34,7 +34,7 @@ end
 
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
-    cells::Vector{Cell})
+    cells::Vector{Cell}, window::String)
     keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
     km = ToolipsSession.KeyMap()
     outside = div("cellcontainer$(cell.id)", class = cell)
@@ -46,7 +46,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
             cells[pos] = new_cell
             cell = new_cell
             remove!(cm2, outside)
-            ToolipsSession.insert!(cm2, "olivemain", pos, build(c, cm, new_cell, cells))
+            ToolipsSession.insert!(cm2, window, pos, build(c, cm, new_cell,
+            cells, window))
             focus!(cm2, "cell$(cell.id)")
         end
     end
@@ -74,7 +75,13 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     ToolipsMarkdown.julia_block!(tm)
     ==#
     outside = div("cellcontainer$(cell.id)", class = cell)
-    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = text)
+    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = text,
+    "class" => "input_cell")
+    style!(inside,
+    "width" => 80percent, "border-bottom-left-radius" => 0px, "min-height" => 50px,
+    "position" => "relative", "margin-top" => 0px, "display" => "inline-block",
+    "border-top-left-radius" => 0px)
+    style!(outside, "transition" => 1seconds)
     on(c, cm, inside, "input") do cm::ComponentModifier
         curr = cm[inside]["text"]
         if curr == "]"
@@ -83,7 +90,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             cells[pos] = new_cell
             cell = new_cell
             remove!(cm, outside)
-            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell, cells))
+            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
+             cells, windowname))
             focus!(cm, "cell$(cell.id)")
         elseif curr == ";"
             alert!(cm, "bashcell")
@@ -95,28 +103,18 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         ==#
         cell.source = cm[inside]["text"]
     end
-    maininputbox = div("maininputbox")
-    style!(maininputbox, "width" => 60percent, "padding" => 0px)
-    interiorbox = div("cellinterior$(cell.n)")
-    inside[:class] = "input_cell"
-    # bottom box
-    bottombox = div("cellside$(cell.n)")
+    interiorbox = div("cellinterior$(cell.id)")
+    style!(interiorbox, "display" => "flex")
+    sidebox = div("cellside$(cell.id)")
+    style!(sidebox, "display" => "inline-block", "background-color" => "pink",
+    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px)
+    push!(interiorbox, sidebox, inside)
     cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
     cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
+    push!(sidebox, cell_drag, cell_run)
     style!(cell_drag, "color" => "white", "font-size" => 17pt)
     style!(cell_run, "color" => "white", "font-size" => 17pt)
-    style!(bottombox, "background-color" => "gray",
-    "border-top-right-radius" => 0px, "border-top-left-radius" => 0px,
-    "margin-top" => 0px, "width" => 10percent)
-     style!(inside,
-     "width" => 80percent, "border-bottom-left-radius" => 0px, "min-height" => 50px,
-     "position" => "relative", "margin-top" => 0px)
-     style!(outside, "transition" => 1seconds)
-     push!(maininputbox, inside)
-     push!(interiorbox, maininputbox, bottombox)
-    number = a("cell", text = "$(cell.n)", class = "cell_number")
     output = divider("cell$(cell.id)" * "out", class = "output_cell", text = cell.outputs)
-    push!(bottombox, cell_drag, number, cell_run)
     push!(outside, interiorbox, output)
     on(c, cell_run, "click") do cm2::ComponentModifier
             evaluate(c, cell, cm2)
@@ -145,6 +143,20 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         windowname))
         ToolipsSession.insert!(cm, windowname, pos - 1, build(c, cm, cell, cells,
         windowname))
+        focus!(cm, "cell$(cell.id)")
+    end
+    bind!(km, keybindings[:down] ...) do cm::ComponentModifier
+        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+        switchcell = cells[pos + 1]
+        cells[pos + 1] = cell
+        cells[pos] = switchcell
+        remove!(cm, "cellcontainer$(switchcell.id)")
+        remove!(cm, "cellcontainer$(cell.id)")
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, cells,
+        windowname))
+        ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, cells,
+        windowname))
+        focus!(cm, "cell$(cell.id)")
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
         remove!(cm, "cellcontainer$(cell.id)")
@@ -183,6 +195,18 @@ function build(c::Connection, cell::Cell{:ipynb},
     end
     fname = a("$(cell.source)", text = cell.source)
     style!(fname, "color" => "white", "font-size" => 15pt)
+    push!(filecell, fname)
+    filecell
+end
+
+function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
+    filecell = div("cell$(cell.id)", class = "cell-ipynb")
+    style!(filecell, "background-color" => "#FFFF88")
+    on(c, filecell, "dblclick") do cm::ComponentModifier
+        evaluate(c, cell, cm)
+    end
+    fname = a("$(cell.source)", text = cell.source)
+    style!(fname, "color" => "gray", "font-size" => 15pt)
     push!(filecell, fname)
     filecell
 end
