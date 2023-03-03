@@ -5,7 +5,6 @@ version = "0.0.1"
 
 [deps]
 IPy = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
-OliveDefaults = "e77a118b-390d-4d2d-aafb-9981e922ce67"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"

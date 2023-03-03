@@ -63,12 +63,9 @@ main = route("/session") do c::Connection
     ui_explorer::Component{:div} = projectexplorer()
     olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
     ui_tabs::Vector{Servable} = Vector{Servable}()
-    prog::Component{:progress} = ToolipsDefaults.progress("myprog")
-    olivemain[:children] = [prog]
     ui_explorer[:children] = [olive_loadicon()]
     bod = body("mainbody")
     push!(bod, ui_explorer, olivemain)
-    #bindcheck!(c)
     if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
         c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
         :evaluate => ("Enter", :shift),
@@ -83,14 +80,19 @@ main = route("/session") do c::Connection
     end
     olmod::Module = c[:OliveCore].olmod
     mainpane = div("olivemain-pane")
+    homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
+    directories = [homeproj]
+    ui_explorer[:children] = Vector{Servable}([begin
+   Base.invokelatest(olmod.build, c, d, olmod)
+    end for d in directories])
     push!(olivemain, ui_topbar, mainpane)
     on(c, "load") do cm::ComponentModifier
+        proj_open.directories = [homeproj]
         load_extensions!(c, cm, olmod)
-        cells::Vector{Servable} = Base.invokelatest(olmod.build, c,
+        window::Component{:div} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
-        mainpane[:children] = cells
-        set_children!(cm, "olivemain", [ui_topbar, mainpane])
-
+        push!(mainpane, window)
+        set_children!(cm, "olivemain-pane", [mainpane])
     end
     write!(c, bod)
 end
@@ -105,12 +107,10 @@ explorer = route("/") do c::Connection
     on(c, bod, "load") do cm::ComponentModifier
         olmod = c[:OliveCore].olmod
         homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
-        publicproj = Directory(c[:OliveCore].data[:public],
-        "public" => "rw")
-        dirs = [homeproj, publicproj]
+        dirs = [homeproj]
         main = olive_main("files")
         for dir in dirs
-            push!(main[:children], build(c, cm, dir, olmod))
+            push!(main[:children], build(c, dir, olmod))
         end
         script!(c, cm, "loadcallback") do cm
             style!(cm, icon, "opacity" => 0percent)
@@ -124,35 +124,120 @@ explorer = route("/") do c::Connection
  end
 
 
+
 dev = route("/") do c::Connection
     explorer.page(c)
 end
 
 setup = route("/") do c::Connection
-
+    write!(c, olivesheet())
+    bod = body("mainbody")
+    cells = [Cell(1, "setup", "welcome to olive"),
+    Cell(2, "dirselect", c[:OliveCore].data[:home])]
+    built_cells = Vector{Servable}([build(c, cell) for cell in cells])
+    bod[:children] = built_cells
+    confirm_button = button("confirm", text = "confirm")
+    questions = section("questions")
+    style!(questions, "opacity" => 0percent, "transition" => 2seconds,
+    "transform" => "translateY(50%)")
+    push!(questions, h("questions-heading", 2, text = "a few more things ..."))
+    opts = [button("yes", text = "yes"), button("no", text = "no")]
+    push!(questions, h("questions-defaults", 4, text = "would you like to add OliveDefaults?"))
+    push!(questions, p("defaults-explain", text = """this extension will give the
+    capability to add custom styles, adds more cells, and more!"""))
+    defaults_q = ToolipsDefaults.button_select(c, "defaults_q", opts)
+    push!(questions, defaults_q)
+    push!(questions, h("questions-download", 4,
+     text = "would you like to download olive icons?"))
+     push!(questions, p("download-explain", text = """this will download
+     a CSS file that provides Olive's material icons, meaning you will still
+     have icons while offline, and they will load faster. (requires an internet connection)"""))
+    opts2 = [button("yesd", text = "yes"), button("nod", text = "no")]
+    download_q = ToolipsDefaults.button_select(c, "download_q", opts2)
+    push!(questions, download_q)
+    confirm_questions = button("conf-q", text = "confirm")
+    on(c, confirm_questions, "click") do cm::ComponentModifier
+        dfaults = cm[defaults_q]["value"]
+        dload = cm[download_q]["value"]
+        statindicator = a("statind", text = "okay! i'll get this set up for you.")
+        loadbar = ToolipsDefaults.progress("oliveprogress", value = "0")
+        style!(loadbar, "webkit-progreess-value" => "pink", "background-color" => "orange",
+         "radius" => 4px, "transition" => 1seconds, "width" => 0percent,
+         "opacity" => 0percent)
+         append!(cm, bod, loadbar)
+         append!(cm, questions, br())
+         append!(cm, questions, statindicator)
+         style!(cm, questions, "border-radius" => 0px)
+         next!(c, questions, cm) do cm2
+             set_text!(cm2, statindicator, "setting up olive ...")
+             style!(cm2, loadbar, "opacity" => 100percent, "width" => 100percent)
+             next!(c, loadbar, cm2) do cm3
+                 if ~(isdir(cm["selector"]["text"] * "/olive"))
+                     create_project(cm["selector"]["text"])
+                 end
+                 set_text!(cm3, statindicator, "project created !")
+                 cm3[loadbar] = "value" => ".50"
+                 style!(cm3, loadbar, "opacity" => 99percent)
+                 next!(c, loadbar, cm3) do cm4
+                     txt = ""
+                     if dfaults == "yes"
+                         alert!(cm4, "defaults not yet implemented")
+                         txt = txt * "defaults loaded! "
+                     end
+                     if dload == "yes"
+                         alert!(cm4, "download not yet implemented")
+                         txt = txt * "downloaded icons!"
+                     end
+                     set_text!(cm4, statindicator, txt)
+                     cm4[loadbar] = "value" => "1"
+                     style!(cm4, loadbar, "opacity" => 100percent)
+                     next!(c, loadbar, cm4) do cm5
+                         deleteat!(c.routes, 1)
+                         deleteat!(c.routes, 1)
+                         oc = c[:OliveCore]
+                         direc = cm["selector"]["text"]
+                         oc.data[:home] = "$direc/olive"
+                         olmod = eval(Meta.parse(read("$direc/olive/src/olive.jl", String)))
+                         Base.invokelatest(olmod.build, oc)
+                         oc.olmod = olmod
+                         push!(c.routes, fourofour, main, explorer)
+                         redirect!(cm5, "/")
+                     end
+                 end
+             end
+         end
+    end
+    push!(questions, confirm_questions)
+    on(c, confirm_button, "click") do cm::ComponentModifier
+        selected = cm["selector"]["text"]
+        insert!(questions[:children], 1, h("selector", 1, text = selected))
+        [style!(cm, b_cell, "transform" => "translateX(-110%)", "transition" => 2seconds) for b_cell in built_cells]
+        style!(cm, confirm_button, "transform" => "translateX(-120%)", "transition" => 2seconds)
+        append!(cm, bod, questions)
+        next!(c, confirm_button, cm) do cm2
+            [remove!(cm2, b_cell) for b_cell in built_cells]
+            style!(cm2, questions, "transform" => "translateY(0%)", "opacity" => 100percent)
+        end
+        #
+    end
+    push!(bod, confirm_button)
+    write!(c, bod)
 end
 
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
 end
 
-function create_project(homedir::String = homedir(), olivedir::String = ".olive")
-        @info "welcome to olive! to use olive, you will need to setup a project directory."
-        @info "we can put this at $homedir/$olivedir, is this okay with you?"
-        print("y or n: ")
-        response = readline()
-        if response == "y"
-            try
-                cd(homedir)
-                Toolips.new_webapp(olivedir)
+function create_project(homedir::String = homedir(), olivedir::String = "olive")
+        try
+            cd(homedir)
+            Pkg.generate("olive")
         catch
             throw("unable to access your applications directory.")
         end
         open("$homedir/$olivedir/src/olive.jl", "w") do o
             write(o, """
             module $olivedir
-            using Toolips
-            using ToolipsSession
             using Olive
             import Olive: build
 
@@ -163,7 +248,6 @@ function create_project(homedir::String = homedir(), olivedir::String = ".olive"
             end # module""")
         end
         @info "olive files created! welcome to olive! "
-    end
 end
 
 """
@@ -180,22 +264,22 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         s[:Logger].log("started new olive server in devmode.")
         return
     end
-    startup_path::String = pwd()
-    homedirec::String = homedir()
-    olivedir::String = "olive"
     oc::OliveCore = OliveCore("olive")
+    oc.data[:wd] = pwd()
+    oc.data[:home] = homedir()
+    homedirec = oc.data[:home]
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
-    if ~(isdir("$homedirec/$olivedir"))
-        proj = create_project(homedirec, olivedir)
-        Pkg.activate("$homedirec/$olivedir/.")
+    if ~(isdir("$homedirec/olive"))
         rs = routes(setup, fourofour)
     else
-        Pkg.activate("$homedirec/$olivedir")
-        olmod = eval(Meta.parse(read("$homedirec/$olivedir/src/olive.jl", String)))
+        Pkg.activate("$homedirec/olive")
+        oc.data[:home] = "$homedirec/olive"
+        olmod = eval(Meta.parse(read("$homedirec/olive/src/olive.jl", String)))
         Base.invokelatest(olmod.build, oc)
+        oc.olmod = olmod
         rs = routes(fourofour, main, explorer)
     end
-    server = ServerTemplate(IP, PORT, rs, extensions = [OliveLogger(),
+    server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session"])])
     server.start(); server::Toolips.ToolipsServer
 end
@@ -240,5 +324,5 @@ function create(name::String)
     end
 end
 
-export OliveCore, build
+export OliveCore, build, Pkg, TOML, Toolips, ToolipsSession
 end # - module
