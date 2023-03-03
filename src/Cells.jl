@@ -45,7 +45,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
             cells[pos] = new_cell
             cell = new_cell
             remove!(cm2, outside)
-            ToolipsSession.insert!(cm2, window, pos, build(c, cm, new_cell,
+            ToolipsSession.insert!(cm2, window, pos, build(c, cm2, new_cell,
             cells, window))
             focus!(cm2, "cell$(cell.id)")
         end
@@ -73,7 +73,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
 #==    tm = TextModifier(text)
     ToolipsMarkdown.julia_block!(tm)
     ==#
-    outside = div("cellcontainer$(cell.id)", class = cell)
+    outside = div("cellcontainer$(cell.id)", class = "cell")
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = text,
     "class" => "input_cell")
     style!(inside,
@@ -110,7 +110,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     push!(interiorbox, sidebox, inside)
     cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
     cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
-    push!(sidebox, cell_drag, cell_run)
+    push!(sidebox, cell_drag, br(), cell_run)
     style!(cell_drag, "color" => "white", "font-size" => 17pt)
     style!(cell_run, "color" => "white", "font-size" => 17pt)
     output = divider("cell$(cell.id)" * "out", class = "output_cell", text = cell.outputs)
@@ -119,30 +119,40 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             evaluate(c, cell, cm2)
     end
     bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
-        evaluate(c, cell, cm2)
-        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
-        if pos == length(cells)
-            new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
-            push!(cells, new_cell)
-            append!(cm2, windowname, build(c, cm2, new_cell, cells, windowname))
-            focus!(cm2, "cell$(new_cell.id)")
-            return
+        icon = olive_loadicon()
+        icon.name = "load$(cell.id)"
+        icon["width"] = "20"
+        remove!(cm2, cell_run)
+        set_children!(cm2, "cellside$(cell.id)", [icon])
+        script!(c, cm2, "$(cell.id)eval") do cm3::ComponentModifier
+            evaluate(c, cell, cm3)
+            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+            if pos == length(cells)
+                new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
+                push!(cells, new_cell)
+                append!(cm3, windowname, build(c, cm3, new_cell, cells, windowname))
+                focus!(cm3, "cell$(new_cell.id)")
+                set_children!(cm3, "cellside$(cell.id)", [cell_drag, br(), cell_run])
+                bind!(c, cm3, km)
+                return
+            end
+            next_cell = cells[pos + 1]
+            focus!(cm3, "cell$(next_cell.id)")
+            set_children!(cm3, sidebox, [cell_drag, br(), cell_run])
         end
-        next_cell = cells[pos + 1]
-        focus!(cm2, "cell$(next_cell.id)")
     end
-    bind!(km, keybindings[:up] ...) do cm::ComponentModifier
+    bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
         pos = findall(lcell -> lcell.id == cell.id, cells)[1]
         switchcell = cells[pos - 1]
         cells[pos - 1] = cell
         cells[pos] = switchcell
-        remove!(cm, "cellcontainer$(switchcell.id)")
-        remove!(cm, "cellcontainer$(cell.id)")
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, cells,
+        remove!(cm2, "cellcontainer$(switchcell.id)")
+        remove!(cm2, "cellcontainer$(cell.id)")
+        ToolipsSession.insert!(cm2, windowname, pos, build(c, cm2, switchcell, cells,
         windowname))
-        ToolipsSession.insert!(cm, windowname, pos - 1, build(c, cm, cell, cells,
+        ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, cell, cells,
         windowname))
-        focus!(cm, "cell$(cell.id)")
+        focus!(cm2, "cell$(cell.id)")
     end
     bind!(km, keybindings[:down] ...) do cm::ComponentModifier
         pos = findall(lcell -> lcell.id == cell.id, cells)[1]
@@ -159,7 +169,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
         remove!(cm, "cellcontainer$(cell.id)")
-        deleteat!(cells, findall(c -> c.id == cell.id, cells)[1])
+        deleteat!(cells, findfirst(c -> c.id == cell.id, cells))
     end
     bind!(km, keybindings[:new] ...) do cm::ComponentModifier
         pos = findall(lcell -> lcell.id == cell.id, cells)[1]
@@ -357,28 +367,37 @@ end
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     # get code
     rawcode::String = cm["rawcell$(cell.id)"]["text"]
-    execcode::String = replace(rawcode, "<div>" => "\n", "</div>" => "")
+    execcode::String = *("begin\n", replace(rawcode, "<div>" => "\n",
+    "</div>" => ""), "end\n")
     text::String = replace(cell.source, "\n" => "</br>")
     # get project
     selected::String = cm["olivemain"]["selected"]
     proj::Project{<:Any} = c[:OliveCore].open[getip(c)]
     #== evaluate
-    SOME NOTES -- `i` below is meant to eventually be passed through `evalin`.
-    We need to find a way to make this buffer write anything that comes through
-    stdout, that way if something is printed or otherwise it can still be
-    displayed instead of entirely relying on returns.
+
     ==#
     ret::Any = ""
-    try
-        ret = proj.mod.evalin(Meta.parse(execcode))
-    catch e
-        ret = e
+    p = Pipe()
+    redirect_stdout(p) do
+        try
+            ret = proj.mod.evalin(Meta.parse(execcode))
+        catch e
+            ret = e
+        end
     end
-
+    close(Base.pipe_writer(p))
+    standard_out = read(p, String)
     # output
+    outp::String = ""
     od = OliveDisplay()
     display(od, MIME"olive"(), ret)
-    outp::String = String(od.io.data)
+    if ~(isnothing(ret)) && length(standard_out) > 0
+        outp = standard_out * "</br>" * String(od.io.data)
+    elseif ~(isnothing(ret)) && length(standard_out) == 0
+        outp = String(od.io.data)
+    else
+        outp = standard_out
+    end
     set_text!(cm, "cell$(cell.id)out", outp)
     # mutate cell
     cell.outputs = outp
