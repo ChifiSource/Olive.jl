@@ -220,23 +220,47 @@ function build(c::Connection, cell::Cell{:ipynb},
     filecell
 end
 
+function dir_returner(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
+    returner = div("cell$(cell.id)", class = "cell-jl")
+    style!(returner, "background-color" => "red")
+    name = a("cell$(cell.id)label", text = "...")
+    style!(name, "color" => "white")
+    push!(returner, name)
+    on(c, returner, "dblclick") do cm2::ComponentModifier
+        newcells = directory_cells(d.uri)
+        n_dir::String = d.uri
+        built = [build(c, cel, d) for cel in newcells]
+        if typeof(d) == Directory{:subdir}
+            n_dir = d.access["toplevel"]
+            if n_dir != d.uri
+                newd = Directory(n_dir, "root" => "rw",
+                "toplevel" => d.access["toplevel"], dirtype = "subdir")
+                insert!(built, 1, dir_returner(c, cell, newd))
+            end
+        end
+        set_children!(cm2, "$(n_dir)cells",
+        Vector{Servable}(built))
+    end
+    returner::Component{:div}
+end
+
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     filecell = div("cell$(cell.id)", class = "cell-ipynb")
     style!(filecell, "background-color" => "#FFFF88")
     on(c, filecell, "dblclick") do cm::ComponentModifier
-        returner = div("cell$(cell.id)", class = "cell-jl")
-        style!(returner, "background-color" => "red")
-        name = a("cell$(cell.id)label", text = d.uri)
-        style!(name, "color" => "white")
-        push!(returner, name)
-        on(c, returner, "dblclick") do cm2::ComponentModifier
-            newcells = directory_cells(d.uri)
-            set_children!(cm2, "$(d.uri)cells",
-            Vector{Servable}([build(c, cel, d) for cel in newcells]))
+        returner = dir_returner(c, cell, d)
+        newcells = directory_cells("$(d.uri)/$(cell.source)")
+        println(d.uri * "/" * cell.source)
+        toplevel = d.uri
+        direc::String = d.uri
+        if typeof(d) == Directory{:subdir}
+            direc = d.access["toplevel"]
+            toplevel = direc
         end
-        newcells = directory_cells(d.uri * "/" * cell.source)
-        set_children!(cm, "$(d.uri)cells",
-        vcat([returner], [build(c, cel, d) for cel in newcells]))
+        nd = Directory(d.uri * "/" * cell.source * "/", "root" => "rw",
+        "toplevel" => toplevel, dirtype = "subdir")
+        set_children!(cm, "$(direc)cells",
+        Vector{Servable}(vcat([returner], [build(c, cel, nd) for cel in newcells])))
     end
     fname = a("$(cell.source)", text = cell.source)
     style!(fname, "color" => "gray", "font-size" => 15pt)
@@ -455,7 +479,7 @@ function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
 end
 
 function build_file_cell(e::Int64, path::String, dir::String)
-    if ~(isdir(path))
+    if ~(isdir(dir * "/" * path))
         splitdir::Vector{SubString} = split(path, "/")
         fname::String = string(splitdir[length(splitdir)])
         fsplit = split(fname, ".")
@@ -465,6 +489,6 @@ function build_file_cell(e::Int64, path::String, dir::String)
         end
         Cell(e, fending, fname, dir * "/" * path)
     else
-        Cell(e, "dir", path, path)
+        Cell(e, "dir", path, dir)
     end
 end
