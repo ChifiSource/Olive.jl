@@ -123,24 +123,21 @@ custom directory example
 ```
 """
 build(c::Connection, dir::Directory{<:Any}, m::Module) = begin
-    container = section("$(dir.uri)", align = "left")
-    cells = Vector{Servable}()
+    container = section(dir.uri, align = "left")
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
         projname = toml_cats["name"]
         envtop = h("headingenv$(dir.uri)", 2, text = projname)
-        push!(cells, envtop)
+        push!(container, envtop)
     end
     dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
-    push!(cells, dirtop)
-    for cell in dir.cells
-        push!(cells, Base.invokelatest(m.build, c, cell, dir))
-    end
-    container[:children] = cells
-    on(c, container, "click") do cm::ComponentModifier
-        cm["olivemain"] = "cell" => dir.uri
-    end
+    push!(container, dirtop)
+    cells = [Base.invokelatest(m.build, c, cell, dir) for cell in dir.cells]
+    containercontrols = section("$(dir.uri)controls")
+    cellcontainer = section("$(dir.uri)cells")
+    cellcontainer[:children] = cells
+    push!(container, cellcontainer)
     return(container)
 end
 

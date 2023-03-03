@@ -32,7 +32,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     hiddencell
 end
 
-
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     cells::Vector{Cell}, window::String)
     keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
@@ -203,7 +202,19 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     filecell = div("cell$(cell.id)", class = "cell-ipynb")
     style!(filecell, "background-color" => "#FFFF88")
     on(c, filecell, "dblclick") do cm::ComponentModifier
-        evaluate(c, cell, cm)
+        returner = div("cell$(cell.id)", class = "cell-jl")
+        style!(returner, "background-color" => "red")
+        name = a("cell$(cell.id)label", text = d.uri)
+        style!(name, "color" => "white")
+        push!(returner, name)
+        on(c, returner, "dblclick") do cm2::ComponentModifier
+            newcells = directory_cells(d.uri)
+            set_children!(cm2, "$(d.uri)cells",
+            Vector{Servable}([build(c, cel, d) for cel in newcells]))
+        end
+        newcells = directory_cells(d.uri * "/" * cell.source)
+        set_children!(cm, "$(d.uri)cells",
+        vcat([returner], [build(c, cel, d) for cel in newcells]))
     end
     fname = a("$(cell.source)", text = cell.source)
     style!(fname, "color" => "gray", "font-size" => 15pt)
