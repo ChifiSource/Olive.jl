@@ -159,11 +159,11 @@ function topbar(c::Connection)
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
     "border-radius" => "5px")
-    tabmenu = div("centermenu", align = "center")
-    style!(tabmenu, "display" => "inline-block", "margin-left" => 5percent)
+    tabmenu = div("tabmenu", align = "center")
+    style!(tabmenu, "display" => "inline-block")
     push!(leftmenu, explorer_icon(c))
     push!(rightmenu, settings(c))
-    push!(topbar, leftmenu, rightmenu)
+    push!(topbar, leftmenu, tabmenu, rightmenu)
     topbar::Component{:div}
 end
 
@@ -199,8 +199,14 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     redirect!(cm, "/session")
 end
 
-function build_tab(c::Connection, cm::ComponentModifier)
-
+function build_tab(c::Connection, fname::String)
+    tabbody = div("tab$(fname)")
+    style!(tabbody, "border-bottom-right-radius" => 0px,
+    "border-bottom-left-radius" => 0px, "display" => "inline-block",
+    "border-width" => 2px, "border-color" => "lightblue",
+    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer")
+    push!(tabbody, a("tablabel$(fname)", text = fname))
+    tabbody
 end
 
 function olive_loadicon()

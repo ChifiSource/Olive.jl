@@ -250,7 +250,6 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     on(c, filecell, "dblclick") do cm::ComponentModifier
         returner = dir_returner(c, cell, d)
         newcells = directory_cells("$(d.uri)/$(cell.source)")
-        println(d.uri * "/" * cell.source)
         toplevel = d.uri
         direc::String = d.uri
         if typeof(d) == Directory{:subdir}

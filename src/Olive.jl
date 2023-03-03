@@ -62,10 +62,10 @@ main = route("/session") do c::Connection
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
     olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
-    ui_tabs::Vector{Servable} = Vector{Servable}()
-    ui_explorer[:children] = [olive_loadicon()]
     bod = body("mainbody")
     push!(bod, ui_explorer, olivemain)
+    new_tab = build_tab(c, first(proj_open.open)[1])
+    push!(ui_topbar[:children]["tabmenu"], new_tab)
     if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
         c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
         :evaluate => ("Enter", :shift),
@@ -91,8 +91,7 @@ main = route("/session") do c::Connection
         load_extensions!(c, cm, olmod)
         window::Component{:div} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
-        push!(mainpane, window)
-        set_children!(cm, "olivemain-pane", [mainpane])
+        set_children!(cm, "olivemain-pane", [window])
     end
     write!(c, bod)
 end
