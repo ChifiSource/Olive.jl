@@ -39,14 +39,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     outside = div("cellcontainer$(cell.id)", class = cell)
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.source)
     bind!(km, "Backspace") do cm2::ComponentModifier
-        if cm2[inside]["text"] == ""
-            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+        if cm2["rawcell$(cell.id)"]["text"] == ""
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
             new_cell = Cell(pos, "code", "")
             cells[pos] = new_cell
             cell = new_cell
             remove!(cm2, outside)
-            ToolipsSession.insert!(cm2, window, pos, build(c, cm2, new_cell,
-            cells, window))
+            built = build(c, cm2, new_cell, cells, window)
+            ToolipsSession.insert!(cm2, window, pos, built)
             focus!(cm2, "cell$(cell.id)")
         end
     end
@@ -74,6 +74,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     ToolipsMarkdown.julia_block!(tm)
     ==#
     outside = div("cellcontainer$(cell.id)", class = "cell")
+    cell = cell
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = text,
     "class" => "input_cell")
     style!(inside,
@@ -81,8 +82,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     "position" => "relative", "margin-top" => 0px, "display" => "inline-block",
     "border-top-left-radius" => 0px)
     style!(outside, "transition" => 1seconds)
-    on(c, cm, inside, "input") do cm::ComponentModifier
-        curr = cm[inside]["text"]
+    on(c, cm, inside, "input", ["rawcell$(cell.id)"]) do cm::ComponentModifier
+        curr = cm["rawcell$(cell.id)"]["text"]
         if curr == "]"
             pos = findall(lcell -> lcell.id == cell.id, cells)[1]
             new_cell = Cell(pos, "pkgrepl", "")
@@ -100,7 +101,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         #== TODO
         Syntax highlighting here.
         ==#
-        cell.source = cm[inside]["text"]
+        cell.source = curr
     end
     interiorbox = div("cellinterior$(cell.id)")
     style!(interiorbox, "display" => "flex")
@@ -127,13 +128,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         script!(c, cm2, "$(cell.id)eval") do cm3::ComponentModifier
             evaluate(c, cell, cm3)
             pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+            evaluate(c, cell, cm2)
+            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
             if pos == length(cells)
                 new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
                 push!(cells, new_cell)
                 append!(cm3, windowname, build(c, cm3, new_cell, cells, windowname))
                 focus!(cm3, "cell$(new_cell.id)")
-                set_children!(cm3, "cellside$(cell.id)", [cell_drag, br(), cell_run])
-                bind!(c, cm3, km)
+                set_children!(cm3, sidebox, [cell_drag, br(), cell_run])
                 return
             end
             next_cell = cells[pos + 1]
@@ -143,29 +145,39 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     end
     bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
         pos = findall(lcell -> lcell.id == cell.id, cells)[1]
-        switchcell = cells[pos - 1]
-        cells[pos - 1] = cell
-        cells[pos] = switchcell
-        remove!(cm2, "cellcontainer$(switchcell.id)")
-        remove!(cm2, "cellcontainer$(cell.id)")
-        ToolipsSession.insert!(cm2, windowname, pos, build(c, cm2, switchcell, cells,
-        windowname))
-        ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, cell, cells,
-        windowname))
-        focus!(cm2, "cell$(cell.id)")
+        if pos != 1
+            switchcell = cells[pos - 1]
+            cells[pos - 1] = cell
+            cells[pos] = switchcell
+            remove!(cm2, "cellcontainer$(switchcell.id)")
+            remove!(cm2, "cellcontainer$(cell.id)")
+            ToolipsSession.insert!(cm2, windowname, pos, build(c, cm2, switchcell, cells,
+            windowname))
+            ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, cell, cells,
+            windowname))
+            focus!(cm2, "cell$(cell.id)")
+        else
+            alert!(cm2, "you sending your cell into the topbar? smooth move ace.")
+        end
     end
     bind!(km, keybindings[:down] ...) do cm::ComponentModifier
         pos = findall(lcell -> lcell.id == cell.id, cells)[1]
-        switchcell = cells[pos + 1]
-        cells[pos + 1] = cell
-        cells[pos] = switchcell
-        remove!(cm, "cellcontainer$(switchcell.id)")
-        remove!(cm, "cellcontainer$(cell.id)")
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, cells,
-        windowname))
-        ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, cells,
-        windowname))
-        focus!(cm, "cell$(cell.id)")
+        if pos != length(cells)
+            switchcell = cells[pos + 1]
+            cells[pos + 1] = cell
+            cells[pos] = switchcell
+            remove!(cm, "cellcontainer$(switchcell.id)")
+            remove!(cm, "cellcontainer$(cell.id)")
+            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, cells,
+            windowname))
+            ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, cells,
+            windowname))
+            focus!(cm, "cell$(cell.id)")
+        else
+            alert!(cm, "where do you honestly expect this cell to go")
+            alert!(cm, "bruh moment")
+            alert!(cm, "bruh was tryna send their cell to the underworld")
+        end
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
         remove!(cm, "cellcontainer$(cell.id)")
@@ -368,26 +380,30 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
     # get code
     rawcode::String = cm["rawcell$(cell.id)"]["text"]
     execcode::String = *("begin\n", replace(rawcode, "<div>" => "\n",
-    "</div>" => ""), "end\n")
+    "</div>" => ""), "\n", "end\n")
     text::String = replace(cell.source, "\n" => "</br>")
     # get project
     selected::String = cm["olivemain"]["selected"]
     proj::Project{<:Any} = c[:OliveCore].open[getip(c)]
-    #== evaluate
-
+    #== evaluate TODO
+    The PIPE portion of this is currently commented out -- it was causing
+    UI-BREAKING bugs. If you are able to fix this, then please fix this.
     ==#
     ret::Any = ""
-    p = Pipe()
-    redirect_stdout(p) do
+#==    p = Pipe()
+   redirect_stdout(p) do ==#
         try
             ret = proj.mod.evalin(Meta.parse(execcode))
         catch e
             ret = e
         end
-    end
+#==end
+
     close(Base.pipe_writer(p))
     standard_out = read(p, String)
+    close(p) ==#
     # output
+    standard_out = ""
     outp::String = ""
     od = OliveDisplay()
     display(od, MIME"olive"(), ret)

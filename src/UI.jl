@@ -159,11 +159,11 @@ function topbar(c::Connection)
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
     "border-radius" => "5px")
-    centermenu = div("centermenu", align = "center")
-    style!(centermenu, "display" => "inline-block", "margin-left" => 40percent)
+    tabmenu = div("centermenu", align = "center")
+    style!(tabmenu, "display" => "inline-block", "margin-left" => 5percent)
     push!(leftmenu, explorer_icon(c))
     push!(rightmenu, settings(c))
-    push!(topbar, leftmenu, centermenu, rightmenu)
+    push!(topbar, leftmenu, rightmenu)
     topbar::Component{:div}
 end
 
