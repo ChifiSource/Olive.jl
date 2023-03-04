@@ -56,12 +56,29 @@ This function is temporarily being used to test Olive.
 
 """
 main = route("/session") do c::Connection
-    c[:OliveCore].client_data[getip(c)][:selected] = "session"
+    # setup base env
     write!(c, olivesheet())
+    c[:OliveCore].client_data[getip(c)][:selected] = "session"
+    olmod::Module = c[:OliveCore].olmod
     proj_open::Project{<:Any} = c[:OliveCore].open[getip(c)]
+    # setup base UI
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
+    ui_settings::Component{:section} = settings_menu(c)
+    #==TODO
+    Directories should be loaded into the project at "/" (`explorer`).
+    This is just a temporary method of loading the directories. The dir should
+    be pushed inside of the cell evaluate/build functions.
+    ==#
+    homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
+    proj_open.directories = [homeproj]
+    # end TODO (remove code  above in the future)
+    ui_explorer[:children] = Vector{Servable}([begin
+   Base.invokelatest(olmod.build, c, d, olmod)
+    end for d in proj_open.directories])
     olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
+    mainpane = div("olivemain-pane")
+    push!(olivemain, ui_topbar, ui_settings, mainpane)
     bod = body("mainbody")
     push!(bod, ui_explorer, olivemain)
     new_tab = build_tab(c, first(proj_open.open)[1])
@@ -78,20 +95,11 @@ main = route("/session") do c::Connection
         :new => ("Q", :ctrl, :shift)
         )
     end
-    olmod::Module = c[:OliveCore].olmod
-    mainpane = div("olivemain-pane")
-    homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
-    directories = [homeproj]
-    ui_explorer[:children] = Vector{Servable}([begin
-   Base.invokelatest(olmod.build, c, d, olmod)
-    end for d in directories])
-    push!(olivemain, ui_topbar, mainpane)
     on(c, "load") do cm::ComponentModifier
-        proj_open.directories = [homeproj]
         load_extensions!(c, cm, olmod)
         window::Component{:div} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
-        set_children!(cm, "olivemain-pane", [window])
+        append!(cm, "olivemain-pane", window)
     end
     write!(c, bod)
 end

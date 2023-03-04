@@ -146,8 +146,28 @@ function explorer_icon(c::Connection)
     explorericon::Component{:span}
 end
 
+function settings_menu(c::Connection)
+    mainmenu = section("settingsmenu", open = "0")
+    style!(mainmenu, "opacity" => 0percent,  "height" => 0percent)
+    mainmenu::Component{:section}
+end
+
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
+    on(c, settingicon, "click", ["settingsmenu"]) do cm::ComponentModifier
+        if cm["settingsmenu"]["open"] == "0"
+            style!(cm, settingicon, "transform" => "rotate(-180deg)",
+            "color" => "lightblue")
+            style!(cm, "settingsmenu", "opacity" => 100percent,
+            "height" => 50percent)
+            cm["settingsmenu"] = "open" => "1"
+            return
+        end
+        cm["settingsmenu"] =  "open" => "0"
+        style!(cm, settingicon, "transform" => "rotate(0deg)",
+        "color" => "black")
+        style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
+    end
     settingicon::Component{:span}
 end
 
@@ -158,7 +178,7 @@ function topbar(c::Connection)
     rightmenu = span("rightmenu", align = "right")
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
-    "border-radius" => "5px")
+    "border-radius" => "5px", "overflow" =>  "hidden")
     tabmenu = div("tabmenu", align = "center")
     style!(tabmenu, "display" => "inline-block")
     push!(leftmenu, explorer_icon(c))
