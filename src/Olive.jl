@@ -95,8 +95,21 @@ main = route("/session") do c::Connection
         :new => ("Q", :ctrl, :shift)
         )
     end
-    on(c, "load") do cm::ComponentModifier
+    keybind_section = section("settings_keys")
+    push!(keybind_section, h("setkeyslbl", 2, text = "keybindings"))
+    push!(ui_settings, keybind_section)
+    script!(c, "load", type = "Timeout") do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
+        [begin
+            newkeymain = div("keybind$(keybinding[1])")
+            head = a("keylabel$(keybinding[1])", text = "$(keybinding[1]):   ")
+            setinput = ToolipsDefaults.keyinput("$(keybinding[1])inp", text = keybinding[2][1])
+            style!(setinput, "background-color" => "blue", "width" => 5percent,
+            "display" => "inline-block", "color" => "white")
+            shift_checkbox = ToolipsDefaults.checkbox("shiftk$(keybinding[1])")
+            push!(newkeymain, head, setinput, shift_checkbox)
+            append!(cm, "settings_keys", newkeymain)
+        end for keybinding in c[:OliveCore].client_data[getip(c)][:keybindings]]
         window::Component{:div} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
         append!(cm, "olivemain-pane", window)

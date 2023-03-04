@@ -148,7 +148,8 @@ end
 
 function settings_menu(c::Connection)
     mainmenu = section("settingsmenu", open = "0")
-    style!(mainmenu, "opacity" => 0percent,  "height" => 0percent)
+    style!(mainmenu, "opacity" => 0percent,  "height" => 0percent,
+    "overflow-y" => "scroll")
     mainmenu::Component{:section}
 end
 
