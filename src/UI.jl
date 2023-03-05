@@ -153,6 +153,27 @@ function settings_menu(c::Connection)
     mainmenu::Component{:section}
 end
 
+function olive_notify!(cm::AbstractComponentModifier, message::String,
+    duration::Int64 = 2000;  color::String = "pink")
+    set_text!(cm, "olive-notifier", message)
+    style!(cm, "olive-notifier", "height" => 2percent, "opacity" => 100percent,
+    "background-color" => color)
+    script!(cm, "notifierdie", time = duration) do cm2
+        style!(cm2, "olive-notifier", "height" => 0percent, "opacity" => 0percent)
+    end
+end
+
+function olive_notific()
+    notifier = div("olive-notifier", align = "center")
+    style!(notifier, "background-color" => "pink", "color" => "white",
+    "height" => 0percent, "position" => "absolute", "opacity" => 0percent,
+    "width" => 99percent, "margin-left" => 0px, "z-index" => "8",
+    "font-weight" => "bold", "border-top-right-radius" => 0px, "overflow" => "hidden",
+    "border-top-left-radius" => 0px, "left" => 0percent, "top" => 0percent,
+    "transition" => ".5s")
+    notifier::Component{:div}
+end
+
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
     on(c, settingicon, "click", ["settingsmenu"]) do cm::ComponentModifier
@@ -168,6 +189,7 @@ function settings(c::Connection)
         style!(cm, settingicon, "transform" => "rotate(0deg)",
         "color" => "black")
         style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
+
     end
     settingicon::Component{:span}
 end

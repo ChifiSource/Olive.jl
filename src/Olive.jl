@@ -62,6 +62,7 @@ main = route("/session") do c::Connection
     olmod::Module = c[:OliveCore].olmod
     proj_open::Project{<:Any} = c[:OliveCore].open[getip(c)]
     # setup base UI
+    notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
     ui_settings::Component{:section} = settings_menu(c)
@@ -80,12 +81,12 @@ main = route("/session") do c::Connection
     mainpane = div("olivemain-pane")
     push!(olivemain, ui_topbar, ui_settings, mainpane)
     bod = body("mainbody")
-    push!(bod, ui_explorer, olivemain)
+    push!(bod, notifier, ui_explorer, olivemain)
     new_tab = build_tab(c, first(proj_open.open)[1])
     push!(ui_topbar[:children]["tabmenu"], new_tab)
     # load default key-bindings (if non-existent)
     if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
-        c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
+        c[:OliveCore].client_data[getip(c)][:keybindings] = Dict{Symbol, Any}(
         :evaluate => ("Enter", :shift),
         :delete => ("Delete", :ctrl, :shift),
         :up => ("ArrowUp", :ctrl, :shift),
@@ -125,9 +126,8 @@ main = route("/session") do c::Connection
                 if parse(Bool, cm[ctrl_checkbox]["value"])
                     push!(key_vec, :ctrl)
                 end
-                println(Tuple(key_vec))
                 c[:OliveCore].client_data[getip(c)][:keybindings][keybinding[1]] = Tuple(key_vec)
-                alert!(cm, "binding modified")
+                olive_notify!(cm, "binding $(keybinding[1]) saved")
             end
             push!(newkeymain, head, shftlabel, shift_checkbox,
             ctrllabel, ctrl_checkbox, setinput, br(), confirm)
