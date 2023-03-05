@@ -216,6 +216,13 @@ setup = route("/") do c::Connection
              style!(cm2, loadbar, "opacity" => 100percent, "width" => 100percent)
              next!(c, loadbar, cm2) do cm3
                  if ~(isdir(cm["selector"]["text"] * "/olive"))
+                     if cm["selector"]["text"] != homedir()
+                         srcdir = @__DIR__
+                         touch("$srcdir/home.txt")
+                         open("$srcdir/home.txt", "w") do o
+                             write(o, cm["selector"]["text"])
+                         end
+                     end
                      create_project(cm["selector"]["text"])
                  end
                  set_text!(cm3, statindicator, "project created !")
@@ -307,10 +314,14 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         s[:Logger].log("started new olive server in devmode.")
         return
     end
+    srcdir = @__DIR__
+    homedirec::String = homedir()
+    if isfile("$srcdir/home.txt")
+        homedirec = read("$srcdir/home.txt", String)
+    end
     oc::OliveCore = OliveCore("olive")
     oc.data[:wd] = pwd()
-    oc.data[:home] = homedir()
-    homedirec = oc.data[:home]
+    oc.data[:home] = homedirec
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if ~(isdir("$homedirec/olive"))
         rs = routes(setup, fourofour)
