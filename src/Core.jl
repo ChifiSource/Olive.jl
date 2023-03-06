@@ -247,11 +247,15 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any};
         push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
         frstcells, name))
     end for cell in frstcells]
-    proj_window = div(name, width = 500, height = 500)
-    style!(proj_window, "display" => "inline-block",
-    "overflow-y" => "scroll !important", "min-width" => 40percent)
+    overwindow = div("$(name)over")
+    style!(overwindow, "display" => "inline-block",
+    "overflow-y" => "scroll !important", "min-width" => 40percent,
+    "padding" => 0px, "max-height" => 20percent, "margin-top" => 2px)
+    proj_window = section(name)
+
     proj_window[:children] = retvs
-    proj_window::Component{:div}
+    push!(overwindow, build_tab(c, name), proj_window)
+    overwindow::Component{:div}
 end
 
 function group(c::Connection)

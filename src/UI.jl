@@ -149,7 +149,7 @@ end
 function settings_menu(c::Connection)
     mainmenu = section("settingsmenu", open = "0")
     style!(mainmenu, "opacity" => 0percent,  "height" => 0percent,
-    "overflow-y" => "scroll")
+    "overflow-y" => "scroll", "padding" => 0px)
     mainmenu::Component{:section}
 end
 
@@ -189,7 +189,6 @@ function settings(c::Connection)
         style!(cm, settingicon, "transform" => "rotate(0deg)",
         "color" => "black")
         style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
-
     end
     settingicon::Component{:span}
 end
@@ -277,7 +276,6 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     push!(myproj.open, filepath_name =>  projdict)
     projbuild = build(c, cm, myproj, at = filepath_name)
     append!(cm, "olivemain-pane", projbuild)
-    append!(cm, "tabmenu", build_tab(c, filepath_name))
 end
 
 function build_tab(c::Connection, fname::String)
@@ -285,8 +283,37 @@ function build_tab(c::Connection, fname::String)
     style!(tabbody, "border-bottom-right-radius" => 0px,
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
     "border-width" => 2px, "border-color" => "lightblue",
-    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer")
-    push!(tabbody, a("tablabel$(fname)", text = fname))
+    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
+    "margin-left" => 10px)
+    tablabel = a("tablabel$(fname)", text = fname)
+    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
+    "font-size"  => 13pt)
+    push!(tabbody, tablabel)
+    on(c, tabbody, "click") do cm::ComponentModifier
+        if ~("$(fname)close" in keys(cm.rootc))
+            closebutton = topbar_icon("$(fname)close", "close")
+            savebutton = topbar_icon("$(fname)save", "save")
+            saveas_button = topbar_icon("$(fname)saveas", "save_as")
+            decollapse_button = topbar_icon("$(fname)dec", "left_panel_close")
+            restartbutton = topbar_icon("$(fname)restart", "restart_alt")
+            add_button = topbar_icon("$(fname)add", "add_circle")
+            runall_button = topbar_icon("$(fname)run", "sprint")
+            style!(closebutton, "font-size"  => 17pt, "color" => "red")
+            style!(restartbutton, "font-size"  => 17pt)
+            style!(savebutton, "font-size"  => 17pt)
+            style!(saveas_button, "font-size"  => 17pt)
+            style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
+            style!(add_button, "font-size"  => 17pt)
+            style!(runall_button, "font-size"  => 17pt)
+            append!(cm, tabbody, decollapse_button)
+            append!(cm, tabbody, savebutton)
+            append!(cm, tabbody, saveas_button)
+            append!(cm, tabbody, add_button)
+            append!(cm, tabbody, restartbutton)
+            append!(cm, tabbody, runall_button)
+            append!(cm, tabbody, closebutton)
+        end
+    end
     tabbody
 end
 

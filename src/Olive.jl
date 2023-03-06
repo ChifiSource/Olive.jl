@@ -83,8 +83,6 @@ main = route("/session") do c::Connection
     push!(olivemain, ui_topbar, ui_settings, mainpane)
     bod = body("mainbody")
     push!(bod, notifier, ui_explorer, olivemain)
-    new_tab = build_tab(c, first(proj_open.open)[1])
-    push!(ui_topbar[:children]["tabmenu"], new_tab)
     # load default key-bindings (if non-existent)
     if ~("keybindings" in keys(c[:OliveCore].client_data[getip(c)]))
         c[:OliveCore].client_data[getip(c)]["keybindings"] = Dict{Symbol, Any}(
