@@ -292,12 +292,47 @@ function build_tab(c::Connection, fname::String)
     on(c, tabbody, "click") do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             closebutton = topbar_icon("$(fname)close", "close")
+            on(c, closebutton, "click") do cm2::ComponentModifier
+                remove!(cm2, "$(fname)over")
+                delete!(c[:OliveCore].open[getip(c)].open, fname)
+                olive_notify!(cm2, "project $(fname) closed", color = "blue")
+            end
             savebutton = topbar_icon("$(fname)save", "save")
+            on(c, savebutton, "click") do cm2::ComponentModifier
+                savepath = c[:OliveCore].open[getip(c)].open[fname][:path]
+                cells = c[:OliveCore].open[getip(c)].open[fname][:cells]
+                IPy.save(cells, savepath)
+                olive_notify!(cm2, "file $(savepath) saved", color = "green")
+            end
             saveas_button = topbar_icon("$(fname)saveas", "save_as")
-            decollapse_button = topbar_icon("$(fname)dec", "left_panel_close")
             restartbutton = topbar_icon("$(fname)restart", "restart_alt")
+            on(c, restartbutton, "click") do cm2::ComponentModifier
+                new_name = split(fname, ".")[1]
+                myproj = c[:OliveCore].open[getip(c)]
+                modstr = """module $(new_name)
+                using Pkg
+
+                function evalin(ex::Any)
+                        Pkg.activate("$(myproj.environment)")
+                        ret = eval(ex)
+                end
+                end"""
+                mod::Module = eval(Meta.parse(modstr))
+                myproj.open[fname][:mod] = mod
+                olive_notify!(cm2, "module for $(fname) re-sourced")
+            end
             add_button = topbar_icon("$(fname)add", "add_circle")
             runall_button = topbar_icon("$(fname)run", "sprint")
+            decollapse_button = topbar_icon("$(fname)dec", "left_panel_close")
+            on(c, decollapse_button, "click") do cm2::ComponentModifier
+                remove!(cm2, savebutton)
+                remove!(cm2, closebutton)
+                remove!(cm2, saveas_button)
+                remove!(cm2, add_button)
+                remove!(cm2, runall_button)
+                remove!(cm2, restartbutton)
+                remove!(cm2, decollapse_button)
+            end
             style!(closebutton, "font-size"  => 17pt, "color" => "red")
             style!(restartbutton, "font-size"  => 17pt)
             style!(savebutton, "font-size"  => 17pt)
