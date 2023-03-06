@@ -79,6 +79,7 @@ main = route("/session") do c::Connection
     end for d in proj_open.directories])
     olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
     mainpane = div("olivemain-pane")
+    style!(mainpane, "display" => "flex", "overflow-x" => "scroll", "padding" => 0px)
     push!(olivemain, ui_topbar, ui_settings, mainpane)
     bod = body("mainbody")
     push!(bod, notifier, ui_explorer, olivemain)

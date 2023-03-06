@@ -32,11 +32,13 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     hiddencell
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
-    cells::Vector{Cell}, window::String)
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
+    cells::Vector{Cell}, windowname::String)
     keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
-    outside = div("cellcontainer$(cell.id)", class = cell)
+    outside = div("cellcontainer$(cell.id)", class = "cell")
+    inner  = div("cellinside$(cell.id)")
+    style!(inner, "display" => "flex")
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.source)
     bind!(km, "Backspace") do cm2::ComponentModifier
         if cm2["rawcell$(cell.id)"]["text"] == ""
@@ -45,16 +47,74 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
             cells[pos] = new_cell
             cell = new_cell
             remove!(cm2, outside)
-            built = build(c, cm2, new_cell, cells, window)
-            ToolipsSession.insert!(cm2, window, pos, built)
+            built = build(c, cm2, new_cell, cells, windowname)
+            ToolipsSession.insert!(cm2, windowname, pos, built)
             focus!(cm2, "cell$(cell.id)")
         end
     end
+    bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
+        evaltxt =  cm2["rawcell$(cell.id)"]["text"]
+        rts = c[:OliveCore].open[getip(c)].open[windowname][:mod].evalin(
+        Meta.parse("@doc($(evaltxt))")
+        )
+        set_children!(cm2, "cell$(cell.id)out", [tmd("out$(cell.id)", string(rts))])
+    end
+    sidebox = div("cellside$(cell.id)")
+    style!(sidebox, "display" => "inline-block",
+    "background-color" => "orange",
+    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
+    "overflow" => "hidden")
+    pkglabel =  a("$(cell.id)helplabel", text = "help>")
+    style!(pkglabel, "font-weight" => "bold", "color" => "black")
+    push!(sidebox, pkglabel)
     style!(inside, "width" => 80percent, "border-bottom-left-radius" => 0px,
-    "min-height" => 50px,
-     "position" => "relative", "margin-top" => 0px,
+    "border-top-left-radius" => 0px,
+    "min-height" => 50px, "display" => "inline-block",
+     "margin-top" => 0px, "font-weight" => "bold",
+     "background-color" => "orange", "color" => "black")
+     output = div("cell$(cell.id)out")
+     push!(inner, sidebox, inside)
+    push!(outside, inner, output)
+    bind!(c, cm, inside, km)
+    outside
+end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
+    cells::Vector{Cell}, windowname::String)
+    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+    km = ToolipsSession.KeyMap()
+    outside = div("cellcontainer$(cell.id)", class = "cell")
+    style!(outside, "display" => "flex")
+    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.source)
+    bind!(km, "Backspace") do cm2::ComponentModifier
+        if cm2["rawcell$(cell.id)"]["text"] == ""
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
+            new_cell = Cell(pos, "code", "")
+            cells[pos] = new_cell
+            cell = new_cell
+            remove!(cm2, outside)
+            built = build(c, cm2, new_cell, cells, windowname)
+            ToolipsSession.insert!(cm2, windowname, pos, built)
+            focus!(cm2, "cell$(cell.id)")
+        end
+    end
+    bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
+
+    end
+    sidebox = div("cellside$(cell.id)")
+    style!(sidebox, "display" => "inline-block",
+    "background-color" => "blue",
+    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
+    "overflow" => "hidden")
+    pkglabel =  a("$(cell.id)pkglabel", text = "pkg>")
+    style!(pkglabel, "font-weight" => "bold", "color" => "white")
+    push!(sidebox, pkglabel)
+    style!(inside, "width" => 80percent, "border-bottom-left-radius" => 0px,
+    "border-top-left-radius" => 0px,
+    "min-height" => 50px, "display" => "inline-block",
+     "margin-top" => 0px, "font-weight" => "bold",
      "background-color" => "blue", "color" => "white")
-    push!(outside, inside)
+    push!(outside, sidebox, inside)
     bind!(c, cm, inside, km)
     outside
 end
@@ -98,7 +158,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         elseif curr == "\\"
             olive_notify!(cm, "olive cells not yet available!", color = "red")
         elseif curr == "?"
-            olive_notify!(cm, "help cells not yet available!", color = "red")
+            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+            new_cell = Cell(pos, "helprepl", "")
+            cells[pos] = new_cell
+            cell = new_cell
+            remove!(cm, outside)
+            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
+             cells, windowname))
+            focus!(cm, "cell$(cell.id)")
         end
         #== TODO
         Syntax highlighting here.
@@ -109,14 +176,15 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     style!(interiorbox, "display" => "flex")
     sidebox = div("cellside$(cell.id)")
     style!(sidebox, "display" => "inline-block", "background-color" => "pink",
-    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px)
+    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
+    "overflow" => "hidden")
     push!(interiorbox, sidebox, inside)
     cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
     cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
     push!(sidebox, cell_drag, br(), cell_run)
     style!(cell_drag, "color" => "white", "font-size" => 17pt)
     style!(cell_run, "color" => "white", "font-size" => 17pt)
-    output = divider("cell$(cell.id)" * "out", class = "output_cell", text = cell.outputs)
+    output = divider("cell$(cell.id)out", class = "output_cell", text = cell.outputs)
     push!(outside, interiorbox, output)
     on(c, cell_run, "click") do cm2::ComponentModifier
             evaluate(c, cell, cm2)
@@ -275,7 +343,6 @@ end
 function build(c::Connection, cell::Cell{:jl},
     d::Directory{<:Any}; explorer::Bool = false)
     hiddencell = div("cell$(cell.id)", class = "cell-jl")
-    println(explorer)
     style!(hiddencell, "cursor" => "pointer")
     if explorer
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
@@ -419,7 +486,7 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier,
     # get code
     rawcode::String = cm["rawcell$(cell.id)"]["text"]
     execcode::String = *("begin\n", replace(rawcode, "&gt;" => ">",
-    "&lt;" => "&lt"), "end\n")
+    "&lt;" => "&lt"), "\nend\n")
     println(execcode)
     text::String = replace(cell.source, "\n" => "</br>")
     # get project

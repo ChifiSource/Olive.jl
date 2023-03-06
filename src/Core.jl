@@ -183,8 +183,9 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any};
         push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
         frstcells, name))
     end for cell in frstcells]
-    proj_window = div(name)
-    style!(proj_window, "display" => "inline-block", "overflow-y" => "scroll")
+    proj_window = div(name, width = 500, height = 500)
+    style!(proj_window, "display" => "inline-block",
+    "overflow-y" => "scroll !important", "min-width" => 40percent)
     proj_window[:children] = retvs
     proj_window::Component{:div}
 end

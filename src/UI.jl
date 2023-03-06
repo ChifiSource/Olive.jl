@@ -67,8 +67,8 @@ end
 function cell_style()
     st::Style = Style("div.cell", "border-color" => "gray", padding = "20px",
     "background-color" => "white", "border-top-left-radius" => 0px,
-    "border-bottom-left-radius" => 0px)
-    st:"focus":["border-width" => 2px]
+    "border-bottom-left-radius" => 0px, "width" => 100percent, "transition" => 1seconds)
+    st:"focus":["border-width" => 2px, "border-color" => "magenta"]
     fade_up()
     st::Style
 end
