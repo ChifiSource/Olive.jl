@@ -75,10 +75,6 @@ extended and written
 """
 build(om::OliveModifier, oe::OliveExtension{<:Any}) = return
 
-function build(om::OliveModifier, oe::OliveExtension{:settings})
-
-end
-
 """
 ### Directory
 - uri::String

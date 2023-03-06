@@ -8,7 +8,7 @@ end
 function inputcell_style()
     st = Style("div.input_cell", border = "2px solid gray", padding = "20px",
     "bordier-radius" => 30px, "margin-top" => 30px, "transition" => 1seconds,
-    "font-size" => 14pt)
+    "font-size" => 16pt)
     st::Style
 end
 

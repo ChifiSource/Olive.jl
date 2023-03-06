@@ -130,9 +130,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
     text = replace(cell.source, "\n" => "</br>")
-#==    tm = TextModifier(text)
+    tm = TextModifier(text)
     ToolipsMarkdown.julia_block!(tm)
-    ==#
     outside = div("cellcontainer$(cell.id)", class = "cell")
     cell = cell
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = text,
@@ -140,9 +139,17 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     style!(inside,
     "width" => 80percent, "border-bottom-left-radius" => 0px, "min-height" => 50px,
     "position" => "relative", "margin-top" => 0px, "display" => "inline-block",
-    "border-top-left-radius" => 0px)
+    "border-top-left-radius" => 0px, "color" => "white")
+    inputbox = div("cellinput$(cell.id)")
+    style!(inputbox, "padding" => 0px, "width" => 80percent,
+    "overflow" => "hidden", "border-top-left-radius" => 0px, "border-top-right-radius" => 0px)
+    highlight_box = div("cellhighlight$(cell.id)", text = string(tm))
+    style!(highlight_box, "position" => "absolute",
+    "background" => "transparent", "z-index" => "5", "padding" => 20px,
+    "font-size" => 16pt, "pointer-events" => "none", "width" => 80percent)
+    push!(inputbox, highlight_box, inside)
     style!(outside, "transition" => 1seconds)
-    on(c, cm, inside, "input", ["rawcell$(cell.id)"]) do cm::ComponentModifier
+    on(c, cm, inside, "input", ["rawcell$(cell.id)", "cell$(cell.id)"]) do cm::ComponentModifier
         curr = cm["rawcell$(cell.id)"]["text"]
         if curr == "]"
             pos = findall(lcell -> lcell.id == cell.id, cells)[1]
@@ -170,6 +177,16 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         #== TODO
         Syntax highlighting here.
         ==#
+        highlight_t = cm[inside]["text"]
+        tm = ToolipsMarkdown.TextModifier(curr)
+        ToolipsMarkdown.julia_block!(tm)
+        # TODO so this is my syntax highlighting setup... it's close but
+        # no cigar. Highlighting works fine, it is seeking the cursor that is
+        # the problem. Considering maybe using the overbox technique?
+    #==
+        set_textdiv_caret!(cm, inside, new_sel)
+        focus!(cm, inside) ==#
+        set_text!(cm, highlight_box, string(tm))
         cell.source = curr
     end
     interiorbox = div("cellinterior$(cell.id)")
@@ -178,7 +195,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     style!(sidebox, "display" => "inline-block", "background-color" => "pink",
     "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
     "overflow" => "hidden")
-    push!(interiorbox, sidebox, inside)
+    push!(interiorbox, sidebox, inputbox)
     cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
     cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
     push!(sidebox, cell_drag, br(), cell_run)
@@ -490,7 +507,6 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier,
     rawcode::String = cm["rawcell$(cell.id)"]["text"]
     execcode::String = *("begin\n", replace(rawcode, "&gt;" => ">",
     "&lt;" => "&lt"), "\nend\n")
-    println(execcode)
     text::String = replace(cell.source, "\n" => "</br>")
     # get project
     selected::String = cm["olivemain"]["selected"]
