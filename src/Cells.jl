@@ -34,19 +34,19 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     cells::Vector{Cell}, window::String)
-    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
     outside = div("cellcontainer$(cell.id)", class = cell)
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.source)
     bind!(km, "Backspace") do cm2::ComponentModifier
-        if cm2[inside]["text"] == ""
-            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+        if cm2["rawcell$(cell.id)"]["text"] == ""
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
             new_cell = Cell(pos, "code", "")
             cells[pos] = new_cell
             cell = new_cell
             remove!(cm2, outside)
-            ToolipsSession.insert!(cm2, window, pos, build(c, cm, new_cell,
-            cells, window))
+            built = build(c, cm2, new_cell, cells, window)
+            ToolipsSession.insert!(cm2, window, pos, built)
             focus!(cm2, "cell$(cell.id)")
         end
     end
@@ -61,19 +61,20 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     cells::Vector{Cell})
-    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
 
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, windowname::String)
-    keybindings = c[:OliveCore].client_data[getip(c)][:keybindings]
+    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
     text = replace(cell.source, "\n" => "</br>")
 #==    tm = TextModifier(text)
     ToolipsMarkdown.julia_block!(tm)
     ==#
-    outside = div("cellcontainer$(cell.id)", class = cell)
+    outside = div("cellcontainer$(cell.id)", class = "cell")
+    cell = cell
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = text,
     "class" => "input_cell")
     style!(inside,
@@ -81,8 +82,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     "position" => "relative", "margin-top" => 0px, "display" => "inline-block",
     "border-top-left-radius" => 0px)
     style!(outside, "transition" => 1seconds)
-    on(c, cm, inside, "input") do cm::ComponentModifier
-        curr = cm[inside]["text"]
+    on(c, cm, inside, "input", ["rawcell$(cell.id)"]) do cm::ComponentModifier
+        curr = cm["rawcell$(cell.id)"]["text"]
         if curr == "]"
             pos = findall(lcell -> lcell.id == cell.id, cells)[1]
             new_cell = Cell(pos, "pkgrepl", "")
@@ -93,14 +94,16 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
              cells, windowname))
             focus!(cm, "cell$(cell.id)")
         elseif curr == ";"
-            alert!(cm, "bashcell")
+            olive_notify!(cm, "bash cells not yet available!", color = "red")
         elseif curr == "\\"
-            alert!(cm, "olivecell")
+            olive_notify!(cm, "olive cells not yet available!", color = "red")
+        elseif curr == "?"
+            olive_notify!(cm, "help cells not yet available!", color = "red")
         end
         #== TODO
         Syntax highlighting here.
         ==#
-        cell.source = cm[inside]["text"]
+        cell.source = curr
     end
     interiorbox = div("cellinterior$(cell.id)")
     style!(interiorbox, "display" => "flex")
@@ -110,7 +113,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     push!(interiorbox, sidebox, inside)
     cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
     cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
-    push!(sidebox, cell_drag, cell_run)
+    push!(sidebox, cell_drag, br(), cell_run)
     style!(cell_drag, "color" => "white", "font-size" => 17pt)
     style!(cell_run, "color" => "white", "font-size" => 17pt)
     output = divider("cell$(cell.id)" * "out", class = "output_cell", text = cell.outputs)
@@ -119,47 +122,67 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             evaluate(c, cell, cm2)
     end
     bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
-        evaluate(c, cell, cm2)
-        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
-        if pos == length(cells)
-            new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
-            push!(cells, new_cell)
-            append!(cm2, windowname, build(c, cm2, new_cell, cells, windowname))
-            focus!(cm2, "cell$(new_cell.id)")
-            return
+        icon = olive_loadicon()
+        icon.name = "load$(cell.id)"
+        icon["width"] = "20"
+        remove!(cm2, cell_run)
+        set_children!(cm2, "cellside$(cell.id)", [icon])
+        script!(c, cm2, "$(cell.id)eval") do cm3::ComponentModifier
+            evaluate(c, cell, cm3, windowname)
+            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+            if pos == length(cells)
+                new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
+                push!(cells, new_cell)
+                append!(cm3, windowname, build(c, cm3, new_cell, cells, windowname))
+                focus!(cm3, "cell$(new_cell.id)")
+                set_children!(cm3, sidebox, [cell_drag, br(), cell_run])
+                return
+            end
+            next_cell = cells[pos + 1]
+            focus!(cm3, "cell$(next_cell.id)")
+            set_children!(cm3, sidebox, [cell_drag, br(), cell_run])
         end
-        next_cell = cells[pos + 1]
-        focus!(cm2, "cell$(next_cell.id)")
     end
-    bind!(km, keybindings[:up] ...) do cm::ComponentModifier
+    bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
         pos = findall(lcell -> lcell.id == cell.id, cells)[1]
-        switchcell = cells[pos - 1]
-        cells[pos - 1] = cell
-        cells[pos] = switchcell
-        remove!(cm, "cellcontainer$(switchcell.id)")
-        remove!(cm, "cellcontainer$(cell.id)")
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, cells,
-        windowname))
-        ToolipsSession.insert!(cm, windowname, pos - 1, build(c, cm, cell, cells,
-        windowname))
-        focus!(cm, "cell$(cell.id)")
+        if pos != 1
+            switchcell = cells[pos - 1]
+            cells[pos - 1] = cell
+            cells[pos] = switchcell
+            remove!(cm2, "cellcontainer$(switchcell.id)")
+            remove!(cm2, "cellcontainer$(cell.id)")
+            ToolipsSession.insert!(cm2, windowname, pos, build(c, cm2, switchcell, cells,
+            windowname))
+            ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, cell, cells,
+            windowname))
+            focus!(cm2, "cell$(cell.id)")
+        else
+            alert!(cm2, "you sending your cell into the topbar? smooth move ace.")
+        end
     end
     bind!(km, keybindings[:down] ...) do cm::ComponentModifier
         pos = findall(lcell -> lcell.id == cell.id, cells)[1]
-        switchcell = cells[pos + 1]
-        cells[pos + 1] = cell
-        cells[pos] = switchcell
-        remove!(cm, "cellcontainer$(switchcell.id)")
-        remove!(cm, "cellcontainer$(cell.id)")
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, cells,
-        windowname))
-        ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, cells,
-        windowname))
-        focus!(cm, "cell$(cell.id)")
+        if pos != length(cells)
+            switchcell = cells[pos + 1]
+            cells[pos + 1] = cell
+            cells[pos] = switchcell
+            remove!(cm, "cellcontainer$(switchcell.id)")
+            remove!(cm, "cellcontainer$(cell.id)")
+            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, cells,
+            windowname))
+            ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, cells,
+            windowname))
+            focus!(cm, "cell$(cell.id)")
+        else
+            alert!(cm, "where do you honestly expect this cell to go")
+            alert!(cm, "bruh moment")
+            alert!(cm, "bruh was tryna send their cell to the underworld")
+        end
     end
     bind!(km, keybindings[:delete] ...) do cm::ComponentModifier
         remove!(cm, "cellcontainer$(cell.id)")
-        deleteat!(cells, findall(c -> c.id == cell.id, cells)[1])
+        deleteat!(cells, findfirst(c -> c.id == cell.id, cells))
     end
     bind!(km, keybindings[:new] ...) do cm::ComponentModifier
         pos = findall(lcell -> lcell.id == cell.id, cells)[1]
@@ -187,7 +210,7 @@ end
 
 
 function build(c::Connection, cell::Cell{:ipynb},
-    d::Directory{<:Any})
+    d::Directory{<:Any}; explorer::Bool = false)
     filecell = div("cell$(cell.id)", class = "cell-ipynb")
     on(c, filecell, "dblclick") do cm::ComponentModifier
         evaluate(c, cell, cm)
@@ -198,23 +221,50 @@ function build(c::Connection, cell::Cell{:ipynb},
     filecell
 end
 
-function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
+function dir_returner(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
+    explorer::Bool = false)
+    returner = div("cell$(cell.id)", class = "cell-jl")
+    style!(returner, "background-color" => "red")
+    name = a("cell$(cell.id)label", text = "...")
+    style!(name, "color" => "white")
+    push!(returner, name)
+    on(c, returner, "dblclick") do cm2::ComponentModifier
+        newcells = directory_cells(d.uri)
+        n_dir::String = d.uri
+        built = [build(c, cel, d, explorer = explorer) for cel in newcells]
+        if typeof(d) == Directory{:subdir}
+            n_dir = d.access["toplevel"]
+            if n_dir != d.uri
+                newd = Directory(n_dir, "root" => "rw",
+                "toplevel" => d.access["toplevel"], dirtype = "subdir")
+                insert!(built, 1, dir_returner(c, cell, newd))
+            end
+        end
+        cm2["$(n_dir)cells"] = "sel" => d.uri
+        set_children!(cm2, "$(n_dir)cells",
+        Vector{Servable}(built))
+    end
+    returner::Component{:div}
+end
+
+function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any};
+    explorer::Bool = false)
     filecell = div("cell$(cell.id)", class = "cell-ipynb")
     style!(filecell, "background-color" => "#FFFF88")
     on(c, filecell, "dblclick") do cm::ComponentModifier
-        returner = div("cell$(cell.id)", class = "cell-jl")
-        style!(returner, "background-color" => "red")
-        name = a("cell$(cell.id)label", text = d.uri)
-        style!(name, "color" => "white")
-        push!(returner, name)
-        on(c, returner, "dblclick") do cm2::ComponentModifier
-            newcells = directory_cells(d.uri)
-            set_children!(cm2, "$(d.uri)cells",
-            Vector{Servable}([build(c, cel, d) for cel in newcells]))
+        returner = dir_returner(c, cell, d, explorer = explorer)
+        nuri::String = "$(d.uri)/$(cell.source)"
+        newcells = directory_cells(nuri)
+        cm["$(d.uri)cells"] = "sel" => nuri
+        toplevel = d.uri
+        if typeof(d) == Directory{:subdir}
+            toplevel = d.access["toplevel"]
         end
-        newcells = directory_cells(d.uri * "/" * cell.source)
+        nd = Directory(d.uri * "/" * cell.source * "/", "root" => "rw",
+        "toplevel" => toplevel, dirtype = "subdir")
         set_children!(cm, "$(d.uri)cells",
-        vcat([returner], [build(c, cel, d) for cel in newcells]))
+        Vector{Servable}(vcat([returner],
+        [build(c, cel, nd, explorer = explorer) for cel in newcells])))
     end
     fname = a("$(cell.source)", text = cell.source)
     style!(fname, "color" => "gray", "font-size" => 15pt)
@@ -223,11 +273,21 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
 end
 
 function build(c::Connection, cell::Cell{:jl},
-    d::Directory{<:Any})
+    d::Directory{<:Any}; explorer::Bool = false)
     hiddencell = div("cell$(cell.id)", class = "cell-jl")
+    println(explorer)
     style!(hiddencell, "cursor" => "pointer")
-    on(c, hiddencell, "dblclick") do cm::ComponentModifier
-        evaluate(c, cell, cm)
+    if explorer
+        on(c, hiddencell, "dblclick") do cm::ComponentModifier
+            cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
+            alert!(cm, "hi")
+            add_to_session(c, cs, cm, cell.source, cell.outputs)
+        end
+    else
+        on(c, hiddencell, "dblclick") do cm::ComponentModifier
+            cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
+            load_session(c, cs, cm, cell.source, cell.outputs)
+        end
     end
     name = a("cell$(cell.id)label", text = cell.source)
     style!(name, "color" => "white")
@@ -236,7 +296,7 @@ function build(c::Connection, cell::Cell{:jl},
 end
 
 function build(c::Connection, cell::Cell{:toml},
-    d::Directory)
+    d::Directory; explorer::Bool = false)
     hiddencell = div("cell$(cell.id)", class = "cell-toml")
     name = a("cell$(cell.id)label", text = cell.source)
     on(c, hiddencell, "dblclick") do cm::ComponentModifier
@@ -354,31 +414,51 @@ function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier)
 
 end
 
-function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier)
+function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier,
+    window::String)
     # get code
     rawcode::String = cm["rawcell$(cell.id)"]["text"]
-    execcode::String = replace(rawcode, "<div>" => "\n", "</div>" => "")
+    execcode::String = *("begin\n", replace(rawcode, "&gt;" => ">",
+    "&lt;" => "&lt"), "end\n")
+    println(execcode)
     text::String = replace(cell.source, "\n" => "</br>")
     # get project
     selected::String = cm["olivemain"]["selected"]
     proj::Project{<:Any} = c[:OliveCore].open[getip(c)]
-    #== evaluate
-    SOME NOTES -- `i` below is meant to eventually be passed through `evalin`.
-    We need to find a way to make this buffer write anything that comes through
-    stdout, that way if something is printed or otherwise it can still be
-    displayed instead of entirely relying on returns.
+    #== evaluate TODO
+    The PIPE portion of this is currently commented out -- it was causing
+    UI-BREAKING bugs. If you are able to fix this, then please fix this.
     ==#
     ret::Any = ""
-    try
-        ret = proj.mod.evalin(Meta.parse(execcode))
-    catch e
-        ret = e
+    p = Pipe()
+    err = Pipe()
+   redirect_stdio(stdout = p, stderr = err) do
+        try
+            ret = proj.open[window][:mod].evalin(Meta.parse(execcode))
+        catch e
+            ret = e
+        end
     end
-
+    close(err)
+    close(Base.pipe_writer(p))
+    standard_out = read(p, String)
+    close(p)
     # output
+    outp::String = ""
     od = OliveDisplay()
-    display(od, MIME"olive"(), ret)
-    outp::String = String(od.io.data)
+    if typeof(ret) <: Exception
+        Base.showerror(od.io, ret)
+        outp = replace(String(od.io.data), "\n" => "</br>")
+    elseif ~(isnothing(ret)) && length(standard_out) > 0
+        display(od, MIME"olive"(), ret)
+        outp = standard_out * "</br>" * String(od.io.data)
+    elseif ~(isnothing(ret)) && length(standard_out) == 0
+        display(od, MIME"olive"(), ret)
+        outp = String(od.io.data)
+
+    else
+        outp = standard_out
+    end
     set_text!(cm, "cell$(cell.id)out", outp)
     # mutate cell
     cell.outputs = outp
@@ -409,18 +489,13 @@ function evaluate(c::Connection, cell::Cell{:ipynb}, cm::ComponentModifier)
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
-function evaluate(c::Connection, cell::Cell{:jl}, cm::ComponentModifier)
-    cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
-    load_session(c, cs, cm, cell.source, cell.outputs)
-end
-
 function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
     files = readdir(dir)
     return([build_file_cell(e, path, dir) for (e, path) in enumerate(files)]::AbstractVector)
 end
 
 function build_file_cell(e::Int64, path::String, dir::String)
-    if ~(isdir(path))
+    if ~(isdir(dir * "/" * path))
         splitdir::Vector{SubString} = split(path, "/")
         fname::String = string(splitdir[length(splitdir)])
         fsplit = split(fname, ".")
@@ -430,6 +505,6 @@ function build_file_cell(e::Int64, path::String, dir::String)
         end
         Cell(e, fending, fname, dir * "/" * path)
     else
-        Cell(e, "dir", path, path)
+        Cell(e, "dir", path, dir)
     end
 end

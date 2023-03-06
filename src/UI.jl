@@ -146,8 +146,51 @@ function explorer_icon(c::Connection)
     explorericon::Component{:span}
 end
 
+function settings_menu(c::Connection)
+    mainmenu = section("settingsmenu", open = "0")
+    style!(mainmenu, "opacity" => 0percent,  "height" => 0percent,
+    "overflow-y" => "scroll")
+    mainmenu::Component{:section}
+end
+
+function olive_notify!(cm::AbstractComponentModifier, message::String,
+    duration::Int64 = 2000;  color::String = "pink")
+    set_text!(cm, "olive-notifier", message)
+    style!(cm, "olive-notifier", "height" => 2percent, "opacity" => 100percent,
+    "background-color" => color)
+    script!(cm, "notifierdie", time = duration) do cm2
+        style!(cm2, "olive-notifier", "height" => 0percent, "opacity" => 0percent)
+    end
+end
+
+function olive_notific()
+    notifier = div("olive-notifier", align = "center")
+    style!(notifier, "background-color" => "pink", "color" => "white",
+    "height" => 0percent, "position" => "absolute", "opacity" => 0percent,
+    "width" => 99percent, "margin-left" => 0px, "z-index" => "8",
+    "font-weight" => "bold", "border-top-right-radius" => 0px, "overflow" => "hidden",
+    "border-top-left-radius" => 0px, "left" => 0percent, "top" => 0percent,
+    "transition" => ".5s")
+    notifier::Component{:div}
+end
+
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
+    on(c, settingicon, "click", ["settingsmenu"]) do cm::ComponentModifier
+        if cm["settingsmenu"]["open"] == "0"
+            style!(cm, settingicon, "transform" => "rotate(-180deg)",
+            "color" => "lightblue")
+            style!(cm, "settingsmenu", "opacity" => 100percent,
+            "height" => 50percent)
+            cm["settingsmenu"] = "open" => "1"
+            return
+        end
+        cm["settingsmenu"] =  "open" => "0"
+        style!(cm, settingicon, "transform" => "rotate(0deg)",
+        "color" => "black")
+        style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
+
+    end
     settingicon::Component{:span}
 end
 
@@ -158,10 +201,12 @@ function topbar(c::Connection)
     rightmenu = span("rightmenu", align = "right")
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
-    "border-radius" => "5px")
+    "border-radius" => "5px", "overflow" =>  "hidden")
+    tabmenu = div("tabmenu", align = "center")
+    style!(tabmenu, "display" => "inline-block")
     push!(leftmenu, explorer_icon(c))
     push!(rightmenu, settings(c))
-    push!(topbar, leftmenu, rightmenu)
+    push!(topbar, leftmenu, tabmenu, rightmenu)
     topbar::Component{:div}
 end
 
@@ -192,13 +237,52 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     cm::ComponentModifier, source::String, fpath::String)
     myproj = Project{:olive}("hello", "ExampleProject")
     fsplit = split(fpath, "/")
-    push!(myproj.open, fsplit[length(fsplit)] =>  cs)
+    name = split(fsplit[length(fsplit)], ".")[1]
+    modstr = """module $(name)
+    using Pkg
+
+    function evalin(ex::Any)
+            Pkg.activate("$(myproj.environment)")
+            ret = eval(ex)
+    end
+    end"""
+    mod::Module = eval(Meta.parse(modstr))
+    projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
+    push!(myproj.open, fsplit[length(fsplit)] =>  projdict)
     c[:OliveCore].open[getip(c)] = myproj
     redirect!(cm, "/session")
 end
 
-function build_tab(c::Connection, cm::ComponentModifier)
+function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
+    cm::ComponentModifier, source::String, fpath::String)
+    fsplit = split(fpath, "/")
+    name = split(fsplit[length(fsplit)], ".")[1]
+    myproj = c[:OliveCore].open[getip(c)]
+    modstr = """module $(name)
+    using Pkg
 
+    function evalin(ex::Any)
+            Pkg.activate("$(myproj.environment)")
+            ret = eval(ex)
+    end
+    end"""
+    filepath_name::String = fsplit[length(fsplit)]
+    mod::Module = eval(Meta.parse(modstr))
+    projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
+    push!(myproj.open, filepath_name =>  projdict)
+    projbuild = build(c, cm, myproj, at = filepath_name)
+    append!(cm, "olivemain-pane", projbuild)
+    append!(cm, "tabmenu", build_tab(c, filepath_name))
+end
+
+function build_tab(c::Connection, fname::String)
+    tabbody = div("tab$(fname)")
+    style!(tabbody, "border-bottom-right-radius" => 0px,
+    "border-bottom-left-radius" => 0px, "display" => "inline-block",
+    "border-width" => 2px, "border-color" => "lightblue",
+    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer")
+    push!(tabbody, a("tablabel$(fname)", text = fname))
+    tabbody
 end
 
 function olive_loadicon()

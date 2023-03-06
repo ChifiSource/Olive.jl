@@ -51,7 +51,7 @@ OliveExtension{}
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     rootc::Dict{String, AbstractComponent}
     changes::Vector{String}
-    data::Dict{Symbol, Any}
+    data::Dict{String, Any}
     function OliveModifier(c::Connection, cm::ComponentModifier)
         new(cm.rootc, cm.changes, c[:OliveCore].client_data[getip(c)])
     end
@@ -122,22 +122,37 @@ custom directory example
 
 ```
 """
-build(c::Connection, dir::Directory{<:Any}, m::Module) = begin
+build(c::Connection, dir::Directory{<:Any}, m::Module;
+exp::Bool = false) = begin
     container = section(dir.uri, align = "left")
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
-        projname = toml_cats["name"]
-        envtop = h("headingenv$(dir.uri)", 2, text = projname)
-        push!(container, envtop)
+        if "name" in keys(toml_cats)
+            projname = toml_cats["name"]
+            envtop = h("headingenv$(dir.uri)", 2, text = projname)
+            push!(container, envtop)
+        end
     end
     dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     push!(container, dirtop)
-    cells = [Base.invokelatest(m.build, c, cell, dir) for cell in dir.cells]
+    cells = [begin
+        Base.invokelatest(m.build, c, cell, dir, explorer = exp)
+    end for cell in dir.cells]
     containercontrols = section("$(dir.uri)controls")
-    cellcontainer = section("$(dir.uri)cells")
+    style!(containercontrols, "padding" => 0px)
+    new_dirb = button("newdirb", text = "new directory")
+    new_fb = button("newfb", text = "new file")
+    on(c, new_dirb, "click") do cm::ComponentModifier
+
+    end
+    on(c, new_fb, "click") do cm::ComponentModifier
+
+    end
+    push!(containercontrols, new_dirb, new_fb)
+    cellcontainer = section("$(dir.uri)cells", sel = dir.uri)
     cellcontainer[:children] = cells
-    push!(container, cellcontainer)
+    push!(container, containercontrols, cellcontainer)
     return(container)
 end
 
@@ -146,54 +161,30 @@ mutable struct Project{name <: Any} <: Servable
     dir::String
     directories::Vector{Directory{<:Any}}
     environment::String
-    open::Dict{String, Vector{Cell}}
-    mod::Module
-    function Project(name::String, dir::String; environment::String = "")
-        open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
-        modstr = """module $(name)
-        using Pkg
-
-        function evalin(ex::Any)
-                Pkg.activate("$environment")
-                ret = eval(ex)
-        end
-        end"""
-        mod::Module = eval(Meta.parse(modstr))
-        if environment == ""
-            environment = dir
-        end
+    open::Dict{String, Dict{Symbol, Any}}
+    function Project(name::String, dir::String; environment::String = dir)
+        open::Dict{String, Dict{String, Any}} = Dict{String, Dict{String, Any}}()
         new{Symbol(name)}(name, dir, Vector{Directory{<:Any}}(),
-         environment, open, mod)::Project{<:Any}
+         environment, open)::Project{<:Any}
     end
     Project{T}(name::String, dir::String; environment::String = dir) where {T <: Any} = begin
-        open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
+        open::Dict{String, Dict{String, Any}} = Dict{String, Dict{String, Any}}()
         groups::Dict{String, String} = Dict("root" => "rw")
-        modstr = """module $(name)
-        using Pkg
-
-        function evalin(ex::Any)
-                Pkg.activate("$environment")
-                ret = eval(ex)
-        end
-        end"""
-        mod::Module = eval(Meta.parse(modstr))
-        if environment == ""
-            environment = dir
-        end
-        new{T}(name, dir, Vector{Directory{<:Any}}(), environment, open, mod)::Project{<:Any}
+        new{T}(name, dir, Vector{Directory{<:Any}}(), environment, open)::Project{<:Any}
     end
 end
 
-function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
-    c[:OliveCore].open[getip(c)] = p
-    frstcells::Vector{Cell} = first(p.open)[2]
-    name = first(p.open)[1]
+function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any};
+    at::String = first(p.open)[1])
+    name = at
+    frstcells::Vector{Cell} = p.open[at][:cells]
     retvs = Vector{Servable}()
     [begin
         push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
         frstcells, name))
     end for cell in frstcells]
     proj_window = div(name)
+    style!(proj_window, "display" => "inline-block", "overflow-y" => "scroll")
     proj_window[:children] = retvs
     proj_window::Component{:div}
 end
@@ -221,18 +212,18 @@ end
 mutable struct OliveCore <: ServerExtension
     olmod::Module
     type::Vector{Symbol}
-    data::Dict{Symbol, Any}
-    client_data::Dict{String, Dict{Symbol, Any}}
+    data::Dict{String, Any}
+    client_data::Dict{String, Dict{String, Any}}
     open::Dict{String, Project{<:Any}}
     f::Function
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         m = eval(Meta.parse("module olive end"))
         projopen = Dict{String, Project{<:Any}}()
-        client_data = Dict{String, Dict{Symbol, Any}}()
+        client_data = Dict{String, Dict{String, Any}}()
         f(c::Connection) = begin
             if ~(getip(c) in keys(client_data))
-                push!(client_data, getip(c) => Dict{Symbol, Any}(:open => ""))
+                push!(client_data, getip(c) => Dict{String, Any}("open" => ""))
             end
         end
         new(m, [:connection, :func], data, client_data, projopen, f)
