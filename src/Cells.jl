@@ -308,8 +308,10 @@ function dir_returner(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
                 insert!(built, 1, dir_returner(c, cell, newd))
             end
         end
-        cm2["$(n_dir)cells"] = "sel" => d.uri
-        set_children!(cm2, "$(n_dir)cells",
+        becell = replace(n_dir, "/" => "|")
+        nbcell = replace(d.uri, "/" => "|")
+        cm2["$(becell)cells"] = "sel" => nbcell
+        set_children!(cm2, "$(becell)cells",
         Vector{Servable}(built))
     end
     returner::Component{:div}
@@ -323,14 +325,16 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any};
         returner = dir_returner(c, cell, d, explorer = explorer)
         nuri::String = "$(d.uri)/$(cell.source)"
         newcells = directory_cells(nuri)
-        cm["$(d.uri)cells"] = "sel" => nuri
+        becell = replace(d.uri, "/" => "|")
+        nbecell = replace(nuri, "/" => "|")
+        cm["$(becell)cells"] = "sel" => nbecell
         toplevel = d.uri
         if typeof(d) == Directory{:subdir}
             toplevel = d.access["toplevel"]
         end
         nd = Directory(d.uri * "/" * cell.source * "/", "root" => "rw",
         "toplevel" => toplevel, dirtype = "subdir")
-        set_children!(cm, "$(d.uri)cells",
+        set_children!(cm, "$(becell)cells",
         Vector{Servable}(vcat([returner],
         [build(c, cel, nd, explorer = explorer) for cel in newcells])))
     end
@@ -347,7 +351,6 @@ function build(c::Connection, cell::Cell{:jl},
     if explorer
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
             cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
-            alert!(cm, "hi")
             add_to_session(c, cs, cm, cell.source, cell.outputs)
         end
     else

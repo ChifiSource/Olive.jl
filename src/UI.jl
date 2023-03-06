@@ -255,9 +255,14 @@ end
 
 function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     cm::ComponentModifier, source::String, fpath::String)
+    myproj = c[:OliveCore].open[getip(c)]
+    all_paths = [project[:path]  for project in values(myproj.open)]
+    if fpath  in all_paths
+        olive_notify!(cm, "project already open!", color = "red")
+        return
+    end
     fsplit = split(fpath, "/")
     name = split(fsplit[length(fsplit)], ".")[1]
-    myproj = c[:OliveCore].open[getip(c)]
     modstr = """module $(name)
     using Pkg
 

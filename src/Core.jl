@@ -139,19 +139,83 @@ exp::Bool = false) = begin
     cells = [begin
         Base.invokelatest(m.build, c, cell, dir, explorer = exp)
     end for cell in dir.cells]
-    containercontrols = section("$(dir.uri)controls")
-    style!(containercontrols, "padding" => 0px)
-    new_dirb = button("newdirb", text = "new directory")
-    new_fb = button("newfb", text = "new file")
+    becell = replace(dir.uri, "/" => "|")
+    cellcontainer = section("$(becell)cells", sel = becell)
+    cellcontainer[:children] = cells
+    containercontrols = div("$(dir.uri)controls")
+    newtxt = ToolipsDefaults.textdiv("newtxt$becell", text = "")
+    newtxt["align"] = "left"
+    style!(newtxt, "border-width" => 2px, "border-style" => "solid",
+    "opacity" => 0percent, "transition" => "1s", "width" => 0percent)
+    style!(containercontrols, "padding" => 0px, "overflow" => "visible")
+    new_dirb = topbar_icon("newdirb", "create_new_folder")
+    new_fb = topbar_icon("newfb", "article")
+    push!(containercontrols, new_dirb, new_fb, newtxt)
     on(c, new_dirb, "click") do cm::ComponentModifier
-
+        newconfbutton = button("fconfbutt$(becell)", text = "confirm")
+        if ~(newconfbutton.name in keys(cm.rootc))
+            cancelbutton = button("fcancbutt$(becell)", text = "cancel")
+            on(c, cancelbutton, "click") do cm2::ComponentModifier
+                remove!(cm2, newconfbutton)
+                remove!(cm2, cancelbutton)
+                set_text!(cm2, newtxt, "")
+                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
+            end
+            on(c, newconfbutton, "click") do cm2::ComponentModifier
+                fname = cm2[newtxt]["text"]
+                dirname = replace(cm2[cellcontainer]["sel"], "|" => "/")
+                final_dir = dirname * "/" * fname
+                mkdir(final_dir)
+                newcells = directory_cells(dirname)
+                remove!(cm2, newconfbutton)
+                remove!(cm2, cancelbutton)
+                set_text!(cm2, newtxt, "")
+                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
+                olive_notify!(cm2, "directory $final_dir created!", color = "green")
+                set_children!(cm2, "$(becell)cells",
+                Vector{Servable}([build(c, cel, dir, explorer = exp) for cel in newcells]))
+            end
+            append!(cm, containercontrols, newconfbutton)
+            append!(cm, containercontrols, cancelbutton)
+            style!(cm, newtxt, "width" => 80percent, "opacity" => 100percent)
+            style!(cm, newconfbutton, "opacity" => 100percent)
+            return
+        end
+        olive_notify!(cm, "you already have a naming box open...", color = "red")
     end
     on(c, new_fb, "click") do cm::ComponentModifier
-
+        newconfbutton = button("fconfbutt$(becell)", text = "confirm")
+        if ~(newconfbutton.name in keys(cm.rootc))
+            cancelbutton = button("fcancbutt$(becell)", text = "cancel")
+            on(c, cancelbutton, "click") do cm2::ComponentModifier
+                remove!(cm2, newconfbutton)
+                remove!(cm2, cancelbutton)
+                set_text!(cm2, newtxt, "")
+                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
+            end
+            on(c, newconfbutton, "click") do cm2::ComponentModifier
+                fname = cm2[newtxt]["text"]
+                dirname = replace(cm2[cellcontainer]["sel"], "|" => "/")
+                final_dir = dirname * "/" * fname
+                touch(final_dir)
+                newcells = directory_cells(dirname)
+                remove!(cm2, newconfbutton)
+                remove!(cm2, cancelbutton)
+                set_text!(cm2, newtxt, "")
+                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
+                olive_notify!(cm2, "file $final_dir created!", color = "green")
+                set_children!(cm2, "$(becell)cells",
+                Vector{Servable}(
+                [build(c, cel, dir, explorer = exp) for cel in newcells]))
+            end
+            append!(cm, containercontrols, newconfbutton)
+            append!(cm, containercontrols, cancelbutton)
+            style!(cm, newtxt, "width" => 80percent, "opacity" => 100percent)
+            style!(cm, newconfbutton, "opacity" => 100percent)
+            return
+        end
+        olive_notify!(cm, "you already have a naming box open...", color = "red")
     end
-    push!(containercontrols, new_dirb, new_fb)
-    cellcontainer = section("$(dir.uri)cells", sel = dir.uri)
-    cellcontainer[:children] = cells
     push!(container, containercontrols, cellcontainer)
     return(container)
 end

@@ -143,11 +143,12 @@ end
 
 explorer = route("/") do c::Connection
     c[:OliveCore].client_data[getip(c)]["selected"] = "files"
+    notifier::Component{:div} = olive_notific()
     loader_body = div("loaderbody", align = "center")
     style!(loader_body, "margin-top" => 10percent)
     write!(c, olivesheet())
     icon = olive_loadicon()
-    bod = olive_body(c)
+    bod = body("mainbody")
     on(c, bod, "load") do cm::ComponentModifier
         olmod = c[:OliveCore].olmod
         homeproj = Directory(c[:OliveCore].data["home"], "root" => "rw")
@@ -158,7 +159,7 @@ explorer = route("/") do c::Connection
         end
         script!(c, cm, "loadcallback") do cm
             style!(cm, icon, "opacity" => 0percent)
-            set_children!(cm, bod, [olivesheet(), main])
+            set_children!(cm, bod, [olivesheet(), notifier, main])
         end
         load_extensions!(c, cm, olmod)
     end
