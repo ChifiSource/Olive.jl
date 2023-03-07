@@ -8,7 +8,8 @@ end
 function inputcell_style()
     st = Style("div.input_cell", border = "2px solid gray", padding = "20px",
     "bordier-radius" => 30px, "margin-top" => 30px, "transition" => 1seconds,
-    "font-size" => 16pt)
+    "font-size" => 16pt, "letter-spacing" => 1px,
+    "font-family" => """"Lucida Console", "Courier New", monospace;""")
     st::Style
 end
 
@@ -94,12 +95,16 @@ function hidden_style()
 end
 
 function julia_style()
-    hljl_nf::Style = Style("span.hljl-nf", "color" => "#2B80FA")
-    hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", "font-weight" => "bold")
-    hljl_n::Style = Style("span.hljl-ts", "color" => "orange")
-    hljl_cs::Style = Style("span.hljl-cs", "color" => "gray")
-    hljl_k::Style = Style("span.hljl-k", "color" => "#E45E9D", "font-weight" => "bold")
-    hljl_s::Style = Style("span.hljl-s", "color" => "#3FBA41")
+    defset = ("padding" => 0px, "font-size" => 16pt, "margin-top" => 0px,
+    "margin-bottom" => 0px, "margin" => 0px, "letter-spacing" => 1px,
+    "font-family" => """"Lucida Console", "Courier New", monospace;""")
+    hljl_pre::Style = Style("pre.hljl", defset ...)
+    hljl_nf::Style = Style("span.hljl-nf", "color" => "#2B80FA", defset ...)
+    hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", defset ...)
+    hljl_n::Style = Style("span.hljl-ts", "color" => "orange", defset ...)
+    hljl_cs::Style = Style("span.hljl-cs", "color" => "gray", defset ...)
+    hljl_k::Style = Style("span.hljl-k", "color" => "#E45E9D", defset ...)
+    hljl_s::Style = Style("span.hljl-s", "color" => "#3FBA41", defset ...)
     styles::Component{:sheet} = Component("codestyles", "sheet")
     push!(styles, hljl_k, hljl_nf, hljl_oB, hljl_n, hljl_cs, hljl_s)
     styles::Component{:sheet}
@@ -111,7 +116,7 @@ function olivesheet()
     push!(st, google_icons(), load_spinner(), spin_forever(),
     iconstyle(), cellnumber_style(), hdeps_style(),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
-    hidden_style(), jl_style(), toml_style(),
+    hidden_style(), jl_style(), toml_style(), julia_style(),
     Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("progress::-webkit-progress-bar", "background-color" => "whitesmoke"))
     st

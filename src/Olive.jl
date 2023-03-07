@@ -23,6 +23,7 @@ import ToolipsSession: bind!, AbstractComponentModifier
 using ToolipsDefaults
 using ToolipsMarkdown
 using ToolipsBase64
+using Highlights
 using TOML
 using Revise
 

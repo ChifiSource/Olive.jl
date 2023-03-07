@@ -129,24 +129,24 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, windowname::String)
     keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
-    text = replace(cell.source, "\n" => "</br>")
-    tm = TextModifier(text)
-    ToolipsMarkdown.julia_block!(tm)
+    text = cell.source
+    io = IOBuffer()
+    highlight(io, MIME("text/html"), text, Lexers.JuliaLexer)
     outside = div("cellcontainer$(cell.id)", class = "cell")
-    cell = cell
-    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = text,
+    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = replace(text, "\n" => "</br>"),
     "class" => "input_cell")
     style!(inside,
     "width" => 80percent, "border-bottom-left-radius" => 0px, "min-height" => 50px,
     "position" => "relative", "margin-top" => 0px, "display" => "inline-block",
-    "border-top-left-radius" => 0px, "color" => "white")
+    "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray")
     inputbox = div("cellinput$(cell.id)")
     style!(inputbox, "padding" => 0px, "width" => 80percent,
-    "overflow" => "hidden", "border-top-left-radius" => 0px, "border-top-right-radius" => 0px)
-    highlight_box = div("cellhighlight$(cell.id)", text = string(tm))
+    "overflow" => "hidden", "border-top-left-radius" => 0px, "border-bottom-left-radius" => 0px)
+    highlight_box = div("cellhighlight$(cell.id)", text = hltxt = String(take!(io)))
     style!(highlight_box, "position" => "absolute",
-    "background" => "transparent", "z-index" => "5", "padding" => 20px,
-    "font-size" => 16pt, "pointer-events" => "none", "width" => 80percent)
+    "background" => "transparent", "z-index" => "5", "padding" => 0px,
+    "font-size" => 16pt, "pointer-events" => "none", "width" => 80percent,
+    "margin-left" => 20px)
     push!(inputbox, highlight_box, inside)
     style!(outside, "transition" => 1seconds)
     on(c, cm, inside, "input", ["rawcell$(cell.id)", "cell$(cell.id)"]) do cm::ComponentModifier
@@ -178,15 +178,15 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         Syntax highlighting here.
         ==#
         highlight_t = cm[inside]["text"]
-        tm = ToolipsMarkdown.TextModifier(curr)
-        ToolipsMarkdown.julia_block!(tm)
+        io = IOBuffer()
+        highlight(io, MIME("text/html"), highlight_t, Lexers.JuliaLexer)
         # TODO so this is my syntax highlighting setup... it's close but
         # no cigar. Highlighting works fine, it is seeking the cursor that is
         # the problem. Considering maybe using the overbox technique?
     #==
         set_textdiv_caret!(cm, inside, new_sel)
         focus!(cm, inside) ==#
-        set_text!(cm, highlight_box, string(tm))
+        set_text!(cm, highlight_box, String(take!(io)))
         cell.source = curr
     end
     interiorbox = div("cellinterior$(cell.id)")
