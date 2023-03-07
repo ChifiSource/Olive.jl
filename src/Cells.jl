@@ -129,28 +129,28 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, windowname::String)
     keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
-    text = cell.source
     io = IOBuffer()
-    highlight(io, MIME("text/html"), text, Lexers.JuliaLexer)
+    highlight(io, MIME("text/html"), cell.source, Lexers.JuliaLexer)
     outside = div("cellcontainer$(cell.id)", class = "cell")
-    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = replace(text, "\n" => "</br>"),
-    "class" => "input_cell")
+    inside = ToolipsDefaults.textdiv("cell$(cell.id)",
+    text = replace(cell.source, "\n" => "</br>"), "class" => "input_cell")
     style!(inside,
-    "width" => 80percent, "border-bottom-left-radius" => 0px, "min-height" => 50px,
+    "width" => 90percent, "border-bottom-left-radius" => 0px, "min-height" => 50px,
     "position" => "relative", "margin-top" => 0px, "display" => "inline-block",
     "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray")
     inputbox = div("cellinput$(cell.id)")
-    style!(inputbox, "padding" => 0px, "width" => 80percent,
+    style!(inputbox, "padding" => 0px, "width" => 90percent,
     "overflow" => "hidden", "border-top-left-radius" => 0px, "border-bottom-left-radius" => 0px)
-    highlight_box = div("cellhighlight$(cell.id)", text = hltxt = String(take!(io)))
+    highlight_box = div("cellhighlight$(cell.id)",
+    text = String(take!(io)))
     style!(highlight_box, "position" => "absolute",
     "background" => "transparent", "z-index" => "5", "padding" => 0px,
     "font-size" => 16pt, "pointer-events" => "none", "width" => 80percent,
-    "margin-left" => 20px)
+    "margin-left" => 20px, "width" => 90percent)
     push!(inputbox, highlight_box, inside)
     style!(outside, "transition" => 1seconds)
     on(c, cm, inside, "input", ["rawcell$(cell.id)", "cell$(cell.id)"]) do cm::ComponentModifier
-        curr = cm["rawcell$(cell.id)"]["text"]
+        curr = cm["cell$(cell.id)"]["text"]
         if curr == "]"
             pos = findall(lcell -> lcell.id == cell.id, cells)[1]
             new_cell = Cell(pos, "pkgrepl", "")
@@ -177,9 +177,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         #== TODO
         Syntax highlighting here.
         ==#
-        highlight_t = cm[inside]["text"]
         io = IOBuffer()
-        highlight(io, MIME("text/html"), highlight_t, Lexers.JuliaLexer)
+        highlight(io, MIME("text/html"), curr, Lexers.JuliaLexer)
         # TODO so this is my syntax highlighting setup... it's close but
         # no cigar. Highlighting works fine, it is seeking the cursor that is
         # the problem. Considering maybe using the overbox technique?
@@ -504,7 +503,7 @@ end
 function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier,
     window::String)
     # get code
-    rawcode::String = cm["rawcell$(cell.id)"]["text"]
+    rawcode::String = cm["cell$(cell.id)"]["text"]
     execcode::String = *("begin\n", replace(rawcode, "&gt;" => ">",
     "&lt;" => "&lt"), "\nend\n")
     text::String = replace(cell.source, "\n" => "</br>")
