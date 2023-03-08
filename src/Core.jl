@@ -133,6 +133,10 @@ exp::Bool = false) = begin
             envtop = h("headingenv$(dir.uri)", 2, text = projname)
             push!(container, envtop)
         end
+        if "type" in keys(toml_cats)
+            projtype = toml_cats["type"]
+            push!(container, h("typeenv$(dir.uri)", 4, text = projtype))
+        end
     end
     dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     push!(container, dirtop)
@@ -146,10 +150,40 @@ exp::Bool = false) = begin
     newtxt = ToolipsDefaults.textdiv("newtxt$becell", text = "")
     newtxt["align"] = "left"
     style!(newtxt, "border-width" => 2px, "border-style" => "solid",
-    "opacity" => 0percent, "transition" => "1s", "width" => 0percent)
+    "opacity" => 0percent, "transition" => "1s", "width" => 0percent,
+    "display" => "inline-block")
     style!(containercontrols, "padding" => 0px, "overflow" => "visible")
-    new_dirb = topbar_icon("newdirb", "create_new_folder")
-    new_fb = topbar_icon("newfb", "article")
+    new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
+    new_fb = topbar_icon("newfb$(becell)", "article")
+    if dir.uri == c[:OliveCore].data["home"]
+        srcbutton = button("src$(becell)", text = "source")
+        on(c, srcbutton, "click") do cm::ComponentModifier
+            home = c[:OliveCore].data["home"]
+            try
+                olive_cells = IPy.read_jl("$home/src/olive.jl")
+                olive_cells = filter!(ocell -> ocell.type == "code", olive_cells)
+                modstr = join([cell.source for cell in olive_cells], "\n")
+                modend = findlast("end # module", modstr)
+                modstr = modstr[1:modend[1] + 3]
+                pmod = Meta.parse(modstr[1:length(modstr) - 1])
+                olmod::Module = eval(pmod)
+                c[:OliveCore].olmod = olmod
+                olive_notify!(cm, "olive module successfully sourced!", color = "green")
+            catch e
+                Base.showerror(e)
+                olive_notify!(cm,
+                "failed to source olive module, check terminal for details",
+                color = "red")
+            end
+        end
+        headerimg = olive_cover()
+        headerimg["width"] = "200"
+        oliveheaderbox = div("homeheaderbx", align = "center")
+        push!(oliveheaderbox, headerimg)
+        push!(container, oliveheaderbox)
+        style!(srcbutton, "background-color" => "red")
+        push!(containercontrols, srcbutton)
+    end
     push!(containercontrols, new_dirb, new_fb, newtxt)
     on(c, new_dirb, "click") do cm::ComponentModifier
         newconfbutton = button("fconfbutt$(becell)", text = "confirm")
@@ -177,7 +211,7 @@ exp::Bool = false) = begin
             end
             append!(cm, containercontrols, newconfbutton)
             append!(cm, containercontrols, cancelbutton)
-            style!(cm, newtxt, "width" => 80percent, "opacity" => 100percent)
+            style!(cm, newtxt, "width" => 40percent, "opacity" => 100percent)
             style!(cm, newconfbutton, "opacity" => 100percent)
             return
         end
@@ -219,6 +253,7 @@ exp::Bool = false) = begin
     push!(container, containercontrols, cellcontainer)
     return(container)
 end
+
 
 mutable struct Project{name <: Any} <: Servable
     name::String

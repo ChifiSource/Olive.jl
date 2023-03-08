@@ -144,7 +144,7 @@ explorer = route("/") do c::Connection
         olmod = c[:OliveCore].olmod
         homeproj = Directory(c[:OliveCore].data["home"], "root" => "rw")
         workdir = Directory(c[:OliveCore].data["wd"], "all" => "rw")
-        dirs = [workdir, homeproj]
+        dirs = [homeproj, workdir]
         main = olive_main("files")
         for dir in dirs
             push!(main[:children], build(c, dir, olmod))
