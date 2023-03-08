@@ -8,8 +8,7 @@ end
 function inputcell_style()
     st = Style("div.input_cell", border = "2px solid gray", padding = "20px",
     "bordier-radius" => 30px, "margin-top" => 30px, "transition" => 1seconds,
-    "font-size" => 16pt, "letter-spacing" => 1px,
-    "font-family" => """"Lucida Console", "Courier New", monospace;""")
+    "font-size" => 14pt)
     st::Style
 end
 
@@ -68,8 +67,8 @@ end
 function cell_style()
     st::Style = Style("div.cell", "border-color" => "gray", padding = "20px",
     "background-color" => "white", "border-top-left-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "width" => 100percent, "transition" => 1seconds)
-    st:"focus":["border-width" => 2px, "border-color" => "magenta"]
+    "border-bottom-left-radius" => 0px)
+    st:"focus":["border-width" => 2px]
     fade_up()
     st::Style
 end
@@ -95,16 +94,12 @@ function hidden_style()
 end
 
 function julia_style()
-    defset = ("padding" => 0px, "font-size" => 16pt, "margin-top" => 0px,
-    "margin-bottom" => 0px, "margin" => 0px, "letter-spacing" => 1px,
-    "font-family" => """"Lucida Console", "Courier New", monospace;""")
-    hljl_pre::Style = Style("pre.hljl", defset ...)
-    hljl_nf::Style = Style("span.hljl-nf", "color" => "#2B80FA", defset ...)
-    hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", defset ...)
-    hljl_n::Style = Style("span.hljl-ts", "color" => "orange", defset ...)
-    hljl_cs::Style = Style("span.hljl-cs", "color" => "gray", defset ...)
-    hljl_k::Style = Style("span.hljl-k", "color" => "#E45E9D", defset ...)
-    hljl_s::Style = Style("span.hljl-s", "color" => "#3FBA41", defset ...)
+    hljl_nf::Style = Style("span.hljl-nf", "color" => "#2B80FA")
+    hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", "font-weight" => "bold")
+    hljl_n::Style = Style("span.hljl-ts", "color" => "orange")
+    hljl_cs::Style = Style("span.hljl-cs", "color" => "gray")
+    hljl_k::Style = Style("span.hljl-k", "color" => "#E45E9D", "font-weight" => "bold")
+    hljl_s::Style = Style("span.hljl-s", "color" => "#3FBA41")
     styles::Component{:sheet} = Component("codestyles", "sheet")
     push!(styles, hljl_k, hljl_nf, hljl_oB, hljl_n, hljl_cs, hljl_s)
     styles::Component{:sheet}
@@ -116,7 +111,7 @@ function olivesheet()
     push!(st, google_icons(), load_spinner(), spin_forever(),
     iconstyle(), cellnumber_style(), hdeps_style(),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
-    hidden_style(), jl_style(), toml_style(), julia_style(),
+    hidden_style(), jl_style(), toml_style(),
     Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("progress::-webkit-progress-bar", "background-color" => "whitesmoke"))
     st
@@ -151,50 +146,8 @@ function explorer_icon(c::Connection)
     explorericon::Component{:span}
 end
 
-function settings_menu(c::Connection)
-    mainmenu = section("settingsmenu", open = "0")
-    style!(mainmenu, "opacity" => 0percent,  "height" => 0percent,
-    "overflow-y" => "scroll", "padding" => 0px)
-    mainmenu::Component{:section}
-end
-
-function olive_notify!(cm::AbstractComponentModifier, message::String,
-    duration::Int64 = 2000;  color::String = "pink")
-    set_text!(cm, "olive-notifier", message)
-    style!(cm, "olive-notifier", "height" => 2percent, "opacity" => 100percent,
-    "background-color" => color)
-    script!(cm, "notifierdie", time = duration) do cm2
-        style!(cm2, "olive-notifier", "height" => 0percent, "opacity" => 0percent)
-    end
-end
-
-function olive_notific()
-    notifier = div("olive-notifier", align = "center")
-    style!(notifier, "background-color" => "pink", "color" => "white",
-    "height" => 0percent, "position" => "absolute", "opacity" => 0percent,
-    "width" => 99percent, "margin-left" => 0px, "z-index" => "8",
-    "font-weight" => "bold", "border-top-right-radius" => 0px, "overflow" => "hidden",
-    "border-top-left-radius" => 0px, "left" => 0percent, "top" => 0percent,
-    "transition" => ".5s")
-    notifier::Component{:div}
-end
-
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
-    on(c, settingicon, "click", ["settingsmenu"]) do cm::ComponentModifier
-        if cm["settingsmenu"]["open"] == "0"
-            style!(cm, settingicon, "transform" => "rotate(-180deg)",
-            "color" => "lightblue")
-            style!(cm, "settingsmenu", "opacity" => 100percent,
-            "height" => 50percent)
-            cm["settingsmenu"] = "open" => "1"
-            return
-        end
-        cm["settingsmenu"] =  "open" => "0"
-        style!(cm, settingicon, "transform" => "rotate(0deg)",
-        "color" => "black")
-        style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
-    end
     settingicon::Component{:span}
 end
 
@@ -205,12 +158,10 @@ function topbar(c::Connection)
     rightmenu = span("rightmenu", align = "right")
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
-    "border-radius" => "5px", "overflow" =>  "hidden")
-    tabmenu = div("tabmenu", align = "center")
-    style!(tabmenu, "display" => "inline-block")
+    "border-radius" => "5px")
     push!(leftmenu, explorer_icon(c))
     push!(rightmenu, settings(c))
-    push!(topbar, leftmenu, tabmenu, rightmenu)
+    push!(topbar, leftmenu, rightmenu)
     topbar::Component{:div}
 end
 
@@ -241,120 +192,13 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     cm::ComponentModifier, source::String, fpath::String)
     myproj = Project{:olive}("hello", "ExampleProject")
     fsplit = split(fpath, "/")
-    name = split(fsplit[length(fsplit)], ".")[1]
-    modstr = """module $(name)
-    using Pkg
-
-    function evalin(ex::Any)
-            Pkg.activate("$(myproj.environment)")
-            ret = eval(ex)
-    end
-    end"""
-    mod::Module = eval(Meta.parse(modstr))
-    projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
-    push!(myproj.open, fsplit[length(fsplit)] =>  projdict)
+    push!(myproj.open, fsplit[length(fsplit)] =>  cs)
     c[:OliveCore].open[getip(c)] = myproj
     redirect!(cm, "/session")
 end
 
-function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
-    cm::ComponentModifier, source::String, fpath::String)
-    myproj = c[:OliveCore].open[getip(c)]
-    all_paths = [project[:path]  for project in values(myproj.open)]
-    if fpath  in all_paths
-        olive_notify!(cm, "project already open!", color = "red")
-        return
-    end
-    fsplit = split(fpath, "/")
-    name = split(fsplit[length(fsplit)], ".")[1]
-    modstr = """module $(name)
-    using Pkg
+function build_tab(c::Connection, cm::ComponentModifier)
 
-    function evalin(ex::Any)
-            Pkg.activate("$(myproj.environment)")
-            ret = eval(ex)
-    end
-    end"""
-    filepath_name::String = fsplit[length(fsplit)]
-    mod::Module = eval(Meta.parse(modstr))
-    projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
-    push!(myproj.open, filepath_name =>  projdict)
-    projbuild = build(c, cm, myproj, at = filepath_name)
-    append!(cm, "olivemain-pane", projbuild)
-end
-
-function build_tab(c::Connection, fname::String)
-    tabbody = div("tab$(fname)")
-    style!(tabbody, "border-bottom-right-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "border-width" => 2px, "border-color" => "lightblue",
-    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 10px)
-    tablabel = a("tablabel$(fname)", text = fname)
-    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt)
-    push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
-        if ~("$(fname)close" in keys(cm.rootc))
-            closebutton = topbar_icon("$(fname)close", "close")
-            on(c, closebutton, "click") do cm2::ComponentModifier
-                remove!(cm2, "$(fname)over")
-                delete!(c[:OliveCore].open[getip(c)].open, fname)
-                olive_notify!(cm2, "project $(fname) closed", color = "blue")
-            end
-            savebutton = topbar_icon("$(fname)save", "save")
-            on(c, savebutton, "click") do cm2::ComponentModifier
-                savepath = c[:OliveCore].open[getip(c)].open[fname][:path]
-                cells = c[:OliveCore].open[getip(c)].open[fname][:cells]
-                IPy.save(cells, savepath)
-                olive_notify!(cm2, "file $(savepath) saved", color = "green")
-            end
-            saveas_button = topbar_icon("$(fname)saveas", "save_as")
-            restartbutton = topbar_icon("$(fname)restart", "restart_alt")
-            on(c, restartbutton, "click") do cm2::ComponentModifier
-                new_name = split(fname, ".")[1]
-                myproj = c[:OliveCore].open[getip(c)]
-                modstr = """module $(new_name)
-                using Pkg
-
-                function evalin(ex::Any)
-                        Pkg.activate("$(myproj.environment)")
-                        ret = eval(ex)
-                end
-                end"""
-                mod::Module = eval(Meta.parse(modstr))
-                myproj.open[fname][:mod] = mod
-                olive_notify!(cm2, "module for $(fname) re-sourced")
-            end
-            add_button = topbar_icon("$(fname)add", "add_circle")
-            runall_button = topbar_icon("$(fname)run", "sprint")
-            decollapse_button = topbar_icon("$(fname)dec", "left_panel_close")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
-                remove!(cm2, savebutton)
-                remove!(cm2, closebutton)
-                remove!(cm2, saveas_button)
-                remove!(cm2, add_button)
-                remove!(cm2, runall_button)
-                remove!(cm2, restartbutton)
-                remove!(cm2, decollapse_button)
-            end
-            style!(closebutton, "font-size"  => 17pt, "color" => "red")
-            style!(restartbutton, "font-size"  => 17pt)
-            style!(savebutton, "font-size"  => 17pt)
-            style!(saveas_button, "font-size"  => 17pt)
-            style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
-            style!(add_button, "font-size"  => 17pt)
-            style!(runall_button, "font-size"  => 17pt)
-            append!(cm, tabbody, decollapse_button)
-            append!(cm, tabbody, savebutton)
-            append!(cm, tabbody, saveas_button)
-            append!(cm, tabbody, add_button)
-            append!(cm, tabbody, restartbutton)
-            append!(cm, tabbody, runall_button)
-            append!(cm, tabbody, closebutton)
-        end
-    end
-    tabbody
 end
 
 function olive_loadicon()

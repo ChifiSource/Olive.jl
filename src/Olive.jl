@@ -23,7 +23,6 @@ import ToolipsSession: bind!, AbstractComponentModifier
 using ToolipsDefaults
 using ToolipsMarkdown
 using ToolipsBase64
-using Highlights
 using TOML
 using Revise
 
@@ -57,36 +56,18 @@ This function is temporarily being used to test Olive.
 
 """
 main = route("/session") do c::Connection
-    # setup base env
+    c[:OliveCore].client_data[getip(c)][:selected] = "session"
     write!(c, olivesheet())
-    c[:OliveCore].client_data[getip(c)]["selected"] = "session"
-    olmod::Module = c[:OliveCore].olmod
     proj_open::Project{<:Any} = c[:OliveCore].open[getip(c)]
-    # setup base UI
-    notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
     ui_explorer::Component{:div} = projectexplorer()
-    ui_settings::Component{:section} = settings_menu(c)
-    #==TODO
-    Directories should be loaded into the project at "/" (`explorer`).
-    This is just a temporary method of loading the directories. The dir should
-    be pushed inside of the cell evaluate/build functions.
-    ==#
-    homeproj = Directory(c[:OliveCore].data["home"], "root" => "rw")
-    proj_open.directories = [homeproj]
-    # end TODO (remove code  above in the future)
-    ui_explorer[:children] = Vector{Servable}([begin
-   Base.invokelatest(olmod.build, c, d, olmod, exp = true)
-    end for d in proj_open.directories])
     olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
-    mainpane = div("olivemain-pane")
-    style!(mainpane, "display" => "flex", "overflow-x" => "scroll", "padding" => 0px)
-    push!(olivemain, ui_topbar, ui_settings, mainpane)
+    ui_tabs::Vector{Servable} = Vector{Servable}()
+    ui_explorer[:children] = [olive_loadicon()]
     bod = body("mainbody")
-    push!(bod, notifier, ui_explorer, olivemain)
-    # load default key-bindings (if non-existent)
-    if ~("keybindings" in keys(c[:OliveCore].client_data[getip(c)]))
-        c[:OliveCore].client_data[getip(c)]["keybindings"] = Dict{Symbol, Any}(
+    push!(bod, ui_explorer, olivemain)
+    if ~(:keybindings in keys(c[:OliveCore].client_data[getip(c)]))
+        c[:OliveCore].client_data[getip(c)][:keybindings] = Dict(
         :evaluate => ("Enter", :shift),
         :delete => ("Delete", :ctrl, :shift),
         :up => ("ArrowUp", :ctrl, :shift),
@@ -97,60 +78,35 @@ main = route("/session") do c::Connection
         :new => ("Q", :ctrl, :shift)
         )
     end
-    keybind_section = section("settings_keys")
-    push!(keybind_section, h("setkeyslbl", 2, text = "keybindings"))
-    push!(ui_settings, keybind_section)
-    script!(c, "load", type = "Timeout") do cm::ComponentModifier
+    olmod::Module = c[:OliveCore].olmod
+    mainpane = div("olivemain-pane")
+    homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
+    directories = [homeproj]
+    ui_explorer[:children] = Vector{Servable}([begin
+   Base.invokelatest(olmod.build, c, d, olmod)
+    end for d in directories])
+    push!(olivemain, ui_topbar, mainpane)
+    on(c, "load") do cm::ComponentModifier
+        proj_open.directories = [homeproj]
         load_extensions!(c, cm, olmod)
-        shftlabel = a("shiftlabel", text = "  shift:    ")
-        ctrllabel = a("ctrllabel", text = "  ctrl:   ")
-        [begin
-            newkeymain = div("keybind$(keybinding[1])")
-            head = h("keylabel$(keybinding[1])",5,  text = "$(keybinding[1])")
-            setinput = ToolipsDefaults.keyinput("$(keybinding[1])inp", text = keybinding[2][1])
-            style!(setinput, "background-color" => "blue", "width" => 5percent,
-            "display" => "inline-block", "color" => "white")
-            shift_checkbox = ToolipsDefaults.checkbox("shiftk$(keybinding[1])")
-            ctrl_checkbox = ToolipsDefaults.checkbox("ctrlk$(keybinding[1])")
-            confirm = button("keybind$(keybinding[1])confirm", text = "confirm")
-            on(c, confirm, "click") do cm::ComponentModifier
-                key_vec = Vector{Union{String, Symbol}}()
-                k = cm[setinput]["value"]
-                if length(k) == 1
-                    k = uppercase(k)
-                end
-                push!(key_vec, k)
-                if parse(Bool, cm[shift_checkbox]["value"])
-                    push!(key_vec, :shift)
-                end
-                if parse(Bool, cm[ctrl_checkbox]["value"])
-                    push!(key_vec, :ctrl)
-                end
-                c[:OliveCore].client_data[getip(c)]["keybindings"][keybinding[1]] = Tuple(key_vec)
-                olive_notify!(cm, "binding $(keybinding[1]) saved")
-            end
-            push!(newkeymain, head, shftlabel, shift_checkbox,
-            ctrllabel, ctrl_checkbox, setinput, br(), confirm)
-            append!(cm, "settings_keys", newkeymain)
-        end for keybinding in c[:OliveCore].client_data[getip(c)]["keybindings"]]
         window::Component{:div} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
-        append!(cm, "olivemain-pane", window)
+        push!(mainpane, window)
+        set_children!(cm, "olivemain-pane", [mainpane])
     end
     write!(c, bod)
 end
 
 explorer = route("/") do c::Connection
-    c[:OliveCore].client_data[getip(c)]["selected"] = "files"
-    notifier::Component{:div} = olive_notific()
+    c[:OliveCore].client_data[getip(c)][:selected] = "files"
     loader_body = div("loaderbody", align = "center")
     style!(loader_body, "margin-top" => 10percent)
     write!(c, olivesheet())
     icon = olive_loadicon()
-    bod = body("mainbody")
+    bod = olive_body(c)
     on(c, bod, "load") do cm::ComponentModifier
         olmod = c[:OliveCore].olmod
-        homeproj = Directory(c[:OliveCore].data["home"], "root" => "rw")
+        homeproj = Directory(c[:OliveCore].data[:home], "root" => "rw")
         dirs = [homeproj]
         main = olive_main("files")
         for dir in dirs
@@ -158,7 +114,7 @@ explorer = route("/") do c::Connection
         end
         script!(c, cm, "loadcallback") do cm
             style!(cm, icon, "opacity" => 0percent)
-            set_children!(cm, bod, [olivesheet(), notifier, main])
+            set_children!(cm, bod, [olivesheet(), main])
         end
         load_extensions!(c, cm, olmod)
     end
@@ -177,7 +133,7 @@ setup = route("/") do c::Connection
     write!(c, olivesheet())
     bod = body("mainbody")
     cells = [Cell(1, "setup", "welcome to olive"),
-    Cell(2, "dirselect", c[:OliveCore].data["home"])]
+    Cell(2, "dirselect", c[:OliveCore].data[:home])]
     built_cells = Vector{Servable}([build(c, cell) for cell in cells])
     bod[:children] = built_cells
     confirm_button = button("confirm", text = "confirm")
@@ -217,23 +173,7 @@ setup = route("/") do c::Connection
              style!(cm2, loadbar, "opacity" => 100percent, "width" => 100percent)
              next!(c, loadbar, cm2) do cm3
                  if ~(isdir(cm["selector"]["text"] * "/olive"))
-                     if cm["selector"]["text"] != homedir()
-                         srcdir = @__DIR__
-                         touch("$srcdir/home.txt")
-                         open("$srcdir/home.txt", "w") do o
-                             write(o, cm["selector"]["text"])
-                         end
-                     end
                      create_project(cm["selector"]["text"])
-                     config = TOML.parse(read(
-                     "$(cm["selector"]["text"])/olive/Project.toml",String))
-                     users = Dict{String, Any}(
-                     getip(c) => Dict{String, String}("name" => "future"))
-                     push!(config, "olive" => Dict{String, String}("root" => getip(c)))
-                     push!(config, "oliveusers" => users)
-                     open("$(cm["selector"]["text"])/olive/Project.toml", "w") do io
-                         TOML.print(io, config)
-                     end
                  end
                  set_text!(cm3, statindicator, "project created !")
                  cm3[loadbar] = "value" => ".50"
@@ -256,7 +196,7 @@ setup = route("/") do c::Connection
                          deleteat!(c.routes, 1)
                          oc = c[:OliveCore]
                          direc = cm["selector"]["text"]
-                         oc.data["home"] = "$direc/olive"
+                         oc.data[:home] = "$direc/olive"
                          olmod = eval(Meta.parse(read("$direc/olive/src/olive.jl", String)))
                          Base.invokelatest(olmod.build, oc)
                          oc.olmod = olmod
@@ -324,27 +264,17 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         s[:Logger].log("started new olive server in devmode.")
         return
     end
-    srcdir = @__DIR__
-    homedirec::String = homedir()
-    if isfile("$srcdir/home.txt")
-        homedirec = read("$srcdir/home.txt", String)
-    end
     oc::OliveCore = OliveCore("olive")
-    oc.data["home"] = homedirec
-    oc.data["wd"] = pwd()
+    oc.data[:wd] = pwd()
+    oc.data[:home] = homedir()
+    homedirec = oc.data[:home]
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if ~(isdir("$homedirec/olive"))
         rs = routes(setup, fourofour)
     else
-        println("$homedirec/olive/Project.toml")
-        println(isfile("$homedirec/olive/Project.toml"))
-        config = TOML.parse(read("$homedirec/olive/Project.toml", String))
         Pkg.activate("$homedirec/olive")
-        oc.data = config["olive"]
-        oc.client_data = config["oliveusers"]
-        oc.data["home"] = homedirec * "/olive"
-        oc.data["wd"] = pwd()
-        olmod::Module = eval(Meta.parse(read("$homedirec/olive/src/olive.jl", String)))
+        oc.data[:home] = "$homedirec/olive"
+        olmod = eval(Meta.parse(read("$homedirec/olive/src/olive.jl", String)))
         Base.invokelatest(olmod.build, oc)
         oc.olmod = olmod
         rs = routes(fourofour, main, explorer)

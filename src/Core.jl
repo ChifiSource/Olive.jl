@@ -51,7 +51,7 @@ OliveExtension{}
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     rootc::Dict{String, AbstractComponent}
     changes::Vector{String}
-    data::Dict{String, Any}
+    data::Dict{Symbol, Any}
     function OliveModifier(c::Connection, cm::ComponentModifier)
         new(cm.rootc, cm.changes, c[:OliveCore].client_data[getip(c)])
     end
@@ -74,6 +74,10 @@ extended and written
 ```
 """
 build(om::OliveModifier, oe::OliveExtension{<:Any}) = return
+
+function build(om::OliveModifier, oe::OliveExtension{:settings})
+
+end
 
 """
 ### Directory
@@ -118,101 +122,22 @@ custom directory example
 
 ```
 """
-build(c::Connection, dir::Directory{<:Any}, m::Module;
-exp::Bool = false) = begin
+build(c::Connection, dir::Directory{<:Any}, m::Module) = begin
     container = section(dir.uri, align = "left")
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
-        if "name" in keys(toml_cats)
-            projname = toml_cats["name"]
-            envtop = h("headingenv$(dir.uri)", 2, text = projname)
-            push!(container, envtop)
-        end
+        projname = toml_cats["name"]
+        envtop = h("headingenv$(dir.uri)", 2, text = projname)
+        push!(container, envtop)
     end
     dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
     push!(container, dirtop)
-    cells = [begin
-        Base.invokelatest(m.build, c, cell, dir, explorer = exp)
-    end for cell in dir.cells]
-    becell = replace(dir.uri, "/" => "|")
-    cellcontainer = section("$(becell)cells", sel = becell)
+    cells = [Base.invokelatest(m.build, c, cell, dir) for cell in dir.cells]
+    containercontrols = section("$(dir.uri)controls")
+    cellcontainer = section("$(dir.uri)cells")
     cellcontainer[:children] = cells
-    containercontrols = div("$(dir.uri)controls")
-    newtxt = ToolipsDefaults.textdiv("newtxt$becell", text = "")
-    newtxt["align"] = "left"
-    style!(newtxt, "border-width" => 2px, "border-style" => "solid",
-    "opacity" => 0percent, "transition" => "1s", "width" => 0percent)
-    style!(containercontrols, "padding" => 0px, "overflow" => "visible")
-    new_dirb = topbar_icon("newdirb", "create_new_folder")
-    new_fb = topbar_icon("newfb", "article")
-    push!(containercontrols, new_dirb, new_fb, newtxt)
-    on(c, new_dirb, "click") do cm::ComponentModifier
-        newconfbutton = button("fconfbutt$(becell)", text = "confirm")
-        if ~(newconfbutton.name in keys(cm.rootc))
-            cancelbutton = button("fcancbutt$(becell)", text = "cancel")
-            on(c, cancelbutton, "click") do cm2::ComponentModifier
-                remove!(cm2, newconfbutton)
-                remove!(cm2, cancelbutton)
-                set_text!(cm2, newtxt, "")
-                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
-            end
-            on(c, newconfbutton, "click") do cm2::ComponentModifier
-                fname = cm2[newtxt]["text"]
-                dirname = replace(cm2[cellcontainer]["sel"], "|" => "/")
-                final_dir = dirname * "/" * fname
-                mkdir(final_dir)
-                newcells = directory_cells(dirname)
-                remove!(cm2, newconfbutton)
-                remove!(cm2, cancelbutton)
-                set_text!(cm2, newtxt, "")
-                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
-                olive_notify!(cm2, "directory $final_dir created!", color = "green")
-                set_children!(cm2, "$(becell)cells",
-                Vector{Servable}([build(c, cel, dir, explorer = exp) for cel in newcells]))
-            end
-            append!(cm, containercontrols, newconfbutton)
-            append!(cm, containercontrols, cancelbutton)
-            style!(cm, newtxt, "width" => 80percent, "opacity" => 100percent)
-            style!(cm, newconfbutton, "opacity" => 100percent)
-            return
-        end
-        olive_notify!(cm, "you already have a naming box open...", color = "red")
-    end
-    on(c, new_fb, "click") do cm::ComponentModifier
-        newconfbutton = button("fconfbutt$(becell)", text = "confirm")
-        if ~(newconfbutton.name in keys(cm.rootc))
-            cancelbutton = button("fcancbutt$(becell)", text = "cancel")
-            on(c, cancelbutton, "click") do cm2::ComponentModifier
-                remove!(cm2, newconfbutton)
-                remove!(cm2, cancelbutton)
-                set_text!(cm2, newtxt, "")
-                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
-            end
-            on(c, newconfbutton, "click") do cm2::ComponentModifier
-                fname = cm2[newtxt]["text"]
-                dirname = replace(cm2[cellcontainer]["sel"], "|" => "/")
-                final_dir = dirname * "/" * fname
-                touch(final_dir)
-                newcells = directory_cells(dirname)
-                remove!(cm2, newconfbutton)
-                remove!(cm2, cancelbutton)
-                set_text!(cm2, newtxt, "")
-                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
-                olive_notify!(cm2, "file $final_dir created!", color = "green")
-                set_children!(cm2, "$(becell)cells",
-                Vector{Servable}(
-                [build(c, cel, dir, explorer = exp) for cel in newcells]))
-            end
-            append!(cm, containercontrols, newconfbutton)
-            append!(cm, containercontrols, cancelbutton)
-            style!(cm, newtxt, "width" => 80percent, "opacity" => 100percent)
-            style!(cm, newconfbutton, "opacity" => 100percent)
-            return
-        end
-        olive_notify!(cm, "you already have a naming box open...", color = "red")
-    end
-    push!(container, containercontrols, cellcontainer)
+    push!(container, cellcontainer)
     return(container)
 end
 
@@ -221,37 +146,56 @@ mutable struct Project{name <: Any} <: Servable
     dir::String
     directories::Vector{Directory{<:Any}}
     environment::String
-    open::Dict{String, Dict{Symbol, Any}}
-    function Project(name::String, dir::String; environment::String = dir)
-        open::Dict{String, Dict{String, Any}} = Dict{String, Dict{String, Any}}()
+    open::Dict{String, Vector{Cell}}
+    mod::Module
+    function Project(name::String, dir::String; environment::String = "")
+        open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
+        modstr = """module $(name)
+        using Pkg
+
+        function evalin(ex::Any)
+                Pkg.activate("$environment")
+                ret = eval(ex)
+        end
+        end"""
+        mod::Module = eval(Meta.parse(modstr))
+        if environment == ""
+            environment = dir
+        end
         new{Symbol(name)}(name, dir, Vector{Directory{<:Any}}(),
-         environment, open)::Project{<:Any}
+         environment, open, mod)::Project{<:Any}
     end
     Project{T}(name::String, dir::String; environment::String = dir) where {T <: Any} = begin
-        open::Dict{String, Dict{String, Any}} = Dict{String, Dict{String, Any}}()
+        open::Dict{String, Pair{Module, Vector{Cell}}} = Dict{String, Pair{Module, Vector{Cell}}}()
         groups::Dict{String, String} = Dict("root" => "rw")
-        new{T}(name, dir, Vector{Directory{<:Any}}(), environment, open)::Project{<:Any}
+        modstr = """module $(name)
+        using Pkg
+
+        function evalin(ex::Any)
+                Pkg.activate("$environment")
+                ret = eval(ex)
+        end
+        end"""
+        mod::Module = eval(Meta.parse(modstr))
+        if environment == ""
+            environment = dir
+        end
+        new{T}(name, dir, Vector{Directory{<:Any}}(), environment, open, mod)::Project{<:Any}
     end
 end
 
-function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any};
-    at::String = first(p.open)[1])
-    name = at
-    frstcells::Vector{Cell} = p.open[at][:cells]
+function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
+    c[:OliveCore].open[getip(c)] = p
+    frstcells::Vector{Cell} = first(p.open)[2]
+    name = first(p.open)[1]
     retvs = Vector{Servable}()
     [begin
         push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
         frstcells, name))
     end for cell in frstcells]
-    overwindow = div("$(name)over")
-    style!(overwindow, "display" => "inline-block",
-    "overflow-y" => "scroll !important", "min-width" => 40percent,
-    "padding" => 0px, "max-height" => 20percent, "margin-top" => 2px)
-    proj_window = section(name)
-
+    proj_window = div(name)
     proj_window[:children] = retvs
-    push!(overwindow, build_tab(c, name), proj_window)
-    overwindow::Component{:div}
+    proj_window::Component{:div}
 end
 
 function group(c::Connection)
@@ -277,18 +221,18 @@ end
 mutable struct OliveCore <: ServerExtension
     olmod::Module
     type::Vector{Symbol}
-    data::Dict{String, Any}
-    client_data::Dict{String, Dict{String, Any}}
+    data::Dict{Symbol, Any}
+    client_data::Dict{String, Dict{Symbol, Any}}
     open::Dict{String, Project{<:Any}}
     f::Function
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         m = eval(Meta.parse("module olive end"))
         projopen = Dict{String, Project{<:Any}}()
-        client_data = Dict{String, Dict{String, Any}}()
+        client_data = Dict{String, Dict{Symbol, Any}}()
         f(c::Connection) = begin
             if ~(getip(c) in keys(client_data))
-                push!(client_data, getip(c) => Dict{String, Any}("open" => ""))
+                push!(client_data, getip(c) => Dict{Symbol, Any}(:open => ""))
             end
         end
         new(m, [:connection, :func], data, client_data, projopen, f)
