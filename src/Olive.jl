@@ -194,20 +194,23 @@ end
 ==#
 #==|||==#
 docbrowser = route("/doc") do c::Connection
+    notifier::Component{:div} = olive_notific()
     if ~(getip(c) in keys(c[:OliveCore].open))~
         write!(c, "you are not in an active session.")
         return
     end
     write!(c, DOCTYPE())
     write!(c, olivesheet())
+    write!(c, notifier)
     p::Project{<:Any} = c[:OliveCore].open[getip(c)]
     mod = getarg(c, :mod, first(p.open)[1])
     getdoc = getarg(c, :get, "$(p.name)")
     docs = p.open[mod][:mod].evalin(Meta.parse("@doc($(getdoc))"))
-    T = p.open[mod][:mod].evalin("$(getdoc)")
+    T = p.open[mod][:mod].evalin(Meta.parse("$(getdoc)"))
     if typeof(T) == Module
-
+        write!(c, h("mod", 1, text = "module"))
     end
+    write!(c, h("T", 2, text = string(typeof(T))))
     write!(c, tmd(ToolipsSession.gen_ref(), string(docs)))
 end
 #==output[code]
@@ -424,7 +427,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         rs = routes(fourofour, main, explorer, docbrowser)
     end
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
-    oc, Session(["/", "/session"])])
+    oc, Session(["/", "/session", "/doc"])])
     server.start(); server::Toolips.ToolipsServer
 end
 

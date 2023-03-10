@@ -6,7 +6,8 @@ function inputcell_style()
     "line-height" => 15px, "width" => 90percent, "border-bottom-left-radius" => 0px,
     "min-height" => 50px, "position" => "relative", "margin-top" => 0px,
     "display" => "inline-block", "border-left-top-radius" => "0px !important",
-    "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray")
+    "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray",
+    "line-height" => 15px)
     st::Style
 end
 #==output[code]

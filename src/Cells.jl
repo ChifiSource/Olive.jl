@@ -186,7 +186,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     style!(sidebox, "display" => "inline-block",
     "background-color" => "orange",
     "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-    "overflow" => "hidden")
+    "overflow" => "hidden", "border-style" => "solid",
+    "border-width" => 2px)
     pkglabel =  a("$(cell.id)helplabel", text = "help>")
     style!(pkglabel, "font-weight" => "bold", "color" => "black")
     push!(sidebox, pkglabel)
@@ -194,7 +195,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     "border-top-left-radius" => 0px,
     "min-height" => 50px, "display" => "inline-block",
      "margin-top" => 0px, "font-weight" => "bold",
-     "background-color" => "orange", "color" => "black")
+     "background-color" => "#b33000", "color" => "white", "border-style" => "solid",
+     "border-width" => 2px)
      output = div("cell$(cell.id)out", text = cell.outputs)
      push!(inner, sidebox, inside)
     push!(outside, inner, output)
@@ -296,7 +298,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     style!(sidebox, "display" => "inline-block",
     "background-color" => "blue",
     "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-    "overflow" => "hidden")
+    "overflow" => "hidden", "border-width" => 2px, "border-style" => "solid")
     pkglabel =  a("$(cell.id)pkglabel", text = "pkg>")
     style!(pkglabel, "font-weight" => "bold", "color" => "white")
     push!(sidebox, pkglabel)
@@ -304,7 +306,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     "border-top-left-radius" => 0px,
     "min-height" => 50px, "display" => "inline-block",
      "margin-top" => 0px, "font-weight" => "bold",
-     "background-color" => "blue", "color" => "white")
+     "background-color" => "#301934", "color" => "white", "border-width" => 2px,
+     "border-style" => "solid")
     push!(outside, sidebox, inside, output)
     bind!(c, cm, inside, km, ["cell$(cell.id)"])
     outside
@@ -337,10 +340,10 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     style!(highlight_box, "position" => "absolute",
     "background" => "transparent", "z-index" => "5", "padding" => 20px,
     "border-top-left-radius" => "0px !important",
-    "border-radius" => "0px !important",
+    "border-radius" => "0px !important", "line-height" => 15px,
     "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
     "color" => "gray", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
-    "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 15px)
+    "font-family" => """"Lucida Console", "Courier New", monospace;""")
     push!(inputbox, highlight_box, inside)
     style!(outside, "transition" => 1seconds)
     on(c, cm, inside, "input", ["rawcell$(cell.id)", "cell$(cell.id)"]) do cm::ComponentModifier
@@ -386,8 +389,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         is preprocessed.)
         ==#
         ToolipsMarkdown.julia_block!(tm)
-        set_text!(cm, highlight_box, replace(string(tm), "\n" => "<br>",
-        "    " => "<p>&emsp;</p>"))
+        set_text!(cm, highlight_box, replace(string(tm), "\n" => "<br>"))
     end
     interiorbox = div("cellinterior$(cell.id)")
     style!(interiorbox, "display" => "flex")
@@ -449,18 +451,21 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     cells::Vector{Cell}, windowname::String)
     keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
-    tlcell = div("cellcontainer$(cell.id)", class = "cell")
+    tlcell = ToolipsDefaults.textdiv("cell$(cell.id)",
+    "class" => "cell")
+    tlcell[:text] = ""
+    tlcell[:contenteditable] = false
     style!(tlcell, "border-width" => 2px, "border-style" => "solid",
     "min-height" => 2percent)
-    innercell = tmd("cell$(cell.id)", cell.source)
+    innercell = tmd("celltmd$(cell.id)", cell.source)
     style!(innercell, "min-hight" => 2percent)
     on(c, cm, tlcell, "dblclick") do cm::ComponentModifier
-        set_text!(cm, innercell, replace(cell.source, "\n" => "</br>"))
+        set_text!(cm, tlcell, replace(cell.source, "\n" => "</br>"))
         cm["olivemain"] = "cell" => string(cell.n)
-        cm[innercell] = "contenteditable" => "true"
+        cm[tlcell] = "contenteditable" => "true"
     end
     bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
-        cell.source = cm2[innercell]["text"]
+        cell.source = cm2[tlcell]["text"]
         evaluate(c, cell, cm2, windowname)
     end
     bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
@@ -727,11 +732,13 @@ end
 
 function evaluate(c::Connection, cell::Cell{:markdown}, cm::ComponentModifier,
     window::String)
-    activemd = cm["cell$(cell.id)"]["text"]
-    cell.source = activemd
-    newtmd = tmd("cell$(cell.id)tmd", activemd)
-    set_text!(cm, "cell$(cell.id)", newtmd[:text])
-    cm["cell$(cell.id)"] = "contenteditable" => "false"
+    if cm["cell$(cell.id)"]["contenteditable"] == "true"
+        activemd = cm["cell$(cell.id)"]["text"]
+        cell.source = activemd * "\n"
+        newtmd = tmd("cell$(cell.id)tmd", cell.source)
+        set_children!(cm, "cell$(cell.id)", [newtmd])
+        cm["cell$(cell.id)"] = "contenteditable" => "false"
+    end
 end
 
 function evaluate(c::Connection, cell::Cell{:ipynb}, cm::ComponentModifier)
