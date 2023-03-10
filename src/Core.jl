@@ -1,10 +1,6 @@
-#== map (your welcome)
-- extenssions (OliveExtension{}, OliveModifier, build)
-- Directories
-- Projects
-- OliveCore
-- OliveDisplay
+#==output[filemap]
 ==#
+#==|||==#
 """
 ### OliveExtension{P <: Any}
 The OliveExtension is a symbolic type that is used by the `build` function in
@@ -27,7 +23,9 @@ end
 OliveExtension{}
 """
 mutable struct OliveExtension{P <: Any} end
-
+#==output[code]
+==#
+#==|||==#
 """
 ### OliveModifier <: ToolipsSession.AbstractComponentModifier
 The OliveModifier is used whenever an extension is loaded with a `build`
@@ -56,15 +54,20 @@ mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
         new(cm.rootc, cm.changes, c[:OliveCore].client_data[getip(c)])
     end
 end
-
+#==output[code]
+==#
+#==|||==#
 getindex(om::OliveModifier, symb::Symbol) = om.data[symb]
-
 setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
-
-function olive_save(cells::Vector{<:IPy.AbstractCell}, sc::Cell{<:Any})
-    IPy.save(cells, sc.outputs)
+#==output[code]
+==#
+#==|||==#
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{<:Any})
+    IPyCells.save(cells, sc.outputs)
 end
-
+#==output[code]
+==#
+#==|||==#
 """
 **Olive Core**
 ### build(om::OliveModifier, oe::OliveExtension{<:Any})
@@ -77,8 +80,10 @@ extended and written
 
 ```
 """
-build(om::OliveModifier, oe::OliveExtension{<:Any}) = return
-
+build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
+#==output[code]
+==#
+#==|||==#
 """
 ### Directory
 - uri::String
@@ -105,7 +110,9 @@ mutable struct Directory{S <: Any}
         new{Symbol(dirtype)}(dirtype, uri, Dict(access ...), file_cells)
     end
 end
-
+#==output[code]
+==#
+#==|||==#
 """
 **Interface**
 ### build(c::Connection, dir::Directory{<:Any}) -> ::Component{:div}
@@ -122,8 +129,8 @@ custom directory example
 
 ```
 """
-build(c::Connection, dir::Directory{<:Any}, m::Module;
-exp::Bool = false) = begin
+function build(c::Connection, dir::Directory{<:Any}, m::Module;
+exp::Bool = false)
     container = section(dir.uri, align = "left")
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
@@ -145,6 +152,7 @@ exp::Bool = false) = begin
     end for cell in dir.cells]
     becell = replace(dir.uri, "/" => "|")
     cellcontainer = section("$(becell)cells", sel = becell)
+    style!(cellcontainer, "padding" => 7px)
     cellcontainer[:children] = cells
     containercontrols = div("$(dir.uri)controls")
     newtxt = ToolipsDefaults.textdiv("newtxt$becell", text = "")
@@ -156,29 +164,24 @@ exp::Bool = false) = begin
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
     new_fb = topbar_icon("newfb$(becell)", "article")
     if dir.uri == c[:OliveCore].data["home"]
+        style!(cellcontainer, "border-color" => "pink")
         srcbutton = button("src$(becell)", text = "source")
         on(c, srcbutton, "click") do cm::ComponentModifier
             home = c[:OliveCore].data["home"]
             try
-                olive_cells = IPy.read_jl("$home/src/olive.jl")
-                olive_cells = filter!(ocell -> ocell.type == "code", olive_cells)
-                modstr = join([cell.source for cell in olive_cells], "\n")
-                modend = findlast("end # module", modstr)
-                modstr = modstr[1:modend[1] + 3]
-                pmod = Meta.parse(modstr[1:length(modstr) - 1])
-                olmod::Module = eval(pmod)
-                c[:OliveCore].olmod = olmod
+                olive_cells = IPyCells.read_jl("$home/src/olive.jl")
+                source_module!(c[:OliveCore])
                 olive_notify!(cm, "olive module successfully sourced!", color = "green")
             catch e
-                Base.showerror(e)
                 olive_notify!(cm,
-                "failed to source olive module, check terminal for details",
+                "failed to source olive module",
                 color = "red")
             end
         end
         headerimg = olive_cover()
-        headerimg["width"] = "200"
+        headerimg["width"] = "100"
         oliveheaderbox = div("homeheaderbx", align = "center")
+        style!(oliveheaderbox, "overflow" => "hidden")
         push!(oliveheaderbox, headerimg)
         push!(container, oliveheaderbox)
         style!(srcbutton, "background-color" => "red")
@@ -201,6 +204,7 @@ exp::Bool = false) = begin
                 final_dir = dirname * "/" * fname
                 mkdir(final_dir)
                 newcells = directory_cells(dirname)
+                #if typeof()
                 remove!(cm2, newconfbutton)
                 remove!(cm2, cancelbutton)
                 set_text!(cm2, newtxt, "")
@@ -302,14 +306,15 @@ can_write(c::Connection, p::Project{<:Any}) = contains("w", d.access[group(c)])
 
 function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
     mod = OliveModifier(c, cm)
-    Base.invokelatest(c[:OliveCore].olmod.build, mod, OliveExtension{:invoker}())
-    signatures = [m.sig.parameters[3] for m in methods(olmod.build,
-     [AbstractConnection, Modifier, OliveExtension])]
+    Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
+    OliveExtension{:invoker}())
+    signatures = [m.sig.parameters[4] for m in methods(olmod.build,
+     [Any, Modifier, OliveExtension])]
     for sig in signatures
         if sig == OliveExtension{<:Any}
             continue
         end
-        Base.invokelatest(c[:OliveCore].olmod.build, mod, sig())
+        Base.invokelatest(c[:OliveCore].olmod.build, c, mod, sig())
     end
 end
 
@@ -332,6 +337,20 @@ mutable struct OliveCore <: ServerExtension
         end
         new(m, [:connection, :func], data, client_data, projopen, f)
     end
+end
+
+function source_module!(oc::OliveCore)
+    homedirec = oc.data["home"]
+    olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
+    filter!(ocell -> ocell.type == "code" || ocell.source != "\n" || cell.source != "\n\n",
+    olive_cells)
+    modstr = join([cell.source for cell in olive_cells[2:length(olive_cells)]])
+    modend = findlast("end # module", modstr)
+    modstr = modstr[1:modend[1] + 3]
+    pmod = Meta.parse(modstr[1:length(modstr) - 1])
+    olmod::Module = eval(pmod)
+    Base.invokelatest(olmod.build, oc)
+    oc.olmod = olmod
 end
 
 build(f::Function, oc::OliveCore) = f(oc)::OliveCore

@@ -12,9 +12,12 @@ julia and for other languages and data editing. Crucially, olive is abstract
 - [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
 """
 module Olive
+#==output[code]
+==#
+#==|||==#
 import Base: write, display, getindex, setindex!
-using IPy
-using IPy: Cell
+using IPyCells
+using IPyCells: Cell
 using Pkg
 using Toolips
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier
@@ -26,7 +29,9 @@ using ToolipsBase64
 using Highlights
 using TOML
 using Revise
-
+#==output[code]
+==#
+#==|||==#
 
 #==
 - Olive.jl./src/Olive.jl
@@ -49,12 +54,23 @@ using Revise
 
 include("Core.jl")
 include("UI.jl")
-
+#==output[code]
+==#
+#==|||==#
 """
-main(c::Connection) -> _
+### route ("/session") (main)
 --------------------
-This function is temporarily being used to test Olive.
+This is the function/Route which runs olive's "session" page, the main editor
+    for olive. If you are providing this to a server directly with olive
+functionality. Note that by  simply providing any server with the `OliveCore`
+extension, this route, and also  ways to  populate directories...
 
+It's  pretty smart because with `create` you could  very easily build  a whole
+system out of this. I **am** putting this  in  the documentation so you may check
+it out. Endemic of future projects? **definitely**
+##### example
+```
+```
 """
 main = route("/session") do c::Connection
     # setup base env
@@ -159,11 +175,44 @@ explorer = route("/") do c::Connection
     push!(bod, loader_body)
     write!(c, bod)
  end
-
+ #==output[code]
+ ==#
+ #==|||==#
+ """
+ ### devmode ("/") (devmode)
+ --------------------
+This is a route that autoloads an active Olive sourceable module -- in addition
+to offering some examples.
+ ##### example
+ ```
+ ```
+ """
 devmode = route("/") do c::Connection
     explorer.page(c)
 end
+#==output[code]
+==#
+#==|||==#
+docbrowser = route("/doc") do c::Connection
+    if ~(getip(c) in keys(c[:OliveCore].open))~
+        write!(c, "you are not in an active session.")
+        return
+    end
+    write!(c, DOCTYPE())
+    write!(c, olivesheet())
+    p::Project{<:Any} = c[:OliveCore].open[getip(c)]
+    mod = getarg(c, :mod, first(p.open)[1])
+    getdoc = getarg(c, :get, "$(p.name)")
+    docs = p.open[mod][:mod].evalin(Meta.parse("@doc($(getdoc))"))
+    T = p.open[mod][:mod].evalin("$(getdoc)")
+    if typeof(T) == Module
 
+    end
+    write!(c, tmd(ToolipsSession.gen_ref(), string(docs)))
+end
+#==output[code]
+==#
+#==|||==#
 setup = route("/") do c::Connection
     write!(c, olivesheet())
     bod = body("mainbody")
@@ -248,9 +297,7 @@ setup = route("/") do c::Connection
                          oc = c[:OliveCore]
                          direc = cm["selector"]["text"]
                          oc.data["home"] = "$direc/olive"
-                         olmod = eval(Meta.parse(read("$direc/olive/src/olive.jl", String)))
-                         Base.invokelatest(olmod.build, oc)
-                         oc.olmod = olmod
+                         source_module!(oc)
                          push!(c.routes, fourofour, main, explorer)
                          redirect!(cm5, "/")
                      end
@@ -274,11 +321,15 @@ setup = route("/") do c::Connection
     push!(bod, confirm_button)
     write!(c, bod)
 end
-
+#==output[code]
+==#
+#==|||==#
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
 end
-
+#==output[code]
+==#
+#==|||==#
 function create_project(homedir::String = homedir(), olivedir::String = "olive")
         try
             cd(homedir)
@@ -287,21 +338,56 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
             throw("unable to access your applications directory.")
         end
         open("$homedir/$olivedir/src/olive.jl", "w") do o
-            write(o, """
-            module $olivedir
+            write(o,
+            """\"""
+            ## welcome to olive!
+            Welcome to olive: the extensible notebook application for Julia.
+            This is  your olive home module's file. This is where extensions
+            for olive can be loaded. If you would  like to make your own
+            extension, extend `Olive.build` below... `?(Olive.build)` might
+            be helpful. Alternatively, simply use `using` to load extensions
+            from modules. For example,
+            ```julia
+            using OliveDefaults.Styler
+            using OlivePy
+            ```
+            Above all, have fun! Thanks for trying olive! Report any issues to
+            [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
+            \"""
+            #==|||==#
+            module olive
+            #==output[code]
+            this cell starts the module, you probably don't want to run it.
+            ==#
+            #==|||==#
             using Olive
+            using Olive.Toolips: Connection
             import Olive: build
-
+            # add extensions here!
             build(oc::OliveCore) = begin
                 oc::OliveCore
             end
+            #==output[code]
+            olive.build
+            ==#
+            #==|||==#
+            # ?build
+            #==output[helprepl]
 
+            ==#
+            #==|||==#
             end # module
+            #==output[code]
+            this cell ends the module, you probably don't want to run it.
+            ==#
+            #==|||==#
             """)
         end
         @info "olive files created! welcome to olive! "
 end
-
+#==output[code]
+==#
+#==|||==#
 """
 start(IP::String, PORT::Integer, extensions::Vector{Any}) -> ::Toolips.WebServer
 --------------------
@@ -334,16 +420,8 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         oc.client_data = config["oliveusers"]
         oc.data["home"] = homedirec * "/olive"
         oc.data["wd"] = pwd()
-        olive_cells = IPy.read_jl("$homedirec/olive/src/olive.jl")
-        olive_cells = filter!(ocell -> ocell.type == "code", olive_cells)
-        modstr = join([cell.source for cell in olive_cells], "\n")
-        modend = findlast("end # module", modstr)
-        modstr = modstr[1:modend[1] + 3]
-        pmod = Meta.parse(modstr[1:length(modstr) - 1])
-        olmod::Module = eval(pmod)
-        Base.invokelatest(olmod.build, oc)
-        oc.olmod = olmod
-        rs = routes(fourofour, main, explorer)
+        source_module!(oc)
+        rs = routes(fourofour, main, explorer, docbrowser)
     end
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session"])])
@@ -389,6 +467,15 @@ function create(name::String)
         """)
     end
 end
-
+#==output[code]
+==#
+#==|||==#
 export OliveCore, build, Pkg, TOML, Toolips, ToolipsSession
+export OliveExtension, OliveModifier
+#==output[code]
+==#
+#==|||==#
 end # - module
+#==output[code]
+==#
+#==|||==#

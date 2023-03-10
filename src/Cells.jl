@@ -1,21 +1,53 @@
 """
 **Interface**
-### build(c::Connection, cell::Cell{<:Any}, args ...; arg ...) -> ::Component{:div}
+### build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; explorer::Bool = false) -> ::Component{:div}
 ------------------
 The catchall/default `build` function for directory cells. This function is what
 creates the gray boxes for files that Olive cannot read inside of directories.
 Using this function as a template, you can create your own directory cells.
+Write a new method for this function in order to build cells for a new
+file type. Note that you might also want to extend `olive_save` in order
+to save your new file type. Bind `dblclick` and use the `load_session` or
+`add_to_session` methods, dependent on `explorer`... Which should also be `false`
+by default. `directory_cells` will put the file path into `cell.outputs` and
+the file name into `cell.source`.
 #### example
 ```
+using Olive
+using Toolips
+using ToolipsSession
+import Olive: build
 
-```
-custom directory example
-```
-# In your Olive root: ('~/olive/src/olive.jl' by default)
-
+function build(c::Connection, cell::Cell{:txt}, d::Directory{<:Any}; explorer::Bool = false)
+    # build base cell
+    hiddencell = div("cell\$(cell.id)")
+    style!(hiddencell, "background-color" => "white")
+    name = a("cell\$(cell.id)label", text = cell.source)
+    style!(name, "color" => "black")
+    push!(hiddencell, name)
+    # bind events
+    if explorer
+        on(c, hiddencell, "dblclick") do cm::ComponentModifier
+            txt = read(cell.outputs, String)
+            # you might want to make a build function for this cell :)
+            newcell = Olive.Cell(1, "txt", txt)
+            cells = [newcell]
+            Olive.add_to_session(c, cells, cm, cell.source, cell.outputs)
+        end
+    else
+        on(c, hiddencell, "dblclick") do cm::ComponentModifier
+            txt = read(cell.outputs, String)
+            newcell = Olive.Cell(1, "txt", txt)
+            cells = [newcell]
+            Olive.load_session(c, cells, cm, cell.source, cell.outputs)
+        end
+    end
+    hiddencell
+end
 ```
 """
-function build(c::Connection, cell::Cell{<:Any}, args ...; arg ...)
+function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
+    explorer::Bool = false)
     hiddencell = div("cell$(cell.id)", class = "cell-hidden")
     name = a("cell$(cell.id)label", text = cell.source)
     style!(name, "color" => "black")
@@ -41,7 +73,7 @@ custom directory example
 ```
 """
 function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
-    args ...)
+    cells::Vector{Cell{<:Any}}, windowname::String)
     hiddencell = div("cell$(cell.id)", class = "cell-hidden")
     name = a("cell$(cell.id)label", text = cell.source)
     style!(name, "color" => "black")
@@ -97,7 +129,7 @@ function cell_new!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}}, windowname::String; type::String = "code")
     pos = findall(lcell -> lcell.id == cell.id, cells)[1]
     newcell = Cell(pos, type, "")
-    insert!(cells, pos, newcell)
+    insert!(cells, pos + 1, newcell)
     ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, newcell,
     cells, windowname))
 end
@@ -130,9 +162,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
         evaltxt =  cm2["rawcell$(cell.id)"]["text"]
         cell.source = "# ?$(evaltxt)"
-        rts = c[:OliveCore].open[getip(c)].open[windowname][:mod].evalin(
-        Meta.parse("@doc($(evaltxt))"))
-        outtmd = tmd("out$(cell.id)", string(rts))
+        outtmd = iframe("output$(cell.id)",
+        src = "/doc?get=$(evaltxt)&mod=$(windowname)", width = "700",
+        height = "300")
         spoofcon = Toolips.SpoofConnection()
         write!(spoofcon, outtmd)
         cell.outputs = spoofcon.http.text
@@ -174,7 +206,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     cells::Vector{Cell}, windowname::String)
     olmod = c[:OliveCore].olmod
     signatures = [m.sig.parameters[4] for m in methods(Olive.build,
-    [Toolips.AbstractConnection, Toolips.Modifier, IPy.AbstractCell, Vector{Cell}, String])]
+    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell, Vector{Cell}, String])]
      buttonbox = div("cellcontainer$(cell.id)")
      push!(buttonbox, h("spawn$(cell.id)", 3, text = "new cell"))
      for sig in signatures
@@ -274,7 +306,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
      "margin-top" => 0px, "font-weight" => "bold",
      "background-color" => "blue", "color" => "white")
     push!(outside, sidebox, inside, output)
-    bind!(c, cm, inside, km)
+    bind!(c, cm, inside, km, ["cell$(cell.id)"])
     outside
 end
 
@@ -288,24 +320,27 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, windowname::String)
     keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
-    io = IOBuffer()
-    highlight(io, MIME("text/html"), cell.source, Lexers.JuliaLexer)
+#==    io = IOBuffer()
+    highlight(io, MIME("text/html"), cell.source, Lexers.JuliaLexer) ==#
+    tm = ToolipsMarkdown.TextModifier(cell.source)
+    ToolipsMarkdown.julia_block!(tm)
     outside = div("cellcontainer$(cell.id)", class = "cell")
     inside = ToolipsDefaults.textdiv("cell$(cell.id)",
     text = replace(cell.source, "\n" => "</br>"), "class" => "input_cell")
-    style!(inside,
-    "width" => 90percent, "border-bottom-left-radius" => 0px, "min-height" => 50px,
-    "position" => "relative", "margin-top" => 0px, "display" => "inline-block",
-    "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray")
+    style!(inside, "border-top-left-radius" => 0px)
     inputbox = div("cellinput$(cell.id)")
     style!(inputbox, "padding" => 0px, "width" => 90percent,
-    "overflow" => "hidden", "border-top-left-radius" => 0px, "border-bottom-left-radius" => 0px)
+    "overflow" => "hidden", "border-top-left-radius" => "0px !important", "border-bottom-left-radius" => 0px,
+    "border-radius" => "0px !important")
     highlight_box = div("cellhighlight$(cell.id)",
-    text = String(take!(io)))
+    text = replace(string(tm), "\n" => "</br>", "class"  => "input_cell"))
     style!(highlight_box, "position" => "absolute",
-    "background" => "transparent", "z-index" => "5", "padding" => 0px,
-    "font-size" => 16pt, "pointer-events" => "none", "width" => 80percent,
-    "margin-left" => 20px, "width" => 90percent)
+    "background" => "transparent", "z-index" => "5", "padding" => 20px,
+    "border-top-left-radius" => "0px !important",
+    "border-radius" => "0px !important",
+    "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
+    "color" => "gray", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
+    "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 15px)
     push!(inputbox, highlight_box, inside)
     style!(outside, "transition" => 1seconds)
     on(c, cm, inside, "input", ["rawcell$(cell.id)", "cell$(cell.id)"]) do cm::ComponentModifier
@@ -325,7 +360,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         elseif currraw == "\\"
             olive_notify!(cm, "olive cells not yet available!", color = "red")
         elseif currraw == "?"
-            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
             new_cell = Cell(pos, "helprepl", "")
             cells[pos] = new_cell
             cell = new_cell
@@ -333,18 +368,33 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
              cells, windowname))
             focus!(cm, "cell$(cell.id)")
+        elseif currraw == "#"
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
+            new_cell = Cell(pos, "comment", "")
+            remove!(cm, outside)
+            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
+             cells, windowname))
+            focus!(cm, "cell$(cell.id)")
         end
-        io = IOBuffer()
-        highlight(io, MIME("text/html"), curr, Lexers.JuliaLexer)
-        set_text!(cm, highlight_box, String(take!(io)))
         cell.source = curr
+        tm = TextModifier(curr)
+        # f = findlast("\n", curr)
+        #==TODO  we need to findlast, remove whatever the control key is from the last
+         space... In other words, we need to scan for the evaluate controls
+        So in the example  of it being enter, we need to find the last \n,
+        which is just html </br> replaced by ToolipsSession (cm[comp]["text"]
+        is preprocessed.)
+        ==#
+        ToolipsMarkdown.julia_block!(tm)
+        set_text!(cm, highlight_box, replace(string(tm), "\n" => "<br>",
+        "    " => "<p>&emsp;</p>"))
     end
     interiorbox = div("cellinterior$(cell.id)")
     style!(interiorbox, "display" => "flex")
     sidebox = div("cellside$(cell.id)")
     style!(sidebox, "display" => "inline-block", "background-color" => "pink",
     "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-    "overflow" => "hidden")
+    "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
     push!(interiorbox, sidebox, inputbox)
     cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
     cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
@@ -504,12 +554,12 @@ function build(c::Connection, cell::Cell{:jl},
     style!(hiddencell, "cursor" => "pointer")
     if explorer
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
+            cs::Vector{Cell{<:Any}} = IPyCells.read_jl(cell.outputs)
             add_to_session(c, cs, cm, cell.source, cell.outputs)
         end
     else
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = IPy.read_jl(cell.outputs)
+            cs::Vector{Cell{<:Any}} = IPyCells.read_jl(cell.outputs)
             load_session(c, cs, cm, cell.source, cell.outputs, d)
         end
     end
@@ -585,18 +635,6 @@ function build(c::Connection, cell::Cell{:dirselect})
     cellover = div("dirselectover")
     push!(cellover, selector_indicator, filebox)
     cellover
-end
-
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:tutorial})
-
-end
-
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:option})
-
-end
-
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:defaults})
-
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory},
@@ -697,7 +735,7 @@ function evaluate(c::Connection, cell::Cell{:markdown}, cm::ComponentModifier,
 end
 
 function evaluate(c::Connection, cell::Cell{:ipynb}, cm::ComponentModifier)
-    cs::Vector{Cell{<:Any}} = IPy.read_ipynb(cell.outputs)
+    cs::Vector{Cell{<:Any}} = IPyCells.read_ipynb(cell.outputs)
     load_session(c, cs, cm, cell.source, cell.outputs)
 end
 
