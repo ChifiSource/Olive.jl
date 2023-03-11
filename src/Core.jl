@@ -62,12 +62,6 @@ setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
 #==output[code]
 ==#
 #==|||==#
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{<:Any})
-    IPyCells.save(cells, sc.outputs)
-end
-#==output[code]
-==#
-#==|||==#
 """
 **Olive Core**
 ### build(om::OliveModifier, oe::OliveExtension{<:Any})

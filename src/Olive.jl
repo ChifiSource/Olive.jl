@@ -193,15 +193,21 @@ end
 #==output[code]
 ==#
 #==|||==#
+#==output[TODO]
+I would love for the doc browser to be completed..
+I want it to work primarily off of just requests, and client functions.
+Other than the search of course. There is a lot more 
+==#
+#==|||==#
 docbrowser = route("/doc") do c::Connection
     notifier::Component{:div} = olive_notific()
-    if ~(getip(c) in keys(c[:OliveCore].open))~
-        write!(c, "you are not in an active session.")
-        return
-    end
     write!(c, DOCTYPE())
     write!(c, olivesheet())
     write!(c, notifier)
+    if ~(getip(c) in keys(c[:OliveCore].open))~
+        # TODO doc for OLMOD
+        push!(c[:OliveCore].open, getip(c) => Project{:doc}())
+    end
     p::Project{<:Any} = c[:OliveCore].open[getip(c)]
     mod = getarg(c, :mod, first(p.open)[1])
     getdoc = getarg(c, :get, "$(p.name)")
