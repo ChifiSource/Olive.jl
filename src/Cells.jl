@@ -355,13 +355,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     "overflow" => "hidden", "border-top-left-radius" => "0px !important", "border-bottom-left-radius" => 0px,
     "border-radius" => "0px !important")
     highlight_box = div("cellhighlight$(cell.id)",
-    text = replace(string(tm), "\n" => "</br>", "class"  => "input_cell"))
+    text = replace(string(tm), "\n" => "</br>",
+    "class"  => "input_cell"))
     style!(highlight_box, "position" => "absolute",
     "background" => "transparent", "z-index" => "5", "padding" => 20px,
     "border-top-left-radius" => "0px !important",
     "border-radius" => "0px !important", "line-height" => 15px,
     "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
-    "color" => "#4C4646", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
+    "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
     "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
     push!(inputbox, highlight_box, inside)
     style!(outside, "transition" => 1seconds)
@@ -406,9 +407,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         is preprocessed.)
         ==#
         cell.source = curr
-        tm = TextModifier(replace(curr, "\n" => "<br>", " " => "&nbsp;"))
-
-        ToolipsMarkdown.julia_block!(tm)
+        tm.raw = replace(curr, "\n" => "<br>", " " => "&nbsp;")
+        ToolipsMarkdown.clear_marks!(tm)
+        ToolipsMarkdown.mark_julia!(tm)
         set_text!(cm, highlight_box, string(tm))
     end
     interiorbox = div("cellinterior$(cell.id)")
@@ -505,7 +506,6 @@ function evaluate(c::Connection, cell::Cell{:code}, cm::ComponentModifier,
     elseif ~(isnothing(ret)) && length(standard_out) == 0
         display(od, MIME"olive"(), ret)
         outp = String(od.io.data)
-
     else
         outp = standard_out
     end
@@ -599,35 +599,27 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     outside
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory},
-    cells::Vector{Cell})
-   catheading = h("cell$(cell.id)heading", 2, text = cell.source, contenteditable = true)
-    contents = section("cell$(cell.id)")
-    push!(contents, catheading)
-    v = string(cell.outputs)
-    equals = a("equals", text = " = ")
-    style!(equals, "color" => "gray")
-    for (k, v) in cell.outputs
-        key_div = div("keydiv")
-        push!(key_div,
-        a("$(cell.n)$k", text = string(k), contenteditable = true), equals,
-        a("$(cell.n)$k$v", text = string(v), contenteditable = true))
-        push!(contents, key_div)
-    end
-    contents
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
+    window::String)
+
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlval},
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     cells::Vector{Cell})
-        key_div = div("cell$(cell.id)")
-        k = cell.source
-        v = string(cell.outputs)
-        equals = a("equals", text = " = ")
-        style!(equals, "color" => "gray")
-        push!(key_div,
-        a("$(cell.n)$k", text = string(k), contenteditable = true), equals,
-        a("$(cell.n)$k$v", text = string(v), contenteditable = true))
-        key_div
+    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+
+end
+
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
+    cells::Vector{Cell})
+    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+
+end
+
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
+    window::String)
+
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
@@ -725,11 +717,37 @@ function evaluate(c::Connection, cell::Cell{:pkgrepl}, cm::ComponentModifier,
 
 end
 
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory},
     cells::Vector{Cell})
-    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
-
+   catheading = h("cell$(cell.id)heading", 2, text = cell.source, contenteditable = true)
+    contents = section("cell$(cell.id)")
+    push!(contents, catheading)
+    v = string(cell.outputs)
+    equals = a("equals", text = " = ")
+    style!(equals, "color" => "gray")
+    for (k, v) in cell.outputs
+        key_div = div("keydiv")
+        push!(key_div,
+        a("$(cell.n)$k", text = string(k), contenteditable = true), equals,
+        a("$(cell.n)$k$v", text = string(v), contenteditable = true))
+        push!(contents, key_div)
+    end
+    contents
 end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlval},
+    cells::Vector{Cell})
+        key_div = div("cell$(cell.id)")
+        k = cell.source
+        v = string(cell.outputs)
+        equals = a("equals", text = " = ")
+        style!(equals, "color" => "gray")
+        push!(key_div,
+        a("$(cell.n)$k", text = string(k), contenteditable = true), equals,
+        a("$(cell.n)$k$v", text = string(v), contenteditable = true))
+        key_div
+end
+
 
 function build(c::Connection, cell::Cell{:setup})
     maincell = section("cell$(cell.id)", align = "center")

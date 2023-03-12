@@ -78,6 +78,55 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
 #==output[code]
 ==#
 #==|||==#
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
+    # load default key-bindings (if non-existent)
+    if ~("keybindings" in keys(c[:OliveCore].client_data[getip(c)]))
+        c[:OliveCore].client_data[getip(c)]["keybindings"] = Dict{Symbol, Any}(
+        :evaluate => ("Enter", :shift),
+        :delete => ("Delete", :ctrl, :shift),
+        :up => ("ArrowUp", :ctrl, :shift),
+        :down => ("ArrowDown", :ctrl, :shift),
+        :copy => ("C", :ctrl, :shift),
+        :paste => ("V", :ctrl, :shift),
+        :cut => ("X", :ctrl, :shift),
+        :new => ("Q", :ctrl, :shift)
+        )
+    end
+    keybind_section = section("settings_keys")
+    shftlabel = a("shiftlabel", text = "  shift:    ")
+    ctrllabel = a("ctrllabel", text = "  ctrl:   ")
+    keybind_section[:children] = Vector{Servable}(vcat([h("setkeyslbl", 2, text = "keybindings")],
+    [begin
+        newkeymain = div("keybind$(keybinding[1])")
+        head = h("keylabel$(keybinding[1])",5,  text = "$(keybinding[1])")
+        setinput = ToolipsDefaults.keyinput("$(keybinding[1])inp", text = keybinding[2][1])
+        style!(setinput, "background-color" => "blue", "width" => 5percent,
+        "display" => "inline-block", "color" => "white")
+        shift_checkbox = ToolipsDefaults.checkbox("shiftk$(keybinding[1])")
+        ctrl_checkbox = ToolipsDefaults.checkbox("ctrlk$(keybinding[1])")
+        confirm = button("keybind$(keybinding[1])confirm", text = "confirm")
+        on(c, confirm, "click") do cm::ComponentModifier
+            key_vec = Vector{Union{String, Symbol}}()
+            k = cm[setinput]["value"]
+            if length(k) == 1
+                k = uppercase(k)
+            end
+            push!(key_vec, k)
+            if parse(Bool, cm[shift_checkbox]["value"])
+                push!(key_vec, :shift)
+            end
+            if parse(Bool, cm[ctrl_checkbox]["value"])
+                push!(key_vec, :ctrl)
+            end
+            c[:OliveCore].client_data[getip(c)]["keybindings"][keybinding[1]] = Tuple(key_vec)
+            olive_notify!(cm, "binding $(keybinding[1]) saved")
+        end
+        push!(newkeymain, head, shftlabel, shift_checkbox,
+        ctrllabel, ctrl_checkbox, setinput, br(), confirm)
+        newkeymain
+    end for keybinding in c[:OliveCore].client_data[getip(c)]["keybindings"]]))
+    append!(om, "settingsmenu", keybind_section)
+end
 """
 ### Directory
 - uri::String

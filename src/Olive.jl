@@ -81,66 +81,21 @@ main = route("/session") do c::Connection
     # setup base UI
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
+    style!(ui_topbar, "position" => "sticky")
     ui_explorer::Component{:div} = projectexplorer()
     ui_settings::Component{:section} = settings_menu(c)
+    sticky::Component{:div} = div("olive-sticky")
     ui_explorer[:children] = Vector{Servable}([begin
    Base.invokelatest(olmod.build, c, d, olmod, exp = true)
     end for d in proj_open.directories])
     olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
     mainpane = div("olivemain-pane")
     style!(mainpane, "display" => "flex", "overflow-x" => "scroll", "padding" => 0px)
-    push!(olivemain, ui_topbar, ui_settings, mainpane)
+    push!(olivemain, ui_settings, mainpane)
     bod = body("mainbody")
-    push!(bod, notifier, ui_explorer, olivemain)
-    # load default key-bindings (if non-existent)
-    if ~("keybindings" in keys(c[:OliveCore].client_data[getip(c)]))
-        c[:OliveCore].client_data[getip(c)]["keybindings"] = Dict{Symbol, Any}(
-        :evaluate => ("Enter", :shift),
-        :delete => ("Delete", :ctrl, :shift),
-        :up => ("ArrowUp", :ctrl, :shift),
-        :down => ("ArrowDown", :ctrl, :shift),
-        :copy => ("C", :ctrl, :shift),
-        :paste => ("V", :ctrl, :shift),
-        :cut => ("X", :ctrl, :shift),
-        :new => ("Q", :ctrl, :shift)
-        )
-    end
-    keybind_section = section("settings_keys")
-    push!(keybind_section, h("setkeyslbl", 2, text = "keybindings"))
-    push!(ui_settings, keybind_section)
-    script!(c, "load", type = "Timeout") do cm::ComponentModifier
+    push!(bod, notifier,  ui_explorer, ui_topbar, olivemain)
+    script!(c, "load", type = "Timeout", time = 100) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
-        shftlabel = a("shiftlabel", text = "  shift:    ")
-        ctrllabel = a("ctrllabel", text = "  ctrl:   ")
-        [begin
-            newkeymain = div("keybind$(keybinding[1])")
-            head = h("keylabel$(keybinding[1])",5,  text = "$(keybinding[1])")
-            setinput = ToolipsDefaults.keyinput("$(keybinding[1])inp", text = keybinding[2][1])
-            style!(setinput, "background-color" => "blue", "width" => 5percent,
-            "display" => "inline-block", "color" => "white")
-            shift_checkbox = ToolipsDefaults.checkbox("shiftk$(keybinding[1])")
-            ctrl_checkbox = ToolipsDefaults.checkbox("ctrlk$(keybinding[1])")
-            confirm = button("keybind$(keybinding[1])confirm", text = "confirm")
-            on(c, confirm, "click") do cm::ComponentModifier
-                key_vec = Vector{Union{String, Symbol}}()
-                k = cm[setinput]["value"]
-                if length(k) == 1
-                    k = uppercase(k)
-                end
-                push!(key_vec, k)
-                if parse(Bool, cm[shift_checkbox]["value"])
-                    push!(key_vec, :shift)
-                end
-                if parse(Bool, cm[ctrl_checkbox]["value"])
-                    push!(key_vec, :ctrl)
-                end
-                c[:OliveCore].client_data[getip(c)]["keybindings"][keybinding[1]] = Tuple(key_vec)
-                olive_notify!(cm, "binding $(keybinding[1]) saved")
-            end
-            push!(newkeymain, head, shftlabel, shift_checkbox,
-            ctrllabel, ctrl_checkbox, setinput, br(), confirm)
-            append!(cm, "settings_keys", newkeymain)
-        end for keybinding in c[:OliveCore].client_data[getip(c)]["keybindings"]]
         window::Component{:div} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
         append!(cm, "olivemain-pane", window)
@@ -196,7 +151,7 @@ end
 #==output[TODO]
 I would love for the doc browser to be completed..
 I want it to work primarily off of just requests, and client functions.
-Other than the search of course. There is a lot more 
+Other than the search of course. There is a lot more
 ==#
 #==|||==#
 docbrowser = route("/doc") do c::Connection
