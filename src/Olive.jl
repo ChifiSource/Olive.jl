@@ -84,21 +84,23 @@ main = route("/session") do c::Connection
     style!(ui_topbar, "position" => "sticky")
     ui_explorer::Component{:div} = projectexplorer()
     ui_settings::Component{:section} = settings_menu(c)
-    sticky::Component{:div} = div("olive-sticky")
+    style!(ui_settings, "position" => "sticky")
+
     ui_explorer[:children] = Vector{Servable}([begin
    Base.invokelatest(olmod.build, c, d, olmod, exp = true)
     end for d in proj_open.directories])
     olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
-    mainpane = div("olivemain-pane")
-    style!(mainpane, "display" => "flex", "overflow-x" => "scroll", "padding" => 0px)
-    push!(olivemain, ui_settings, mainpane)
+    style!(olivemain, "overflow-x" => "scroll", "position" => "relative",
+    "width" => 100percent, "overflow-y" => "hidden",
+    "height" => 90percent, "display" => "inline-flex")
     bod = body("mainbody")
-    push!(bod, notifier,  ui_explorer, ui_topbar, olivemain)
-    script!(c, "load", type = "Timeout", time = 100) do cm::ComponentModifier
+    style!(bod, "overflow" => "hidden")
+    push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
+    script!(c, "load", type = "Timeout", time = 250) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         window::Component{:div} = Base.invokelatest(olmod.build, c,
         cm, proj_open)
-        append!(cm, "olivemain-pane", window)
+        append!(cm, "olivemain", window)
     end
     write!(c, bod)
 end

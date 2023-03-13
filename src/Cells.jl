@@ -16,7 +16,6 @@ function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
         switchcell = cells[pos - 1]
         originallen = length(cells)
         cells[pos - 1] = cell
-        println(switchcell)
         cells[pos] = switchcell
         remove!(cm2, "cellcontainer$(switchcell.id)")
         remove!(cm2, "cellcontainer$(cell.id)")
@@ -423,7 +422,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
         "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
         "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
-        on(c, inside, "input") do cm2::ComponentModifier
+        on(c, inputbox, "input") do cm2::ComponentModifier
             cell_highlight!(c, cm2, cell, cells, windowname)
         end
         push!(inputbox, highlight_box, inside)
@@ -466,7 +465,8 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     # TODO move these styles to stylesheet
     style!(inputbox, "padding" => 0px, "width" => 90percent,
     "overflow" => "hidden", "border-top-left-radius" => "0px !important",
-    "border-bottom-left-radius" => 0px, "border-radius" => "0px !important")
+    "border-bottom-left-radius" => 0px, "border-radius" => "0px !important",
+    "position" => "relative", "height" => "auto")
     style!(interiorbox, "display" => "flex")
     push!(outside, interiorbox, output)
     outside::Component{:div}
@@ -534,37 +534,37 @@ inputcell_style (generic function with 1 method)
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, windowname::String)
     curr = cm["cell$(cell.id)"]["text"]
-    currraw = cm["rawcell$(cell.id)"]["text"]
-    if currraw == "]"
-        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+    if curr == "]"
+        remove!(cm, "cellcontainer$(cell.id)")
+        pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "pkgrepl", "")
-        cells[pos] = new_cell
-        cell = new_cell
-        remove!(cm, outside)
+        deleteat!(cells, pos)
+        insert!(cells, pos, new_cell)
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, windowname))
-        focus!(cm, "cell$(cell.id)")
-    elseif currraw == ";"
+         focus!(cm, "cell$(new_cell.id)")
+    elseif curr == ";"
         olive_notify!(cm, "bash cells not yet available!", color = "red")
-    elseif currraw == "\\"
+    elseif curr == "\\"
         olive_notify!(cm, "olive cells not yet available!", color = "red")
-    elseif currraw == "?"
+    elseif curr == "?\n"
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "helprepl", "")
         cells[pos] = new_cell
         cell = new_cell
-        remove!(cm, outside)
+        remove!(cm, "cellcontainer$(cell.id)")
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, windowname))
         focus!(cm, "cell$(cell.id)")
-    elseif currraw == "#=TODO"
+    elseif curr == "#=TODO\n"
+        remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "TODO", "")
-        remove!(cm, outside)
+        cells[pos] = new_cell
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, windowname))
-        focus!(cm, "cell$(cell.id)")
-    elseif currraw == "#=NOTE"
+         focus!(cm, "cell$(new_cell.id)")
+    elseif curr == "#=NOTE\n"
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "NOTE", "")
         remove!(cm, "cellcontainer$(cell.id)")
@@ -585,6 +585,13 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, window::String)
     # set load icon
     icon = olive_loadicon()
+    cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
+    cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
+    style!(cell_drag, "color" => "white", "font-size" => 17pt)
+    style!(cell_run, "color" => "white", "font-size" => 17pt)
+    on(c, cell_run, "click") do cm2::ComponentModifier
+        evaluate(c, cm2, cell, cells, window)
+    end
     icon.name = "load$(cell.id)"
     icon["width"] = "20"
     remove!(cm2, cell_run)
@@ -631,26 +638,19 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
         else
             outp = standard_out
         end
+        set_children!(cm, "cellside$(cell.id)", [cell_drag, br(), cell_run])
         set_text!(cm, "cell$(cell.id)out", outp)
         cell.outputs = outp
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         if pos == length(cells)
             new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
             push!(cells, new_cell)
-            append!(cm3, windowname, build(c, cm3, new_cell, cells, windowname))
+            append!(cm, window, build(c, cm, new_cell, cells, window))
+            focus!(cm, "cell$(new_cell.id)")
             return
         else
             new_cell = cells[pos + 1]
         end
-        focus!(cm3, "cell$(new_cell.id)")
-        cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
-        cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
-        style!(cell_drag, "color" => "white", "font-size" => 17pt)
-        style!(cell_run, "color" => "white", "font-size" => 17pt)
-        on(c, cell_run, "click") do cm2::ComponentModifier
-            evaluate(c, cm2, cell, cells, windowname)
-        end
-        set_children!(cm3, "cell$(cell.id)", [cell_drag, br(), cell_run])
     end
 end
 #==output[code]
@@ -699,13 +699,26 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
-    cells::Vector{Cell})
-    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
-    if cell.source == "#==TODO"
-        cell.source = ""
-    end
+    cells::Vector{Cell}, window::String)
+    cell.source = "#"
     maincontainer = div("cellcontainer$(cell.id)")
-    todolabel = h("todoheader$(cell.id)")
+    style!(maincontainer, "background-color" => "#242526",
+    "border-color" => "darkpink", "border-width" => 2px, "padding" => 2percent)
+    todolabel = h("todoheader$(cell.id)", 2, text = "TODO")
+    style!(todolabel, "font-weight" => "bold")
+    style!(todolabel, "color" => "pink")
+    inpbox = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.outputs)
+    style!(inpbox, "background-color" => "#242526", "color" => "white",
+    "padding" => 10px, "min-height" => 5percent, "font-size" => 15pt,
+    "font-weight" => "bold", "outline" => "transparent",
+    "-moz-appearance" => "textfield-multiline;", "white-space" => "pre-wrap",
+    "-webkit-appearance" => "textarea")
+    on(c, inpbox, "input") do cm::ComponentModifier
+        cell.outputs = cm[inpbox]["text"]
+    end
+    km = cell_bind!(c, cell, cells, window)
+    bind!(c, cm, inpbox, km)
+    push!(maincontainer, todolabel, inpbox)
     maincontainer
 end
 #==output[code]
@@ -721,13 +734,25 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:NOTE},
-    cells::Vector{Cell})
-    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
-    if cell.source == "#==NOTE"
-        cell.source = ""
-    end
+    cells::Vector{Cell}, window::String)
+    cell.source = "#"
     maincontainer = div("cellcontainer$(cell.id)")
-    todolabel = h("todoheader$(cell.id)")
+    style!(maincontainer, "background-color" => "#242526",
+    "border-color" => "darkpink", "border-width" => 2px, "padding" => 1percent)
+    todolabel = h("todoheader$(cell.id)", 2, text = "NOTE")
+    style!(todolabel, "font-weight" => "bold", "color" => "lightblue")
+    inpbox = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.outputs)
+    style!(inpbox, "background-color" => "#242526", "color" => "white",
+    "padding" => 10px, "min-height" => 5percent, "font-size" => 15pt,
+    "font-weight" => "bold", "outline" => "transparent",
+    "-moz-appearance" => "textfield-multiline;", "white-space" => "pre-wrap",
+    "-webkit-appearance" => "textarea")
+    on(c, inpbox, "input") do cm::ComponentModifier
+        cell.outputs = cm[inpbox]["text"]
+    end
+    km = cell_bind!(c, cell, cells, window)
+    bind!(c, cm, inpbox, km)
+    push!(maincontainer, todolabel, inpbox)
     maincontainer
 end
 #==output[code]

@@ -168,10 +168,11 @@ julia_style (generic function with 1 method)
 function olivesheet()
     st = ToolipsDefaults.sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
+    pr = Style("pre", "background" => "transparent")
     push!(st, google_icons(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
-    hidden_style(), jl_style(), toml_style(), julia_style(),
+    hidden_style(), jl_style(), toml_style(), julia_style(), pr,
     Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("progress::-webkit-progress-bar", "background-color" => "whitesmoke"))
     st
@@ -289,7 +290,7 @@ function topbar(c::Connection)
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
     "border-radius" => "5px", "overflow" =>  "hidden", "position" => "sticky",
-    "top" => 0percent, "z-index" => "7")
+    "top" => 0percent, "z-index" => "7", "background-color" => "white")
     tabmenu = div("tabmenu", align = "center")
     style!(tabmenu, "display" => "inline-block")
     push!(leftmenu, explorer_icon(c))
@@ -409,7 +410,7 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
     push!(myproj.open, filepath_name =>  projdict)
     projbuild = build(c, cm, myproj, at = filepath_name)
-    append!(cm, "olivemain-pane", projbuild)
+    append!(cm, "olivemain", projbuild)
 end
 #==output[code]
 UndefVarError: Cell not defined 

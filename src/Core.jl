@@ -331,9 +331,12 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any};
     end for cell in frstcells]
     overwindow = div("$(name)over")
     style!(overwindow, "display" => "inline-block",
-    "overflow-y" => "scroll !important", "min-width" => 70percent,
-    "padding" => 0px, "max-height" => 20percent, "margin-top" => 2px)
-    proj_window = section(name)
+    "min-width" => 50percent,
+    "padding" => 0px, "margin-top" => 2px, "overflow" => "hidden",
+    "height" => 95percent)
+    proj_window = div(name)
+    style!(proj_window, "border-width" => 2px, "border-style" => "solid",
+    "overflow-y" => "scroll !important", "height" => 92percent, "min-width" => 40percent)
     proj_window[:children] = retvs
     push!(overwindow, build_tab(c, name), proj_window)
     overwindow::Component{:div}
