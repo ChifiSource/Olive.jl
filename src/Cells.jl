@@ -306,7 +306,7 @@ function build(c::Connection, cell::Cell{:toml},
     hiddencell = div("cell$(cell.id)", class = "cell-toml")
     name = a("cell$(cell.id)label", text = cell.source)
     on(c, hiddencell, "dblclick") do cm::ComponentModifier
-        evaluate(c, cell, cm)
+        
     end
     style!(name, "color" => "white")
     push!(hiddencell, name)
@@ -358,7 +358,7 @@ be it will not run with the `runall` window button.
 ```
 """
 function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier,
-    window::String)
+    cells::Vector{Cell}, window::String)
 
 end
 #==output[code]
@@ -398,7 +398,7 @@ function bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell},
     end
     bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
         remove_last_eval(c, cm, cell)
-        evaluate(c, cm, cell, windowname)
+        evaluate(c, cm, cell, cells, windowname)
     end
     km::KeyMap
 end
@@ -406,19 +406,69 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
-    cells::Vector{Cell{<:Any}}, windowname::String; highlight::Bool = false)
-    outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
+function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+    cells::Vector{Cell}, windowname::String; highlight::Bool = false)
     inputbox::Component{:div} = div("cellinput$(cell.id)")
     inside::Component{:div} = ToolipsDefaults.textdiv("cell$(cell.id)",
     text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"),
     "class" => "input_cell")
-    style!(inside, "border-top-left-radius" => 0px)
     if highlight
+        highlight_box::Component{:div} = div("cellhighlight$(cell.id)",
+        text = string(tm))
         on(c, inside, "input") do cm2::ComponentModifier
             cell_highlight!(c, cm, cell, cells, windowname)
         end
+        push!(inputbox, highlight_box, inside)
+    else
+        push!(inputbox, inside)
     end
+    inputbox::Component{:div}
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+    cells::Vector{Cell{<:Any}}, windowname::String; highlight::Bool = false,
+    sidebox::Bool = false)
+    outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
+    interiorbox::Component{:div} = div("cellinterior$(cell.id)")
+    inputbox::Component{:div} = build_base_input(c, cm, cell, cells,
+    hightlight = highlight)
+    output::Component{:div} = divider("cell$(cell.id)out", class = "output_cell", text = cell.outputs)
+    style!(inside, "border-top-left-radius" => 0px)
+    if sidebox
+        sidebox::Component{:div} = div("cellside$(cell.id)")
+        cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
+        cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
+        on(c, cell_run, "click") do cm2::ComponentModifier
+            evaluate(c, cm2, cell, cells, windowname)
+        end
+        # TODO move these styles to stylesheet
+        style!(sidebox, "display" => "inline-block", "background-color" => "pink",
+        "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
+        "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
+        style!(cell_drag, "color" => "white", "font-size" => 17pt)
+        style!(cell_run, "color" => "white", "font-size" => 17pt)
+        # TODO move these styles to stylesheet
+        push!(sidebox, cell_drag, br(), cell_run)
+        push!(interiorbox, sidebox, inputbox)
+    else
+        push!(interiorbox, inputbox)
+    end
+    # TODO move these styles to stylesheet
+    style!(inputbox, "padding" => 0px, "width" => 90percent,
+    "overflow" => "hidden", "border-top-left-radius" => "0px !important",
+    "border-bottom-left-radius" => 0px, "border-radius" => "0px !important")
+    style!(highlight_box, "position" => "absolute",
+    "background" => "transparent", "z-index" => "5", "padding" => 20px,
+    "border-top-left-radius" => "0px !important",
+    "border-radius" => "0px !important", "line-height" => 15px,
+    "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
+    "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
+    "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
+    style!(interiorbox, "display" => "flex")
+    push!(outside, interiorbox, output)
     outside::Component{:div}
 end
 
@@ -462,42 +512,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, windowname::String)
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
-    outside = div("cellcontainer$(cell.id)", class = "cell")
-    inside = ToolipsDefaults.textdiv("cell$(cell.id)",
-    text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"), "class" => "input_cell")
 
-    style!(inputbox, "padding" => 0px, "width" => 90percent,
-    "overflow" => "hidden", "border-top-left-radius" => "0px !important", "border-bottom-left-radius" => 0px,
-    "border-radius" => "0px !important")
-    highlight_box = div("cellhighlight$(cell.id)",
-    text = replace(string(tm), "\n" => "</br>",
-    "class"  => "input_cell"))
-    style!(highlight_box, "position" => "absolute",
-    "background" => "transparent", "z-index" => "5", "padding" => 20px,
-    "border-top-left-radius" => "0px !important",
-    "border-radius" => "0px !important", "line-height" => 15px,
-    "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
-    "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
-    "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
-    push!(inputbox, highlight_box, inside)
-    style!(outside, "transition" => 1seconds)
-    interiorbox = div("cellinterior$(cell.id)")
-    style!(interiorbox, "display" => "flex")
-    sidebox = div("cellside$(cell.id)")
-    style!(sidebox, "display" => "inline-block", "background-color" => "pink",
-    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-    "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
-    push!(interiorbox, sidebox, inputbox)
-    cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
-    cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
-    push!(sidebox, cell_drag, br(), cell_run)
-    style!(cell_drag, "color" => "white", "font-size" => 17pt)
-    style!(cell_run, "color" => "white", "font-size" => 17pt)
-    output = divider("cell$(cell.id)out", class = "output_cell", text = cell.outputs)
-    push!(outside, interiorbox, output)
-    on(c, cell_run, "click") do cm2::ComponentModifier
-        evaluate(c, cell, cm2)
-    end
+
     bind!(c, cm, inside, km)
     outside
 end
@@ -563,8 +579,8 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cell::Cell{:code}, cm2::ComponentModifier,
-    window::String)
+function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
+    cells::Vector{Cell}, window::String)
     # set load icon
     icon = olive_loadicon()
     icon.name = "load$(cell.id)"
@@ -659,8 +675,8 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cell::Cell{:markdown}, cm::ComponentModifier,
-    window::String)
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
+    cells::Vector{Cell}, window::String)
     if cm["cell$(cell.id)"]["contenteditable"] == "true"
         activemd = cm["cell$(cell.id)"]["text"]
         cell.source = activemd * "\n"
@@ -688,7 +704,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
-    window::String)
+    cells::Vector{Cell}, window::String)
 
 end
 #==output[code]
@@ -759,7 +775,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
-    window::String)
+    cells::Vector{Cell}, window::String)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -817,8 +833,8 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cell::Cell{:pkgrepl}, cm::ComponentModifier,
-    windowname::String)
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl}
+    cells::Vector{Cell}, windowname::String)
     mod = c[:OliveCore].open[getip(c)].open[windowname][:mod]
     rt = cm["cell$(cell.id)"]["text"]
     commands = split(rt, "\n")
