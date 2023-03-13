@@ -112,10 +112,14 @@ explorer = route("/") do c::Connection
     icon = olive_loadicon()
     bod = body("mainbody")
     if :key in keys(args)
-        if args[:key] in keys(c[:OliveCore].client_keys)
+        if ~(args[:key] in keys(c[:OliveCore].client_keys))
             write!(c, "bad key.")
+            return
         end
         uname = c[:OliveCore].client_keys[args[:key]]
+        if ~(getip(c) in keys(c[:OliveCore].names))
+            push!(c[:OliveCore].names, getip(c) => uname)
+        end
         c[:OliveCore].names[getip(c)] = uname
         c[:OliveCore].client_data[getname(c)]["selected"] = "files"
         on(c, bod, "load") do cm::ComponentModifier
@@ -303,6 +307,8 @@ setup = route("/") do c::Connection
                          oc.data["home"] = "$direc/olive"
                          source_module!(oc)
                          push!(c.routes, fourofour, main, explorer)
+                         unamekey = ToolipsSession.gen_ref(16)
+                         push!(c[:OliveCore].client_keys, unamekey => username)
                          redirect!(cm5, "/?key=$(unamekey)")
                      end
                  end
@@ -414,6 +420,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     oc::OliveCore = OliveCore("olive")
     oc.data["home"] = homedirec
     oc.data["wd"] = pwd()
+    rootname::String = ""
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if ~(isdir("$homedirec/olive"))
         rs = routes(setup, fourofour)
@@ -421,6 +428,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         config = TOML.parse(read("$homedirec/olive/Project.toml", String))
         Pkg.activate("$homedirec/olive")
         oc.data = config["olive"]
+        rootname = oc.data["root"]
         oc.client_data = config["oliveusers"]
         oc.data["home"] = homedirec * "/olive"
         oc.data["wd"] = pwd()
@@ -429,6 +437,12 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     end
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session", "/doc"])])
+    if rootname != ""
+        key = ToolipsSession.gen_ref(16)
+        push!(oc.client_keys, key => rootname)
+        server[:Logger].log(2,
+            "link for $(rootname): http://$(IP):$(PORT)/?key=$key")
+    end
     server.start(); server::Toolips.ToolipsServer
 end
 

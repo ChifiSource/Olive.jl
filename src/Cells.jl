@@ -380,8 +380,8 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell},
-    windowname::String, exclude::Symbol ...)
+function cell_bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}},
+    windowname::String)
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
     bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
@@ -397,8 +397,8 @@ function bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell},
         cell_new!(c, cm2, cell, cells, windowname)
     end
     bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
-        remove_last_eval(c, cm, cell)
-        evaluate(c, cm, cell, cells, windowname)
+        remove_last_eval(c, cm2, cell)
+        evaluate(c, cm2, cell, cells, windowname)
     end
     km::KeyMap
 end
@@ -412,11 +412,19 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
     inside::Component{:div} = ToolipsDefaults.textdiv("cell$(cell.id)",
     text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"),
     "class" => "input_cell")
+    style!(inside, "border-top-left-radius" => 0px)
     if highlight
         highlight_box::Component{:div} = div("cellhighlight$(cell.id)",
         text = "hl")
+        style!(highlight_box, "position" => "absolute",
+        "background" => "transparent", "z-index" => "5", "padding" => 20px,
+        "border-top-left-radius" => "0px !important",
+        "border-radius" => "0px !important", "line-height" => 15px,
+        "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
+        "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
+        "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
         on(c, inside, "input") do cm2::ComponentModifier
-            cell_highlight!(c, cm, cell, cells, windowname)
+            cell_highlight!(c, cm2, cell, cells, windowname)
         end
         push!(inputbox, highlight_box, inside)
     else
@@ -433,10 +441,9 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     sidebox::Bool = false)
     outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
     interiorbox::Component{:div} = div("cellinterior$(cell.id)")
-    inputbox::Component{:div} = build_base_input(c, cm, cell, cells,
-    hightlight = highlight)
+    inputbox::Component{:div} = build_base_input(c, cm, cell, cells, windowname,
+    highlight = highlight)
     output::Component{:div} = divider("cell$(cell.id)out", class = "output_cell", text = cell.outputs)
-    style!(inside, "border-top-left-radius" => 0px)
     if sidebox
         sidebox::Component{:div} = div("cellside$(cell.id)")
         cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
@@ -460,13 +467,6 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     style!(inputbox, "padding" => 0px, "width" => 90percent,
     "overflow" => "hidden", "border-top-left-radius" => "0px !important",
     "border-bottom-left-radius" => 0px, "border-radius" => "0px !important")
-    style!(highlight_box, "position" => "absolute",
-    "background" => "transparent", "z-index" => "5", "padding" => 20px,
-    "border-top-left-radius" => "0px !important",
-    "border-radius" => "0px !important", "line-height" => 15px,
-    "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
-    "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
-    "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
     style!(interiorbox, "display" => "flex")
     push!(outside, interiorbox, output)
     outside::Component{:div}
@@ -481,7 +481,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     ToolipsMarkdown.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
     windowname, sidebox = true, highlight = true)
-    km = bind!(c, cm, cell, cells, windowname)
+    km = cell_bind!(c, cell, cells, windowname)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
@@ -531,8 +531,8 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{:code},
-    cells::Vector{Cell},  windowname::String)
+function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code},
+    cells::Vector{Cell}, windowname::String)
     curr = cm["cell$(cell.id)"]["text"]
     currraw = cm["rawcell$(cell.id)"]["text"]
     if currraw == "]"
@@ -573,10 +573,9 @@ function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{:cod
         focus!(cm, "cell$(cell.id)")
     end
     cell.source = curr
-    tm.raw = replace(curr, "\n" => "<br>", " " => "&nbsp;")
-    ToolipsMarkdown.clear_marks!(tm)
-    ToolipsMarkdown.mark_julia!(tm)
-    set_text!(cm, highlight_box, string(tm))
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    ToolipsMarkdown.julia_block!(tm)
+    set_text!(cm, "cellhighlight$(cell.id)", string(tm))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -660,7 +659,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     cells::Vector{Cell}, windowname::String)
-    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     tlcell = ToolipsDefaults.textdiv("cell$(cell.id)",
     "class" => "cell")
     tlcell[:text] = ""
@@ -701,7 +700,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
     cells::Vector{Cell})
-    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     if cell.source == "#==TODO"
         cell.source = ""
     end
@@ -723,7 +722,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:NOTE},
     cells::Vector{Cell})
-    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     if cell.source == "#==NOTE"
         cell.source = ""
     end
@@ -793,7 +792,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     cells::Vector{Cell})
-    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
 
 end
 #==output[code]
@@ -803,7 +802,7 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     cells::Vector{Cell}, windowname::String)
     cell.source = ""
-    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
     outside = div("cellcontainer$(cell.id)", class = "cell")
     output = div("cell$(cell.id)out")

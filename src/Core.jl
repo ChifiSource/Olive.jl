@@ -412,6 +412,8 @@ end
 
 OliveLogger() = Logger(Dict{Any, Crayon}(
     1 => Crayon(foreground = :blue),
+    2 => Crayon(foreground = :black),
+    3 => Crayon(foreground = :red),
          :time_crayon => Crayon(foreground = :blue),
         :message_crayon => Crayon(foreground = :light_magenta, bold = true)), prefix = "🫒 olive> ")
 
