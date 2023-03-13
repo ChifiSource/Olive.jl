@@ -4,8 +4,8 @@ This file creates the basis for Olive.jl cells then builds olive cell types
     on  top of it. For extending Cells,
 - Cell controls
 - Directory cells
-- Session cells (markdown, code, TODO, creator)
-- REPL Cells (pkgrepl, )
+- Session cells (markdown, code, TODO, NOTE, creator)
+- REPL Cells (pkgrepl, helprepl, shellrepl, oliverepl)
 - Environment cells (module cells)
 """
 #==|||==#
@@ -71,39 +71,6 @@ function cell_new!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     insert!(cells, pos + 1, newcell)
     ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, newcell,
     cells, windowname))
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{<:Any},
-    cells::Vector{Cell},  windowname::String)
-
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell},
-    windowname::String, exclude::Symbol ...)
-    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
-    km = ToolipsSession.KeyMap()
-    bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
-        cell_up!(c, cm2, cell, cells, windowname)
-    end
-    bind!(km, keybindings[:down] ...) do cm2::ComponentModifier
-        cell_down!(c, cm2, cell, cells, windowname)
-    end
-    bind!(km, keybindings[:delete] ...) do cm2::ComponentModifier
-        cell_delete!(c, cm2, cell, cells)
-    end
-    bind!(km, keybindings[:new] ...) do cm2::ComponentModifier
-        cell_new!(c, cm2, cell, cells, windowname)
-    end
-    bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
-        evaluate(c, cm, cell, windowname)
-    end
-    km::KeyMap
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -398,10 +365,63 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
-    cells::Vector{Cell{<:Any}}, windowname::String)
+function remove_last_eval(c::Connection, cm::ComponentModifier, cell::Cell{<:Any})
 
 end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{<:Any},
+    cells::Vector{Cell},  windowname::String)
+
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell},
+    windowname::String, exclude::Symbol ...)
+    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+    km = ToolipsSession.KeyMap()
+    bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
+        cell_up!(c, cm2, cell, cells, windowname)
+    end
+    bind!(km, keybindings[:down] ...) do cm2::ComponentModifier
+        cell_down!(c, cm2, cell, cells, windowname)
+    end
+    bind!(km, keybindings[:delete] ...) do cm2::ComponentModifier
+        cell_delete!(c, cm2, cell, cells)
+    end
+    bind!(km, keybindings[:new] ...) do cm2::ComponentModifier
+        cell_new!(c, cm2, cell, cells, windowname)
+    end
+    bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
+        remove_last_eval(c, cm, cell)
+        evaluate(c, cm, cell, windowname)
+    end
+    km::KeyMap
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+    cells::Vector{Cell{<:Any}}, windowname::String; highlight::Bool = false)
+    outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
+    inputbox::Component{:div} = div("cellinput$(cell.id)")
+    inside::Component{:div} = ToolipsDefaults.textdiv("cell$(cell.id)",
+    text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"),
+    "class" => "input_cell")
+    style!(inside, "border-top-left-radius" => 0px)
+    if highlight
+        on(c, inside, "input") do cm2::ComponentModifier
+            cell_highlight!(c, cm, cell, cells, windowname)
+        end
+    end
+    outside::Component{:div}
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -440,15 +460,12 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, windowname::String)
-    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
-    km = ToolipsSession.KeyMap()
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
     outside = div("cellcontainer$(cell.id)", class = "cell")
     inside = ToolipsDefaults.textdiv("cell$(cell.id)",
     text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"), "class" => "input_cell")
-    style!(inside, "border-top-left-radius" => 0px)
-    inputbox = div("cellinput$(cell.id)")
+
     style!(inputbox, "padding" => 0px, "width" => 90percent,
     "overflow" => "hidden", "border-top-left-radius" => "0px !important", "border-bottom-left-radius" => 0px,
     "border-radius" => "0px !important")
@@ -464,52 +481,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
     push!(inputbox, highlight_box, inside)
     style!(outside, "transition" => 1seconds)
-    on(c, cm, inside, "input", ["rawcell$(cell.id)", "cell$(cell.id)"]) do cm::ComponentModifier
-        curr = cm["cell$(cell.id)"]["text"]
-        currraw = cm["rawcell$(cell.id)"]["text"]
-        if currraw == "]"
-            pos = findall(lcell -> lcell.id == cell.id, cells)[1]
-            new_cell = Cell(pos, "pkgrepl", "")
-            cells[pos] = new_cell
-            cell = new_cell
-            remove!(cm, outside)
-            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
-             cells, windowname))
-            focus!(cm, "cell$(cell.id)")
-        elseif currraw == ";"
-            olive_notify!(cm, "bash cells not yet available!", color = "red")
-        elseif currraw == "\\"
-            olive_notify!(cm, "olive cells not yet available!", color = "red")
-        elseif currraw == "?"
-            pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            new_cell = Cell(pos, "helprepl", "")
-            cells[pos] = new_cell
-            cell = new_cell
-            remove!(cm, outside)
-            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
-             cells, windowname))
-            focus!(cm, "cell$(cell.id)")
-        elseif currraw == "#=TODO"
-            pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            new_cell = Cell(pos, "TODO", "")
-            remove!(cm, outside)
-            ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
-             cells, windowname))
-            focus!(cm, "cell$(cell.id)")
-        end
-        #f = findprev("\n", curr)
-        #==TODO  we need to findlast, remove whatever the control key is from the last
-         space... In other words, we need to scan for the evaluate controls
-        So in the example  of it being enter, we need to find the last \n,
-        which is just html </br> replaced by ToolipsSession (cm[comp]["text"]
-        is preprocessed.)
-        ==#
-        cell.source = curr
-        tm.raw = replace(curr, "\n" => "<br>", " " => "&nbsp;")
-        ToolipsMarkdown.clear_marks!(tm)
-        ToolipsMarkdown.mark_julia!(tm)
-        set_text!(cm, highlight_box, string(tm))
-    end
     interiorbox = div("cellinterior$(cell.id)")
     style!(interiorbox, "display" => "flex")
     sidebox = div("cellside$(cell.id)")
@@ -527,21 +498,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     on(c, cell_run, "click") do cm2::ComponentModifier
         evaluate(c, cell, cm2)
     end
-    bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
-
-    end
-    bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
-        cell_up!(c, cm2, cell, cells, windowname)
-    end
-    bind!(km, keybindings[:down] ...) do cm2::ComponentModifier
-        cell_down!(c, cm2, cell, cells, windowname)
-    end
-    bind!(km, keybindings[:delete] ...) do cm2::ComponentModifier
-        cell_delete!(c, cm2, cell, cells)
-    end
-    bind!(km, keybindings[:new] ...) do cm2::ComponentModifier
-        cell_new!(c, cm2, cell, cells, windowname)
-    end
     bind!(c, cm, inside, km)
     outside
 end
@@ -549,70 +505,128 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+function last_line(source::String, caret::Int64)
+
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{:code},
+    cells::Vector{Cell},  windowname::String)
+    curr = cm["cell$(cell.id)"]["text"]
+    currraw = cm["rawcell$(cell.id)"]["text"]
+    if currraw == "]"
+        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+        new_cell = Cell(pos, "pkgrepl", "")
+        cells[pos] = new_cell
+        cell = new_cell
+        remove!(cm, outside)
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
+         cells, windowname))
+        focus!(cm, "cell$(cell.id)")
+    elseif currraw == ";"
+        olive_notify!(cm, "bash cells not yet available!", color = "red")
+    elseif currraw == "\\"
+        olive_notify!(cm, "olive cells not yet available!", color = "red")
+    elseif currraw == "?"
+        pos = findfirst(lcell -> lcell.id == cell.id, cells)
+        new_cell = Cell(pos, "helprepl", "")
+        cells[pos] = new_cell
+        cell = new_cell
+        remove!(cm, outside)
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
+         cells, windowname))
+        focus!(cm, "cell$(cell.id)")
+    elseif currraw == "#=TODO"
+        pos = findfirst(lcell -> lcell.id == cell.id, cells)
+        new_cell = Cell(pos, "TODO", "")
+        remove!(cm, outside)
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
+         cells, windowname))
+        focus!(cm, "cell$(cell.id)")
+    elseif currraw == "#=NOTE"
+        pos = findfirst(lcell -> lcell.id == cell.id, cells)
+        new_cell = Cell(pos, "NOTE", "")
+        remove!(cm, "cellcontainer$(cell.id)")
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
+         cells, windowname))
+        focus!(cm, "cell$(cell.id)")
+    end
+    cell.source = curr
+    tm.raw = replace(curr, "\n" => "<br>", " " => "&nbsp;")
+    ToolipsMarkdown.clear_marks!(tm)
+    ToolipsMarkdown.mark_julia!(tm)
+    set_text!(cm, highlight_box, string(tm))
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function evaluate(c::Connection, cell::Cell{:code}, cm2::ComponentModifier,
     window::String)
+    # set load icon
     icon = olive_loadicon()
     icon.name = "load$(cell.id)"
     icon["width"] = "20"
     remove!(cm2, cell_run)
+    # check last line indent/remove last evaluate character
     currcaret = parse(Int64, cm2["cell$(cell.id)"]["caret"]) + 1
     newtxt = cm2["cell$(cell.id)"]["text"]
     newtxt = newtxt[1:currcaret - 1] * newtxt[currcaret:length(newtxt)]
-    set_text!(cm2, "cell$(cell.id)", replace(newtxt, "\n" => "</br>", " " => "&nbsp;"))
+    set_text!(cm2, "cell$(cell.id)",
+    replace(newtxt, "\n" => "</br>", " " => "&nbsp;"))
     set_children!(cm2, "cellside$(cell.id)", [icon])
     script!(c, cm2, "$(cell.id)eval") do cm::ComponentModifier
-        evaluate(c, cell, cm3, windowname)
-        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
-        pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+        # get code
+        rawcode::String = cm["cell$(cell.id)"]["text"]
+        execcode::String = *("begin\n", rawcode, "\nend\n")
+        # get project
+        selected::String = cm["olivemain"]["selected"]
+        proj::Project{<:Any} = c[:OliveCore].open[getip(c)]
+        ret::Any = ""
+        p = Pipe()
+        err = Pipe()
+        redirect_stdio(stdout = p, stderr = err) do
+            try
+                ret = proj.open[window][:mod].evalin(Meta.parse(execcode))
+            catch e
+                ret = e
+            end
+        end
+        close(err)
+        close(Base.pipe_writer(p))
+        standard_out = read(p, String)
+        close(p)
+        # output
+        outp::String = ""
+        od = OliveDisplay()
+        if typeof(ret) <: Exception
+            Base.showerror(od.io, ret)
+            outp = replace(String(od.io.data), "\n" => "</br>")
+        elseif ~(isnothing(ret)) && length(standard_out) > 0
+            display(od, MIME"olive"(), ret)
+            outp = standard_out * "</br>" * String(od.io.data)
+        elseif ~(isnothing(ret)) && length(standard_out) == 0
+            display(od, MIME"olive"(), ret)
+            outp = String(od.io.data)
+        else
+            outp = standard_out
+        end
+        set_text!(cm, "cell$(cell.id)out", outp)
+        cell.outputs = outp
+        pos = findfirst(lcell -> lcell.id == cell.id, cells)
         if pos == length(cells)
             new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
             push!(cells, new_cell)
             append!(cm3, windowname, build(c, cm3, new_cell, cells, windowname))
-            focus!(cm3, "cell$(new_cell.id)")
-            set_children!(cm3, sidebox, [cell_drag, br(), cell_run])
             return
+        else
+            new_cell = cells[pos + 1]
         end
-        next_cell = cells[pos + 1]
-        focus!(cm3, "cell$(next_cell.id)")
+        focus!(cm3, "cell$(new_cell.id)")
         set_children!(cm3, sidebox, [cell_drag, br(), cell_run])
     end
-    # get code
-    rawcode::String = cm["cell$(cell.id)"]["text"]
-    execcode::String = *("begin\n", rawcode, "\nend\n")
-    # get project
-    selected::String = cm["olivemain"]["selected"]
-    proj::Project{<:Any} = c[:OliveCore].open[getip(c)]
-    ret::Any = ""
-    p = Pipe()
-    err = Pipe()
-   redirect_stdio(stdout = p, stderr = err) do
-        try
-            ret = proj.open[window][:mod].evalin(Meta.parse(execcode))
-        catch e
-            ret = e
-        end
-    end
-    close(err)
-    close(Base.pipe_writer(p))
-    standard_out = read(p, String)
-    close(p)
-    # output
-    outp::String = ""
-    od = OliveDisplay()
-    if typeof(ret) <: Exception
-        Base.showerror(od.io, ret)
-        outp = replace(String(od.io.data), "\n" => "</br>")
-    elseif ~(isnothing(ret)) && length(standard_out) > 0
-        display(od, MIME"olive"(), ret)
-        outp = standard_out * "</br>" * String(od.io.data)
-    elseif ~(isnothing(ret)) && length(standard_out) == 0
-        display(od, MIME"olive"(), ret)
-        outp = String(od.io.data)
-    else
-        outp = standard_out
-    end
-    set_text!(cm, "cell$(cell.id)out", outp)
-    cell.outputs = outp
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -621,7 +635,6 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     cells::Vector{Cell}, windowname::String)
     keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
-    km = ToolipsSession.KeyMap()
     tlcell = ToolipsDefaults.textdiv("cell$(cell.id)",
     "class" => "cell")
     tlcell[:text] = ""
@@ -636,22 +649,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
         cm["olivemain"] = "cell" => string(cell.n)
         cm[tlcell] = "contenteditable" => "true"
     end
-    bind!(km, keybindings[:evaluate] ...) do cm2::ComponentModifier
-        cell.source = cm2[tlcell]["text"]
-        evaluate(c, cell, cm2, windowname)
-    end
-    bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
-        cell_up!(c, cm2, cell, cells, windowname)
-    end
-    bind!(km, keybindings[:down] ...) do cm2::ComponentModifier
-        cell_down!(c, cm2, cell, cells, windowname)
-    end
-    bind!(km, keybindings[:delete] ...) do cm2::ComponentModifier
-        cell_delete!(c, cm2, cell, cells)
-    end
-    bind!(km, keybindings[:new] ...) do cm2::ComponentModifier
-        cell_new!(c, cm2, cell, cells, windowname, type = "markdown")
-    end
+    km = bind!(c, cm, cell, cells, windowname)
     bind!(c, cm, tlcell, km)
     tlcell[:children] = [innercell]
     push!(conta, tlcell)
