@@ -306,7 +306,7 @@ function build(c::Connection, cell::Cell{:toml},
     hiddencell = div("cell$(cell.id)", class = "cell-toml")
     name = a("cell$(cell.id)label", text = cell.source)
     on(c, hiddencell, "dblclick") do cm::ComponentModifier
-        
+
     end
     style!(name, "color" => "white")
     push!(hiddencell, name)
@@ -382,7 +382,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell},
     windowname::String, exclude::Symbol ...)
-    keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
+    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
     bind!(km, keybindings[:up] ...) do cm2::ComponentModifier
         cell_up!(c, cm2, cell, cells, windowname)
@@ -414,7 +414,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
     "class" => "input_cell")
     if highlight
         highlight_box::Component{:div} = div("cellhighlight$(cell.id)",
-        text = string(tm))
+        text = "hl")
         on(c, inside, "input") do cm2::ComponentModifier
             cell_highlight!(c, cm, cell, cells, windowname)
         end
@@ -471,7 +471,23 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     push!(outside, interiorbox, output)
     outside::Component{:div}
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
+    cells::Vector{Cell}, windowname::String)
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    ToolipsMarkdown.julia_block!(tm)
+    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    windowname, sidebox = true, highlight = true)
+    km = bind!(c, cm, cell, cells, windowname)
+    interior = builtcell[:children]["cellinterior$(cell.id)"]
+    inp = interior[:children]["cellinput$(cell.id)"]
+    inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    builtcell::Component{:div}
+end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -503,19 +519,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
          push!(buttonbox, b)
      end
      buttonbox
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
-    cells::Vector{Cell}, windowname::String)
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
-
-
-    bind!(c, cm, inside, km)
-    outside
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -599,7 +602,7 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
         execcode::String = *("begin\n", rawcode, "\nend\n")
         # get project
         selected::String = cm["olivemain"]["selected"]
-        proj::Project{<:Any} = c[:OliveCore].open[getip(c)]
+        proj::Project{<:Any} = c[:OliveCore].open[getname(c)]
         ret::Any = ""
         p = Pipe()
         err = Pipe()
@@ -641,7 +644,14 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
             new_cell = cells[pos + 1]
         end
         focus!(cm3, "cell$(new_cell.id)")
-        set_children!(cm3, sidebox, [cell_drag, br(), cell_run])
+        cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
+        cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
+        style!(cell_drag, "color" => "white", "font-size" => 17pt)
+        style!(cell_run, "color" => "white", "font-size" => 17pt)
+        on(c, cell_run, "click") do cm2::ComponentModifier
+            evaluate(c, cm2, cell, cells, windowname)
+        end
+        set_children!(cm3, "cell$(cell.id)", [cell_drag, br(), cell_run])
     end
 end
 #==output[code]
@@ -833,9 +843,9 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl}
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     cells::Vector{Cell}, windowname::String)
-    mod = c[:OliveCore].open[getip(c)].open[windowname][:mod]
+    mod = c[:OliveCore].open[getname(c)].open[windowname][:mod]
     rt = cm["cell$(cell.id)"]["text"]
     commands = split(rt, "\n")
     [begin

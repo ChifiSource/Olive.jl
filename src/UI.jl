@@ -372,7 +372,7 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     mod::Module = eval(Meta.parse(modstr))
     projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
     push!(myproj.open, fsplit[length(fsplit)] =>  projdict)
-    c[:OliveCore].open[getip(c)] = myproj
+    c[:OliveCore].open[getname(c)] = myproj
     redirect!(cm, "/session")
 end
 #==output[code]
@@ -382,7 +382,7 @@ UndefVarError: Cell not defined 
 
 function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     cm::ComponentModifier, source::String, fpath::String)
-    myproj = c[:OliveCore].open[getip(c)]
+    myproj = c[:OliveCore].open[getname(c)]
     all_paths = [project[:path]  for project in values(myproj.open)]
     if fpath  in all_paths
         olive_notify!(cm, "project already open!", color = "red")
@@ -432,14 +432,14 @@ function build_tab(c::Connection, fname::String)
             closebutton = topbar_icon("$(fname)close", "close")
             on(c, closebutton, "click") do cm2::ComponentModifier
                 remove!(cm2, "$(fname)over")
-                delete!(c[:OliveCore].open[getip(c)].open, fname)
+                delete!(c[:OliveCore].open[getname(c)].open, fname)
                 olive_notify!(cm2, "project $(fname) closed", color = "blue")
             end
             savebutton = topbar_icon("$(fname)save", "save")
             on(c, savebutton, "click") do cm2::ComponentModifier
                 save_type = split(fname, ".")[2]
-                savepath = c[:OliveCore].open[getip(c)].open[fname][:path]
-                cells = c[:OliveCore].open[getip(c)].open[fname][:cells]
+                savepath = c[:OliveCore].open[getname(c)].open[fname][:path]
+                cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
                 savecell = Cell(1, string(save_type), fname, savepath)
                 olive_save(cells, savecell)
                 olive_notify!(cm2, "file $(savepath) saved", color = "green")
@@ -451,7 +451,7 @@ function build_tab(c::Connection, fname::String)
             restartbutton = topbar_icon("$(fname)restart", "restart_alt")
             on(c, restartbutton, "click") do cm2::ComponentModifier
                 new_name = split(fname, ".")[1]
-                myproj = c[:OliveCore].open[getip(c)]
+                myproj = c[:OliveCore].open[getname(c)]
                 modstr = """module $(new_name)
                 using Pkg
 
@@ -466,14 +466,14 @@ function build_tab(c::Connection, fname::String)
             end
             add_button = topbar_icon("$(fname)add", "add_circle")
             on(c, add_button, "click") do cm2::ComponentModifier
-                cells = c[:OliveCore].open[getip(c)].open[fname][:cells]
+                cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
                 new_cell = Cell(length(cells) + 1, "creator", "")
                 push!(cells, new_cell)
                 append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
             end
             runall_button = topbar_icon("$(fname)run", "sprint")
             on(c, runall_button, "click") do cm2::ComponentModifier
-                cells = c[:OliveCore].open[getip(c)].open[fname][:cells]
+                cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
                 [begin
                 try
                     evaluate(c, cell, cm2, fname)

@@ -51,7 +51,7 @@ mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     changes::Vector{String}
     data::Dict{String, Any}
     function OliveModifier(c::Connection, cm::ComponentModifier)
-        new(cm.rootc, cm.changes, c[:OliveCore].client_data[getip(c)])
+        new(cm.rootc, cm.changes, c[:OliveCore].client_data[getname(c)])
     end
 end
 #==output[code]
@@ -80,8 +80,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
 #==|||==#
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
     # load default key-bindings (if non-existent)
-    if ~("keybindings" in keys(c[:OliveCore].client_data[getip(c)]))
-        c[:OliveCore].client_data[getip(c)]["keybindings"] = Dict{Symbol, Any}(
+    if ~("keybindings" in keys(c[:OliveCore].client_data[getname(c)]))
+        c[:OliveCore].client_data[getname(c)]["keybindings"] = Dict{Symbol, Any}(
         :evaluate => ("Enter", :shift),
         :delete => ("Delete", :ctrl, :shift),
         :up => ("ArrowUp", :ctrl, :shift),
@@ -118,13 +118,13 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
             if parse(Bool, cm[ctrl_checkbox]["value"])
                 push!(key_vec, :ctrl)
             end
-            c[:OliveCore].client_data[getip(c)]["keybindings"][keybinding[1]] = Tuple(key_vec)
+            c[:OliveCore].client_data[getname(c)]["keybindings"][keybinding[1]] = Tuple(key_vec)
             olive_notify!(cm, "binding $(keybinding[1]) saved")
         end
         push!(newkeymain, head, shftlabel, shift_checkbox,
         ctrllabel, ctrl_checkbox, setinput, br(), confirm)
         newkeymain
-    end for keybinding in c[:OliveCore].client_data[getip(c)]["keybindings"]]))
+    end for keybinding in c[:OliveCore].client_data[getname(c)]["keybindings"]]))
     append!(om, "settingsmenu", keybind_section)
 end
 """
@@ -365,22 +365,22 @@ mutable struct OliveCore <: ServerExtension
     olmod::Module
     type::Vector{Symbol}
     data::Dict{String, Any}
+    names::Dict{String, String}
     client_data::Dict{String, Dict{String, Any}}
     open::Dict{String, Project{<:Any}}
-    f::Function
+    client_keys::Dict{String, String}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         m = eval(Meta.parse("module olive end"))
         projopen = Dict{String, Project{<:Any}}()
         client_data = Dict{String, Dict{String, Any}}()
-        f(c::Connection) = begin
-            if ~(getip(c) in keys(client_data))
-                push!(client_data, getip(c) => Dict{String, Any}("open" => ""))
-            end
-        end
-        new(m, [:connection, :func], data, client_data, projopen, f)
+        client_keys::Dict{String, String} = Dict{String, String}()
+        new(m, [:connection], data, Dict{String, String}(),
+        client_data, projopen, client_keys)
     end
 end
+
+getname(c::Connection) = c[:OliveCore].names[getip(c)]::String
 
 function source_module!(oc::OliveCore)
     homedirec = oc.data["home"]

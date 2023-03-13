@@ -75,9 +75,9 @@ it out. Endemic of future projects? **definitely**
 main = route("/session") do c::Connection
     # setup base env
     write!(c, olivesheet())
-    c[:OliveCore].client_data[getip(c)]["selected"] = "session"
+    c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
-    proj_open::Project{<:Any} = c[:OliveCore].open[getip(c)]
+    proj_open::Project{<:Any} = c[:OliveCore].open[getname(c)]
     # setup base UI
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
@@ -104,32 +104,58 @@ main = route("/session") do c::Connection
 end
 
 explorer = route("/") do c::Connection
-    c[:OliveCore].client_data[getip(c)]["selected"] = "files"
+    args = getargs(c)
     notifier::Component{:div} = olive_notific()
     loader_body = div("loaderbody", align = "center")
     style!(loader_body, "margin-top" => 10percent)
     write!(c, olivesheet())
     icon = olive_loadicon()
     bod = body("mainbody")
-    on(c, bod, "load") do cm::ComponentModifier
-        olmod = c[:OliveCore].olmod
-        homeproj = Directory(c[:OliveCore].data["home"], "root" => "rw")
-        workdir = Directory(c[:OliveCore].data["wd"], "all" => "rw")
-        dirs = [homeproj, workdir]
-        main = olive_main("files")
-        for dir in dirs
-            push!(main[:children], build(c, dir, olmod))
+    if :key in keys(args)
+        if args[:key] in keys(c[:OliveCore].client_keys)
+            write!(c, "bad key.")
         end
-        script!(c, cm, "loadcallback") do cm
-            style!(cm, icon, "opacity" => 0percent)
-            set_children!(cm, bod, [olivesheet(), notifier, main])
+        uname = c[:OliveCore].client_keys[args[:key]]
+        c[:OliveCore].names[getip(c)] = uname
+        c[:OliveCore].client_data[getname(c)]["selected"] = "files"
+        on(c, bod, "load") do cm::ComponentModifier
+            olmod = c[:OliveCore].olmod
+            homeproj = Directory(c[:OliveCore].data["home"], "root" => "rw")
+            workdir = Directory(c[:OliveCore].data["wd"], "all" => "rw")
+            dirs = [homeproj, workdir]
+            main = olive_main("files")
+            for dir in dirs
+                push!(main[:children], build(c, dir, olmod))
+            end
+            script!(c, cm, "loadcallback") do cm
+                style!(cm, icon, "opacity" => 0percent)
+                set_children!(cm, bod, [olivesheet(), notifier, main])
+            end
+            load_extensions!(c, cm, olmod)
         end
-        load_extensions!(c, cm, olmod)
+        push!(loader_body, icon)
+        push!(bod, loader_body)
+        write!(c, bod)
+        return
     end
-    push!(loader_body, icon)
-    push!(bod, loader_body)
+    coverimg::Component{:img} = olive_cover()
+    olivecover = div("topdiv", align = "center")
+    logbutt = button("requestaccess", text = "request access")
+    on(c, logbutt, "click") do cm::ComponentModifier
+        c[:Logger].log(" someone is trying to login to olive! is this you?")
+        y = readline()
+        if y == "y"
+            c[:Logger].log(" okay, logging in as root.")
+            key = ToolipsSession.gen_ref(16)
+            push!(c[:OliveCore].client_keys[key] => c[:OliveCore].data["root"])
+            redirect!(cm, "/?key=$(key)")
+        end
+    end
+    push!(olivecover, coverimg,
+    h("mustconfirm", 2, text = "request access (no key)"), logbutt)
+    push!(bod, olivecover)
     write!(c, bod)
- end
+end
  #==output[code]
  ==#
  #==|||==#
@@ -159,11 +185,12 @@ docbrowser = route("/doc") do c::Connection
     write!(c, DOCTYPE())
     write!(c, olivesheet())
     write!(c, notifier)
-    if ~(getip(c) in keys(c[:OliveCore].open))~
+    if ~(getname(c) in keys(c[:OliveCore].open))~
         # TODO doc for OLMOD
-        push!(c[:OliveCore].open, getip(c) => Project{:doc}())
+        push!(c[:OliveCore].open, getname(c) => Project{:doc}())
+        return
     end
-    p::Project{<:Any} = c[:OliveCore].open[getip(c)]
+    p::Project{<:Any} = c[:OliveCore].open[getname(c)]
     mod = getarg(c, :mod, first(p.open)[1])
     getdoc = getarg(c, :get, "$(p.name)")
     docs = p.open[mod][:mod].evalin(Meta.parse("@doc($(getdoc))"))
@@ -203,6 +230,14 @@ setup = route("/") do c::Connection
     opts2 = [button("yesd", text = "yes"), button("nod", text = "no")]
     download_q = ToolipsDefaults.button_select(c, "download_q", opts2)
     push!(questions, download_q)
+    push!(questions, h("questions-name", 2,
+    text = "lastly, can we get your name?"))
+    namebox::Component{:div} = ToolipsDefaults.textdiv("namesetup",
+    text = "root")
+    on(namebox, "click") do cl::ClientModifier
+        set_text!(cl, "namesetup", "")
+    end
+    push!(questions, namebox)
     confirm_questions = button("conf-q", text = "confirm")
     on(c, confirm_questions, "click") do cm::ComponentModifier
         dfaults = cm[defaults_q]["value"]
@@ -231,10 +266,15 @@ setup = route("/") do c::Connection
                      create_project(cm["selector"]["text"])
                      config = TOML.parse(read(
                      "$(cm["selector"]["text"])/olive/Project.toml",String))
+                     username::String = replace(cm3[namebox]["text"],
+                     " " => "_")
                      users = Dict{String, Any}(
-                     getip(c) => Dict{String, String}("name" => "future"))
-                     push!(config, "olive" => Dict{String, String}("root" => getip(c)))
-                     push!(config, "oliveusers" => users)
+                     username => Dict{String, Vector{String}}(
+                     "group" => ["all", "root"])
+                     )
+                     push!(config,
+                     "olive" => Dict{String, String}("root" => username),
+                     "oliveusers" => users)
                      open("$(cm["selector"]["text"])/olive/Project.toml", "w") do io
                          TOML.print(io, config)
                      end
@@ -263,7 +303,7 @@ setup = route("/") do c::Connection
                          oc.data["home"] = "$direc/olive"
                          source_module!(oc)
                          push!(c.routes, fourofour, main, explorer)
-                         redirect!(cm5, "/")
+                         redirect!(cm5, "/?key=$(unamekey)")
                      end
                  end
              end
