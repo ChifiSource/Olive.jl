@@ -534,7 +534,8 @@ inputcell_style (generic function with 1 method)
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, windowname::String)
     curr = cm["cell$(cell.id)"]["text"]
-    if curr == "]"
+    curr_raw = cm["rawcell$(cell.id)"]["text"]
+    if curr_raw == "]"
         remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "pkgrepl", "")
@@ -543,34 +544,37 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, windowname))
          focus!(cm, "cell$(new_cell.id)")
-    elseif curr == ";"
+    elseif curr_raw == ";"
         olive_notify!(cm, "bash cells not yet available!", color = "red")
-    elseif curr == "\\"
+    elseif curr_raw == "\\"
         olive_notify!(cm, "olive cells not yet available!", color = "red")
-    elseif curr == "?\n"
+    elseif curr_raw == "?"
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "helprepl", "")
-        cells[pos] = new_cell
-        cell = new_cell
+        deleteat!(cells, pos)
+        insert!(cells, pos, new_cell)
         remove!(cm, "cellcontainer$(cell.id)")
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, windowname))
-        focus!(cm, "cell$(cell.id)")
-    elseif curr == "#=TODO\n"
+        focus!(cm, "cell$(new_cell.id)")
+    elseif curr_raw == "#=TODO"
         remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "TODO", "")
-        cells[pos] = new_cell
+        deleteat!(cells, pos)
+        insert!(cells, pos, new_cell)
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, windowname))
          focus!(cm, "cell$(new_cell.id)")
-    elseif curr == "#=NOTE\n"
+    elseif curr_raw == "#=NOTE"
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "NOTE", "")
+        deleteat!(cells, pos)
+        insert!(cells, pos, new_cell)
         remove!(cm, "cellcontainer$(cell.id)")
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, windowname))
-        focus!(cm, "cell$(cell.id)")
+        focus!(cm, "cell$(new_cell.id)")
     end
     cell.source = curr
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
@@ -674,7 +678,10 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
         cm["olivemain"] = "cell" => string(cell.n)
         cm[tlcell] = "contenteditable" => "true"
     end
-    km = bind!(c, cm, cell, cells, windowname)
+    on(c, cm, tlcell, "click") do cm::ComponentModifier
+        focus!(cm, tlcell)
+    end
+    km = cell_bind!(c, cell, cells, windowname)
     bind!(c, cm, tlcell, km)
     tlcell[:children] = [innercell]
     push!(conta, tlcell)
@@ -717,6 +724,18 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
         cell.outputs = cm[inpbox]["text"]
     end
     km = cell_bind!(c, cell, cells, window)
+    bind!(km, "Backspace") do cm2::ComponentModifier
+        if cm2["cell$(cell.id)"]["text"] == ""
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
+            new_cell = Cell(pos, "code", "")
+            deleteat!(cells, pos)
+            insert!(cells, pos, new_cell)
+            remove!(cm2, maincontainer)
+            built = build(c, cm2, new_cell, cells, window)
+            ToolipsSession.insert!(cm2, window, pos, built)
+            focus!(cm2, "cell$(cell.id)")
+        end
+    end
     bind!(c, cm, inpbox, km)
     push!(maincontainer, todolabel, inpbox)
     maincontainer
@@ -751,6 +770,18 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:NOTE},
         cell.outputs = cm[inpbox]["text"]
     end
     km = cell_bind!(c, cell, cells, window)
+    bind!(km, "Backspace") do cm2::ComponentModifier
+        if cm2["cell$(cell.id)"]["text"] == ""
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
+            new_cell = Cell(pos, "code", "")
+            deleteat!(cells, pos)
+            insert!(cells, pos, new_cell)
+            remove!(cm2, maincontainer)
+            built = build(c, cm2, new_cell, cells, window)
+            ToolipsSession.insert!(cm2, window, pos, built)
+            focus!(cm2, "cell$(cell.id)")
+        end
+    end
     bind!(c, cm, inpbox, km)
     push!(maincontainer, todolabel, inpbox)
     maincontainer
@@ -761,7 +792,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     cells::Vector{Cell}, windowname::String)
-    km = bind!(c, cell, cells, windowname)
+    km = cell_bind!(c, cell, cells, windowname)
     src = ""
     if contains(cell.source, "#")
         src = split(cell.source, "?")[2]
@@ -827,8 +858,7 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     cells::Vector{Cell}, windowname::String)
     cell.source = ""
-    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
-    km = ToolipsSession.KeyMap()
+    km = cell_bind!(c, cell, cells, windowname)
     outside = div("cellcontainer$(cell.id)", class = "cell")
     output = div("cell$(cell.id)out")
     style!(outside, "display" => "flex")
