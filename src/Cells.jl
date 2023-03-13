@@ -1,9 +1,13 @@
-#==
+"""
+# welcome to cells.jl
+This file creates the basis for Olive.jl cells then builds olive cell types
+    on  top of it. For extending Cells,
 - Cell controls
 - Directory cells
-- Session cells (markdown, code)
-- REPL Cells
-==#
+- Session cells (markdown, code, TODO, creator)
+- REPL Cells (pkgrepl, )
+- Environment cells (module cells)
+"""
 function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}}, windowname::String)
     pos = findall(lcell -> lcell.id == cell.id, cells)[1]
@@ -57,6 +61,11 @@ function cell_new!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     insert!(cells, pos + 1, newcell)
     ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, newcell,
     cells, windowname))
+end
+
+function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{<:Any},
+    cells::Vector{Cell},  windowname::String)
+
 end
 
 function bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell},
@@ -134,7 +143,9 @@ function build(c::Connection, cell::Cell{:txt}, d::Directory{<:Any}; explorer::B
 end
 ```
 Here are some other **important** functions to look at for creating cells:
--
+- `evaluate`
+- `bind!`
+- `cell_highlight!`
 """
 function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     explorer::Bool = false)
@@ -147,7 +158,11 @@ end
 
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     explorer::Bool = false)
-
+    hiddencell = div("cell$(cell.id)", class = "cell-hidden")
+    name = a("cell$(cell.id)label", text = cell.source)
+    style!(name, "color" => "black")
+    push!(hiddencell, name)
+    hiddencell
 end
 
 
@@ -342,13 +357,11 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, windowname::String)
     keybindings = c[:OliveCore].client_data[getip(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
-#==    io = IOBuffer()
-    highlight(io, MIME("text/html"), cell.source, Lexers.JuliaLexer) ==#
     tm = ToolipsMarkdown.TextModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
     outside = div("cellcontainer$(cell.id)", class = "cell")
     inside = ToolipsDefaults.textdiv("cell$(cell.id)",
-    text = replace(cell.source, "\n" => "</br>"), "class" => "input_cell")
+    text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"), "class" => "input_cell")
     style!(inside, "border-top-left-radius" => 0px)
     inputbox = div("cellinput$(cell.id)")
     style!(inputbox, "padding" => 0px, "width" => 90percent,
