@@ -10,8 +10,6 @@ function inputcell_style()
     "line-height" => 24px)
     st::Style
 end
-
-
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -26,7 +24,6 @@ end
 outputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-
 function ipy_style()
     s::Style = Style("div.cell-ipynb",
     "background-color" => "orange",

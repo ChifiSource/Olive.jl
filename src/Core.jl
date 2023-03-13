@@ -331,7 +331,7 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any};
     end for cell in frstcells]
     overwindow = div("$(name)over")
     style!(overwindow, "display" => "inline-block",
-    "overflow-y" => "scroll !important", "min-width" => 40percent,
+    "overflow-y" => "scroll !important", "min-width" => 70percent,
     "padding" => 0px, "max-height" => 20percent, "margin-top" => 2px)
     proj_window = section(name)
     proj_window[:children] = retvs
