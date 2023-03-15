@@ -32,7 +32,9 @@ using Revise
 #==output[code]
 ==#
 #==|||==#
+function version()
 
+end
 #==
 - Olive.jl./src/Olive.jl
 -- deps/includes  (you are here)
@@ -83,9 +85,9 @@ main = route("/session") do c::Connection
     ui_topbar::Component{:div} = topbar(c)
     style!(ui_topbar, "position" => "sticky")
     ui_explorer::Component{:div} = projectexplorer()
+    style!(ui_explorer, "background" => "transparent")
     ui_settings::Component{:section} = settings_menu(c)
     style!(ui_settings, "position" => "sticky")
-
     ui_explorer[:children] = Vector{Servable}([begin
    Base.invokelatest(olmod.build, c, d, olmod, exp = true)
     end for d in proj_open.directories])
@@ -104,7 +106,9 @@ main = route("/session") do c::Connection
     end
     write!(c, bod)
 end
-
+#==output[code]
+==#
+#==|||==#
 explorer = route("/") do c::Connection
     args = getargs(c)
     notifier::Component{:div} = olive_notific()
@@ -409,7 +413,7 @@ The start function comprises routes into a Vector{Route} and then constructs
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     devmode::Bool = false)
     if devmode
-        s = OliveDevServer(OliveCore("Dev"))
+        s = OliveServer(OliveCore("Dev"))
         s.start()
         s[:Logger].log("started new olive server in devmode.")
         return
@@ -447,40 +451,54 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     end
     server.start(); server::Toolips.ToolipsServer
 end
-
-OliveServer(oc::OliveCore) = WebServer(extensions = [oc, OliveLogger(),
-Session(["/", "/session"])])
-
-OliveDevServer(oc::OliveCore) = begin
-    rs = routes(dev, fourofour, main)
-    WebServer(extensions = [oc, OliveLogger(), Session(["/", "/session"])],
-    routes = rs)
-end
-
-#== TODO Create creates a new server at the current directory, making Olive.jl
-deployable!
+#==output[code]
 ==#
-function create(name::String)
-    Toolips.new_webapp(name)
-    Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
+#==|||==#
+function create(name::String; nodeps::Bool = false)
+    Toolips.new_webapp(name, nodeps = true)
+    Pkg.add("Olive")
     open("$name/src/$name.jl") do io
         write!(io, """
         module $name
-        using Toolips
-        using ToolipsSession
         using Olive
+        using Olive.Toolips
+        using Olive.ToolipsSession
         import Olive: build
 
-        build(oc::OliveCore) = begin
-            oc::OliveCore
-        end
-
-        build(om::OliveModifier, oe::OliveExtension{:$name})
+        function build(c::Connection, om::OliveModifier,
+            oe::OliveExtension{:$name})
 
         end
 
-        function start()
+        function start(IP::String = "127.0.0.1", PORT::8000)
+            server = WebServer(IP, PORT)
+        end
 
+        end # module
+        """)
+    end
+end
+#==output[code]
+==#
+#==|||==#
+function create_extension(name::String; nodeps::Bool = false)
+    Pkg.activate("")
+    Pkg.add("Olive")
+    open("$name/src/$name.jl") do io
+        write!(io, """
+        module $name
+        using Olive
+        using Olive.Toolips
+        using Olive.ToolipsSession
+        import Olive: build
+
+        function build(c::Connection, om::OliveModifier,
+            oe::OliveExtension{:$name})
+
+        end
+
+        function start(IP::String = "127.0.0.1", PORT::8000)
+            server = WebServer(IP, PORT)
         end
 
         end # module

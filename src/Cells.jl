@@ -333,12 +333,22 @@ Using this function as a template, you can create your own olive cells.
 """
 function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}}, windowname::String)
-    hiddencell = div("cell$(cell.id)", class = "cell-hidden")
-    name = a("cell$(cell.id)label", text = cell.source)
-    style!(name, "color" => "black")
-    push!(hiddencell, name)
-    hiddencell
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    ToolipsMarkdown.julia_block!(tm)
+    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    windowname, sidebox = true, highlight = false)
+    km = cell_bind!(c, cell, cells, windowname)
+    interior = builtcell[:children]["cellinterior$(cell.id)"]
+    sidebox = interior[:children]["cellside$(cell.id)"]
+    [style!(child, "color" => "red") for child in sidebox[:children]]
+    insert!(builtcell[:children], 1, h("unknown", 3, text = "cell $(cell.type)"))
+    style!(sidebox, "background" => "transparent")
+    inp = interior[:children]["cellinput$(cell.id)"]
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    style!(inp[:children]["cell$(cell.id)"], "color" => "black")
+    builtcell::Component{:div}
 end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -356,9 +366,15 @@ be it will not run with the `runall` window button.
 
 ```
 """
-function evaluate(c::Connection, cell::Cell{<:Any}, cm::ComponentModifier,
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell}, window::String)
+    pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    if pos != length(cells)
+        focus!(cm, cells[pos + 1].id)
+    end
+    if pos == length(cells)
 
+    end
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

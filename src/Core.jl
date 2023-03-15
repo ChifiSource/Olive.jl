@@ -429,15 +429,16 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
     T::Type = typeof(o)
     mymimes = [MIME"text/html", MIME"text/svg", MIME"image/png",
      MIME"text/plain"]
-    mmimes = [m.sig.parameters[3] for m in methods(show, [IO, Any, T])]
     correctm = nothing
     for m in mymimes
-        if m in mmimes
+        try
             correctm = m
+            display(d, correctm(), o)
             break
+        catch
+            continue
         end
     end
-    display(d, correctm(), o)
 end
 
 function display(d::OliveDisplay, m::MIME"text/html", o::Any)
