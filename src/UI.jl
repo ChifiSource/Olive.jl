@@ -274,6 +274,8 @@ function settings(c::Connection)
         style!(cm, settingicon, "transform" => "rotate(0deg)",
         "color" => "black")
         style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
+        save_settings!(c)
+        olive_notify!(cm, "settings saved", color = "green")
     end
     settingicon::Component{:span}
 end

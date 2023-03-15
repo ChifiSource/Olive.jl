@@ -81,16 +81,20 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
     # load default key-bindings (if non-existent)
     if ~("keybindings" in keys(c[:OliveCore].client_data[getname(c)]))
-        c[:OliveCore].client_data[getname(c)]["keybindings"] = Dict{Symbol, Any}(
-        :evaluate => ("Enter", :shift),
-        :delete => ("Delete", :ctrl, :shift),
-        :up => ("ArrowUp", :ctrl, :shift),
-        :down => ("ArrowDown", :ctrl, :shift),
-        :copy => ("C", :ctrl, :shift),
-        :paste => ("V", :ctrl, :shift),
-        :cut => ("X", :ctrl, :shift),
-        :new => ("Q", :ctrl, :shift)
-        )
+        push!(c[:OliveCore].client_data[getname(c)],
+        "keybindings" => Dict{String, Any}(
+        "evaluate" => ["Enter", "shift"],
+        "delete" => ["Delete", "ctrl", "shift"],
+        "up" => ["ArrowUp", "ctrl", "shift"],
+        "down" => ["ArrowDown", "ctrl", "shift"],
+        "copy" => ["C", "ctrl", "shift"],
+        "paste" => ["V", "ctrl", "shift"],
+        "cut" => ["X", "ctrl", "shift"],
+        "new" => ["Q", "ctrl", "shift"]
+        ))
+    end
+    if om.data["selected"] == "files"
+        return
     end
     keybind_section = section("settings_keys")
     shftlabel = a("shiftlabel", text = "  shift:    ")
@@ -102,23 +106,25 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         setinput = ToolipsDefaults.keyinput("$(keybinding[1])inp", text = keybinding[2][1])
         style!(setinput, "background-color" => "blue", "width" => 5percent,
         "display" => "inline-block", "color" => "white")
-        shift_checkbox = ToolipsDefaults.checkbox("shiftk$(keybinding[1])")
-        ctrl_checkbox = ToolipsDefaults.checkbox("ctrlk$(keybinding[1])")
+        shift_checkbox = ToolipsDefaults.checkbox("shiftk$(keybinding[1])",
+        "checked" => string("shift" in keybinding[2]))
+        ctrl_checkbox = ToolipsDefaults.checkbox("ctrlk$(keybinding[1])",
+        "checked" => string("ctrl" in keybinding[2]))
         confirm = button("keybind$(keybinding[1])confirm", text = "confirm")
         on(c, confirm, "click") do cm::ComponentModifier
-            key_vec = Vector{Union{String, Symbol}}()
+            key_vec = Vector{String}()
             k = cm[setinput]["value"]
             if length(k) == 1
                 k = uppercase(k)
             end
             push!(key_vec, k)
             if parse(Bool, cm[shift_checkbox]["value"])
-                push!(key_vec, :shift)
+                push!(key_vec, "shift")
             end
             if parse(Bool, cm[ctrl_checkbox]["value"])
-                push!(key_vec, :ctrl)
+                push!(key_vec, "ctrl")
             end
-            c[:OliveCore].client_data[getname(c)]["keybindings"][keybinding[1]] = Tuple(key_vec)
+            c[:OliveCore].client_data[getname(c)]["keybindings"][keybinding[1]] = key_vec
             olive_notify!(cm, "binding $(keybinding[1]) saved")
         end
         push!(newkeymain, head, shftlabel, shift_checkbox,
@@ -127,6 +133,37 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
     end for keybinding in c[:OliveCore].client_data[getname(c)]["keybindings"]]))
     append!(om, "settingsmenu", keybind_section)
 end
+
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begin
+    if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
+        push!(c[:OliveCore].client_data[getname(c)],
+        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown"))
+    end
+end
+
+function save_settings!(c::Connection; core::Bool = false)
+    homedir = c[:OliveCore].data["home"]
+    alltoml = read("$homedir/Project.toml", String)
+    current_toml = TOML.parse(alltoml)
+    name = getname(c)
+    client_settings = c[:OliveCore].client_data[name]
+    current_toml["oliveusers"][name] = client_settings
+    datakeys = c[:OliveCore].data
+    toml_datakeys = keys(current_toml["olive"])
+    if core
+        [begin
+            if datakey[1] in toml_datakeys
+                current_toml[datakey[1]] = datakey[2]
+            else
+                push!(current_toml, datakey[1] => datakey[2])
+            end
+        end for datakey in datakeys]
+    end
+    open("$homedir/Project.toml", "w") do io
+        TOML.print(io, current_toml)
+    end
+end
+
 """
 ### Directory
 - uri::String

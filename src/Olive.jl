@@ -4,7 +4,7 @@ Created in February, 2022 by
 by team
 [toolips](https://github.com/orgs/ChifiSource/teams/toolips)
 This software is MIT-licensed.
-#### | olive | - | custom developer |
+#### | olive | - | pure julia notebook IDE
 Welcome to olive! olive is an integrated development environment written in
 julia and for other languages and data editing. Crucially, olive is abstract
     in definition and allows for the creation of unique types for names.
@@ -33,7 +33,25 @@ using Revise
 ==#
 #==|||==#
 function version()
+    srcdir = @__DIR__
+    splits = split(srcdir, "/")
+    oliveprojdir = join(splits[1:length(splits) - 1], "/")
+    projinfo = TOML.parse(read(oliveprojdir * "/Project.toml", String))
+    projinfo["version"]
+end
 
+function olive_motd()
+    recent_str::String = """# olive editor
+    ##### version $(version()) (an alpha)
+    Welcome to the first iteration of olive. Thank you for trying Olive out.
+    There are still some bugs present in this version, so I encourage the use
+    of [olive issues](https://github.com/ChifiSource/Olive.jl/issues) in order
+    to get everything working properly. I hope you enjoy this, it took a lot
+    of time for me to create. Once again thank you. In the future,
+    this box will contain a list of new features and changes...
+    - You may delete this cell, or keep it here. Up to you.
+    """
+    tmd("olivemotd", recent_str)::Component{<:Any}
 end
 #==
 - Olive.jl./src/Olive.jl
@@ -290,12 +308,14 @@ setup = route("/") do c::Connection
                      end
                  end
                  set_text!(cm3, statindicator, "project created !")
+                 Pkg.activate("$(cm["selector"]["text"])/olive")
+                 Pkg.add("Pkg")
                  cm3[loadbar] = "value" => ".50"
                  style!(cm3, loadbar, "opacity" => 99percent)
                  next!(c, loadbar, cm3) do cm4
                      txt = ""
                      if dfaults == "yes"
-                         alert!(cm4, "defaults not yet implemented")
+                         Pkg.add("https://github.com/ChifiSource/OliveDefaults.jl")
                          txt = txt * "defaults loaded! "
                      end
                      if dload == "yes"
