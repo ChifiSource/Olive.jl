@@ -3,7 +3,7 @@
 <h6>release candidate | 0.0.8 | alpha</h6>
 </div>
 
-##### welcome to olive
+#### welcome to olive
 Olive.jl is a customizable Integrated Development Environment for Julia programming in a notebook-like environment. Executable blocks of code are surrounded by Markdown in a far more reproducible form than ever before. Olive features
 - Extensibility
 - Deployability
@@ -11,37 +11,43 @@ Olive.jl is a customizable Integrated Development Environment for Julia programm
 - Interactive capabilities
 
 The goal with Olive is to replace the conventional IDE with a mutable IDE -- allowing creators to create however they like to create with the flexibility of custom cells and extensions!
-###### get started
-Getting started with Olive starts by installing this package via Pkg. In the future, without the URL. **Press ] to enter your pkg REPL**.
+#### get started
+Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**.
+```julia
+julia> using Pkg; Pkg.add("Olive")
+```
 ```julia
 julia> ]
-pkg> add https://github.com/ChifiSource/Olive.jl
+
+pkg> add Olive
 ```
-Alternatively, you could also grab `Unstable`, this will give you the latest developments, but some features might be intermittently broken.
+Alternatively, you could also grab `Unstable`, this will give you the latest developments (`0.0.9`), but some features might be intermittently broken.
 ```julia
 julia> ]
-pkg> add https://github.com/ChifiSource/Olive.jl#Unstable
+pkg> add Olive#Unstable
 ```
-Next, enter
+Next, use `Olive.start()`:
 ```julia
 using Olive; Olive.start()
 ```
-Visiting the link in your REPL will land you on the Olive setup screen, which will just ask a few questions for setup, and wham! You are ready to go! Another option, if you intend to deploy Olive you may use `Olive.create()`, providing a name.
-```julia
-using Olive
-Olive.create("MyOliveServer")
-```
-###### tech stack
-Olive is fueled by a web of other Chifi projects. Olives.jl is [Toolips](https://github.com/ChifiSource#Toolips)-based. Thus, many dependencies are Toolips extensions, here is a look at that list:
-- [Toolips](https://github.com/ChifiSource/Toolips.jl)
-- [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl)
-- [ToolipsMarkdown](https://github.com/ChifiSource/ToolipsMarkdown.jl)
-- [ToolipsDefaults](https://github.com/ChifiSource/ToolipsDefaults.jl)
-- [ToolipsBase64](https://github.com/ChifiSource/ToolipsBase64.jl)
-- [ToolipsAuth](https://github.com/ChifiSource/ToolipsAuth.jl)
+This should provide you with a link to get started with Olive!
+#### basic olive
+When first starting Olive, you will arrive at the `setup` route. This screen will ask you to select a home directory. After picking your directory, press `confirm` and you will be greeted with the second portion of setup which will ask you for your name and if you would like to add OliveDefaults. Respond -- you'll definitely want to pick your username! OliveDefaults is an entirely optional extension that will get added -- not loaded -- to your Olive Pkg environment. After confirming, your `olive` home directory will be setup. This home directory is important because it is used in order to extend Olive. After the setup completes, you will automatically be redirected to your new Olive homepage, also known as `explorer` at route `/`. This page requires a key to enter. The directories here will be your olive home and working directories. You may explore these directoreis and open files from here.
+#### extending olive
+#### deploying olive
+#### contributing
 
-And there is one package that is used from [odd data](https://github.com/ChifiSource#odddata).
-- [IPy](https://github.com/ChifiSource/IPy.jl)
-And a few other packages,
-- [Pkg]()
-- [Highlights]()
+#### tech stack
+I appreciate those who are interested to take some time to look into the tech-stack used to create this project. I created a lot of these, and it took a lot of time.
+
+**toolips packages**
+- [Toolips](https://github.com/ChifiSource/Toolips.jl) - Base web-development framework.
+- [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) - Fullstack callbacks.
+- [ToolipsMarkdown](https://github.com/ChifiSource/ToolipsMarkdown.jl) - Markdown interpolation, syntax highlighting.
+- [ToolipsDefaults](https://github.com/ChifiSource/ToolipsDefaults.jl) - Default Components.
+- [ToolipsBase64](https://github.com/ChifiSource/ToolipsBase64.jl) - Image types into Components -- for Olive display.
+
+**other packages**
+- [IPyCells](https://github.com/ChifiSource/IPyCells.jl) Provides the parametric cell structures for the back-end, as well as the Julia/IPython readers/writers
+- [Pkg]() Used to manage Julia dependencies and virtual environments.
+- [TOML]() Used to manage environment information, save settings, and read TOML into cells.
