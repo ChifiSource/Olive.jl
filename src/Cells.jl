@@ -302,12 +302,48 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+function read_toml(path::String)
+    concat::String = ""
+    file::String = read(path, String)
+    lines = split(file, "\n\n")
+    filter!(cell -> ~(isnothing(cell)), [begin
+        n = length(line)
+        if e == length(lines)
+            concat = concat * line
+            Cell(e, "tomlvalues", concat)
+        elseif length(line) > 1
+            if line[1] == "[" && (line[n] == "]" || line[n] - 1 == "]")
+                source = concat
+                concat = line * "\n"
+                Cell(e, "tomlvalues", source)
+            else
+                concat = concat * line * "\n"
+                nothing
+            end
+        else
+            concat = concat * line * "\n"
+            nothing
+        end
+    end for (e, line) in enumerate(lines)])
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function build(c::Connection, cell::Cell{:toml},
     d::Directory; explorer::Bool = false)
     hiddencell = div("cell$(cell.id)", class = "cell-toml")
     name = a("cell$(cell.id)label", text = cell.source)
-    on(c, hiddencell, "dblclick") do cm::ComponentModifier
-
+    if explorer
+        on(c, hiddencell, "dblclick") do cm::ComponentModifier
+            cs::Vector{Cell{<:Any}} = read_toml(cell.outputs)
+            add_to_session(c, cs, cm, cell.source, cell.outputs)
+        end
+    else
+        on(c, hiddencell, "dblclick") do cm::ComponentModifier
+            cs::Vector{Cell{<:Any}} = read_toml(cell.outputs)
+            load_session(c, cs, cm, cell.source, cell.outputs, d)
+        end
     end
     style!(name, "color" => "white")
     push!(hiddencell, name)
@@ -849,6 +885,55 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+function toml_style!(tm::ToolipsMarkdown.TextStyleModifier)
+    style!(tm, :keys, ["color" => "#D67229"])
+    style!(tm, :equals, ["color" => "purple"])
+    style!(tm, :default, ["color" => "darkblue"])
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+function toml_block!(tm::ToolipsMarkdown.TextModifier)
+    ToolipsMarkdown.mark_after!(tm, "[", :keys, until = ["]"])
+    ToolipsMarkdown.mark_all!(tm, "=", :equals)
+    toml_style!(tm)
+end
+#==|||==#
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
+    cells::Vector{Cell}, windowname::String)
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    toml_block!(tm)
+    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    windowname, sidebox = true, highlight = true)
+    km = cell_bind!(c, cell, cells, windowname)
+    interior = builtcell[:children]["cellinterior$(cell.id)"]
+    inp = interior[:children]["cellinput$(cell.id)"]
+    inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    builtcell::Component{:div}
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+
+#==|||==#
+function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
+    cells::Vector{Cell}, windowname::String)
+    curr = cm["cell$(cell.id)"]["text"]
+    cell.source = curr
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    toml_block!(tm)
+    set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+
+#==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     cells::Vector{Cell}, windowname::String)
     km = cell_bind!(c, cell, cells, windowname)
@@ -988,43 +1073,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     cell.source = cell.source * "\n" * evalstr
     cell.outputs = cell.outputs * "\n" * evalstr
     set_text!(cm, output, cell.outputs)
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlcategory},
-    cells::Vector{Cell})
-   catheading = h("cell$(cell.id)heading", 2, text = cell.source, contenteditable = true)
-    contents = section("cell$(cell.id)")
-    push!(contents, catheading)
-    v = string(cell.outputs)
-    equals = a("equals", text = " = ")
-    style!(equals, "color" => "gray")
-    for (k, v) in cell.outputs
-        key_div = div("keydiv")
-        push!(key_div,
-        a("$(cell.n)$k", text = string(k), contenteditable = true), equals,
-        a("$(cell.n)$k$v", text = string(v), contenteditable = true))
-        push!(contents, key_div)
-    end
-    contents
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlval},
-    cells::Vector{Cell})
-        key_div = div("cell$(cell.id)")
-        k = cell.source
-        v = string(cell.outputs)
-        equals = a("equals", text = " = ")
-        style!(equals, "color" => "gray")
-        push!(key_div,
-        a("$(cell.n)$k", text = string(k), contenteditable = true), equals,
-        a("$(cell.n)$k$v", text = string(v), contenteditable = true))
-        key_div
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

@@ -364,7 +364,9 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
 
     push!(myproj.directories, d)
     name = split(fsplit[length(fsplit)], ".")[1]
-    modstr = """module $(name)
+    modname = name * replace(ToolipsSession.gen_ref(10),
+    [string(dig) => "" for dig in digits(1234567890)] ...)
+    modstr = """module $(modname)
     using Pkg
 
     function evalin(ex::Any)
