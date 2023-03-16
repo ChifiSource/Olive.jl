@@ -448,8 +448,12 @@ function build_tab(c::Connection, fname::String)
                 savepath = c[:OliveCore].open[getname(c)].open[fname][:path]
                 cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
                 savecell = Cell(1, string(save_type), fname, savepath)
-                olive_save(cells, savecell)
-                olive_notify!(cm2, "file $(savepath) saved", color = "green")
+                ret = olive_save(cells, savecell)
+                if isnothing(ret)
+                    olive_notify!(cm2, "file $(savepath) saved", color = "green")
+                else
+                    olive_notify!(cm2, "file $(savepath) saved", color = "$ret")
+                end
             end
             saveas_button = topbar_icon("$(fname)saveas", "save_as")
             on(c, saveas_button, "click") do cm2::ComponentModifier

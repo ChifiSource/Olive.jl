@@ -149,6 +149,15 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{<:Any})
+    open(sc.outputs, "w") do io
+        [write(io, string(cell.source) * "\n") for cell in cells]
+    end
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
     files = readdir(dir)
     return([build_file_cell(e, path, dir) for (e, path) in enumerate(files)]::AbstractVector)
@@ -182,36 +191,6 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     style!(name, "color" => "black")
     push!(hiddencell, name)
     hiddencell
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function build(c::Connection, cell::Cell{:ipynb},
-    d::Directory{<:Any}; explorer::Bool = false)
-    filecell = div("cell$(cell.id)", class = "cell-ipynb")
-    if explorer
-        on(c, filecell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = IPyCells.read_ipynb(cell.outputs)
-            add_to_session(c, cs, cm, cell.source, cell.outputs)
-        end
-    else
-        on(c, filecell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = IPyCells.read_ipynb(cell.outputs)
-            load_session(c, cs, cm, cell.source, cell.outputs, d)
-        end
-    end
-    fname = a("$(cell.source)", text = cell.source)
-    style!(fname, "color" => "white", "font-size" => 15pt)
-    push!(filecell, fname)
-    filecell
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{<:Any})
-    IPyCells.save(cells, sc.outputs)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -278,6 +257,36 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+function build(c::Connection, cell::Cell{:ipynb},
+    d::Directory{<:Any}; explorer::Bool = false)
+    filecell = div("cell$(cell.id)", class = "cell-ipynb")
+    if explorer
+        on(c, filecell, "dblclick") do cm::ComponentModifier
+            cs::Vector{Cell{<:Any}} = IPyCells.read_ipynb(cell.outputs)
+            add_to_session(c, cs, cm, cell.source, cell.outputs)
+        end
+    else
+        on(c, filecell, "dblclick") do cm::ComponentModifier
+            cs::Vector{Cell{<:Any}} = IPyCells.read_ipynb(cell.outputs)
+            load_session(c, cs, cm, cell.source, cell.outputs, d)
+        end
+    end
+    fname = a("$(cell.source)", text = cell.source)
+    style!(fname, "color" => "white", "font-size" => 15pt)
+    push!(filecell, fname)
+    filecell
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{:ipynb})
+    IPyCells.save_ipynb(cells, sc.outputs)
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function build(c::Connection, cell::Cell{:jl},
     d::Directory{<:Any}; explorer::Bool = false)
     hiddencell = div("cell$(cell.id)", class = "cell-jl")
@@ -297,6 +306,13 @@ function build(c::Connection, cell::Cell{:jl},
     style!(name, "color" => "white")
     push!(hiddencell, name)
     hiddencell
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{:jl})
+    IPyCells.save(cells, sc.outputs)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -353,6 +369,17 @@ end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{:toml})
+    joinedstr = join([cell.source * "\n" for cell in cells])
+    try
+        TOML.parse(joinedstr)
+        open(sc.outputs, "w") do io
+            TOML.print(io, joinedstr)
+        end
+    catch e
+        return "TOML parse error: $(Base.showerror(e))"
+    end
+end
 #==|||==#
 #==output[separator]
 Session cells
@@ -824,14 +851,6 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
-    cells::Vector{Cell}, window::String)
-
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:NOTE},
     cells::Vector{Cell}, window::String)
     cell.source = "#"
@@ -919,11 +938,70 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     windowname, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, cells, windowname)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
+    style!(builtcell, "transition" => 1seconds)
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    sideb = interior[:children]["cellside$(cell.id)"]
+    collapsebutt = topbar_icon("$(cell.id)collapse", "unfold_less")
+    collapsebutt["col"] = "false"
+    style!(collapsebutt, "color" => "white", "font-size" => 17pt)
+    on(c, collapsebutt, "click") do cm2::ComponentModifier
+        if cm2[collapsebutt]["col"] == "false"
+            style!(cm2, builtcell,
+            "min-height" => 3percent, "height" => 10percent,
+            "overflow" => "hidden")
+            set_text!(cm2, collapsebutt, "unfold_more")
+            cm2[collapsebutt] = "col" => "true"
+            return
+        end
+        style!(cm2, builtcell, "min-height" => 50px, "height" => "auto")
+        set_text!(cm2, collapsebutt, "unfold_less")
+        cm2[collapsebutt] = "col" => "false"
+    end
+    style!(sideb, "background-color" => "lightblue")
+    sideb[:children] = [sideb[:children][1:2], collapsebutt]
     builtcell::Component{:div}
 end
+#==|||==#
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
+    cells::Vector{Cell}, window::String)
+    curr = cm["cell$(cell.id)"]["text"] * "\n"
+    proj = c[:OliveCore].open[getname(c)]
+    varname = "data"
+    if length(curr) > 2
+        if contains(curr[1:2], "[")
+            st = findfirst("[", curr)[1] + 1:findfirst("]", curr)[1] - 1
+            varname = curr[st]
+        end
+    end
+    evalstr = "$varname = TOML.parse(\"\"\"$(curr)\"\"\")"
+    mod = proj.open[window][:mod]
+    if ~(:TOML in names(mod))
+        evalstr = "using TOML;" * evalstr
+    end
+    ret::Any = ""
+    p = Pipe()
+    err = Pipe()
+    redirect_stdio(stdout = p, stderr = err) do
+        try
+            ret = proj.open[window][:mod].evalin(Meta.parse(evalstr))
+        catch e
+            ret = e
+        end
+    end
+    if typeof(ret) <: Exception
+        set_text!(cm, "cell$(cell.id)out", replace(string(ret),
+        "\n" => "<br>"))
+    else
+        cell.outputs = varname
+        set_text!(cm, "cell$(cell.id)out", varname)
+    end
+end
+#==|||==#
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
