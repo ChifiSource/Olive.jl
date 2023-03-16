@@ -401,7 +401,9 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     end
     fsplit = split(fpath, "/")
     name = split(fsplit[length(fsplit)], ".")[1]
-    modstr = """module $(name)
+    modname = name * replace(ToolipsSession.gen_ref(10),
+    [string(dig) => "" for dig in digits(1234567890)] ...)
+    modstr = """module $(modname)
     using Pkg
 
     function evalin(ex::Any)
@@ -457,7 +459,9 @@ function build_tab(c::Connection, fname::String)
             on(c, restartbutton, "click") do cm2::ComponentModifier
                 new_name = split(fname, ".")[1]
                 myproj = c[:OliveCore].open[getname(c)]
-                modstr = """module $(new_name)
+                modname = new_name * replace(ToolipsSession.gen_ref(10),
+                [string(dig) => "" for dig in digits(1234567890)] ...)
+                modstr = """module $(modname)
                 using Pkg
 
                 function evalin(ex::Any)

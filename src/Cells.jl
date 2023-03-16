@@ -305,14 +305,14 @@ inputcell_style (generic function with 1 method)
 function read_toml(path::String)
     concat::String = ""
     file::String = read(path, String)
-    lines = split(file, "\n\n")
+    lines = split(file, "\n")
     filter!(cell -> ~(isnothing(cell)), [begin
         n = length(line)
         if e == length(lines)
             concat = concat * line
             Cell(e, "tomlvalues", concat)
         elseif length(line) > 1
-            if line[1] == "[" && (line[n] == "]" || line[n] - 1 == "]")
+            if contains(line[1:3], "[")
                 source = concat
                 concat = line * "\n"
                 Cell(e, "tomlvalues", source)
@@ -321,6 +321,7 @@ function read_toml(path::String)
                 nothing
             end
         else
+            println(line)
             concat = concat * line * "\n"
             nothing
         end
@@ -406,11 +407,14 @@ be it will not run with the `runall` window button.
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell}, window::String)
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    cell.source = cm["cell$(cell.id)"]["text"]
     if pos != length(cells)
-        focus!(cm, cells[pos + 1].id)
+        focus!(cm, "cell$(cells[pos + 1].id)")
     end
     if pos == length(cells)
-
+        new_cell = Cell(length(cells) + 1, "creator", "")
+        push!(cells, new_cell)
+        focus!(cm, "cell$(new_cell.id)")
     end
 end
 #==output[code]
@@ -888,14 +892,18 @@ inputcell_style (generic function with 1 method)
 function toml_style!(tm::ToolipsMarkdown.TextStyleModifier)
     style!(tm, :keys, ["color" => "#D67229"])
     style!(tm, :equals, ["color" => "purple"])
+    style!(tm, :string, ["color" => "darkgreen"])
     style!(tm, :default, ["color" => "darkblue"])
+    style!(tm, :number, ["color" => "#8b0000"])
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
 function toml_block!(tm::ToolipsMarkdown.TextModifier)
     ToolipsMarkdown.mark_after!(tm, "[", :keys, until = ["]"])
+    ToolipsMarkdown.mark_between!(tm, "\"", :string)
     ToolipsMarkdown.mark_all!(tm, "=", :equals)
+    [ToolipsMarkdown.mark_all!(tm, string(dig), :number) for dig in digits(1234567890)]
     toml_style!(tm)
 end
 #==|||==#
