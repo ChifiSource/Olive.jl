@@ -186,10 +186,26 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     explorer::Bool = false)
-    hiddencell = div("cell$(cell.id)", class = "cell-hidden")
+    hiddencell = div("cell$(cell.id)")
     name = a("cell$(cell.id)label", text = cell.source)
-    style!(name, "color" => "black")
-    push!(hiddencell, name)
+    outputfmt = "b"
+    fs = filesize(cell.outputs)
+    if fs > Int64(1e+9)
+        outputfmt = "gb"
+        fs = round(fs / Int64(1e+9))
+    elseif fs > 1000000
+        outputfmt = "mb"
+        fs = round(fs / 1000000)
+    elseif fs > 1000
+        outputfmt = "kb"
+        fs = round(fs / 1000)
+    end
+    finfo = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
+    style!(finfo, "color" => "white", "float" => "right")
+    expandbutton = topbar_icon("$(cell.id)expand", "expand_more")
+    style!(expandbutton, "color" => "white", "font-size" => 17pt)
+    style!(name, "color" => "white", "font-style" => "bold")
+    push!(hiddencell, expandbutton, name, finfo)
     hiddencell
 end
 #==output[code]
@@ -259,7 +275,8 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:ipynb},
     d::Directory{<:Any}; explorer::Bool = false)
-    filecell = div("cell$(cell.id)", class = "cell-ipynb")
+    filecell = build_base_cell(c, cell, d, explorer = explorer)
+    style!(filecell, "background-color" => "orange")
     if explorer
         on(c, filecell, "dblclick") do cm::ComponentModifier
             cs::Vector{Cell{<:Any}} = IPyCells.read_ipynb(cell.outputs)
@@ -271,9 +288,6 @@ function build(c::Connection, cell::Cell{:ipynb},
             load_session(c, cs, cm, cell.source, cell.outputs, d)
         end
     end
-    fname = a("$(cell.source)", text = cell.source)
-    style!(fname, "color" => "white", "font-size" => 15pt)
-    push!(filecell, fname)
     filecell
 end
 #==output[code]
@@ -289,7 +303,8 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:jl},
     d::Directory{<:Any}; explorer::Bool = false)
-    hiddencell = div("cell$(cell.id)", class = "cell-jl")
+    hiddencell = build_base_cell(c, cell, d, explorer = explorer)
+    hiddencell["class"] = "cell-jl"
     style!(hiddencell, "cursor" => "pointer")
     if explorer
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
@@ -302,9 +317,6 @@ function build(c::Connection, cell::Cell{:jl},
             load_session(c, cs, cm, cell.source, cell.outputs, d)
         end
     end
-    name = a("cell$(cell.id)label", text = cell.source)
-    style!(name, "color" => "white")
-    push!(hiddencell, name)
     hiddencell
 end
 #==output[code]
@@ -349,12 +361,30 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:toml},
     d::Directory; explorer::Bool = false)
-    hiddencell = div("cell$(cell.id)", class = "cell-toml")
-    name = a("cell$(cell.id)label", text = cell.source)
+    hiddencell = build_base_cell(c, cell, d, explorer = explorer)
+    hiddencell["class"] = "cell-toml"
     if explorer
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
             cs::Vector{Cell{<:Any}} = read_toml(cell.outputs)
             add_to_session(c, cs, cm, cell.source, cell.outputs)
+        end
+        if cell.source == "Project.toml"
+            on(c, hiddencell, "click") do cm::ComponentModifier
+                olive_notify!(cm, "environment $(cell.outputs) activated",
+                color = "blue")
+                [begin
+                    b = button("activate$(proj[1])", text = proj[1])
+                    on(c, b, "click") do cm2::ComponentModifier
+                        proj[2][:mod] = eval(
+                        Meta.parse(olive_module(modname, cell.outputs)
+                        ))
+                        [begin
+                        remove!(cm2, "activate$(k)")
+                        end for k in keys(c[:OliveCore].open[getname(c)].open)]
+                    end
+                    append!(cm, hiddencell, b)
+                end for proj in c[:OliveCore].open[getname(c)].open]
+            end
         end
     else
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
@@ -362,8 +392,6 @@ function build(c::Connection, cell::Cell{:toml},
             load_session(c, cs, cm, cell.source, cell.outputs, d)
         end
     end
-    style!(name, "color" => "white")
-    push!(hiddencell, name)
     hiddencell
 end
 #==output[code]

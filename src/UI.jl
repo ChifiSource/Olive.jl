@@ -111,18 +111,23 @@ hdeps_style() = Style("h1.deps", color = "white")
 hdeps_style (generic function with 1 method)
 ==#
 #==|||==#
-
-google_icons() = link("google-icons",
-href = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200",
-rel = "stylesheet")
+olive_icons_font() = Style("@font-face", "font-family" => "'Material Icons'",
+    "font-style" => "normal", "font-weight" => "400",
+    "src" => """local('Material Icons'), local('MaterialIcons-Regular'),
+    url(http://127.0.0.1:8000/MaterialIcons.ttf) format('truetype')""")
 #==output[code]
 google_icons (generic function with 1 method)
 ==#
 #==|||==#
 
 function iconstyle()
-    s = Style(".material-symbols-outlined", cursor = "pointer",
-    "font-size" => "100pt", "transition" => ".4s")
+    s = Style(".material-icons", cursor = "pointer",
+    "font-family" => "'Material Icons'", "font-weight" => "normal",
+    "font-style" => "normal", "display" => "inline-block", "line-height" => "1",
+    "wewbkit-font-smoothing" => "antialiased", "text-rendering" => "optimizeLegibility",
+    "font-size" => "100pt", "transition" => ".4s", "line-height" => "1",
+    "text-transform" => "none", "letter-spacing" => "normal",
+    "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
     s:"hover":["color" => "orange", "transform" => "scale(1.1)"]
     s
 end
@@ -169,7 +174,7 @@ function olivesheet()
     st = ToolipsDefaults.sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
     pr = Style("pre", "background" => "transparent")
-    push!(st, google_icons(), load_spinner(), spin_forever(),
+    push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
     hidden_style(), jl_style(), toml_style(), julia_style(), pr,
@@ -306,7 +311,7 @@ UndefVarError: Connection not defined
 #==|||==#
 
 function topbar_icon(name::String, icon::String)
-    ico = span(name, class = "material-symbols-outlined", text = icon,
+    ico = span(name, class = "material-icons", text = icon,
      margin = "15px")
      style!(ico, "font-size" => "35pt")
      ico
@@ -366,14 +371,7 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     name = split(fsplit[length(fsplit)], ".")[1]
     modname = name * replace(ToolipsSession.gen_ref(10),
     [string(dig) => "" for dig in digits(1234567890)] ...)
-    modstr = """module $(modname)
-    using Pkg
-
-    function evalin(ex::Any)
-            Pkg.activate("$(myproj.environment)")
-            ret = eval(ex)
-    end
-    end"""
+    modstr = olive_module(modname, myproj.environment)
     mod::Module = eval(Meta.parse(modstr))
     projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
     push!(myproj.open, fsplit[length(fsplit)] =>  projdict)
@@ -403,14 +401,7 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     name = split(fsplit[length(fsplit)], ".")[1]
     modname = name * replace(ToolipsSession.gen_ref(10),
     [string(dig) => "" for dig in digits(1234567890)] ...)
-    modstr = """module $(modname)
-    using Pkg
-
-    function evalin(ex::Any)
-            Pkg.activate("$(myproj.environment)")
-            ret = eval(ex)
-    end
-    end"""
+    modstr = olive_module(modname, myproj.environment)
     filepath_name::String = fsplit[length(fsplit)]
     mod::Module = eval(Meta.parse(modstr))
     projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)

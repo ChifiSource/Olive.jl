@@ -40,6 +40,17 @@ function version()
     projinfo["version"]
 end
 
+function olive_module(modname::String, environment::String)
+    """module $(modname)
+    using Pkg
+
+    function evalin(ex::Any)
+            Pkg.activate("$environment")
+            ret = eval(ex)
+    end
+    end"""
+end
+
 function olive_motd()
     recent_str::String = """# olive editor
     ##### version $(version()) (an alpha)
@@ -366,6 +377,13 @@ end
 #==output[code]
 ==#
 #==|||==#
+icons = route("/MaterialIcons.ttf") do c::Connection
+    srcdir = @__DIR__
+    write!(c, Toolips.File(srcdir * "/fonts/MaterialIcons.ttf"))
+end
+#==output[code]
+==#
+#==|||==#
 function create_project(homedir::String = homedir(), olivedir::String = "olive")
         try
             cd(homedir)
@@ -449,7 +467,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     rootname::String = ""
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if ~(isdir("$homedirec/olive"))
-        rs = routes(setup, fourofour)
+        rs = routes(setup, fourofour, icons)
     else
         config = TOML.parse(read("$homedirec/olive/Project.toml", String))
         Pkg.activate("$homedirec/olive")
@@ -459,7 +477,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         oc.data["home"] = homedirec * "/olive"
         oc.data["wd"] = pwd()
         source_module!(oc)
-        rs = routes(fourofour, main, explorer, docbrowser)
+        rs = routes(fourofour, main, explorer, docbrowser, icons)
     end
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session", "/doc"])])
