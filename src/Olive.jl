@@ -377,9 +377,9 @@ end
 #==output[code]
 ==#
 #==|||==#
-icons = route("/MaterialIcons.ttf") do c::Connection
+icons = route("/MaterialIcons.otf") do c::Connection
     srcdir = @__DIR__
-    write!(c, Toolips.File(srcdir * "/fonts/MaterialIcons.ttf"))
+    write!(c, Toolips.File(srcdir * "/fonts/MaterialIcons.otf"))
 end
 #==output[code]
 ==#

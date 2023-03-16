@@ -201,11 +201,12 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
         fs = round(fs / 1000)
     end
     finfo = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
-    style!(finfo, "color" => "white", "float" => "right")
-    expandbutton = topbar_icon("$(cell.id)expand", "expand_more")
-    style!(expandbutton, "color" => "white", "font-size" => 17pt)
-    style!(name, "color" => "white", "font-style" => "bold")
-    push!(hiddencell, expandbutton, name, finfo)
+    style!(finfo, "color" => "white", "float" => "right", "font-weight" => "bold")
+    delbutton = topbar_icon("$(cell.id)expand", "cancel")
+    style!(delbutton, "color" => "white", "font-size" => 17pt)
+    style!(name, "color" => "white", "font-weight" => "bold",
+    "font-size" => 14pt, "margin-left" => 5px)
+    push!(hiddencell, delbutton, name, finfo)
     hiddencell
 end
 #==output[code]
@@ -369,22 +370,28 @@ function build(c::Connection, cell::Cell{:toml},
             add_to_session(c, cs, cm, cell.source, cell.outputs)
         end
         if cell.source == "Project.toml"
-            on(c, hiddencell, "click") do cm::ComponentModifier
-                olive_notify!(cm, "environment $(cell.outputs) activated",
-                color = "blue")
+            activatebutton = topbar_icon("$(cell.id)act", "bolt")
+            style!(activatebutton, "font-size" => 20pt, "color" => "white")
+            on(c, activatebutton, "click") do cm::ComponentModifier
                 [begin
                     b = button("activate$(proj[1])", text = proj[1])
                     on(c, b, "click") do cm2::ComponentModifier
+                        modname = split(proj[1], ".")[1] * replace(
+                        ToolipsSession.gen_ref(10),
+                        [string(dig) => "" for dig in digits(1234567890)] ...)
                         proj[2][:mod] = eval(
                         Meta.parse(olive_module(modname, cell.outputs)
                         ))
+                        olive_notify!(cm2, "environment $(cell.outputs) activated",
+                        color = "blue")
                         [begin
-                        remove!(cm2, "activate$(k)")
+                            remove!(cm2, "activate$k")
                         end for k in keys(c[:OliveCore].open[getname(c)].open)]
                     end
                     append!(cm, hiddencell, b)
                 end for proj in c[:OliveCore].open[getname(c)].open]
             end
+            insert!(hiddencell[:children], 2, activatebutton)
         end
     else
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
@@ -1059,7 +1066,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     outside = div("cellcontainer$(cell.id)", class = "cell")
     inner  = div("cellinside$(cell.id)")
     style!(inner, "display" => "flex")
-    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.source)
+    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
     bind!(km, "Backspace") do cm2::ComponentModifier
         if cm2["rawcell$(cell.id)"]["text"] == ""
             pos = findfirst(lcell -> lcell.id == cell.id, cells)
@@ -1087,7 +1094,17 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
      "margin-top" => 0px, "font-weight" => "bold",
      "background-color" => "#b33000", "color" => "white", "border-style" => "solid",
      "border-width" => 2px)
-     output = div("cell$(cell.id)out", text = cell.outputs)
+     output = div("cell$(cell.id)out")
+     if contains(cell.outputs, ";")
+         spl = split(cell.outputs, ";")
+         lastoutput = spl[1]
+         pinned = spl[2]
+         [begin
+         push!(output, iframe("$(e)$(cell.id)pin", width = "500", height = "500",
+         src = "/doc?mod=$(window)&get=$pin")) end for pin in split(pinned, " ")]
+     else
+         cell.outputs = ";"
+     end
      push!(inner, sidebox, inside)
     push!(outside, inner, output)
     bind!(c, cm, inside, km)
@@ -1099,6 +1116,33 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     cells::Vector{Cell}, window::String)
+    curr = cm["cell$(cell.id)"]["text"]
+    splitcmd = split(replace(curr, "\n" => ""), " ")
+    if length(splitcmd) == 0
+        return
+    end
+    cmd = splitcmd[1]
+    outps = Vector{Servable}()
+    if length(splitcmd) > 1
+        arg = splitcmd[2]
+        if cmd == ""
+            cmd = arg
+        elseif cmd == "pin"
+            outps = split(cell.outputs, ";")
+            outps[2] = outps[2] * " $arg"
+            cell.outputs = join(outps)
+            pinned = outps[2]
+            [begin
+            append!(outps, iframe("$(e)$(cell.id)pin",
+            width = "500", height = "500",
+            src = "/doc?mod=$(window)&get=$pin"))
+            end for pin in split(pinned, " ")]
+        end
+    end
+    frame = iframe("$(cell.id)outframe", width = "500",
+    height = "500", src = "/doc?mod=$(window)&get=$(curr)")
+    push!(outps, frame)
+    set_children!(cm, "cell$(cell.id)out", outps)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

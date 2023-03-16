@@ -114,7 +114,7 @@ hdeps_style (generic function with 1 method)
 olive_icons_font() = Style("@font-face", "font-family" => "'Material Icons'",
     "font-style" => "normal", "font-weight" => "400",
     "src" => """local('Material Icons'), local('MaterialIcons-Regular'),
-    url(http://127.0.0.1:8000/MaterialIcons.ttf) format('truetype')""")
+    url(/MaterialIcons.otf) format('opentype')""")
 #==output[code]
 google_icons (generic function with 1 method)
 ==#
@@ -387,7 +387,7 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     cm::ComponentModifier, source::String, fpath::String)
     myproj = c[:OliveCore].open[getname(c)]
     all_paths = [project[:path]  for project in values(myproj.open)]
-    if fpath  in all_paths
+    if fpath in all_paths
         olive_notify!(cm, "project already open!", color = "red")
         return
     end
@@ -496,12 +496,12 @@ function build_tab(c::Connection, fname::String)
                 remove!(cm2, decollapse_button)
             end
             style!(closebutton, "font-size"  => 17pt, "color" => "red")
-            style!(restartbutton, "font-size"  => 17pt)
-            style!(savebutton, "font-size"  => 17pt)
-            style!(saveas_button, "font-size"  => 17pt)
+            style!(restartbutton, "font-size"  => 17pt, "color" => "gray")
+            style!(savebutton, "font-size"  => 17pt, "color" => "gray")
+            style!(saveas_button, "font-size"  => 17pt, "color" => "gray")
             style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
-            style!(add_button, "font-size"  => 17pt)
-            style!(runall_button, "font-size"  => 17pt)
+            style!(add_button, "font-size"  => 17pt, "color" => "gray")
+            style!(runall_button, "font-size"  => 17pt, "color" => "gray")
             append!(cm, tabbody, decollapse_button)
             append!(cm, tabbody, savebutton)
             append!(cm, tabbody, saveas_button)
