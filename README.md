@@ -10,7 +10,29 @@ Olive.jl is a customizable Integrated Development Environment for Julia programm
 - Customization
 - Interactive capabilities
 
-The goal with Olive is to replace the conventional IDE with a mutable IDE -- allowing creators to create however they like to create with the flexibility of custom cells and extensions!
+###### map
+- [get started]()
+- [basic olive]()
+    - setup
+    - cells
+    - session
+- [extending olive]()
+    - the `build` function
+    - creating cells
+    - creating projects
+    - creating directories
+    - server extensions/routes
+    - adding a new format
+- [deploying olive]()
+    - `0.0.8` deployment status
+- [contributing]()
+    - how to contribute
+    - issues
+    - chifi
+- [tech stack]()
+    - toolips
+    - other
+
 #### get started
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**.
 ```julia
@@ -32,7 +54,8 @@ using Olive; Olive.start()
 ```
 This should provide you with a link to get started with Olive!
 #### basic olive
-When first starting Olive, you will arrive at the `setup` route. This screen will ask you to select a home directory. After picking your directory, press `confirm` and you will be greeted with the second portion of setup which will ask you for your name and if you would like to add OliveDefaults. Respond -- you'll definitely want to pick your username! OliveDefaults is an entirely optional extension that will get added -- not loaded -- to your Olive Pkg environment. After confirming, your `olive` home directory will be setup. This home directory is important because it is used in order to extend Olive. After the setup completes, you will automatically be redirected to your new Olive homepage, also known as `explorer` at route `/`. This page requires a key to enter. The directories here will be your olive home and working directories. You may explore these directoreis and open files from here.
+When first starting Olive, you will arrive at the `setup` route. This screen will ask you to select a home directory. After picking your directory, press `confirm` and you will be greeted with the second portion of setup which will ask you for your name and if you would like to add OliveDefaults. Respond -- you'll definitely want to pick your username! OliveDefaults is an entirely optional extension that will get added -- not loaded -- to your Olive Pkg environment. After confirming, your `olive` home directory will be setup. This home directory is important because it is used in order to extend Olive. After the setup completes, you will automatically be redirected to your new Olive homepage, also known as `explorer` at route `/`. This page requires a key to enter. The directories here will be your olive home and working directories. The home directory will contain a `Project.toml` file with your Olive data, as well as a moduule source file for a module called `olive`. This is where extensions and changes can be written on top of olive from the outside in. Double clicking a file in the directory will yield a loading of the `/session` route. This route contains the actual editor, as well as the project explorer.
+##### cells
 #### extending olive
 #### deploying olive
 #### contributing
