@@ -799,9 +799,9 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
                 ret = e
             end
         end
-        close(err)
+        close(p)
         close(Base.pipe_writer(p))
-        standard_out = read(p, String)
+        standard_out = replace(read(p, String), "\n" => "<br>")
         # output
         outp::String = ""
         od = OliveDisplay()
@@ -1037,16 +1037,18 @@ inputcell_style (generic function with 1 method)
 ==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     cells::Vector{Cell}, window::String)
-    curr = cm["cell$(cell.id)"]["text"] * "\n"
+    curr = cm["cell$(cell.id)"]["text"]
     proj = c[:OliveCore].open[getname(c)]
     varname = "data"
     if length(curr) > 2
         if contains(curr[1:2], "[")
             st = findfirst("[", curr)[1] + 1:findfirst("]", curr)[1] - 1
             varname = curr[st]
+        else
+            curr = "[data]\n$curr"
         end
     end
-    evalstr = "$varname = TOML.parse(\"\"\"$(curr)\"\"\")"
+    evalstr = "$varname = TOML.parse(\"\"\"$(curr)\"\"\")[\"$varname\"]"
     mod = proj.open[window][:mod]
     if ~(:TOML in names(mod))
         evalstr = "using TOML;" * evalstr
@@ -1200,8 +1202,13 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     km = cell_bind!(c, cell, cells, windowname)
     outside = div("cellcontainer$(cell.id)", class = "cell")
     output = div("cell$(cell.id)out")
-    style!(outside, "display" => "flex")
-    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
+    style!(output, "background-color" => "#301934", "color" => "white",
+    "font-size" => 14pt, "opacity" => 0percent, "height" => 0percent,
+    "width" => 50percent, "margin-left" => 30px, "transition" => 1seconds)
+    cmds = div("$(cell.id)cmds", text = replace(cell.source, "\n" => "<br>"))
+    interior = div("cellinterior$(cell.id)")
+    style!(interior, "display" => "flex")
+    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.outputs)
     bind!(km, "Backspace") do cm2::ComponentModifier
         if cm2["rawcell$(cell.id)"]["text"] == ""
             pos = findfirst(lcell -> lcell.id == cell.id, cells)
@@ -1228,7 +1235,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
      "margin-top" => 0px, "font-weight" => "bold",
      "background-color" => "#301934", "color" => "white", "border-width" => 2px,
      "border-style" => "solid")
-    push!(outside, sidebox, inside, output)
+    push!(interior, sidebox, inside)
+    push!(outside, interior, output, cmds)
     bind!(c, cm, inside, km, ["cell$(cell.id)"])
     outside
 end
@@ -1240,34 +1248,64 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     cells::Vector{Cell}, windowname::String)
     mod = c[:OliveCore].open[getname(c)].open[windowname][:mod]
     rt = cm["cell$(cell.id)"]["text"]
-    commands = split(rt, "\n")
-    [begin
-        args = split(command, " ")
-        evalstr = "Pkg.$(commandarg[1])("
-        if length(args) != 1
-            if contains(commandarg[2], "http")
-                evalstr = evalstr * "url = \"$(commandarg[2])\""
-            else
-                evalstr = evalstr * commandarg[2]
+    args = split(rt, " ")
+    evalstr = "Pkg.$(args[1])("
+    if length(args) != 1
+        for command in args[2:length(args)]
+            if command[1] == "clear"
+                cell.source = ""
+                set_text!(cm, "cell$(cell.id)out", "")
+                set_text!(cm, "$(cell.id)cmds", "")
             end
-            if contains(commandarg[2], "#")
-                l = length(commandarg[2])
-                revision = commandarg[2][findfirst("#", commandarg[2])[1] + 1:l]
-                evalstr = evalstr * ", rev = \"$(revision)\""
+            if contains(command, "http")
+                evalstr = evalstr * "url = \"$(command)\", "
+                continue
             end
-            if contains(commandarg[2], "@")
-                l = length(commandarg[2])
-                version = commandarg[2][findfirst("@", commandarg[2])[1] + 1:l]
-                evalstr = evalstr * ", version = \"$(version)\""
+            if command == "" || command == " "
+                continue
             end
+            if contains(command, "#")
+                l = length(command)
+                revision = command[findfirst("#", command)[1] + 1:l]
+                evalstr = evalstr * "rev = \"$(revision)\", "
+                continue
+            end
+            if contains(command, "@")
+                l = length(command)
+                version = command[findfirst("@", command)[1] + 1:l]
+                evalstr = evalstr * "version = \"$(version)\", "
+                continue
+            end
+            evalstr = evalstr * "\"$command\", "
         end
-        (evalstr * ")")::String
-    end for command in commands]
-
-    mod.evalin(Meta.parse(evalstr))
+    end
+    evalstr = evalstr * ")"
+    p = Pipe()
+    err = Pipe()
+    standard_out::String = ""
+    ret = ""
+    redirect_stdio(stdout = p, stderr = err) do
+        try
+            mod.evalin(Meta.parse(evalstr))
+        catch e
+            ret = e
+        end
+    end
+    close(Base.pipe_writer(err))
+    standard_out = read(err, String)
+    if typeof(ret) <: Exception
+        set_text!(cm, "cell$(cell.id)out", string(ret))
+        style!(cm, "cell$(cell.id)out", "height" => "auto",
+        "opacity" => 100percent)
+        return
+    end
     cell.source = cell.source * "\n" * evalstr
-    cell.outputs = cell.outputs * "\n" * evalstr
-    set_text!(cm, output, cell.outputs)
+    cell.outputs = rt
+    set_text!(cm, "cell$(cell.id)out", replace(standard_out, "✗" => "X",
+    "\n" => "<br>", "✓" => "</"))
+    set_text!(cm, "cell$(cell.id)", "")
+    set_text!(cm, "$(cell.id)cmds", replace(cell.source, "\n" => "<br>"))
+    style!(cm, "cell$(cell.id)out", "height" => "auto", "opacity" => 100percent)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

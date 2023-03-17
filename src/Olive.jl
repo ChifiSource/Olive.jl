@@ -401,6 +401,10 @@ icons = route("/MaterialIcons.otf") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/fonts/MaterialIcons.otf"))
 end
+mainicon = route("/favicon.ico") do c::Connection
+    srcdir = @__DIR__
+    write!(c, Toolips.File(srcdir * "/images/favicon.ico"))
+end
 #==output[code]
 ==#
 #==|||==#
@@ -487,7 +491,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     rootname::String = ""
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if ~(isdir("$homedirec/olive"))
-        rs = routes(setup, fourofour, icons)
+        rs = routes(setup, fourofour, icons, mainicon)
     else
         config = TOML.parse(read("$homedirec/olive/Project.toml", String))
         Pkg.activate("$homedirec/olive")
@@ -497,7 +501,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         oc.data["home"] = homedirec * "/olive"
         oc.data["wd"] = pwd()
         source_module!(oc)
-        rs = routes(fourofour, main, explorer, docbrowser, icons)
+        rs = routes(fourofour, main, explorer, docbrowser, icons, mainicon)
     end
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session", "/doc"])])

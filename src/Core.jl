@@ -293,7 +293,7 @@ exp::Bool = false)
         dirtext = dirtext[length(dirtext) - 3:length(dirtext)]
     end
     dirtop = a("heading$(dir.uri)", text = join(dirtext, "/"))
-    style!(dirtop, "color" => "darkblue", "font-size" => 12pt,
+    style!(dirtop, "color" => "white", "font-size" => 12pt,
     "padding" => 7px)
     push!(dirinfocont, dirtop)
     cells = [begin
@@ -317,6 +317,7 @@ exp::Bool = false)
     "max-height" => 25px,
     "border-bottom-left-radius" => "0px", "margin-left" => 7px,
     "border-bottom-right-radius" => 0px, "background-color" => "#DFD0C0")
+    push!(containercontrols, dirinfocont)
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
     new_fb = topbar_icon("newfb$(becell)", "article")
     style!(new_dirb, "color" => "gray", "font-size" => 23pt, "display" => "inline-block")
@@ -346,7 +347,7 @@ exp::Bool = false)
         style!(srcbutton, "background-color" => "red")
         push!(containercontrols, srcbutton)
     end
-    push!(containercontrols, dirinfocont, new_dirb, new_fb, newtxt)
+    push!(containercontrols, new_dirb, new_fb)
     on(c, new_dirb, "click") do cm::ComponentModifier
         newconfbutton = button("fconfbutt$(becell)", text = "confirm")
         if ~(newconfbutton.name in keys(cm.rootc))
@@ -415,7 +416,7 @@ exp::Bool = false)
         end
         olive_notify!(cm, "you already have a naming box open...", color = "red")
     end
-    push!(container, containercontrols, cellcontainer)
+    push!(container, newtxt, containercontrols, cellcontainer)
     return(container)
 end
 

@@ -175,7 +175,8 @@ function olivesheet()
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
     pr = Style("pre", "background" => "transparent")
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
-    iconstyle(), hdeps_style(),
+    iconstyle(), hdeps_style(), Toolips.link("oliveicon", rel = "icon",
+    href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
     hidden_style(), jl_style(), toml_style(), julia_style(), pr,
     Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
