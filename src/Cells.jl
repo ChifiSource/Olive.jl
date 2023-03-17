@@ -255,18 +255,19 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any};
     style!(filecell, "background-color" => "#FFFF88")
     on(c, filecell, "dblclick") do cm::ComponentModifier
         returner = dir_returner(c, cell, d, explorer = explorer)
-        nuri::String = "$(d.uri)/$(cell.source)"
-        newcells = directory_cells(nuri)
-        becell = replace(d.uri, "/" => "|")
-        nbecell = replace(nuri, "/" => "|")
-        cm["$(becell)cells"] = "sel" => nbecell
         toplevel = d.uri
         if typeof(d) == Directory{:subdir}
             toplevel = d.access["toplevel"]
         end
-        nd = Directory(d.uri * "/" * cell.source * "/", "root" => "rw",
+        tlvlbecell = replace(toplevel, "/" => "|")
+        sel = replace(cm["$(tlvlbecell)cells"]["sel"], "|" => "/")
+        nuri::String = "$(sel)/$(cell.source)"
+        newcells = directory_cells(nuri)
+        nbecell = replace(nuri, "/" => "|")
+        cm["$(tlvlbecell)cells"] = "sel" => nbecell
+        nd = Directory(nuri * "/", "root" => "rw",
         "toplevel" => toplevel, dirtype = "subdir")
-        set_children!(cm, "$(becell)cells",
+        set_children!(cm, "$(tlvlbecell)cells",
         Vector{Servable}(vcat([returner],
         [build(c, cel, nd, explorer = explorer) for cel in newcells])))
     end
@@ -799,14 +800,9 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
                 ret = e
             end
         end
-        try
-            close(err)
-            close(Base.pipe_writer(p))
-            close(p)
-            standard_out = read(p, String)
-        catch
-            standard_out = ""
-        end
+        close(err)
+        close(Base.pipe_writer(p))
+        standard_out = read(p, String)
         # output
         outp::String = ""
         od = OliveDisplay()

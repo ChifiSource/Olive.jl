@@ -465,6 +465,7 @@ end
 function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
     T::Type = typeof(o)
     mymimes = [MIME"text/html", MIME"text/svg", MIME"image/png",
+    MIME"image/jpeg", MIME"image/gif", MIME"text/markdown",
      MIME"text/plain"]
     correctm = nothing
     for m in mymimes
@@ -483,10 +484,27 @@ function display(d::OliveDisplay, m::MIME"text/html", o::Any)
 end
 
 function display(d::OliveDisplay, m::MIME"image/png", o::Any)
-    show(d.io, m, o)
+    show_img(d, o, "png")
+end
+
+function display(d::OliveDisplay, m::MIME"image/jpeg", o::Any)
+    show_img(d, o, "jpeg")
+end
+
+function display(d::OliveDisplay, m::MIME"image/gif", o::Any)
+    show_img(d, o, "gif")
+end
+
+function show_img(d::OliveDisplay, o::Any, ftype::String)
+    show(d.io, MIME"text/html"(), base64img("$(ToolipsSession.gen_ref())", o,
+    ftype))
 end
 
 function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
+    show(d.io, m, o)
+end
+
+function display(d::OliveDisplay, m::MIME"text/markdown", o::Any)
     show(d.io, m, o)
 end
 
