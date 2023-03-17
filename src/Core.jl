@@ -139,6 +139,61 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
         push!(c[:OliveCore].client_data[getname(c)],
         "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown"))
     end
+    if om.data["selected"] == "files"
+        return
+    end
+    creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
+    creatorkeysmen = section("creatormenu")
+    regkeys = div("regkeyss")
+    regkeys[:children] = [begin
+        mainbox = div("creatorkey$(key[1])")
+        delet = topbar_icon("$(key[1])delet", "close")
+        style!(delet, "color" => "red", "font-size" => 15pt)
+        keyname = a("kd", text = key[2])
+        binding = a("kb", text = key[1])
+        style!(binding, "background-color" => "#FFFDD0",
+        "border-radius" => 2px, "padding" => 3px, "color" => "#454545")
+        style!(keyname, "margin-left" => 2px, "margin-right" => 2px,
+        "color" => "darkblue", "font-weight" => "bold")
+        push!(mainbox, delet, keyname, binding)
+        on(c, delet, "click") do cm::ComponentModifier
+            delete!(creatorkeys, key)
+            remove!(cm, mainbox)
+        end
+        mainbox::Component{:div}
+    end for key in creatorkeys]
+    push!(creatorkeysmen, h("creatorkeys", 2, text = "creator keys"), regkeys)
+    setinput = ToolipsDefaults.keyinput("creatorkeyinp", text = "c")
+    style!(setinput, "background-color" => "blue", "width" => 5percent,
+    "display" => "inline-block", "color" => "white")
+    newsection = div("newcreator")
+    push!(newsection, h("news", 4, text = "bind new"), setinput)
+    signatures = [m.sig.parameters[4] for m in methods(c[:OliveCore].olmod.build,
+    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell, Vector{Cell}, String])]
+    opts = Vector{Servable}()
+    for sig in signatures
+        if sig == Cell{:creator} || sig == Cell{<:Any} || sig == Cell{:versioninfo}
+            continue
+        end
+        if length(sig.parameters) < 1
+            continue
+        end
+        b = ToolipsDefaults.option("creatorkey", text = string(sig.parameters[1]))
+        push!(opts, b)
+    end
+    sigselector = ToolipsDefaults.dropdown("sigselector", opts, value = "code")
+    style!(sigselector, "background-color" => "white", "margin-left" => 5px,
+    "margin-right" => 5px)
+    addbutton = button("addcreatekey", text = "add key")
+    on(c, addbutton, "click") do cm::ComponentModifier
+        sigsel = cm[sigselector]["value"]
+        setkey = cm[setinput]["value"]
+        creatorkeys[setkey] = sigsel
+        olive_notify!(cm, "creator key updated")
+    end
+    push!(newsection, sigselector, addbutton)
+    push!(creatorkeysmen, newsection)
+    append!(om, "settingsmenu", creatorkeysmen)
 end
 
 function save_settings!(c::Connection; core::Bool = false)
@@ -211,40 +266,64 @@ custom directory example
 """
 function build(c::Connection, dir::Directory{<:Any}, m::Module;
 exp::Bool = false)
-    container = section(dir.uri, align = "left")
+    container = div(dir.uri, align = "left")
+    dirinfocont = div("dirinfocont$(dir.uri)")
+    style!(dirinfocont, "overflow" => "visible")
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
         if "name" in keys(toml_cats)
             projname = toml_cats["name"]
-            envtop = h("headingenv$(dir.uri)", 2, text = projname)
-            push!(container, envtop)
+            envtop = a("headingenv$(dir.uri)", text = projname)
+            style!(envtop, "padding" => 6px, "background-color" => "blue",
+            "font-size" => 12pt, "font-weight" => "bold",
+            "border-radius" => 3px, "color" => "white")
+            push!(dirinfocont, envtop)
         end
         if "type" in keys(toml_cats)
             projtype = toml_cats["type"]
-            push!(container, h("typeenv$(dir.uri)", 4, text = projtype))
+            projtop = a("typeenv$(dir.uri)", text = projtype)
+            style!(projtop, "padding" => 6px, "background-color" => "darkgreen",
+            "font-size" => 15pt, "border-radius" => 3px, "color" => "white")
+            push!(dirinfocont, projtype)
         end
     end
-    dirtop = h("heading$(dir.uri)", 3, text = dir.uri)
-    push!(container, dirtop)
+    dirtext = split(replace(dir.uri, homedir() => "~",), "/")
+    if length(dirtext) > 3
+        dirtext = dirtext[length(dirtext) - 3:length(dirtext)]
+    end
+    dirtop = a("heading$(dir.uri)", text = join(dirtext, "/"))
+    style!(dirtop, "color" => "darkblue", "font-size" => 12pt,
+    "padding" => 7px)
+    push!(dirinfocont, dirtop)
     cells = [begin
         Base.invokelatest(m.build, c, cell, dir, explorer = exp)
     end for cell in dir.cells]
     becell = replace(dir.uri, "/" => "|")
     cellcontainer = section("$(becell)cells", sel = becell)
-    style!(cellcontainer, "padding" => 7px)
+    style!(cellcontainer, "padding" => 20px, "background-color" => "#DFD0C0",
+    "border-width" => 0px)
     cellcontainer[:children] = cells
     containercontrols = div("$(dir.uri)controls")
     newtxt = ToolipsDefaults.textdiv("newtxt$becell", text = "")
     newtxt["align"] = "left"
-    style!(newtxt, "border-width" => 2px, "border-style" => "solid",
+    style!(newtxt, "border-width" => 0px,
     "opacity" => 0percent, "transition" => "1s", "width" => 0percent,
-    "display" => "inline-block")
-    style!(containercontrols, "padding" => 0px, "overflow" => "visible")
+    "display" => "inline-block", "padding" => "0px", "outline" => "none",
+    "background-color" => "white", "font-weight" => "bold", "color" => "darkblue")
+    style!(containercontrols, "padding" => 10px, "overflow" => "visible",
+    "border-radius" => 8px, "display" => "flex", "width" => 350px,
+    "max-width" => 450px,
+    "max-height" => 25px,
+    "border-bottom-left-radius" => "0px", "margin-left" => 7px,
+    "border-bottom-right-radius" => 0px, "background-color" => "#DFD0C0")
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
     new_fb = topbar_icon("newfb$(becell)", "article")
+    style!(new_dirb, "color" => "gray", "font-size" => 23pt, "display" => "inline-block")
+    style!(new_fb, "color" => "gray", "font-size" => 23pt)
     if dir.uri == c[:OliveCore].data["home"]
-        style!(cellcontainer, "border-color" => "pink")
+        style!(cellcontainer, "background-color" => "pink")
+        style!(containercontrols, "background-color" => "pink")
         srcbutton = button("src$(becell)", text = "source")
         on(c, srcbutton, "click") do cm::ComponentModifier
             home = c[:OliveCore].data["home"]
@@ -267,7 +346,7 @@ exp::Bool = false)
         style!(srcbutton, "background-color" => "red")
         push!(containercontrols, srcbutton)
     end
-    push!(containercontrols, new_dirb, new_fb, newtxt)
+    push!(containercontrols, dirinfocont, new_dirb, new_fb, newtxt)
     on(c, new_dirb, "click") do cm::ComponentModifier
         newconfbutton = button("fconfbutt$(becell)", text = "confirm")
         if ~(newconfbutton.name in keys(cm.rootc))
@@ -295,8 +374,9 @@ exp::Bool = false)
             end
             append!(cm, containercontrols, newconfbutton)
             append!(cm, containercontrols, cancelbutton)
-            style!(cm, newtxt, "width" => 40percent, "opacity" => 100percent)
+            style!(cm, newtxt, "width" => 20percent, "opacity" => 100percent)
             style!(cm, newconfbutton, "opacity" => 100percent)
+            focus!(cm, newtxt)
             return
         end
         olive_notify!(cm, "you already have a naming box open...", color = "red")
@@ -328,8 +408,9 @@ exp::Bool = false)
             end
             append!(cm, containercontrols, newconfbutton)
             append!(cm, containercontrols, cancelbutton)
-            style!(cm, newtxt, "width" => 80percent, "opacity" => 100percent)
+            style!(cm, newtxt, "width" => 20percent, "opacity" => 100percent)
             style!(cm, newconfbutton, "opacity" => 100percent)
+            focus!(cm, newtxt)
             return
         end
         olive_notify!(cm, "you already have a naming box open...", color = "red")

@@ -204,8 +204,8 @@ function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
     on(c, explorericon, "click") do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
-            style!(cm, "projectexplorer", "width" => "250px")
-            style!(cm, "olivemain", "margin-left" => "250px")
+            style!(cm, "projectexplorer", "width" => "500px")
+            style!(cm, "olivemain", "margin-left" => "500px")
             style!(cm, explorericon, "color" => "lightblue")
             set_text!(cm, explorericon, "folder_open")
             cm["olivemain"] = "ex" => "1"

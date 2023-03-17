@@ -667,9 +667,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
      buttonbox = div("cellcontainer$(cell.id)")
      push!(buttonbox, cbox)
      push!(buttonbox, h("spawn$(cell.id)", 3, text = "new cell"))
-
      for sig in signatures
-         if sig == Cell{:creator} || sig == Cell{<:Any}
+         if sig == Cell{:creator} || sig == Cell{<:Any} || sig == Cell{:versioninfo}
              continue
          end
          if length(sig.parameters) < 1
@@ -1134,10 +1133,13 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
          lastoutput = spl[1]
          pinned = spl[2]
          [begin
-         push!(output, iframe("$(e)$(cell.id)pin", width = "500", height = "500",
-         src = "/doc?mod=$(window)&get=$pin")) end for pin in split(pinned, " ")]
+            if pin != " "
+                push!(output, iframe("$(e)$(cell.id)pin", width = "500", height = "500",
+                src = "/doc?mod=$(window)&get=$pin"))
+            end
+        end for (e, pin) in enumerate(split(pinned, " "))]
      else
-         cell.outputs = ";"
+         cell.outputs = " ; "
      end
      push!(inner, sidebox, inside)
     push!(outside, inner, output)
@@ -1172,10 +1174,11 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
             src = "/doc?mod=$(window)&get=$pin"))
         end for (e, pin) in enumerate(split(pinned, " "))]
         end
+    else
+        frame = iframe("$(cell.id)outframe", width = "700",
+        height = "500", src = "/doc?mod=$(window)&get=$(curr)")
+        push!(outps, frame)
     end
-    frame = iframe("$(cell.id)outframe", width = "700",
-    height = "500", src = "/doc?mod=$(window)&get=$(curr)")
-    push!(outps, frame)
     set_children!(cm, "cell$(cell.id)out", outps)
 end
 #==output[code]
