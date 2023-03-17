@@ -15,7 +15,7 @@ module Olive
 #==output[code]
 ==#
 #==|||==#
-import Base: write, display, getindex, setindex!
+import Base: write, display, getindex, setindex!, string
 using IPyCells
 using IPyCells: Cell
 using Pkg
@@ -26,7 +26,6 @@ import ToolipsSession: bind!, AbstractComponentModifier
 using ToolipsDefaults
 using ToolipsMarkdown
 using ToolipsBase64
-using Highlights
 using TOML
 using Revise
 #==output[code]
@@ -39,10 +38,24 @@ function version()
     projinfo = TOML.parse(read(oliveprojdir * "/Project.toml", String))
     projinfo["version"]
 end
+#==output[code]
+==#
+#==|||==#
+#==output[TODO]
+check out what imma do below: in the module... AHAHAHA
+It will require the changing of a lot of arguments though. :)
+import Base: cd, mkdir, pwd
+import Base: run,
+[Base.delete_method(m) for m in methods(cd)]
+function cd(s::String)
 
+end
+==#
+#==|||==#
 function olive_module(modname::String, environment::String)
     """module $(modname)
     using Pkg
+
 
     function evalin(ex::Any)
             Pkg.activate("$environment")
@@ -50,7 +63,9 @@ function olive_module(modname::String, environment::String)
     end
     end"""
 end
-
+#==output[code]
+==#
+#==|||==#
 function olive_motd()
     recent_str::String = """# olive editor
     ##### version $(version()) (an alpha)
@@ -64,6 +79,9 @@ function olive_motd()
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
+#==output[code]
+==#
+#==|||==#
 #==
 - Olive.jl./src/Olive.jl
 -- deps/includes  (you are here)
@@ -82,7 +100,9 @@ end
 -- styles
 - [Extensions.jl](./src/Extensions.jl)
 ==#
-
+#==output[code]
+==#
+#==|||==#
 include("Core.jl")
 include("UI.jl")
 #==output[code]

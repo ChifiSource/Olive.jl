@@ -475,17 +475,17 @@ function build_tab(c::Connection, fname::String)
                 push!(cells, new_cell)
                 append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
             end
-            runall_button = topbar_icon("$(fname)run", "sprint")
+            runall_button = topbar_icon("$(fname)run", "start")
             on(c, runall_button, "click") do cm2::ComponentModifier
                 cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
                 [begin
                 try
-                    evaluate(c, cell, cm2, fname)
+                    evaluate(c, cm2, cell, cells, fname)
                 catch
                 end
                 end for cell in cells]
             end
-            decollapse_button = topbar_icon("$(fname)dec", "left_panel_close")
+            decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
             on(c, decollapse_button, "click") do cm2::ComponentModifier
                 remove!(cm2, savebutton)
                 remove!(cm2, closebutton)

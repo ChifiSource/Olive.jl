@@ -203,6 +203,11 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     finfo = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
     style!(finfo, "color" => "white", "float" => "right", "font-weight" => "bold")
     delbutton = topbar_icon("$(cell.id)expand", "cancel")
+    on(c, delbutton, "click") do cm::ComponentModifier
+        rm(cell.outputs)
+        olive_notify!(cm, "file deleted", color = "red")
+        remove!(cm, hiddencell)
+    end
     style!(delbutton, "color" => "white", "font-size" => 17pt)
     style!(name, "color" => "white", "font-weight" => "bold",
     "font-size" => 14pt, "margin-left" => 5px)
@@ -350,7 +355,6 @@ function read_toml(path::String)
                 nothing
             end
         else
-            println(line)
             concat = concat * line * "\n"
             nothing
         end
@@ -405,18 +409,27 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{:toml})
-    joinedstr = join([cell.source * "\n" for cell in cells])
+    joinedstr = join([toml_string(cell) for cell in cells])
+    ret = ""
     try
-        TOML.parse(joinedstr)
-        open(sc.outputs, "w") do io
-            TOML.print(io, joinedstr)
-        end
+        ret = TOML.parse(joinedstr * "\n")
     catch e
-        return "TOML parse error: $(Base.showerror(e))"
+        return "TOML parse error: $(e)"
+    end
+    open(sc.outputs, "w") do io
+        TOML.print(io, ret)
     end
 end
 #==|||==#
-#==output[separator]
+toml_string(cell::Cell{<:Any}) = ""
+toml_string(cell::Cell{:tomlvalues}) = cell.source * "\n"
+#==output[TODO]
+Have this `string` below be some kind of writing which may be read back
+in and evaluated into a dictionary as Julia.
+==#
+#==|||==#
+string(cell::Cell{:tomlvalues}) = ""
+#==output[code]
 Session cells
 ==#
 #==|||==#
@@ -484,7 +497,20 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function remove_last_eval(c::Connection, cm::ComponentModifier, cell::Cell{<:Any})
-
+    cursorpos = parse(Int64, cm["cell$(cell.id)"]["caret"])
+    rawt = cm["cell$(cell.id)"]["text"]
+    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
+    inp = keybindings["evaluate"][1]
+    if inp == "Enter"
+        inp = "\n"
+    end
+    if cursorpos > 1
+        lastn = findprev(inp, rawt, cursorpos)
+        if isnothing(lastn)
+            lastn = 1:cursorpos
+        end
+        cell.source = rawt[1:lastn[1] - 1] * rawt[maximum(lastn) + 1:length(rawt)]
+    end
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -718,6 +744,19 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
          cells, windowname))
         focus!(cm, "cell$(new_cell.id)")
     end
+    cursorpos = parse(Int64, cm["cell$(cell.id)"]["caret"])
+    if cursorpos > 1
+        lastn = findprev("\n", curr, cursorpos)
+        if ~(isnothing(lastn))
+            lastline = findprev("\n", curr, lastn[1] - 1)
+            if isnothing(lastline)
+                lastline = 1:lastn[1] - 1
+            end
+            if contains(curr[lastline[1]:cursorpos], "function")
+                # auto-indent goes here.
+            end
+        end
+    end
     cell.source = curr
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
@@ -741,12 +780,6 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
     icon.name = "load$(cell.id)"
     icon["width"] = "20"
     remove!(cm2, cell_run)
-    # check last line indent/remove last evaluate character
-    currcaret = parse(Int64, cm2["cell$(cell.id)"]["caret"]) + 1
-    newtxt = cm2["cell$(cell.id)"]["text"]
-    newtxt = newtxt[1:currcaret - 1] * newtxt[currcaret:length(newtxt)]
-    set_text!(cm2, "cell$(cell.id)",
-    replace(newtxt, "\n" => "</br>", " " => "&nbsp;"))
     set_children!(cm2, "cellside$(cell.id)", [icon])
     script!(c, cm2, "$(cell.id)eval") do cm::ComponentModifier
         # get code
@@ -758,6 +791,7 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
         ret::Any = ""
         p = Pipe()
         err = Pipe()
+        standard_out::String = ""
         redirect_stdio(stdout = p, stderr = err) do
             try
                 ret = proj.open[window][:mod].evalin(Meta.parse(execcode))
@@ -765,10 +799,14 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
                 ret = e
             end
         end
-        close(err)
-        close(Base.pipe_writer(p))
-        standard_out = read(p, String)
-        close(p)
+        try
+            close(err)
+            close(Base.pipe_writer(p))
+            close(p)
+            standard_out = read(p, String)
+        catch
+            standard_out = ""
+        end
         # output
         outp::String = ""
         od = OliveDisplay()
@@ -1128,18 +1166,18 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
         if cmd == ""
             cmd = arg
         elseif cmd == "pin"
-            outps = split(cell.outputs, ";")
-            outps[2] = outps[2] * " $arg"
-            cell.outputs = join(outps)
-            pinned = outps[2]
+            outpus = split(cell.outputs, ";")
+            outpus[2] = outpus[2] * " $arg"
+            cell.outputs = join(outpus)
+            pinned = outpus[2]
             [begin
-            append!(outps, iframe("$(e)$(cell.id)pin",
-            width = "500", height = "500",
+            push!(outps, iframe("$(e)$(cell.id)pin",
+            width = "700", height = "500",
             src = "/doc?mod=$(window)&get=$pin"))
-            end for pin in split(pinned, " ")]
+        end for (e, pin) in enumerate(split(pinned, " "))]
         end
     end
-    frame = iframe("$(cell.id)outframe", width = "500",
+    frame = iframe("$(cell.id)outframe", width = "700",
     height = "500", src = "/doc?mod=$(window)&get=$(curr)")
     push!(outps, frame)
     set_children!(cm, "cell$(cell.id)out", outps)
