@@ -362,12 +362,14 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     if typeof(d) == Directory{:subdir}
         d = Directory(d.access["toplevel"], "all" =>  "rw")
     end
+    uriabove = join(fsplit[1:length(fsplit) - 2])
     if "Project.toml" in readdir(d.uri)
         myproj.environment = d.uri
+    elseif "Project.toml" in readdir(uriabove)
+        myproj.environment = uriabove
     else
         myproj.environment = c[:OliveCore].data["home"]
     end
-
     push!(myproj.directories, d)
     name = split(fsplit[length(fsplit)], ".")[1]
     modname = name * replace(ToolipsSession.gen_ref(10),

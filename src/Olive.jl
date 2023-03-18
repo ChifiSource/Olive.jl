@@ -69,13 +69,11 @@ end
 function olive_motd()
     recent_str::String = """# olive editor
     ##### version $(version()) (an alpha)
-    Welcome to the first iteration of olive. Thank you for trying Olive out.
-    There are still some bugs present in this version, so I encourage the use
-    of [olive issues](https://github.com/ChifiSource/Olive.jl/issues) in order
-    to get everything working properly. I hope you enjoy this, it took a lot
-    of time for me to create. Once again thank you. In the future,
-    this box will contain a list of new features and changes...
-    - You may delete this cell, or keep it here. Up to you.
+    `0.0.8` is the first official release of Olive. This is an early,
+    in-development rendition of olive, and there is a lot more to come!
+    Thank you for trying Olive! In the future, this cell will contain
+    information on new releases, you may choose to delete it or leave it
+    here for that purpose.
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
@@ -281,26 +279,19 @@ setup = route("/") do c::Connection
     capability to add custom styles, adds more cells, and more!"""))
     defaults_q = ToolipsDefaults.button_select(c, "defaults_q", opts)
     push!(questions, defaults_q)
-    push!(questions, h("questions-download", 4,
-     text = "would you like to download olive icons?"))
-     push!(questions, p("download-explain", text = """this will download
-     a CSS file that provides Olive's material icons, meaning you will still
-     have icons while offline, and they will load faster. (requires an internet connection)"""))
-    opts2 = [button("yesd", text = "yes"), button("nod", text = "no")]
-    download_q = ToolipsDefaults.button_select(c, "download_q", opts2)
-    push!(questions, download_q)
     push!(questions, h("questions-name", 2,
-    text = "lastly, can we get your name?"))
+    text = "lastly, a username?"))
     namebox::Component{:div} = ToolipsDefaults.textdiv("namesetup",
     text = "root")
-    on(namebox, "click") do cl::ClientModifier
-        set_text!(cl, "namesetup", "")
+    style!(namebox, "outline" => "none", "background-color" => "darkblue",
+    "color" => "white", "font-weight" => "bold")
+    on(c, namebox, "click") do cm
+        set_text!(cm, "namesetup", "")
     end
     push!(questions, namebox)
     confirm_questions = button("conf-q", text = "confirm")
     on(c, confirm_questions, "click") do cm::ComponentModifier
         dfaults = cm[defaults_q]["value"]
-        dload = cm[download_q]["value"]
         statindicator = a("statind", text = "okay! i'll get this set up for you.")
         loadbar = ToolipsDefaults.progress("oliveprogress", value = "0")
         style!(loadbar, "webkit-progreess-value" => "pink", "background-color" => "orange",
@@ -314,6 +305,8 @@ setup = route("/") do c::Connection
              set_text!(cm2, statindicator, "setting up olive ...")
              style!(cm2, loadbar, "opacity" => 100percent, "width" => 100percent)
              next!(c, loadbar, cm2) do cm3
+                 username::String = replace(cm3[namebox]["text"],
+                 " " => "_")
                  if ~(isdir(cm["selector"]["text"] * "/olive"))
                      if cm["selector"]["text"] != homedir()
                          srcdir = @__DIR__
@@ -325,8 +318,6 @@ setup = route("/") do c::Connection
                      create_project(cm["selector"]["text"])
                      config = TOML.parse(read(
                      "$(cm["selector"]["text"])/olive/Project.toml",String))
-                     username::String = replace(cm3[namebox]["text"],
-                     " " => "_")
                      users = Dict{String, Any}(
                      username => Dict{String, Vector{String}}(
                      "group" => ["all", "root"])
@@ -346,12 +337,10 @@ setup = route("/") do c::Connection
                  next!(c, loadbar, cm3) do cm4
                      txt = ""
                      if dfaults == "yes"
-                         Pkg.add("https://github.com/ChifiSource/OliveDefaults.jl")
+                         Pkg.add(
+                         url = "https://github.com/ChifiSource/OliveDefaults.jl"
+                         )
                          txt = txt * "defaults loaded! "
-                     end
-                     if dload == "yes"
-                         alert!(cm4, "download not yet implemented")
-                         txt = txt * "downloaded icons!"
                      end
                      set_text!(cm4, statindicator, txt)
                      cm4[loadbar] = "value" => "1"
@@ -366,6 +355,8 @@ setup = route("/") do c::Connection
                          push!(c.routes, fourofour, main, explorer)
                          unamekey = ToolipsSession.gen_ref(16)
                          push!(c[:OliveCore].client_keys, unamekey => username)
+                         push!(c[:OliveCore].client_data,
+                         "emmy" => Dict{String, String}())
                          redirect!(cm5, "/?key=$(unamekey)")
                      end
                  end
@@ -436,6 +427,10 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
             module olive
             #==output[code]
             this cell starts the module, you probably don't want to run it.
+            ==#
+            #==|||==#
+            #==output[versioninfo]
+
             ==#
             #==|||==#
             using Olive

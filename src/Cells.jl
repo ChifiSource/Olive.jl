@@ -187,7 +187,31 @@ inputcell_style (generic function with 1 method)
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     explorer::Bool = false)
     hiddencell = div("cell$(cell.id)")
-    name = a("cell$(cell.id)label", text = cell.source)
+    name = a("cell$(cell.id)label", text = cell.source, contenteditable = true)
+    #bind!(c, name, "Enter") do cm::ComponentModifier
+    #    cm[name] = "contenteditable" => "false"
+    #end
+    on(c, name, "click") do cm
+        km = ToolipsSession.KeyMap()
+        bind!(km, "Enter") do cm2
+            fname = replace(cm2[name]["text"], "\n" => "")
+            ps = split(cell.outputs, "/")
+            nps = ps[1:length(ps) - 1]
+            push!(nps, SubString(fname))
+            joined = join(nps, "/")
+            cp(cell.outputs, joined)
+            rm(cell.outputs)
+            cell.outputs = joined
+            cell.source = fname
+            olive_notify!(cm2, "file renamed", color = "green")
+            cm2[name] = "contenteditable" => "false"
+            set_text!(cm2, name, fname)
+        end
+        bind!(c, cm, name, km)
+        cm[name] = "contenteditable" => "true"
+        set_text!(cm, name, "")
+        focus!(cm, name)
+    end
     outputfmt = "b"
     fs = filesize(cell.outputs)
     if fs > Int64(1e+9)
@@ -1181,6 +1205,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
         height = "500", src = "/doc?mod=$(window)&get=$(curr)")
         push!(outps, frame)
     end
+    cell.source = "# ?$cmd"
     set_children!(cm, "cell$(cell.id)out", outps)
 end
 #==output[code]

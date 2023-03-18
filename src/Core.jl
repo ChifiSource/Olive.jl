@@ -267,6 +267,7 @@ custom directory example
 function build(c::Connection, dir::Directory{<:Any}, m::Module;
 exp::Bool = false)
     container = div(dir.uri, align = "left")
+    style!(container, "overflow" => "hidden")
     dirinfocont = div("dirinfocont$(dir.uri)")
     style!(dirinfocont, "overflow" => "visible")
     if "Project.toml" in readdir(dir.uri)
@@ -276,7 +277,7 @@ exp::Bool = false)
             projname = toml_cats["name"]
             envtop = a("headingenv$(dir.uri)", text = projname)
             style!(envtop, "padding" => 6px, "background-color" => "blue",
-            "font-size" => 12pt, "font-weight" => "bold",
+            "font-size" => 15pt, "font-weight" => "bold",
             "border-radius" => 3px, "color" => "white")
             push!(dirinfocont, envtop)
         end
@@ -293,7 +294,9 @@ exp::Bool = false)
         dirtext = dirtext[length(dirtext) - 3:length(dirtext)]
     end
     dirtop = a("heading$(dir.uri)", text = join(dirtext, "/"))
-    style!(dirtop, "color" => "white", "font-size" => 12pt,
+    style!(dirtop, "color" => "white", "background-color" => "darkblue",
+    "font-size" => 10pt, "border-radius" => 12px, "margin-left" => 5px,
+    "font-weight" => "bold",
     "padding" => 7px)
     push!(dirinfocont, dirtop)
     cells = [begin
@@ -302,7 +305,7 @@ exp::Bool = false)
     becell = replace(dir.uri, "/" => "|")
     cellcontainer = section("$(becell)cells", sel = becell)
     style!(cellcontainer, "padding" => 20px, "background-color" => "#DFD0C0",
-    "border-width" => 0px)
+    "border-width" => 0px, "overflow" => "hidden")
     cellcontainer[:children] = cells
     containercontrols = div("$(dir.uri)controls")
     newtxt = ToolipsDefaults.textdiv("newtxt$becell", text = "")
@@ -320,8 +323,8 @@ exp::Bool = false)
     push!(containercontrols, dirinfocont)
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
     new_fb = topbar_icon("newfb$(becell)", "article")
-    style!(new_dirb, "color" => "gray", "font-size" => 23pt, "display" => "inline-block")
-    style!(new_fb, "color" => "gray", "font-size" => 23pt)
+    style!(new_dirb, "color" => "darkblue", "font-size" => 23pt, "display" => "inline-block")
+    style!(new_fb, "color" => "darkblue", "font-size" => 23pt)
     if dir.uri == c[:OliveCore].data["home"]
         style!(cellcontainer, "background-color" => "pink")
         style!(containercontrols, "background-color" => "pink")
