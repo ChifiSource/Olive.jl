@@ -19,9 +19,9 @@ version = "0.1.7"
 
 [[deps.CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
-git-tree-sha1 = "4f619d394ac521dc59cb80a2cd8f78578e483a9d"
+git-tree-sha1 = "d57c99cc7e637165c81b30eb268eabe156a45c49"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-version = "1.2.1"
+version = "1.2.2"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -55,11 +55,9 @@ git-tree-sha1 = "37e4657cd56b11abe3d10cd4a1ec5fbdb4180263"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 version = "1.7.4"
 
-[[deps.IPy]]
+[[deps.IPyCells]]
 deps = ["JSON", "Random"]
-git-tree-sha1 = "db85480f49bb6235e36c1259fd57b9e22274771d"
-repo-rev = "Unstable"
-repo-url = "https://github.com/ChifiSource/IPy.jl"
+path = "../../odddata/IpyJL"
 uuid = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
 version = "0.1.0"
 
@@ -172,9 +170,9 @@ version = "0.1.0"
 
 [[deps.Parsers]]
 deps = ["Dates", "SnoopPrecompile"]
-git-tree-sha1 = "6f4fbcd1ad45905a5dee3f4256fabb49aa2110c6"
+git-tree-sha1 = "478ac6c952fddd4399e71d4779797c538d0ff2bf"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.5.7"
+version = "2.5.8"
 
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -244,9 +242,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.Toolips]]
 deps = ["Crayons", "Dates", "HTTP", "ParseNotEval", "Pkg", "Sockets"]
-git-tree-sha1 = "8ed3bbf2b912dc82340900aa81adcebd465ba992"
-repo-rev = "Unstable"
-repo-url = "https://github.com/ChifiSource/Toolips.jl"
+path = "../Toolips"
 uuid = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
 version = "0.2.4"
 
@@ -258,27 +254,21 @@ version = "0.1.2"
 
 [[deps.ToolipsDefaults]]
 deps = ["Toolips", "ToolipsSession"]
-git-tree-sha1 = "983874ee3700e406be3333e73fe06ad886f1dc19"
-repo-rev = "Unstable"
-repo-url = "https://github.com/ChifiSource/ToolipsDefaults.jl.git"
+path = "../ToolipsDefaults"
 uuid = "1710be6b-e895-498d-ba35-e3ff0dac7995"
 version = "0.1.0"
 
 [[deps.ToolipsMarkdown]]
 deps = ["Markdown", "Toolips"]
-git-tree-sha1 = "cfc2864f33fbb5f36d7554862503750ae5cea337"
-repo-rev = "Unstable"
-repo-url = "https://github.com/ChifiSource/ToolipsMarkdown.jl.git"
+path = "../ToolipsMarkdown"
 uuid = "33f7ff50-f2f2-41f0-8a96-482dce5c1514"
 version = "0.1.2"
 
 [[deps.ToolipsSession]]
 deps = ["Dates", "ParseNotEval", "Random", "Toolips"]
-git-tree-sha1 = "9944030e184f421f68cdc828d82488214a12cca7"
-repo-rev = "Unstable"
-repo-url = "https://github.com/ChifiSource/ToolipsSession.jl.git"
+path = "../ToolipsModifier"
 uuid = "2fe55384-55bc-4df3-9d59-c817d405cd05"
-version = "0.3.1"
+version = "0.3.0"
 
 [[deps.TranscodingStreams]]
 deps = ["Random", "Test"]
