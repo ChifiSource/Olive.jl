@@ -1,10 +1,10 @@
 name = "Olive"
 uuid = "724ecaf6-c7a0-4c22-b37e-0bb7b4193da8"
 authors = ["emmac <emmettgb@gmail.com>"]
-version = "0.0.1"
+version = "0.0.8"
 
 [deps]
-IPy = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
+IPyCells = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
@@ -16,3 +16,10 @@ ToolipsSession = "2fe55384-55bc-4df3-9d59-c817d405cd05"
 
 [compat]
 julia = "1.5"
+Revise = "3.5"
+Toolips = "0.2.3"
+ToolipsSession = "0.3.2"
+ToolipsBase64 = "0.1.2"
+ToolipsDefaults = "0.1.1"
+ToolipsMarkdown = "0.1.2"
+IPyCells = "0.1.0"
