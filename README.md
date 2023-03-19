@@ -16,7 +16,7 @@ Olive.jl is a customizable Integrated Development Environment for Julia programm
     - basics
 - [extending olive](#extending-olive)
     - building extensions
-- [deploying olive]()
+- [deploying olive](#deploying-olive)
     - `0.0.8` deployment status
 - [contributing](#contributing)
     - how to contribute
