@@ -468,7 +468,7 @@ The start function comprises routes into a Vector{Route} and then constructs
     a ServerTemplate before starting and returning the WebServer.
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
-    devmode::Bool = false)
+    devmode::Bool = false, homedirec::String = homedir())
     if devmode
         s = OliveServer(OliveCore("Dev"))
         s.start()
@@ -476,7 +476,6 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         return
     end
     srcdir = @__DIR__
-    homedirec::String = homedir()
     if isfile("$srcdir/home.txt")
         homedirec = read("$srcdir/home.txt", String)
     end
