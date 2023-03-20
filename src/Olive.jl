@@ -315,7 +315,7 @@ setup = route("/") do c::Connection
                              write(o, cm["selector"]["text"])
                          end
                      end
-                     create_project(cm["selector"]["text"])
+                     create_project(replace(cm["selector"]["text"], "\\" => "/"))
                      config = TOML.parse(read(
                      "$(cm["selector"]["text"])/olive/Project.toml",String))
                      users = Dict{String, Any}(
