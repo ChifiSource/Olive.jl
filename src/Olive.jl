@@ -481,6 +481,10 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         homedirec = read("$srcdir/home.txt", String)
     end
     oc::OliveCore = OliveCore("olive")
+    if Sys.iswindows()
+        replace(homedirec, "\\" => "/")
+        println(homedirec)
+    end
     oc.data["home"] = homedirec
     oc.data["wd"] = pwd()
     rootname::String = ""
