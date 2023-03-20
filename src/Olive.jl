@@ -315,7 +315,7 @@ setup = route("/") do c::Connection
                              write(o, cm["selector"]["text"])
                          end
                      end
-                     create_project(cm["selector"]["text"])
+                     create_project(replace(cm["selector"]["text"], "\\" => "/"))
                      config = TOML.parse(read(
                      "$(cm["selector"]["text"])/olive/Project.toml",String))
                      users = Dict{String, Any}(
@@ -468,7 +468,7 @@ The start function comprises routes into a Vector{Route} and then constructs
     a ServerTemplate before starting and returning the WebServer.
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
-    devmode::Bool = false)
+    devmode::Bool = false, homedirec::String = homedir())
     if devmode
         s = OliveServer(OliveCore("Dev"))
         s.start()
@@ -476,11 +476,14 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         return
     end
     srcdir = @__DIR__
-    homedirec::String = homedir()
     if isfile("$srcdir/home.txt")
         homedirec = read("$srcdir/home.txt", String)
     end
     oc::OliveCore = OliveCore("olive")
+    if Sys.iswindows()
+        homedirec = replace(homedirec, "\\" => "/")
+        println(homedirec)
+    end
     oc.data["home"] = homedirec
     oc.data["wd"] = pwd()
     rootname::String = ""
