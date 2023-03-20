@@ -482,7 +482,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     end
     oc::OliveCore = OliveCore("olive")
     if Sys.iswindows()
-        replace(homedirec, "\\" => "/")
+        homedirec = replace(homedirec, "\\" => "/")
         println(homedirec)
     end
     oc.data["home"] = homedirec
