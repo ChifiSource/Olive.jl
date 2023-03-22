@@ -174,7 +174,7 @@ explorer = route("/") do c::Connection
             push!(c[:OliveCore].names, getip(c) => uname)
         end
         c[:OliveCore].names[getip(c)] = uname
-        c[:OliveCore].client_data[getname(c)]["selected"] = "files"
+        get!(c[:OliveCore].client_data, getname(c), Dict{Any,Any}())["selected"] = "files"
         on(c, bod, "load") do cm::ComponentModifier
             olmod = c[:OliveCore].olmod
             homeproj = Directory(c[:OliveCore].data["home"], "root" => "rw")
