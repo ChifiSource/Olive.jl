@@ -355,32 +355,41 @@ all directories...
 ```
 """
 function load_session(c::Connection, cs::Vector{Cell{<:Any}},
-    cm::ComponentModifier, source::String, fpath::String, d::Directory{<:Any})
-    direc = d.uri
-    myproj = Project{:olive}("hello", "ExampleProject")
-    fsplit = split(fpath, "/")
+    cm::ComponentModifier, source::String, fpath::String, d::Directory{<:Any};
+    type::String = "olive")
+    fsplit::Vector{SubString} = split(fpath, "/")
+    uriabove::String = join(fsplit[1:length(fsplit) - 1])
+    environment::String = ""
+    if "Project.toml" in readdir(d.uri)
+        environment = d.uri
+    elseif "Project.toml" in readdir(uriabove)
+        environment = uriabove
+    else
+        environment = c[:OliveCore].data["home"]
+    end
     if typeof(d) == Directory{:subdir}
         d = Directory(d.access["toplevel"], "all" =>  "rw")
     end
-    uriabove = join(fsplit[1:length(fsplit) - 2])
-    if "Project.toml" in readdir(d.uri)
-        myproj.environment = d.uri
-    elseif "Project.toml" in readdir(uriabove)
-        myproj.environment = uriabove
-    else
-        myproj.environment = c[:OliveCore].data["home"]
-    end
-    push!(myproj.directories, d)
+    projdict = Dict{Symbol, Any}(:cells => cs, :path => fpath)
+    myproj = Project{Symbol(type)}(source, projdict)
+    env = Environment(getname(c), [d], [myproj])
+    push!(c[:OliveCore].open, env)
+    redirect!(cm, "/session")
+end
+
+
+function source_module!(p::Project{<:Any}, fsplit::Vector{<:AbstractString})
     name = split(fsplit[length(fsplit)], ".")[1]
-    modname = name * replace(ToolipsSession.gen_ref(10),
+    modname::String = name * replace(ToolipsSession.gen_ref(10),
     [string(dig) => "" for dig in digits(1234567890)] ...)
     modstr = olive_module(modname, myproj.environment)
     mod::Module = eval(Meta.parse(modstr))
-    projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
-    push!(myproj.open, fsplit[length(fsplit)] =>  projdict)
-    c[:OliveCore].open[getname(c)] = myproj
-    redirect!(cm, "/session")
 end
+
+function check!(p::Project{<:Any}, cs::Cell{<:Any})
+
+end
+
 #==output[code]
 UndefVarError: Cell not defined 
 ==#

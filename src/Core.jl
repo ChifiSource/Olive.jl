@@ -65,6 +65,21 @@ setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
 #==output[code]
 ==#
 #==|||==#
+
+function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
+    mod = OliveModifier(c, cm)
+    Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
+    OliveExtension{:invoker}())
+    signatures = [m.sig.parameters[4] for m in methods(olmod.build,
+     [Any, Modifier, OliveExtension])]
+    for sig in signatures
+        if sig == OliveExtension{<:Any}
+            continue
+        end
+        Base.invokelatest(c[:OliveCore].olmod.build, c, mod, sig())
+    end
+end
+
 """
 **Olive Core**
 ### build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any})
@@ -248,6 +263,14 @@ mutable struct Directory{S <: Any}
         file_cells = directory_cells(uri, access ...)
         new{Symbol(dirtype)}(dirtype, uri, Dict(access ...), file_cells)
     end
+end
+
+getindex(p::Vector{Directory{<:Any}}, s::String) = begin
+    pos = findfirst(dir::Directory{<:Any} -> dir.name == s, p)
+    if isnothing(pos)
+        throw(KeyError("project $s not found!"))
+    end
+    p[pos]
 end
 #==output[code]
 ==#
@@ -444,20 +467,21 @@ cells and directories
 """
 mutable struct Project{name <: Any} <: Servable
     name::String
-    dir::String
-    directories::Vector{Directory{<:Any}}
-    environment::String
-    open::Dict{String, Dict{Symbol, Any}}
-    function Project(name::String, dir::String; environment::String = dir)
-        open::Dict{String, Dict{String, Any}} = Dict{String, Dict{String, Any}}()
-        new{Symbol(name)}(name, dir, Vector{Directory{<:Any}}(),
-         environment, open)::Project{<:Any}
+    data::Dict{Symbol, Any}
+    Project{T}(name::String,
+    data::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T <: Any} = begin
+        new{T}(name, data)::Project{<:Any}
     end
-    Project{T}(name::String, dir::String; environment::String = dir) where {T <: Any} = begin
-        open::Dict{String, Dict{String, Any}} = Dict{String, Dict{String, Any}}()
-        groups::Dict{String, String} = Dict("root" => "rw")
-        new{T}(name, dir, Vector{Directory{<:Any}}(), environment, open)::Project{<:Any}
+end
+
+getindex(p::Project{<:Any}, symb::Symbol) = p.data[symb]
+
+getindex(p::Vector{Project{<:Any}}, s::String) = begin
+    pos = findfirst(proj::Project{<:Any} -> proj.name == s, p)
+    if isnothing(pos)
+        throw(KeyError("project $s not found!"))
     end
+    p[pos]
 end
 
 """
@@ -504,19 +528,28 @@ can_read(c::Connection, d::Directory{<:Any}) = contains("r", d.access[group(c)])
 can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", d.access[group(c)])
 can_write(c::Connection, p::Project{<:Any}) = contains("w", d.access[group(c)])
 
-function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
-    mod = OliveModifier(c, cm)
-    Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
-    OliveExtension{:invoker}())
-    signatures = [m.sig.parameters[4] for m in methods(olmod.build,
-     [Any, Modifier, OliveExtension])]
-    for sig in signatures
-        if sig == OliveExtension{<:Any}
-            continue
-        end
-        Base.invokelatest(c[:OliveCore].olmod.build, c, mod, sig())
+mutable struct Environment
+    name::String
+    directories::Vector{Directory{<:Any}}
+    projects::Vector{Project{<:Any}}
+    function Environment(name::String,
+        dirs::Vector{Directory{<:Any}} = Vector{Directory{<:Any}}(),
+        projects::Vector{Project{<:Any}} = Vector{Project{<:Any}}())
+        new(name, dirs, projects)::Environment
     end
 end
+
+getindex(e::Environment, proj::String) = e.projects[proj]::Project{<:Any}
+
+getindex(e::Vector{Environment}, name::String) = begin
+    pos = findfirst(env::Environment -> env.name == name, e)
+    if isnothing(pos)
+        throw(KeyError("Environment for $name not found."))
+    end
+    e[pos]::Environment
+end
+
+
 
 mutable struct OliveCore <: ServerExtension
     olmod::Module
@@ -524,12 +557,12 @@ mutable struct OliveCore <: ServerExtension
     data::Dict{String, Any}
     names::Dict{String, String}
     client_data::Dict{String, Dict{String, Any}}
-    open::Dict{String, Project{<:Any}}
+    open::Vector{Environment}
     client_keys::Dict{String, String}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         m = eval(Meta.parse("module olive end"))
-        projopen = Dict{String, Project{<:Any}}()
+        open = Vector{Environment}()
         client_data = Dict{String, Dict{String, Any}}()
         client_keys::Dict{String, String} = Dict{String, String}()
         new(m, [:connection], data, Dict{String, String}(),
