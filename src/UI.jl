@@ -358,7 +358,7 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     cm::ComponentModifier, source::String, fpath::String, d::Directory{<:Any};
     type::String = "olive")
     fsplit::Vector{SubString} = split(fpath, "/")
-    uriabove::String = join(fsplit[1:length(fsplit) - 1])
+    uriabove::String = join(fsplit[1:length(fsplit) - 2], "/")
     environment::String = ""
     if "Project.toml" in readdir(d.uri)
         environment = d.uri
@@ -411,11 +411,9 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
         return
     end
     fsplit::Vector{SubString} = split(fpath, "/")
-    uriabove::String = join(fsplit[1:length(fsplit) - 1])
+    uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
     environment::String = ""
-    if "Project.toml" in readdir(d.uri)
-        environment = d.uri
-    elseif "Project.toml" in readdir(uriabove)
+    if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
         environment = c[:OliveCore].data["home"]

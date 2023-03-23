@@ -291,7 +291,7 @@ exp::Bool = false)
     container = div(dir.uri, align = "left")
     style!(container, "overflow" => "hidden")
     dirinfocont = div("dirinfocont$(dir.uri)")
-    style!(dirinfocont, "overflow" => "visible")
+    style!(dirinfocont, "overflow" => "visible", "display" => "flex")
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
@@ -299,15 +299,17 @@ exp::Bool = false)
             projname = toml_cats["name"]
             envtop = a("headingenv$(dir.uri)", text = projname)
             style!(envtop, "padding" => 6px, "background-color" => "blue",
-            "font-size" => 15pt, "font-weight" => "bold",
-            "border-radius" => 3px, "color" => "white")
+            "font-size" => 15pt, "font-weight" => "bold"
+            ,
+            "border-radius" => 3px, "color" => "white", "display" => "inline-block")
             push!(dirinfocont, envtop)
         end
         if "type" in keys(toml_cats)
             projtype = toml_cats["type"]
             projtop = a("typeenv$(dir.uri)", text = projtype)
             style!(projtop, "padding" => 6px, "background-color" => "darkgreen",
-            "font-size" => 15pt, "border-radius" => 3px, "color" => "white")
+            "font-size" => 15pt, "border-radius" => 3px, "color" => "white",
+            "display") => "inline-block"
             push!(dirinfocont, projtype)
         end
     end
@@ -318,8 +320,7 @@ exp::Bool = false)
     dirtop = a("heading$(dir.uri)", text = join(dirtext, "/"))
     style!(dirtop, "color" => "white", "background-color" => "darkblue",
     "font-size" => 10pt, "border-radius" => 12px, "margin-left" => 5px,
-    "font-weight" => "bold",
-    "padding" => 7px)
+    "font-weight" => "bold", "padding" => 7px, "display" => "inline-block")
     push!(dirinfocont, dirtop)
     cells = [begin
         Base.invokelatest(m.build, c, cell, dir, explorer = exp)
