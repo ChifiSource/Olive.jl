@@ -138,7 +138,7 @@ main = route("/session") do c::Connection
     ui_explorer[:children] = Vector{Servable}([begin
    Base.invokelatest(olmod.build, c, d, olmod, exp = true)
     end for d in env.directories])
-    olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
+    olivemain::Component{:div} = olive_main(env.projects[1].name)
     style!(olivemain, "overflow-x" => "scroll", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",
     "height" => 90percent, "display" => "inline-flex")

@@ -449,7 +449,7 @@ exp::Bool = false)
 end
 
 """
-### Project{name <: Any} <: Toolips.Servable
+### Project{name <: Any}
 - name::String
 - dir::String
 - directories::Vector{Directory{<:Any}}
@@ -465,7 +465,7 @@ cells and directories
 ##### constructors
 - Directory(uri::String, access::Pair{String, String} ...; dirtype::String = "olive")
 """
-mutable struct Project{name <: Any} <: Servable
+mutable struct Project{name <: Any}
     name::String
     data::Dict{Symbol, Any}
     Project{T}(name::String,
@@ -498,25 +498,23 @@ create an OliveaExtension and
 
 ```
 """
-function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any};
-    at::String = first(p.open)[1])
-    name = at
-    frstcells::Vector{Cell} = p.open[at][:cells]
+function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
+    frstcells::Vector{Cell} = p[:cells]
     retvs = Vector{Servable}()
     [begin
         push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        frstcells, name))
+        frstcells, p.name))
     end for cell in frstcells]
-    overwindow = div("$(name)over")
+    overwindow = div("$(p.name)over")
     style!(overwindow, "display" => "inline-block",
     "min-width" => 50percent,
     "padding" => 0px, "margin-top" => 2px, "overflow" => "hidden",
     "height" => 95percent)
-    proj_window = div(name)
+    proj_window = div(p.name)
     style!(proj_window, "border-width" => 2px, "border-style" => "solid",
     "overflow-y" => "scroll !important", "height" => 92percent, "min-width" => 40percent)
     proj_window[:children] = retvs
-    push!(overwindow, build_tab(c, name), proj_window)
+    push!(overwindow, build_tab(c, p.name), proj_window)
     overwindow::Component{:div}
 end
 
@@ -530,12 +528,11 @@ can_write(c::Connection, p::Project{<:Any}) = contains("w", d.access[group(c)])
 
 mutable struct Environment
     name::String
-    directories::Vector{Directory{<:Any}}
-    projects::Vector{Project{<:Any}}
-    function Environment(name::String,
-        dirs::Vector{Directory{<:Any}} = Vector{Directory{<:Any}}(),
-        projects::Vector{Project{<:Any}} = Vector{Project{<:Any}}())
-        new(name, dirs, projects)::Environment
+    directories::Vector{Directory}
+    projects::Vector{Project}
+    function Environment(name::String)
+        new(name, Vector{Directory}(),
+        Vector{Project}())::Environment
     end
 end
 
@@ -566,7 +563,7 @@ mutable struct OliveCore <: ServerExtension
         client_data = Dict{String, Dict{String, Any}}()
         client_keys::Dict{String, String} = Dict{String, String}()
         new(m, [:connection], data, Dict{String, String}(),
-        client_data, projopen, client_keys)
+        client_data, open, client_keys)
     end
 end
 

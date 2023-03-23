@@ -420,7 +420,7 @@ function build(c::Connection, cell::Cell{:toml},
                         end for k in keys(c[:OliveCore].open[getname(c)].open)]
                     end
                     append!(cm, hiddencell, b)
-                end for proj in c[:OliveCore].open[getname(c)].open]
+                end for proj in c[:OliveCore].open[getname(c)].projects]
             end
             insert!(hiddencell[:children], 2, activatebutton)
         end
@@ -867,14 +867,14 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
         execcode::String = *("begin\n", rawcode, "\nend\n")
         # get project
         selected::String = cm["olivemain"]["selected"]
-        proj::Project{<:Any} = c[:OliveCore].open[getname(c)]
+        proj::Project{<:Any} = c[:OliveCore].open[getname(c)][window]
         ret::Any = ""
         p = Pipe()
         err = Pipe()
         standard_out::String = ""
         redirect_stdio(stdout = p, stderr = err) do
             try
-                ret = proj.open[window][:mod].evalin(Meta.parse(execcode))
+                ret = proj[:mod].evalin(Meta.parse(execcode))
             catch e
                 ret = e
             end
@@ -1125,7 +1125,7 @@ inputcell_style (generic function with 1 method)
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     cells::Vector{Cell}, window::String)
     curr = cm["cell$(cell.id)"]["text"]
-    proj = c[:OliveCore].open[getname(c)]
+    proj = c[:OliveCore].open[getname(c)][window]
     varname = "data"
     if length(curr) > 2
         if contains(curr[1:2], "[")
@@ -1136,7 +1136,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
         end
     end
     evalstr = "$varname = TOML.parse(\"\"\"$(curr)\"\"\")[\"$varname\"]"
-    mod = proj.open[window][:mod]
     if ~(:TOML in names(mod))
         evalstr = "using TOML;" * evalstr
     end
@@ -1145,7 +1144,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     err = Pipe()
     redirect_stdio(stdout = p, stderr = err) do
         try
-            ret = proj.open[window][:mod].evalin(Meta.parse(evalstr))
+            ret = proj[:mod].evalin(Meta.parse(evalstr))
         catch e
             ret = e
         end

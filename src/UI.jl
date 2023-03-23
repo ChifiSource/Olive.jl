@@ -370,23 +370,28 @@ function load_session(c::Connection, cs::Vector{Cell{<:Any}},
     if typeof(d) == Directory{:subdir}
         d = Directory(d.access["toplevel"], "all" =>  "rw")
     end
-    projdict = Dict{Symbol, Any}(:cells => cs, :path => fpath)
-    myproj = Project{Symbol(type)}(source, projdict)
-    env = Environment(getname(c), [d], [myproj])
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+    :path => fpath, :env => environment)
+    myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, source)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    env::Environment = Environment(getname(c))
+    push!(env.directories, d)
+    push!(env.projects, myproj)
     push!(c[:OliveCore].open, env)
     redirect!(cm, "/session")
 end
 
 
-function source_module!(p::Project{<:Any}, fsplit::Vector{<:AbstractString})
-    name = split(fsplit[length(fsplit)], ".")[1]
-    modname::String = name * replace(ToolipsSession.gen_ref(10),
+function source_module!(p::Project{<:Any}, name::String)
+    name = split(name, ".")[1] * replace(ToolipsSession.gen_ref(10),
     [string(dig) => "" for dig in digits(1234567890)] ...)
-    modstr = olive_module(modname, myproj.environment)
+    modstr = olive_module(name, p[:env])
     mod::Module = eval(Meta.parse(modstr))
+    push!(p.data, :mod => mod)
 end
 
-function check!(p::Project{<:Any}, cs::Cell{<:Any})
+function check!(p::Project{<:Any})
 
 end
 
@@ -396,29 +401,32 @@ UndefVarError: Cell not defined 
 #==|||==#
 
 function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
-    cm::ComponentModifier, source::String, fpath::String)
-    myproj = c[:OliveCore].open[getname(c)]
-    all_paths = [project[:path]  for project in values(myproj.open)]
+    cm::ComponentModifier, source::String, fpath::String;
+    type::String = "olive")
+    all_paths::Vector{String} = [begin
+        project[:path]
+    end for project in c[:OliveCore].open[getname(c)].projects]
     if fpath in all_paths
         olive_notify!(cm, "project already open!", color = "red")
         return
     end
-    d = myproj.directories[1]
+    fsplit::Vector{SubString} = split(fpath, "/")
+    uriabove::String = join(fsplit[1:length(fsplit) - 1])
+    environment::String = ""
     if "Project.toml" in readdir(d.uri)
-        myproj.environment = d.uri
+        environment = d.uri
+    elseif "Project.toml" in readdir(uriabove)
+        environment = uriabove
     else
-        myproj.environment = c[:OliveCore].data["home"]
+        environment = c[:OliveCore].data["home"]
     end
-    fsplit = split(fpath, "/")
-    name = split(fsplit[length(fsplit)], ".")[1]
-    modname = name * replace(ToolipsSession.gen_ref(10),
-    [string(dig) => "" for dig in digits(1234567890)] ...)
-    modstr = olive_module(modname, myproj.environment)
-    filepath_name::String = fsplit[length(fsplit)]
-    mod::Module = eval(Meta.parse(modstr))
-    projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
-    push!(myproj.open, filepath_name =>  projdict)
-    projbuild = build(c, cm, myproj, at = filepath_name)
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+    :path => fpath, :env => environment)
+    myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, source)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    push!(c[:OliveCore].open[getname(c)].projects, myproj)
+    projbuild = build(c, cm, myproj)
     append!(cm, "olivemain", projbuild)
 end
 #==output[code]
