@@ -355,61 +355,76 @@ all directories...
 ```
 """
 function load_session(c::Connection, cs::Vector{Cell{<:Any}},
-    cm::ComponentModifier, source::String, fpath::String, d::Directory{<:Any})
-    direc = d.uri
-    myproj = Project{:olive}("hello", "ExampleProject")
-    fsplit = split(fpath, "/")
+    cm::ComponentModifier, source::String, fpath::String, d::Directory{<:Any};
+    type::String = "olive")
+    fsplit::Vector{SubString} = split(fpath, "/")
+    uriabove::String = join(fsplit[1:length(fsplit) - 2], "/")
+    environment::String = ""
+    if "Project.toml" in readdir(d.uri)
+        environment = d.uri
+    elseif "Project.toml" in readdir(uriabove)
+        environment = uriabove
+    else
+        environment = c[:OliveCore].data["home"]
+    end
     if typeof(d) == Directory{:subdir}
         d = Directory(d.access["toplevel"], "all" =>  "rw")
     end
-    uriabove = join(fsplit[1:length(fsplit) - 2])
-    if "Project.toml" in readdir(d.uri)
-        myproj.environment = d.uri
-    elseif "Project.toml" in readdir(uriabove)
-        myproj.environment = uriabove
-    else
-        myproj.environment = c[:OliveCore].data["home"]
-    end
-    push!(myproj.directories, d)
-    name = split(fsplit[length(fsplit)], ".")[1]
-    modname = name * replace(ToolipsSession.gen_ref(10),
-    [string(dig) => "" for dig in digits(1234567890)] ...)
-    modstr = olive_module(modname, myproj.environment)
-    mod::Module = eval(Meta.parse(modstr))
-    projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
-    push!(myproj.open, fsplit[length(fsplit)] =>  projdict)
-    c[:OliveCore].open[getname(c)] = myproj
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+    :path => fpath, :env => environment)
+    myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, source)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    env::Environment = Environment(getname(c))
+    push!(env.directories, d)
+    push!(env.projects, myproj)
+    push!(c[:OliveCore].open, env)
     redirect!(cm, "/session")
 end
+
+
+function source_module!(p::Project{<:Any}, name::String)
+    name = split(name, ".")[1] * replace(ToolipsSession.gen_ref(10),
+    [string(dig) => "" for dig in digits(1234567890)] ...)
+    modstr = olive_module(name, p[:env])
+    mod::Module = eval(Meta.parse(modstr))
+    push!(p.data, :mod => mod)
+end
+
+function check!(p::Project{<:Any})
+
+end
+
 #==output[code]
 UndefVarError: Cell not defined 
 ==#
 #==|||==#
 
 function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
-    cm::ComponentModifier, source::String, fpath::String)
-    myproj = c[:OliveCore].open[getname(c)]
-    all_paths = [project[:path]  for project in values(myproj.open)]
+    cm::ComponentModifier, source::String, fpath::String;
+    type::String = "olive")
+    all_paths::Vector{String} = [begin
+        project[:path]
+    end for project in c[:OliveCore].open[getname(c)].projects]
     if fpath in all_paths
         olive_notify!(cm, "project already open!", color = "red")
         return
     end
-    d = myproj.directories[1]
-    if "Project.toml" in readdir(d.uri)
-        myproj.environment = d.uri
+    fsplit::Vector{SubString} = split(fpath, "/")
+    uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
+    environment::String = ""
+    if "Project.toml" in readdir(uriabove)
+        environment = uriabove
     else
-        myproj.environment = c[:OliveCore].data["home"]
+        environment = c[:OliveCore].data["home"]
     end
-    fsplit = split(fpath, "/")
-    name = split(fsplit[length(fsplit)], ".")[1]
-    modname = name * replace(ToolipsSession.gen_ref(10),
-    [string(dig) => "" for dig in digits(1234567890)] ...)
-    modstr = olive_module(modname, myproj.environment)
-    filepath_name::String = fsplit[length(fsplit)]
-    mod::Module = eval(Meta.parse(modstr))
-    projdict = Dict{Symbol, Any}(:mod => mod, :cells => cs, :path => fpath)
-    push!(myproj.open, filepath_name =>  projdict)
-    projbuild = build(c, cm, myproj, at = filepath_name)
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+    :path => fpath, :env => environment)
+    myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, source)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    push!(c[:OliveCore].open[getname(c)].projects, myproj)
+    projbuild = build(c, cm, myproj)
     append!(cm, "olivemain", projbuild)
 end
 #==output[code]
@@ -433,14 +448,16 @@ function build_tab(c::Connection, fname::String)
             closebutton = topbar_icon("$(fname)close", "close")
             on(c, closebutton, "click") do cm2::ComponentModifier
                 remove!(cm2, "$(fname)over")
-                delete!(c[:OliveCore].open[getname(c)].open, fname)
+                pos = findfirst(proj -> proj.name == fname,
+                c[:OliveCore].open[getname(c)].projects)
+                deleteat!(c[:OliveCore].open[getname(c)].projects, pos)
                 olive_notify!(cm2, "project $(fname) closed", color = "blue")
             end
             savebutton = topbar_icon("$(fname)save", "save")
             on(c, savebutton, "click") do cm2::ComponentModifier
                 save_type = split(fname, ".")[2]
-                savepath = c[:OliveCore].open[getname(c)].open[fname][:path]
-                cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
+                savepath = c[:OliveCore].open[getname(c)][fname][:path]
+                cells = c[:OliveCore].open[getname(c)][fname][:cells]
                 savecell = Cell(1, string(save_type), fname, savepath)
                 ret = olive_save(cells, savecell)
                 if isnothing(ret)
@@ -455,32 +472,22 @@ function build_tab(c::Connection, fname::String)
             end
             restartbutton = topbar_icon("$(fname)restart", "restart_alt")
             on(c, restartbutton, "click") do cm2::ComponentModifier
-                new_name = split(fname, ".")[1]
-                myproj = c[:OliveCore].open[getname(c)]
-                modname = new_name * replace(ToolipsSession.gen_ref(10),
-                [string(dig) => "" for dig in digits(1234567890)] ...)
-                modstr = """module $(modname)
-                using Pkg
-
-                function evalin(ex::Any)
-                        Pkg.activate("$(myproj.environment)")
-                        ret = eval(ex)
-                end
-                end"""
-                mod::Module = eval(Meta.parse(modstr))
-                myproj.open[fname][:mod] = mod
+                new_name = string(split(fname, ".")[1])
+                myproj = c[:OliveCore].open[getname(c)][fname]
+                delete!(myproj.data, :mod)
+                source_module!(myproj, new_name)
                 olive_notify!(cm2, "module for $(fname) re-sourced")
             end
             add_button = topbar_icon("$(fname)add", "add_circle")
             on(c, add_button, "click") do cm2::ComponentModifier
-                cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
+                cells = c[:OliveCore].open[getname(c)][fname][:cells]
                 new_cell = Cell(length(cells) + 1, "creator", "")
                 push!(cells, new_cell)
                 append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
             end
             runall_button = topbar_icon("$(fname)run", "start")
             on(c, runall_button, "click") do cm2::ComponentModifier
-                cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
+                cells = c[:OliveCore].open[getname(c)][fname][:cells]
                 [begin
                 try
                     evaluate(c, cm2, cell, cells, fname)

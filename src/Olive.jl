@@ -126,7 +126,7 @@ main = route("/session") do c::Connection
     write!(c, olivesheet())
     c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
-    proj_open::Project{<:Any} = c[:OliveCore].open[getname(c)]
+    env::Environment = c[:OliveCore].open[getname(c)]
     # setup base UI
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
@@ -137,8 +137,8 @@ main = route("/session") do c::Connection
     style!(ui_settings, "position" => "sticky")
     ui_explorer[:children] = Vector{Servable}([begin
    Base.invokelatest(olmod.build, c, d, olmod, exp = true)
-    end for d in proj_open.directories])
-    olivemain::Component{:div} = olive_main(first(proj_open.open)[1])
+    end for d in env.directories])
+    olivemain::Component{:div} = olive_main(env.projects[1].name)
     style!(olivemain, "overflow-x" => "scroll", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",
     "height" => 90percent, "display" => "inline-flex")
@@ -147,9 +147,11 @@ main = route("/session") do c::Connection
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
     script!(c, "load", type = "Timeout", time = 250) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
-        window::Component{:div} = Base.invokelatest(olmod.build, c,
-        cm, proj_open)
-        append!(cm, "olivemain", window)
+        [begin
+            window::Component{:div} = Base.invokelatest(olmod.build, c,
+            cm, proj)
+            append!(cm, "olivemain", window)
+        end for proj in env.projects]
     end
     write!(c, bod)
 end
@@ -493,6 +495,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     else
         config = TOML.parse(read("$homedirec/olive/Project.toml", String))
         Pkg.activate("$homedirec/olive")
+        Pkg.instantiate()
         oc.data = config["olive"]
         rootname = oc.data["root"]
         oc.client_data = config["oliveusers"]

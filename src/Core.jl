@@ -65,6 +65,21 @@ setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
 #==output[code]
 ==#
 #==|||==#
+
+function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
+    mod = OliveModifier(c, cm)
+    Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
+    OliveExtension{:invoker}())
+    signatures = [m.sig.parameters[4] for m in methods(olmod.build,
+     [Any, Modifier, OliveExtension])]
+    for sig in signatures
+        if sig == OliveExtension{<:Any}
+            continue
+        end
+        Base.invokelatest(c[:OliveCore].olmod.build, c, mod, sig())
+    end
+end
+
 """
 **Olive Core**
 ### build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any})
@@ -249,6 +264,14 @@ mutable struct Directory{S <: Any}
         new{Symbol(dirtype)}(dirtype, uri, Dict(access ...), file_cells)
     end
 end
+
+getindex(p::Vector{Directory{<:Any}}, s::String) = begin
+    pos = findfirst(dir::Directory{<:Any} -> dir.name == s, p)
+    if isnothing(pos)
+        throw(KeyError("project $s not found!"))
+    end
+    p[pos]
+end
 #==output[code]
 ==#
 #==|||==#
@@ -268,7 +291,7 @@ exp::Bool = false)
     container = div(dir.uri, align = "left")
     style!(container, "overflow" => "hidden")
     dirinfocont = div("dirinfocont$(dir.uri)")
-    style!(dirinfocont, "overflow" => "visible")
+    style!(dirinfocont, "overflow" => "visible", "display" => "flex")
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
@@ -276,15 +299,17 @@ exp::Bool = false)
             projname = toml_cats["name"]
             envtop = a("headingenv$(dir.uri)", text = projname)
             style!(envtop, "padding" => 6px, "background-color" => "blue",
-            "font-size" => 15pt, "font-weight" => "bold",
-            "border-radius" => 3px, "color" => "white")
+            "font-size" => 15pt, "font-weight" => "bold"
+            ,
+            "border-radius" => 3px, "color" => "white", "display" => "inline-block")
             push!(dirinfocont, envtop)
         end
         if "type" in keys(toml_cats)
             projtype = toml_cats["type"]
             projtop = a("typeenv$(dir.uri)", text = projtype)
             style!(projtop, "padding" => 6px, "background-color" => "darkgreen",
-            "font-size" => 15pt, "border-radius" => 3px, "color" => "white")
+            "font-size" => 15pt, "border-radius" => 3px, "color" => "white",
+            "display") => "inline-block"
             push!(dirinfocont, projtype)
         end
     end
@@ -295,8 +320,7 @@ exp::Bool = false)
     dirtop = a("heading$(dir.uri)", text = join(dirtext, "/"))
     style!(dirtop, "color" => "white", "background-color" => "darkblue",
     "font-size" => 10pt, "border-radius" => 12px, "margin-left" => 5px,
-    "font-weight" => "bold",
-    "padding" => 7px)
+    "font-weight" => "bold", "padding" => 7px, "display" => "inline-block")
     push!(dirinfocont, dirtop)
     cells = [begin
         Base.invokelatest(m.build, c, cell, dir, explorer = exp)
@@ -426,7 +450,7 @@ exp::Bool = false)
 end
 
 """
-### Project{name <: Any} <: Toolips.Servable
+### Project{name <: Any}
 - name::String
 - dir::String
 - directories::Vector{Directory{<:Any}}
@@ -442,22 +466,23 @@ cells and directories
 ##### constructors
 - Directory(uri::String, access::Pair{String, String} ...; dirtype::String = "olive")
 """
-mutable struct Project{name <: Any} <: Servable
+mutable struct Project{name <: Any}
     name::String
-    dir::String
-    directories::Vector{Directory{<:Any}}
-    environment::String
-    open::Dict{String, Dict{Symbol, Any}}
-    function Project(name::String, dir::String; environment::String = dir)
-        open::Dict{String, Dict{String, Any}} = Dict{String, Dict{String, Any}}()
-        new{Symbol(name)}(name, dir, Vector{Directory{<:Any}}(),
-         environment, open)::Project{<:Any}
+    data::Dict{Symbol, Any}
+    Project{T}(name::String,
+    data::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T <: Any} = begin
+        new{T}(name, data)::Project{<:Any}
     end
-    Project{T}(name::String, dir::String; environment::String = dir) where {T <: Any} = begin
-        open::Dict{String, Dict{String, Any}} = Dict{String, Dict{String, Any}}()
-        groups::Dict{String, String} = Dict("root" => "rw")
-        new{T}(name, dir, Vector{Directory{<:Any}}(), environment, open)::Project{<:Any}
+end
+
+getindex(p::Project{<:Any}, symb::Symbol) = p.data[symb]
+
+getindex(p::Vector{Project{<:Any}}, s::String) = begin
+    pos = findfirst(proj::Project{<:Any} -> proj.name == s, p)
+    if isnothing(pos)
+        throw(KeyError("project $s not found!"))
     end
+    p[pos]
 end
 
 """
@@ -474,25 +499,23 @@ create an OliveaExtension and
 
 ```
 """
-function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any};
-    at::String = first(p.open)[1])
-    name = at
-    frstcells::Vector{Cell} = p.open[at][:cells]
+function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
+    frstcells::Vector{Cell} = p[:cells]
     retvs = Vector{Servable}()
     [begin
         push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        frstcells, name))
+        frstcells, p.name))
     end for cell in frstcells]
-    overwindow = div("$(name)over")
+    overwindow = div("$(p.name)over")
     style!(overwindow, "display" => "inline-block",
     "min-width" => 50percent,
     "padding" => 0px, "margin-top" => 2px, "overflow" => "hidden",
     "height" => 95percent)
-    proj_window = div(name)
+    proj_window = div(p.name)
     style!(proj_window, "border-width" => 2px, "border-style" => "solid",
     "overflow-y" => "scroll !important", "height" => 92percent, "min-width" => 40percent)
     proj_window[:children] = retvs
-    push!(overwindow, build_tab(c, name), proj_window)
+    push!(overwindow, build_tab(c, p.name), proj_window)
     overwindow::Component{:div}
 end
 
@@ -504,19 +527,27 @@ can_read(c::Connection, d::Directory{<:Any}) = contains("r", d.access[group(c)])
 can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", d.access[group(c)])
 can_write(c::Connection, p::Project{<:Any}) = contains("w", d.access[group(c)])
 
-function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
-    mod = OliveModifier(c, cm)
-    Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
-    OliveExtension{:invoker}())
-    signatures = [m.sig.parameters[4] for m in methods(olmod.build,
-     [Any, Modifier, OliveExtension])]
-    for sig in signatures
-        if sig == OliveExtension{<:Any}
-            continue
-        end
-        Base.invokelatest(c[:OliveCore].olmod.build, c, mod, sig())
+mutable struct Environment
+    name::String
+    directories::Vector{Directory}
+    projects::Vector{Project}
+    function Environment(name::String)
+        new(name, Vector{Directory}(),
+        Vector{Project}())::Environment
     end
 end
+
+getindex(e::Environment, proj::String) = e.projects[proj]::Project{<:Any}
+
+getindex(e::Vector{Environment}, name::String) = begin
+    pos = findfirst(env::Environment -> env.name == name, e)
+    if isnothing(pos)
+        throw(KeyError("Environment for $name not found."))
+    end
+    e[pos]::Environment
+end
+
+
 
 mutable struct OliveCore <: ServerExtension
     olmod::Module
@@ -524,16 +555,16 @@ mutable struct OliveCore <: ServerExtension
     data::Dict{String, Any}
     names::Dict{String, String}
     client_data::Dict{String, Dict{String, Any}}
-    open::Dict{String, Project{<:Any}}
+    open::Vector{Environment}
     client_keys::Dict{String, String}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         m = eval(Meta.parse("module olive end"))
-        projopen = Dict{String, Project{<:Any}}()
+        open = Vector{Environment}()
         client_data = Dict{String, Dict{String, Any}}()
         client_keys::Dict{String, String} = Dict{String, String}()
         new(m, [:connection], data, Dict{String, String}(),
-        client_data, projopen, client_keys)
+        client_data, open, client_keys)
     end
 end
 
