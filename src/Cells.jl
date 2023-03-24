@@ -659,6 +659,7 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     cells::Vector{Cell{<:Any}}, windowname::String; highlight::Bool = false,
     sidebox::Bool = false)
     outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
+    style!(outside, "transition" => 2seconds)
     interiorbox::Component{:div} = div("cellinterior$(cell.id)")
     inputbox::Component{:div} = build_base_input(c, cm, cell, cells, windowname,
     highlight = highlight)
@@ -1106,7 +1107,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
         if cm2[collapsebutt]["col"] == "false"
             style!(cm2, builtcell,
             "min-height" => 3percent, "height" => 10percent,
-            "overflow" => "hidden")
+            "overflow" => "hidden", "border-bottom-width" => 2px,
+             "border-bottom-style" => "solid",
+             "border-bottom-color" => "lightblue")
             set_text!(cm2, collapsebutt, "unfold_more")
             cm2[collapsebutt] = "col" => "true"
             return
@@ -1341,7 +1344,7 @@ Session cells
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     cells::Vector{Cell}, windowname::String)
     curr = cm["cell$(cell.id)"]["text"]
-    mod = c[:OliveCore].open[getname(c)].open[windowname][:mod]
+    mod = c[:OliveCore].open[getname(c)][windowname][:mod]
     p = Pipe()
     err = Pipe()
     standard_out::String = ""
