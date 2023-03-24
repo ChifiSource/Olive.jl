@@ -448,14 +448,16 @@ function build_tab(c::Connection, fname::String)
             closebutton = topbar_icon("$(fname)close", "close")
             on(c, closebutton, "click") do cm2::ComponentModifier
                 remove!(cm2, "$(fname)over")
-                delete!(c[:OliveCore].open[getname(c)].open, fname)
+                pos = findfirst(proj -> proj.name == fname,
+                c[:OliveCore].open[getname(c)].projects)
+                deleteat!(c[:OliveCore].open[getname(c)].projects, pos)
                 olive_notify!(cm2, "project $(fname) closed", color = "blue")
             end
             savebutton = topbar_icon("$(fname)save", "save")
             on(c, savebutton, "click") do cm2::ComponentModifier
                 save_type = split(fname, ".")[2]
-                savepath = c[:OliveCore].open[getname(c)].open[fname][:path]
-                cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
+                savepath = c[:OliveCore].open[getname(c)][fname][:path]
+                cells = c[:OliveCore].open[getname(c)][fname][:cells]
                 savecell = Cell(1, string(save_type), fname, savepath)
                 ret = olive_save(cells, savecell)
                 if isnothing(ret)
@@ -470,32 +472,22 @@ function build_tab(c::Connection, fname::String)
             end
             restartbutton = topbar_icon("$(fname)restart", "restart_alt")
             on(c, restartbutton, "click") do cm2::ComponentModifier
-                new_name = split(fname, ".")[1]
-                myproj = c[:OliveCore].open[getname(c)]
-                modname = new_name * replace(ToolipsSession.gen_ref(10),
-                [string(dig) => "" for dig in digits(1234567890)] ...)
-                modstr = """module $(modname)
-                using Pkg
-
-                function evalin(ex::Any)
-                        Pkg.activate("$(myproj.environment)")
-                        ret = eval(ex)
-                end
-                end"""
-                mod::Module = eval(Meta.parse(modstr))
-                myproj.open[fname][:mod] = mod
+                new_name = string(split(fname, ".")[1])
+                myproj = c[:OliveCore].open[getname(c)][fname]
+                delete!(myproj.data, :mod)
+                source_module!(myproj, new_name)
                 olive_notify!(cm2, "module for $(fname) re-sourced")
             end
             add_button = topbar_icon("$(fname)add", "add_circle")
             on(c, add_button, "click") do cm2::ComponentModifier
-                cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
+                cells = c[:OliveCore].open[getname(c)][fname][:cells]
                 new_cell = Cell(length(cells) + 1, "creator", "")
                 push!(cells, new_cell)
                 append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
             end
             runall_button = topbar_icon("$(fname)run", "start")
             on(c, runall_button, "click") do cm2::ComponentModifier
-                cells = c[:OliveCore].open[getname(c)].open[fname][:cells]
+                cells = c[:OliveCore].open[getname(c)][fname][:cells]
                 [begin
                 try
                     evaluate(c, cm2, cell, cells, fname)
