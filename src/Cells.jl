@@ -728,6 +728,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
             insert!(cells, pos, new_cell)
             insert!(cm2, windowname, pos, build(c, cm2, new_cell, cells,
              windowname))
+            focus!(cm2, "cell$(new_cell.id)")
          elseif txt != ""
              olive_notify!(cm2, "not a recognized cell hotkey", color = "red")
              set_text!(cm2, cbox, "")

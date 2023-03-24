@@ -125,9 +125,9 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         style!(setinput, "background-color" => "blue", "width" => 5percent,
         "display" => "inline-block", "color" => "white")
         shift_checkbox = ToolipsDefaults.checkbox("shiftk$(keybinding[1])",
-        "checked" => string("shift" in keybinding[2]))
+        value = "shift" in keybinding[2])
         ctrl_checkbox = ToolipsDefaults.checkbox("ctrlk$(keybinding[1])",
-        "checked" => string("ctrl" in keybinding[2]))
+        value = "ctrl" in keybinding[2])
         confirm = button("keybind$(keybinding[1])confirm", text = "confirm")
         on(c, confirm, "click") do cm::ComponentModifier
             key_vec = Vector{String}()

@@ -275,7 +275,7 @@ setup = route("/") do c::Connection
     style!(questions, "opacity" => 0percent, "transition" => 2seconds,
     "transform" => "translateY(50%)")
     push!(questions, h("questions-heading", 2, text = "a few more things ..."))
-    opts = [button("yes", text = "yes"), button("no", text = "no")]
+    opts = [button("no", text = "no"), button("yes", text = "yes")]
     push!(questions, h("questions-defaults", 4, text = "would you like to add OliveDefaults?"))
     push!(questions, p("defaults-explain", text = """this extension will give the
     capability to add custom styles, adds more cells, and more!"""))
