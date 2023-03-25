@@ -163,7 +163,7 @@ function build_file_cell(e::Int64, path::String, dir::String)
         if length(fsplit) > 1
             fending = string(fsplit[2])
         end
-        Cell(e, fending, fname, dir * "/" * path)
+        Cell(e, fending, fname, replace(dir * "/" * path, "\\" => "/"))
     else
         Cell(e, "dir", path, dir)
     end
@@ -1114,7 +1114,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
             cm2[collapsebutt] = "col" => "true"
             return
         end
-        style!(cm2, builtcell, "min-height" => 50px, "height" => "auto")
+        style!(cm2, builtcell, "min-height" => 50px, "height" => "auto",
+        "border-bottom-width" => 0px)
         set_text!(cm2, collapsebutt, "unfold_less")
         cm2[collapsebutt] = "col" => "false"
     end
