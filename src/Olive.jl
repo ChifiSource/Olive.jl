@@ -32,7 +32,7 @@ using Revise
 ==#
 #==|||==#
 function version()
-    srcdir = @__DIR__
+    srcdir = replace(@__DIR__, "\\" => "/")
     splits = split(srcdir, "/")
     oliveprojdir = join(splits[1:length(splits) - 1], "/")
     projinfo = TOML.parse(read(oliveprojdir * "/Project.toml", String))
@@ -68,12 +68,24 @@ end
 #==|||==#
 function olive_motd()
     recent_str::String = """# olive editor
-    ##### version $(version()) (an alpha)
-    Welcome to olive $(version())! This is an early version of olive
-    that is meant to demonstrate the basic features, functionalities, and
-    capabilities of olive. In the future, this cell will contain release notes;
-    you may choose whether you want to keep this here or not! Thanks for trying
-    olive!
+    ##### version $(version()) (pre-release)
+    - Fixed Windows (the OS) directories (replaced backslashes with slashes).
+    - Added new `Environment` to encompass projects.
+    - Added parametric `Project` methods `source_module!` + `check!`.
+    - Fixed event reference loss in linker.
+    - **include** cells.
+    - Changed REPL cells -- `Enter` to run, `Shift` + `Enter` to go to next cell.
+    - Fixed checkbox binding population in settings menu.
+    - Updated **creator** cells to focus on new cell.
+    - Save as binding in file menu.
+    - Added drag indicator to file cells (no drag yet).
+    - Removed last evaluation key from cell.
+
+    This version was mainly focused on fixing the issues associated with
+    the initial `0.0.8` release. There were also some slight tweaks made to
+    the data structure within Olive. Some cells have recieved updates, along
+    with the addition of **include** cells. Coming updates will introduce
+    **module** cells to expand on this.
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
@@ -339,6 +351,9 @@ setup = route("/") do c::Connection
                  next!(c, loadbar, cm3) do cm4
                      txt = ""
                      if dfaults == "yes"
+                         Pkg.add(
+                         url = "https://github.com/ChifiSource/Olive.jl"
+                         )
                          Pkg.add(
                          url = "https://github.com/ChifiSource/OliveDefaults.jl"
                          )
