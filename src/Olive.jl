@@ -68,15 +68,15 @@ end
 #==|||==#
 function olive_motd()
     recent_str::String = """# olive editor
-    ##### version $(version()) (an alpha)
-    - Fixed Windows (the OS) directories (replaced `\\` with `/`).
+    ##### version $(version()) (pre-release)
+    - Fixed Windows (the OS) directories (replaced backslashes with slashes).
     - Added new `Environment` to encompass projects.
     - Added parametric `Project` methods `source_module!` + `check!`.
     - Fixed event reference loss in linker.
-    - `include` cells.
+    - **include** cells.
     - Changed REPL cells -- `Enter` to run, `Shift` + `Enter` to go to next cell.
     - Fixed checkbox binding population in settings menu.
-    - Updated `creator` cells to focus on new cell.
+    - Updated **creator** cells to focus on new cell.
     - Save as binding in file menu.
     - Added drag indicator to file cells (no drag yet).
     - Removed last evaluation key from cell.
@@ -84,7 +84,8 @@ function olive_motd()
     This version was mainly focused on fixing the issues associated with
     the initial `0.0.8` release. There were also some slight tweaks made to
     the data structure within Olive. Some cells have recieved updates, along
-    with the addition of `include` cells.
+    with the addition of **include** cells. Coming updates will introduce
+    **module** cells to expand on this.
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end

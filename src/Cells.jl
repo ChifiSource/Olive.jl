@@ -1205,6 +1205,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
             focus!(cm2, "cell$(cell.id)")
         end
     end
+    bind!(km, "Enter") do cm2::ComponentModifier
+        realevaluate(c, cm2, cell, cells, windowname)
+    end
     sidebox = div("cellside$(cell.id)")
     style!(sidebox, "display" => "inline-block",
     "background-color" => "orange",
@@ -1243,7 +1246,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
+function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     cells::Vector{Cell}, window::String)
     curr = cm["cell$(cell.id)"]["text"]
     splitcmd = split(replace(curr, "\n" => ""), " ")
@@ -1304,6 +1307,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
             focus!(cm2, "cell$(cell.id)")
         end
     end
+    bind!(km, "Enter") do cm2::ComponentModifier
+        realevaluate(c, cm2, cell, cells, windowname)
+    end
     sidebox = div("cellside$(cell.id)")
     style!(sidebox, "display" => "inline-block",
     "background-color" => "red",
@@ -1342,7 +1348,7 @@ end
 Session cells
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
+function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     cells::Vector{Cell}, windowname::String)
     curr = cm["cell$(cell.id)"]["text"]
     mod = c[:OliveCore].open[getname(c)][windowname][:mod]
@@ -1391,6 +1397,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
             focus!(cm2, "cell$(cell.id)")
         end
     end
+    bind!(km, "Enter") do cm2::ComponentModifier
+        realevaluate(c, cm2, cell, cells, windowname)
+    end
     sidebox = div("cellside$(cell.id)")
     style!(sidebox, "display" => "inline-block",
     "background-color" => "blue",
@@ -1414,7 +1423,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
+function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     cells::Vector{Cell}, windowname::String)
     mod = c[:OliveCore].open[getname(c)].open[windowname][:mod]
     rt = cm["cell$(cell.id)"]["text"]
