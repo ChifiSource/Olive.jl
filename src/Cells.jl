@@ -163,7 +163,7 @@ function build_file_cell(e::Int64, path::String, dir::String)
         if length(fsplit) > 1
             fending = string(fsplit[2])
         end
-        Cell(e, fending, fname, dir * "/" * path)
+        Cell(e, fending, fname, replace(dir * "/" * path, "\\" => "/"))
     else
         Cell(e, "dir", path, dir)
     end
@@ -659,6 +659,7 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     cells::Vector{Cell{<:Any}}, windowname::String; highlight::Bool = false,
     sidebox::Bool = false)
     outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
+    style!(outside, "transition" => 2seconds)
     interiorbox::Component{:div} = div("cellinterior$(cell.id)")
     inputbox::Component{:div} = build_base_input(c, cm, cell, cells, windowname,
     highlight = highlight)
@@ -728,6 +729,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
             insert!(cells, pos, new_cell)
             insert!(cm2, windowname, pos, build(c, cm2, new_cell, cells,
              windowname))
+            focus!(cm2, "cell$(new_cell.id)")
          elseif txt != ""
              olive_notify!(cm2, "not a recognized cell hotkey", color = "red")
              set_text!(cm2, cbox, "")
@@ -1105,12 +1107,15 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
         if cm2[collapsebutt]["col"] == "false"
             style!(cm2, builtcell,
             "min-height" => 3percent, "height" => 10percent,
-            "overflow" => "hidden")
+            "overflow" => "hidden", "border-bottom-width" => 2px,
+             "border-bottom-style" => "solid",
+             "border-bottom-color" => "lightblue")
             set_text!(cm2, collapsebutt, "unfold_more")
             cm2[collapsebutt] = "col" => "true"
             return
         end
-        style!(cm2, builtcell, "min-height" => 50px, "height" => "auto")
+        style!(cm2, builtcell, "min-height" => 50px, "height" => "auto",
+        "border-bottom-width" => 0px)
         set_text!(cm2, collapsebutt, "unfold_less")
         cm2[collapsebutt] = "col" => "false"
     end
@@ -1340,7 +1345,7 @@ Session cells
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     cells::Vector{Cell}, windowname::String)
     curr = cm["cell$(cell.id)"]["text"]
-    mod = c[:OliveCore].open[getname(c)].open[windowname][:mod]
+    mod = c[:OliveCore].open[getname(c)][windowname][:mod]
     p = Pipe()
     err = Pipe()
     standard_out::String = ""
