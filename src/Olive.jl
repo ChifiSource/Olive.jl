@@ -511,6 +511,9 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         config = TOML.parse(read("$homedirec/olive/Project.toml", String))
         Pkg.activate("$homedirec/olive")
         Pkg.instantiate()
+        Pkg.build()
+        Pkg.precompile()
+        Pkg.gc()
         oc.data = config["olive"]
         rootname = oc.data["root"]
         oc.client_data = config["oliveusers"]
