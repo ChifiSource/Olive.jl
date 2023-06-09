@@ -1,4 +1,4 @@
- """
+"""
 Created in February, 2022 by
 [chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
 by team
@@ -28,6 +28,14 @@ using ToolipsMarkdown
 using ToolipsBase64
 using TOML
 using Revise
+#==output[NOTE]
+This 'evalin' function is exported and to be addressed throughout code (for the olmod container).
+==#
+#==|||==#
+evalin(ex::Any) = begin
+    eval(ex)
+end
+export evalin
 #==output[code]
 ==#
 #==|||==#
