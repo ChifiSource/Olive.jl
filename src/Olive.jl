@@ -32,8 +32,8 @@ using Revise
 This 'evalin' function is exported and to be addressed throughout code (for the olmod container).
 ==#
 #==|||==#
-evalin(ex::Any) = begin
-    eval(ex)
+global evalin(ex::Any) = begin
+    Main.eval(ex)
 end
 export evalin
 #==output[code]

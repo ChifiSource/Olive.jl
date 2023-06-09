@@ -387,7 +387,7 @@ function source_module!(p::Project{<:Any}, name::String)
     name = split(name, ".")[1] * replace(ToolipsSession.gen_ref(10),
     [string(dig) => "" for dig in digits(1234567890)] ...)
     modstr = olive_module(name, p[:env])
-    mod::Module = eval(Meta.parse(modstr))
+    mod::Module = Main.evalin(Meta.parse(modstr))
     push!(p.data, :mod => mod)
 end
 
