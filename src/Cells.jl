@@ -877,7 +877,6 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
         rawcode::String = cm["cell$(cell.id)"]["text"]
         execcode::String = *("begin\n", rawcode, "\nend\n")
         # get project
-        selected::String = cm["olivemain"]["selected"]
         proj::Project{<:Any} = c[:OliveCore].open[getname(c)][window]
         ret::Any = ""
         p = Pipe()
@@ -1149,10 +1148,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
             curr = "[data]\n$curr"
         end
     end
-    evalstr = "$varname = TOML.parse(\"\"\"$(curr)\"\"\")[\"$varname\"]"
-    if ~(:TOML in names(mod))
-        evalstr = "using TOML;" * evalstr
-    end
+    evalstr = "using TOML;$varname = TOML.parse(\"\"\"$(curr)\"\"\")[\"$varname\"]"
     ret::Any = ""
     p = Pipe()
     err = Pipe()

@@ -358,7 +358,6 @@ exp::Bool = false)
         on(c, srcbutton, "click") do cm::ComponentModifier
             home = c[:OliveCore].data["home"]
             try
-                olive_cells = IPyCells.read_jl("$home/src/olive.jl")
                 source_module!(c[:OliveCore])
                 olive_notify!(cm, "olive module successfully sourced!", color = "green")
             catch e
@@ -469,9 +468,12 @@ cells and directories
 mutable struct Project{name <: Any}
     name::String
     data::Dict{Symbol, Any}
+    id::String
     Project{T}(name::String,
     data::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T <: Any} = begin
-        new{T}(name, data)::Project{<:Any}
+        uuid::String = replace(ToolipsSession.gen_ref(10),
+        [string(dig) => "" for dig in digits(1234567890)] ...)
+        new{T}(name, data, uuid)::Project{<:Any}
     end
 end
 
@@ -575,8 +577,12 @@ function source_module!(oc::OliveCore)
     olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
     filter!(ocell -> ocell.type == "code" || ocell.source != "\n" || cell.source != "\n\n",
     olive_cells)
-    modstr = join([cell.source for cell in olive_cells[2:length(olive_cells)]])
-    modend = findlast("end # module", modstr)
+
+    modstr = join(
+        [cell.source for cell in olive_cells[2:length(olive_cells)]]
+        )
+    println(modstr)
+    modend = findlast("end", modstr)
     modstr = modstr[1:modend[1] + 3]
     pmod = Meta.parse(modstr[1:length(modstr) - 1])
     olmod::Module = Main.evalin(pmod)

@@ -332,8 +332,8 @@ UndefVarError: Connection not defined
 ==#
 #==|||==#
 
-function olive_main(selected::String = "project")
-    main = div("olivemain", cell = 1,  selected = selected, ex = 0)
+function olive_main()
+    main = div("olivemain", ex = 0)
     style!(main, "transition" => ".8s", "overflow"  =>  "scroll")
     main::Component{:div}
 end
@@ -341,50 +341,8 @@ end
 olive_main (generic function with 2 methods)
 ==#
 #==|||==#
-
-"""
-**load_session(c::Connection, cs::Vector{Cell{<:Any}}, cm::ComponentModifier,
-source::String, fpath::String, d::Directory{<:Any})**
-
-------------------
-Loads an  olive session, pushes a project into directories. The `catchall` for
-all directories...
-#### example
-```
-
-```
-"""
-function load_session(c::Connection, cs::Vector{Cell{<:Any}},
-    cm::ComponentModifier, source::String, fpath::String, d::Directory{<:Any};
-    type::String = "olive")
-    fsplit::Vector{SubString} = split(fpath, "/")
-    uriabove::String = join(fsplit[1:length(fsplit) - 2], "/")
-    environment::String = ""
-    if "Project.toml" in readdir(d.uri)
-        environment = d.uri
-    elseif "Project.toml" in readdir(uriabove)
-        environment = uriabove
-    else
-        environment = c[:OliveCore].data["home"]
-    end
-    if typeof(d) == Directory{:subdir}
-        d = Directory(d.access["toplevel"], "all" =>  "rw")
-    end
-    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :path => fpath, :env => environment)
-    myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, source)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
-    env::Environment = Environment(getname(c))
-    push!(env.directories, d)
-    push!(env.projects, myproj)
-    push!(c[:OliveCore].open, env)
-    redirect!(cm, "/session")
-end
-
-
 function source_module!(p::Project{<:Any}, name::String)
-    name = split(name, ".")[1] * replace(ToolipsSession.gen_ref(10),
+    name = replace(ToolipsSession.gen_ref(10),
     [string(dig) => "" for dig in digits(1234567890)] ...)
     modstr = olive_module(name, p[:env])
     mod::Module = Main.evalin(Meta.parse(modstr))
