@@ -825,6 +825,15 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, windowname))
         focus!(cm, "cell$(new_cell.id)")
+    elseif curr_raw == "include("
+        pos = findfirst(lcell -> lcell.id == cell.id, cells)
+        new_cell = Cell(pos, "include", cells[pos].source, cells[pos].outputs)
+        deleteat!(cells, pos)
+        insert!(cells, pos, new_cell)
+        remove!(cm, "cellcontainer$(cell.id)")
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
+         cells, windowname))
+        focus!(cm, "cell$(new_cell.id)")
     end
     cursorpos = parse(Int64, cm["cell$(cell.id)"]["caret"])
     if cursorpos > 1
@@ -1486,6 +1495,31 @@ function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl}
     set_text!(cm, "$(cell.id)cmds", replace(cell.source, "\n" => "<br>"))
     style!(cm, "cell$(cell.id)out", "height" => "auto", "opacity" => 100percent)
 end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
+    cells::Vector{Cell}, windowname::String)
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    ToolipsMarkdown.julia_block!(tm)
+    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    windowname, sidebox = true, highlight = true)
+    km = cell_bind!(c, cell, cells, windowname)
+    interior = builtcell[:children]["cellinterior$(cell.id)"]
+    inp = interior[:children]["cellinput$(cell.id)"]
+    style!(interior[:children]["cellside$(cell.id)"],
+    "background-color" => "red")
+    inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    builtcell::Component{:div}
+end
+
+function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
+    cells::Vector{Cell}, windowname::String)
+    cell.source = cm["cell$(cell.id)"]["text"]
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    ToolipsMarkdown.julia_block!(tm)
+    set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#

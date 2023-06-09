@@ -74,18 +74,23 @@ function olive_motd()
     - Added parametric `Project` methods `source_module!` + `check!`.
     - Fixed event reference loss in linker.
     - **include** cells.
-    - Changed REPL cells -- `Enter` to run, `Shift` + `Enter` to go to next cell.
+    - Changed REPL cells -- `Enter` to run, `Shift` + `Enter` runs to next cell.
+    **note** that this requires `ToolipsSession` **0.3.4+**.
+     If using an earlier version, both `Shift` + `Enter` and `Enter` will do
+     the same thing -- run the cell.
+    - Substantial improvements to **helprepl** and **pkgrepl** cells.
     - Fixed checkbox binding population in settings menu.
     - Updated **creator** cells to focus on new cell.
     - Save as binding in file menu.
     - Added drag indicator to file cells (no drag yet).
     - Removed last evaluation key from cell.
+    - Updated directory styles.
 
     This version was mainly focused on fixing the issues associated with
     the initial `0.0.8` release. There were also some slight tweaks made to
-    the data structure within Olive. Some cells have recieved updates, along
-    with the addition of **include** cells. Coming updates will introduce
-    **module** cells to expand on this.
+    the data structure within Olive. Some cells have received updates, along
+    with the addition of **include** cells and sub projects.
+    Coming updates will introduce **module** cells to expand on this.
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
@@ -188,7 +193,7 @@ explorer = route("/") do c::Connection
             push!(c[:OliveCore].names, getip(c) => uname)
         end
         c[:OliveCore].names[getip(c)] = uname
-        get!(c[:OliveCore].client_data, getname(c), Dict{Any,Any}())["selected"] = "files"
+        c[:OliveCore].client_data[getname(c)]["selected"] = "files"
         on(c, bod, "load") do cm::ComponentModifier
             olmod = c[:OliveCore].olmod
             homeproj = Directory(c[:OliveCore].data["home"], "root" => "rw")
@@ -511,8 +516,6 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         config = TOML.parse(read("$homedirec/olive/Project.toml", String))
         Pkg.activate("$homedirec/olive")
         Pkg.instantiate()
-        Pkg.resolve()
-        Pkg.gc()
         oc.data = config["olive"]
         rootname = oc.data["root"]
         oc.client_data = config["oliveusers"]

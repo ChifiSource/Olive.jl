@@ -57,7 +57,7 @@ version = "1.7.4"
 
 [[deps.IPyCells]]
 deps = ["JSON", "Random"]
-path = "../../odddata/IpyJL"
+git-tree-sha1 = "26d48c20427063f4930aa758b9a323137550fcb3"
 uuid = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
 version = "0.1.0"
 
@@ -248,15 +248,17 @@ version = "0.2.4"
 
 [[deps.ToolipsBase64]]
 deps = ["Base64", "Toolips", "ToolipsSession"]
-git-tree-sha1 = "bb555d7072422224bb8d85bd96c2b4d0a19a0626"
+git-tree-sha1 = "17032fce59761b553db0275fbc4c2668e91e889f"
+repo-rev = "Unstable"
+repo-url = "https://github.com/ChifiSource/ToolipsBase64.jl.git"
 uuid = "35c70e29-c044-44e8-ae14-cceff0bd3f12"
-version = "0.1.2"
+version = "0.1.3"
 
 [[deps.ToolipsDefaults]]
 deps = ["Toolips", "ToolipsSession"]
 path = "../ToolipsDefaults"
 uuid = "1710be6b-e895-498d-ba35-e3ff0dac7995"
-version = "0.1.0"
+version = "0.1.1"
 
 [[deps.ToolipsMarkdown]]
 deps = ["Markdown", "Toolips"]
@@ -266,9 +268,9 @@ version = "0.1.2"
 
 [[deps.ToolipsSession]]
 deps = ["Dates", "ParseNotEval", "Random", "Toolips"]
-path = "../ToolipsModifier"
+path = "../ToolipsSession.jl"
 uuid = "2fe55384-55bc-4df3-9d59-c817d405cd05"
-version = "0.3.0"
+version = "0.3.2"
 
 [[deps.TranscodingStreams]]
 deps = ["Random", "Test"]
