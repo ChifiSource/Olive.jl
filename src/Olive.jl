@@ -132,7 +132,7 @@ include("UI.jl")
 ==#
 #==|||==#
 """
-### route ("/session") (main)
+### route ("/") (main)
 --------------------
 This is the function/Route which runs olive's "session" page, the main editor
     for olive. If you are providing this to a server directly with olive
@@ -146,12 +146,53 @@ it out. Endemic of future projects? **definitely**
 ```
 ```
 """
-main = route("/session") do c::Connection
+main = route("/") do c::Connection
+    args = getargs(c)
+    if ~(:key in keys(args))
+        coverimg::Component{:img} = olive_cover()
+        olivecover = div("topdiv", align = "center")
+        logbutt = button("requestaccess", text = "request access")
+        on(c, logbutt, "click") do cm::ComponentModifier
+            c[:Logger].log(" someone is trying to login to olive! is this you?")
+            y = readline()
+            if y == "y"
+                c[:Logger].log(" okay, logging in as root.")
+                key = ToolipsSession.gen_ref(16)
+                push!(c[:OliveCore].client_keys[key] => c[:OliveCore].data["root"])
+                redirect!(cm, "/?key=$(key)")
+            end
+        end
+        push!(olivecover, coverimg,
+        h("mustconfirm", 2, text = "request access (no key)"), logbutt)
+        write!(c, olivecover)
+        return
+    end
+    if ~(args[:key] in keys(c[:OliveCore].client_keys))
+        write!(c, "bad key.")
+        return
+    end
+    uname = c[:OliveCore].client_keys[args[:key]]
+    if ~(getip(c) in keys(c[:OliveCore].names))
+        push!(c[:OliveCore].names, getip(c) => uname)
+    end
+    c[:OliveCore].names[getip(c)] = uname
+    c[:OliveCore].client_data[getname(c)]["selected"] = "files"
+    cells = Vector{Cell}([Cell(1, "versioninfo", "")])
+    home_direc = Directory(c[:OliveCore].data["home"])
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
+    :path => home_direc.uri, :env => home_direc.uri)
+    myproj::Project{<:Any} = Project{:olive}(home_direc.uri, projdict)
+
+    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, home_direc.uri)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    env::Environment = Environment(getname(c))
+    push!(env.directories, home_direc)
+    push!(env.projects, myproj)
+    push!(c[:OliveCore].open, env)
     # setup base env
     write!(c, olivesheet())
     c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
-    env::Environment = c[:OliveCore].open[getname(c)]
     # setup base UI
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
@@ -163,7 +204,8 @@ main = route("/session") do c::Connection
     ui_explorer[:children] = Vector{Servable}([begin
    Base.invokelatest(olmod.build, c, d, olmod, exp = true)
     end for d in env.directories])
-    olivemain::Component{:div} = olive_main(env.projects[1].name)
+    olivemain::Component{:div} = olive_main()
+    olivemain["selected"] = myproj.id
     style!(olivemain, "overflow-x" => "scroll", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",
     "height" => 90percent, "display" => "inline-flex")
@@ -183,62 +225,13 @@ end
 #==output[code]
 ==#
 #==|||==#
-explorer = route("/") do c::Connection
-    args = getargs(c)
-    notifier::Component{:div} = olive_notific()
+explorer = route("/explorer") do c::Connection
     loader_body = div("loaderbody", align = "center")
     style!(loader_body, "margin-top" => 10percent)
     write!(c, olivesheet())
     icon = olive_loadicon()
-    bod = body("mainbody")
-    if :key in keys(args)
-        if ~(args[:key] in keys(c[:OliveCore].client_keys))
-            write!(c, "bad key.")
-            return
-        end
-        uname = c[:OliveCore].client_keys[args[:key]]
-        if ~(getip(c) in keys(c[:OliveCore].names))
-            push!(c[:OliveCore].names, getip(c) => uname)
-        end
-        c[:OliveCore].names[getip(c)] = uname
-        c[:OliveCore].client_data[getname(c)]["selected"] = "files"
-        on(c, bod, "load") do cm::ComponentModifier
-            olmod = c[:OliveCore].olmod
-            homeproj = Directory(c[:OliveCore].data["home"], "root" => "rw")
-            workdir = Directory(c[:OliveCore].data["wd"], "all" => "rw")
-            dirs = [homeproj, workdir]
-            main = olive_main("files")
-            for dir in dirs
-                push!(main[:children], build(c, dir, olmod))
-            end
-            script!(c, cm, "loadcallback") do cm
-                style!(cm, icon, "opacity" => 0percent)
-                set_children!(cm, bod, [olivesheet(), notifier, main])
-            end
-            load_extensions!(c, cm, olmod)
-        end
-        push!(loader_body, icon)
-        push!(bod, loader_body)
-        write!(c, bod)
-        return
-    end
-    coverimg::Component{:img} = olive_cover()
-    olivecover = div("topdiv", align = "center")
-    logbutt = button("requestaccess", text = "request access")
-    on(c, logbutt, "click") do cm::ComponentModifier
-        c[:Logger].log(" someone is trying to login to olive! is this you?")
-        y = readline()
-        if y == "y"
-            c[:Logger].log(" okay, logging in as root.")
-            key = ToolipsSession.gen_ref(16)
-            push!(c[:OliveCore].client_keys[key] => c[:OliveCore].data["root"])
-            redirect!(cm, "/?key=$(key)")
-        end
-    end
-    push!(olivecover, coverimg,
-    h("mustconfirm", 2, text = "request access (no key)"), logbutt)
-    push!(bod, olivecover)
-    write!(c, bod)
+    
+    
 end
  #==output[code]
  ==#
@@ -532,6 +525,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         source_module!(oc)
         rs = routes(fourofour, main, explorer, docbrowser, icons, mainicon)
     end
+    println("")
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session", "/doc"])])
     server.start();
