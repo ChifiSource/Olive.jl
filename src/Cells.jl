@@ -1260,7 +1260,7 @@ function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl
     proj::Project{<:Any} = c[:OliveCore].open[getname(c)][window]
     splitcmd = split(replace(curr, "\n" => ""), " ")
     if length(splitcmd) == 1
-        exp = Meta.parse("""@doc(eval(Meta.parse("$(splitcmd[1]")))""")
+        exp = Meta.parse("""t = eval(Meta.parse("$(splitcmd[1])")); @doc(t)""")
         docs = proj[:mod].evalin(exp)
         set_children!(cm, "opbox$(cell.id)", 
         [tmd("docmd$(splitcmd[1])", string(docs))])
