@@ -1229,6 +1229,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
      "background-color" => "#b33000", "color" => "white", "border-style" => "solid",
      "border-width" => 2px)
      output = div("cell$(cell.id)out")
+     opbox::Component{:div} = div("opbox$(cell.id)")
+     pinbox::Component{:div} = div("pinbox$(cell.id)")
+     push!(output, opbox, pinbox)
      if contains(cell.outputs, ";")
          spl = split(cell.outputs, ";")
          lastoutput = spl[1]
@@ -1254,35 +1257,27 @@ inputcell_style (generic function with 1 method)
 function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     cells::Vector{Cell}, window::String)
     curr = cm["cell$(cell.id)"]["text"]
+    proj::Project{<:Any} = c[:OliveCore].open[getname(c)][window]
     splitcmd = split(replace(curr, "\n" => ""), " ")
-    if length(splitcmd) == 0
-        return
-    end
-    cmd = splitcmd[1]
-    outps = Vector{Servable}()
-    if length(splitcmd) > 1
-        arg = splitcmd[2]
-        if cmd == ""
-            cmd = arg
-        elseif cmd == "pin"
-            outpus = split(cell.outputs, ";")
-            outpus[2] = outpus[2] * " $arg"
-            cell.outputs = join(outpus)
-            pinned = outpus[2]
-            [begin
-            push!(outps, iframe("$(e)$(cell.id)pin",
-            width = "700", height = "500",
-            src = "/doc?mod=$(window)&get=$pin"))
-        end for (e, pin) in enumerate(split(pinned, " "))]
+    if length(splitcmd) == 1
+        exp = Meta.parse("""@doc(eval(Meta.parse("$(splitcmd[1]")))""")
+        docs = proj[:mod].evalin(exp)
+        set_children!(cm, "opbox$(cell.id)", 
+        [tmd("docmd$(splitcmd[1])", string(docs))])
+    elseif length(splitcmd) == 2
+        if splitcmd[1] == "pin"
+            cell.outputs = cell.outputs * "$(splitcmd[2]) "
         end
-    else
-        frame = iframe("$(cell.id)outframe", width = "700",
-        height = "500", src = "/doc?mod=$(window)&get=$(curr)")
-        push!(outps, frame)
     end
-    cell.source = "# ?$cmd"
-    set_children!(cm, "cell$(cell.id)out", outps)
-    set_text!(cm, "cell$(cell.id)", "")
+    if cell.outputs != ""
+        pins = Vector{Servable}([begin
+        docsection::Component{:section} = section("doc$pin")
+        push!(docsection, h("doclabel$pin", 2, text = pin))
+        docs = string(proj[:mod].evalin(Meta.parse("$pin")))
+        tmd("docmd$pin", docs)::Component{:div}
+    end for pin in split(cell.outputs, " ")])
+        set_children!(cm, "pinbox$(cell.id)", pins)
+    end
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
