@@ -288,29 +288,32 @@ create an OliveaExtension and
 """
 function build(c::Connection, dir::Directory{<:Any}, m::Module;
 exp::Bool = false)
+    becell = replace(dir.uri, "/" => "|")
     container = div(dir.uri, align = "left")
     style!(container, "overflow" => "hidden")
-    dirinfocont = div("dirinfocont$(dir.uri)")
-    style!(dirinfocont, "overflow" => "visible", "display" => "flex")
+    containercontrols = div("$(dir.uri)controls", align = "center")
+    dir_b = topbar_icon("dirb$(becell)", "expand_more")
+    style!(dir_b, "color" => "white", "font-size" => 23pt, "display" => "flex", 
+    "background-color" => "#8B4000", "font-weight" => "bold")
+    push!(containercontrols, dir_b)
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
         if "name" in keys(toml_cats)
             projname = toml_cats["name"]
             envtop = a("headingenv$(dir.uri)", text = projname)
-            style!(envtop, "padding" => 6px, "background-color" => "blue",
-            "font-size" => 15pt, "font-weight" => "bold"
-            ,
-            "border-radius" => 3px, "color" => "white", "display" => "inline-block")
-            push!(dirinfocont, envtop)
+            style!(envtop, "padding" => 4px, "background-color" => "blue",
+            "font-size" => 12pt, "font-weight" => "bold", "margin-top" => 0px,
+            "border-radius" => 0px, "color" => "white", "display" => "flex")
+            push!(containercontrols, envtop)
         end
         if "type" in keys(toml_cats)
             projtype = toml_cats["type"]
             projtop = a("typeenv$(dir.uri)", text = projtype)
-            style!(projtop, "padding" => 6px, "background-color" => "darkgreen",
-            "font-size" => 15pt, "border-radius" => 3px, "color" => "white",
-            "display") => "inline-block"
-            push!(dirinfocont, projtype)
+            style!(projtop, "padding" => 4px, "background-color" => "darkgreen",
+            "font-size" => 12pt, "border-radius" => 0px, "color" => "white", "margin-top" => 0px,
+            "display" => "flex")
+            push!(containercontrols, projtype)
         end
     end
     dirtext = split(replace(dir.uri, homedir() => "~",), "/")
@@ -319,42 +322,51 @@ exp::Bool = false)
     end
     dirtop = a("heading$(dir.uri)", text = join(dirtext, "/"))
     style!(dirtop, "color" => "white", "background-color" => "darkblue",
-    "font-size" => 10pt, "border-radius" => 12px, "margin-left" => 5px,
-    "font-weight" => "bold", "padding" => 7px, "display" => "inline-block")
-    push!(dirinfocont, dirtop)
+    "font-size" => 12pt, "border-radius" => 0px,
+    "font-weight" => "bold", "padding" => 4px, "display" => "flex")
+    push!(containercontrols, dirtop)
     cells = [begin
         Base.invokelatest(m.build, c, cell, dir, explorer = exp)
     end for cell in dir.cells]
-    becell = replace(dir.uri, "/" => "|")
-    cellcontainer = section("$(becell)cells", sel = becell)
-    style!(cellcontainer, "padding" => 20px, "background-color" => "#DFD0C0",
-    "border-width" => 0px, "overflow" => "visible", "border-style" => "solid",
-    "border-color" => "darkblue", "border-width" => 1px)
+    cellcontainer = section("$(becell)cells", ex = 0)
+    style!(cellcontainer, "padding" => 10px, "background-color" => "transparent",
+    "overflow" => "visible", "border-style" => "solid", "border-width" => 0px, "border-radius" => 0px,
+    "border-color" => "darkblue", "border-bottom-width" => 1px, "border-top-width" => 1px,
+    "transition" => 1seconds, "height" => 0percent, "opacity" => 0percent)
     cellcontainer[:children] = cells
-    containercontrols = div("$(dir.uri)controls")
     newtxt = ToolipsDefaults.textdiv("newtxt$becell", text = "")
     newtxt["align"] = "left"
     style!(newtxt, "border-width" => 0px,
     "opacity" => 0percent, "transition" => "1s", "width" => 0percent,
-    "display" => "inline-block", "padding" => "0px", "outline" => "none",
+    "display" => "flex", "padding" => "0px", "outline" => "none",
     "background-color" => "white", "font-weight" => "bold", "color" => "darkblue",
     "border-style" => "solid", "border-width" => 2px)
-    style!(containercontrols, "padding" => 10px, "overflow" => "visible",
-    "border-radius" => 8px, "display" => "flex", "width" => 350px,
-    "max-width" => 450px,
-    "max-height" => 25px,
-    "border-bottom-left-radius" => "0px", "margin-left" => 7px,
-    "border-bottom-right-radius" => 0px, "background-color" => "#DFD0C0",
-    "border-style" => "solid", "border-color" => "darkblue", "border-width" => 1px)
-    push!(containercontrols, dirinfocont)
+    style!(containercontrols, "padding" => 0px, "overflow" => "visible",
+    "display" => "flex", "margin-left" => 0px,
+    "border-width" => 0px, "border-radius" => 0px,
+    "border-bottom-left-radius" => "0px",
+    "border-bottom-right-radius" => 0px, "background-color" => "white",
+    "border-style" => "solid", "border-color" => "darkblue")
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
+    collapse_b = topbar_icon("col$becell", "expand_more")
     new_fb = topbar_icon("newfb$(becell)", "article")
-    style!(new_dirb, "color" => "darkblue", "font-size" => 23pt, "display" => "inline-block")
-    style!(new_fb, "color" => "darkblue", "font-size" => 23pt)
+    style!(new_dirb, "color" => "white", "font-size" => 23pt, "display" => "flex", "background-color" => "blue")
+    style!(collapse_b, "color" => "white", "font-size" => 23pt, "display" => "flex", "background-color" => "red",
+    "transition" => 1seconds)
+    style!(new_fb, "color" => "white", "font-size" => 23pt, "background-color" => "red")
+    on(c, collapse_b, "click") do cm2::ComponentModifier
+        if cm2[cellcontainer]["ex"] == "0"
+            cm2[cellcontainer] = "ex" => 1
+            style!(cm2, cellcontainer, "height" => 20percent, "opacity" => 100percent)
+            style!(cm2, collapse_b, "transform" => "rotate(-90deg)")
+            return
+        end
+        cm2[cellcontainer] = "ex" => 0
+        style!(cm2, collapse_b, "transform" => "rotate(0deg)")
+        style!(cm2, cellcontainer, "height" => 0percent, "opacity" => 0percent)        
+    end
     if dir.uri == c[:OliveCore].data["home"]
-        style!(cellcontainer, "background-color" => "pink")
-        style!(containercontrols, "background-color" => "pink")
-        srcbutton = button("src$(becell)", text = "source")
+        srcbutton = div("src$(becell)", text = "source")
         on(c, srcbutton, "click") do cm::ComponentModifier
             home = c[:OliveCore].data["home"]
             try
@@ -366,16 +378,11 @@ exp::Bool = false)
                 color = "red")
             end
         end
-        headerimg = olive_cover()
-        headerimg["width"] = "100"
-        oliveheaderbox = div("homeheaderbx", align = "center")
-        style!(oliveheaderbox, "overflow" => "hidden")
-        push!(oliveheaderbox, headerimg)
-        push!(container, oliveheaderbox)
-        style!(srcbutton, "background-color" => "red")
+        style!(srcbutton, "background-color" => "red", "font-size" => 12pt, "padding" => 4px, "color" => "white",
+        "font-weight" => "bold", "display" => "flex", "align" => "center", "cursor" => "pointer", "border-radius" => 0px)
         push!(containercontrols, srcbutton)
     end
-    push!(containercontrols, new_dirb, new_fb)
+    push!(containercontrols, new_dirb, new_fb, collapse_b)
     on(c, new_dirb, "click") do cm::ComponentModifier
         newconfbutton = button("fconfbutt$(becell)", text = "confirm")
         if ~(newconfbutton.name in keys(cm.rootc))
@@ -444,6 +451,8 @@ exp::Bool = false)
         end
         olive_notify!(cm, "you already have a naming box open...", color = "red")
     end
+    style!(containercontrols[:children][length(containercontrols[:children])], 
+    "border-top-left-radius" => 0px, "border-bottom-left-radius" => 0px, "border-radius" => 8px)
     push!(container, newtxt, containercontrols, cellcontainer)
     return(container)
 end
