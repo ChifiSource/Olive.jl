@@ -1229,6 +1229,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
      "background-color" => "#b33000", "color" => "white", "border-style" => "solid",
      "border-width" => 2px)
      output = div("cell$(cell.id)out")
+     style!(output, "max-height" => 40percent)
      opbox::Component{:div} = div("opbox$(cell.id)")
      pinbox::Component{:div} = div("pinbox$(cell.id)")
      push!(output, opbox, pinbox)
@@ -1260,24 +1261,40 @@ function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl
     proj::Project{<:Any} = c[:OliveCore].open[getname(c)][window]
     splitcmd = split(replace(curr, "\n" => ""), " ")
     if length(splitcmd) == 1
+        sec = section("$(splitcmd[1])")
         exp = Meta.parse("""t = eval(Meta.parse("$(splitcmd[1])")); @doc(t)""")
         docs = proj[:mod].evalin(exp)
+        push!(sec, tmd("docmd$(splitcmd[1])", string(docs)))
         set_children!(cm, "opbox$(cell.id)", 
-        [tmd("docmd$(splitcmd[1])", string(docs))])
+        [sec])
     elseif length(splitcmd) == 2
-        if splitcmd[1] == "pin"
-            cell.outputs = cell.outputs * "$(splitcmd[2]) "
+        if string(splitcmd[1]) == "pin"
+            if splitcmd[2] != ""
+                cell.outputs = cell.outputs * "$(splitcmd[2]);"
+            end
         end
     end
-    if cell.outputs != ""
-        pins = Vector{Servable}([begin
+    splitputs = split(replace(cell.outputs, " " => ""), ";")
+    if contains(replace(cell.outputs, " " => " ", "\n" => ""), ";")
+        pins = [begin
         docsection::Component{:section} = section("doc$pin")
         push!(docsection, h("doclabel$pin", 2, text = pin))
-        docs = string(proj[:mod].evalin(Meta.parse("$pin")))
-        tmd("docmd$pin", docs)::Component{:div}
-    end for pin in split(cell.outputs, " ")])
-        set_children!(cm, "pinbox$(cell.id)", pins)
+        exp = Meta.parse("""t = eval(Meta.parse("$pin")); @doc(t)""")
+        docs = string(proj[:mod].evalin(exp))
+        if contains(docs, "t` is of type `Nothing`.")
+            nothing::Nothing
+        else
+            push!(docsection, tmd("docmd$pin", string(docs)))
+            docsection::Component{:section}
+        end
+        end for pin in splitputs]
+        filter!(c -> ~(isnothing(c)), pins)
+        pinhead = h("pinhead$(cell.id)", 3, text = "pins")
+        pinsect::Vector{Servable} = Vector{Servable}([pinhead, pins ...])
+        set_children!(cm, "pinbox$(cell.id)", pinsect)
     end
+    set_text!(cm, "cell$(cell.id)", "")
+    focus!(cm, "cell$(cell.id)")
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
