@@ -536,6 +536,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     if pos == length(cells)
         new_cell = Cell(length(cells) + 1, "creator", "")
         push!(cells, new_cell)
+        ToolipsSession.append!(cm, window, build(c, cm, new_cell, cells, window))
         focus!(cm, "cell$(new_cell.id)")
     end
 end
