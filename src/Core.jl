@@ -214,6 +214,15 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
     append!(om, "settingsmenu", creatorkeysmen)
 end
 
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = begin
+    if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
+        sample = ToolipsMarkdown.TextStyleModifier("")
+        highlight_julia!(tm)
+        push!(c[:OliveCore].client_data[getname(c)],
+        "highlighting" => Dict{String, String}([string(k) => string(v) for (k, v) in tm.styles]))
+    end
+end
+
 function save_settings!(c::Connection; core::Bool = false)
     homedir = c[:OliveCore].data["home"]
     alltoml = read("$homedir/Project.toml", String)

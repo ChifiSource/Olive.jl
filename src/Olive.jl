@@ -525,7 +525,6 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         source_module!(oc)
         rs = routes(fourofour, main, explorer, docbrowser, icons, mainicon)
     end
-    println("")
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session", "/doc"])])
     server.start();
