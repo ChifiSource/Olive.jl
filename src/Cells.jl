@@ -244,63 +244,35 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function dir_returner(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
-    explorer::Bool = false)
-    returner = div("cell$(cell.id)", class = "cell-jl")
-    style!(returner, "background-color" => "red")
-    name = a("cell$(cell.id)label", text = "...")
-    style!(name, "color" => "white")
-    push!(returner, name)
-    on(c, returner, "dblclick") do cm2::ComponentModifier
-        newcells = directory_cells(d.uri)
-        n_dir::String = d.uri
-        built = [build(c, cel, d, explorer = explorer) for cel in newcells]
-        if typeof(d) == Directory{:subdir}
-            n_dir = d.access["toplevel"]
-            if n_dir != d.uri
-                newd = Directory(n_dir, "root" => "rw",
-                "toplevel" => d.access["toplevel"], dirtype = "subdir")
-                insert!(built, 1, dir_returner(c, cell, newd))
-            end
-        end
-        becell = replace(n_dir, "/" => "|")
-        nbcell = replace(d.uri, "/" => "|")
-        cm2["$(becell)cells"] = "sel" => nbcell
-        set_children!(cm2, "$(becell)cells",
-        Vector{Servable}(built))
-    end
-    returner::Component{:div}
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any};
     explorer::Bool = false)
-    filecell = div("cell$(cell.id)", class = "cell-ipynb")
+    container = div("cellcontainer$(cell.id)")
+    filecell = div("cell$(cell.id)", class = "cell-ipynb", ex = 0)
+    childbox = div("child$(cell.id)")
+    style!(container, "padding" => 0px, "margin-bottom" => 0px)
+    expandarrow = topbar_icon("$(cell.id)expand", "expand_more")
+    style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-width-left" => 1px, 
+    "border-color" => "darkblue", "height" => 0percent, 
+    "border-width" => 0px, "transition" => 1seconds)
     style!(filecell, "background-color" => "#FFFF88")
+    childbox[:children] = Vector{Servable}([begin
+    build(c, mcell, d, explorer = true)
+    end
+    for mcell in directory_cells(cell.outputs * "/" * cell.source)])
     on(c, filecell, "dblclick") do cm::ComponentModifier
-        returner = dir_returner(c, cell, d, explorer = explorer)
-        toplevel = d.uri
-        if typeof(d) == Directory{:subdir}
-            toplevel = d.access["toplevel"]
+        if cm[filecell]["ex"] == "0"
+            style!(cm, childbox, "height" => 50percent, "opacity" => 100percent)
+            cm[filecell] = "ex" => "1"
+            return
         end
-        tlvlbecell = replace(toplevel, "/" => "|")
-        sel = replace(cm["$(tlvlbecell)cells"]["sel"], "|" => "/")
-        nuri::String = "$(sel)/$(cell.source)"
-        newcells = directory_cells(nuri)
-        nbecell = replace(nuri, "/" => "|")
-        cm["$(tlvlbecell)cells"] = "sel" => nbecell
-        nd = Directory(nuri * "/", "root" => "rw",
-        "toplevel" => toplevel, dirtype = "subdir")
-        set_children!(cm, "$(tlvlbecell)cells",
-        Vector{Servable}(vcat([returner],
-        [build(c, cel, nd, explorer = explorer) for cel in newcells])))
+        style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
+        cm[filecell] = "ex" => "0"
     end
     fname = a("$(cell.source)", text = cell.source)
     style!(fname, "color" => "gray", "font-size" => 15pt)
-    push!(filecell, fname)
-    filecell
+    push!(filecell, expandarrow, fname)
+    push!(container, filecell, childbox)
+    container
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

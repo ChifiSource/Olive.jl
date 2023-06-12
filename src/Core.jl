@@ -217,7 +217,7 @@ end
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = begin
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
         sample = ToolipsMarkdown.TextStyleModifier("")
-        highlight_julia!(tm)
+        ToolipsMarkdown.highlight_julia!(tm)
         push!(c[:OliveCore].client_data[getname(c)],
         "highlighting" => Dict{String, String}([string(k) => string(v) for (k, v) in tm.styles]))
     end
@@ -366,7 +366,8 @@ exp::Bool = false)
     on(c, collapse_b, "click") do cm2::ComponentModifier
         if cm2[cellcontainer]["ex"] == "0"
             cm2[cellcontainer] = "ex" => 1
-            style!(cm2, cellcontainer, "height" => 20percent, "opacity" => 100percent)
+            style!(cm2, cellcontainer, "height" => 20percent, "opacity" => 100percent, 
+            "overflow-y" => "scroll")
             style!(cm2, collapse_b, "transform" => "rotate(-90deg)")
             return
         end
