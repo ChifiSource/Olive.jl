@@ -218,9 +218,26 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
         tm = ToolipsMarkdown.TextStyleModifier("")
         ToolipsMarkdown.highlight_julia!(tm)
-        push!(c[:OliveCore].client_data[getname(c)],
-        "highlighting" => Dict{String, String}([string(k) => string(v) for (k, v) in tm.styles]))
+        dic = Dict{String, Dict{<:Any, <:Any}}()
+        push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
+        push!(dic, "julia" => Dict{String, String}(
+            [string(k) => string(v) for (k, v) in tm.styles]))
     end
+    dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
+    sect = section("highlight_settings")
+    highheader = h("highlighthead", 3, text = "highlights")
+    push!(sect, highheader)
+    for colorset in keys(dic)
+        [begin 
+            label = h("colorlabel", 5, text = color)
+            vbox = ToolipsDefaults.colorinput("$(color)$(colorset)")
+            clrdiv = div("clrdiv$(color)$(colorset)")
+            style!(clrdiv, "display" => "inline-block")
+            push!(clrdiv, label, vbox)
+            push!(sect, clrdiv)
+        end for color in keys(dic[colorset])]
+    end
+    append!(om, "settingsmenu", sect)
 end
 
 function save_settings!(c::Connection; core::Bool = false)
