@@ -221,7 +221,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
         dic = Dict{String, Dict{<:Any, <:Any}}()
         push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
         push!(dic, "julia" => Dict{String, String}(
-            [string(k) => string(v) for (k, v) in tm.styles]))
+            [string(k) => string(v[1][2]) for (k, v) in tm.styles]))
     end
     dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
     sect = section("highlight_settings")
@@ -230,7 +230,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
     for colorset in keys(dic)
         [begin 
             label = h("colorlabel", 5, text = color)
-            vbox = ToolipsDefaults.colorinput("$(color)$(colorset)")
+            vbox = ToolipsDefaults.colorinput("$(color)$(colorset)", 
+            value = "'$(dic[colorset][color])'")
             clrdiv = div("clrdiv$(color)$(colorset)")
             style!(clrdiv, "display" => "inline-block")
             push!(clrdiv, label, vbox)
