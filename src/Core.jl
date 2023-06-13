@@ -216,7 +216,7 @@ end
 
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = begin
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
-        sample = ToolipsMarkdown.TextStyleModifier("")
+        tm = ToolipsMarkdown.TextStyleModifier("")
         ToolipsMarkdown.highlight_julia!(tm)
         push!(c[:OliveCore].client_data[getname(c)],
         "highlighting" => Dict{String, String}([string(k) => string(v) for (k, v) in tm.styles]))

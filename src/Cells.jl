@@ -1415,7 +1415,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     cells::Vector{Cell}, windowname::String)
-    mod = c[:OliveCore].open[getname(c)].open[windowname][:mod]
+    mod = c[:OliveCore].open[getname(c)][windowname][:mod]
     rt = cm["cell$(cell.id)"]["text"]
     args = split(rt, " ")
     evalstr = "Pkg.$(args[1])("
@@ -1455,23 +1455,33 @@ function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl}
     ret = ""
     redirect_stdio(stdout = p, stderr = err) do
         try
-            mod.evalin(Meta.parse(evalstr))
+            ret = mod.evalin(Meta.parse(evalstr))
         catch e
             ret = e
         end
     end
     close(Base.pipe_writer(err))
+    close(Base.pipe_writer(p))
     standard_out = read(err, String)
+    out_p = read(p, String)
     if typeof(ret) <: Exception
         set_text!(cm, "cell$(cell.id)out", string(ret))
         style!(cm, "cell$(cell.id)out", "height" => "auto",
         "opacity" => 100percent)
         return
     end
+    if typeof(ret) == Vector{String}
+        standard_out = standard_out * "\n" * string(join(ret, "\n"))
+    end
     cell.source = cell.source * "\n" * evalstr
     cell.outputs = rt
-    set_text!(cm, "cell$(cell.id)out", replace(standard_out, "✗" => "X",
-    "\n" => "<br>", "✓" => "</", "*" => "", "⇒" => "->"))
+    if out_p == ""
+        set_text!(cm, "cell$(cell.id)out", replace(standard_out, "✗" => "X",
+        "\n" => "<br>", "✓" => "</", "*" => "", "⇒" => "->"))
+    else
+        set_text!(cm, "cell$(cell.id)out", replace(out_p, "✗" => "X",
+        "\n" => "<br>", "✓" => "</", "*" => "", "⇒" => "->"))
+    end
     set_text!(cm, "cell$(cell.id)", "")
     set_text!(cm, "$(cell.id)cmds", replace(cell.source, "\n" => "<br>"))
     style!(cm, "cell$(cell.id)out", "height" => "auto", "opacity" => 100percent)
