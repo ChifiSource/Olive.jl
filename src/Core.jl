@@ -540,22 +540,13 @@ create an OliveaExtension and
 """
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]
-    retvs = Vector{Servable}()
-    [begin
-        push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        frstcells, p.name))
-    end for cell in frstcells]
-    overwindow = div("$(p.name)over")
-    style!(overwindow, "display" => "inline-block",
-    "min-width" => 50percent,
-    "padding" => 0px, "margin-top" => 2px, "overflow" => "hidden",
-    "height" => 95percent)
-    proj_window = div(p.name)
-    style!(proj_window, "border-width" => 2px, "border-style" => "solid",
-    "overflow-y" => "scroll !important", "height" => 92percent, "min-width" => 40percent)
+    retvs = Vector{Servable}([begin
+        Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
+        frstcells, p.name)::Component{<:Any}
+    end for cell in frstcells])
+    proj_window::Component{:div} = div(p.name)
     proj_window[:children] = retvs
-    push!(overwindow, build_tab(c, p.name), proj_window)
-    overwindow::Component{:div}
+    proj_window::Component{:div}
 end
 
 function group(c::Connection)
