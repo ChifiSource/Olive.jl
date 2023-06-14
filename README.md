@@ -1,6 +1,6 @@
 <div align = "center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/newoliveover.png" width="350">
-<h6>| 0.0.81 |</h6>
+<h6>| 0.0.9 |</h6>
 </div>
 
 #### welcome to olive
@@ -17,7 +17,7 @@ Olive.jl is a customizable Integrated Development Environment for Julia programm
 - [extending olive](#extending-olive)
     - building extensions
 - [deploying olive](#deploying-olive)
-    - `0.0.8` deployment status
+    - `0.0.9` deployment status
 - [contributing](#contributing)
     - how to contribute
     - issues
