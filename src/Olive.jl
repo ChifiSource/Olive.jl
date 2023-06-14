@@ -182,7 +182,6 @@ main = route("/") do c::Connection
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :path => home_direc.uri, :env => home_direc.uri)
     myproj::Project{<:Any} = Project{:olive}(home_direc.uri, projdict)
-
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, home_direc.uri)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
     env::Environment = Environment(getname(c))
@@ -205,6 +204,19 @@ main = route("/") do c::Connection
    Base.invokelatest(olmod.build, c, d, olmod, exp = true)
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
+    pane_one::Component{:section} = section("pane_one")
+    pane_two::Component{:section} = section("pane_two")
+    pane_one_tabs::Component{:div} = div("pane_one_tabs")
+    style!(pane_one_tabs, "display" => "inline-block")
+    pane_two_tabs::Component{:div} = div("pane_two_tabs")
+    style!(pane_two_tabs, "display" => "inline-block")
+    style!(pane_one, "display" => "inline-block", "width" => 50percent, "overflow-y" => "scroll",
+    "overflow-x" => "hidden")
+    style!(pane_two, "display" => "inline-block", "width" => 50percent, "overflow-y" => "scroll",
+    "overflow-x" => "hidden")
+    push!(pane_one, pane_one_tabs)
+    push!(pane_two, pane_two_tabs)
+    push!(olivemain, pane_one, pane_two)
     olivemain["selected"] = myproj.id
     style!(olivemain, "overflow-x" => "scroll", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",

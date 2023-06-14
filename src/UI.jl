@@ -383,7 +383,9 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     projbuild = build(c, cm, myproj)
-    append!(cm, "olivemain", projbuild)
+    tab::Component{:div} = build_tab(c, myproj.name)
+    append!(cm, "pane_one", projbuild)
+    append!(cm, "pane_one_tabs", tab)
 end
 #==output[code]
 UndefVarError: Cell not defined 
@@ -405,7 +407,7 @@ function build_tab(c::Connection, fname::String)
         if ~("$(fname)close" in keys(cm.rootc))
             closebutton = topbar_icon("$(fname)close", "close")
             on(c, closebutton, "click") do cm2::ComponentModifier
-                remove!(cm2, "$(fname)over")
+                remove!(cm2, "$(fname)")
                 pos = findfirst(proj -> proj.name == fname,
                 c[:OliveCore].open[getname(c)].projects)
                 deleteat!(c[:OliveCore].open[getname(c)].projects, pos)
