@@ -384,8 +384,21 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     projbuild = build(c, cm, myproj)
     tab::Component{:div} = build_tab(c, myproj.name)
-    append!(cm, "pane_one", projbuild)
-    append!(cm, "pane_one_tabs", tab)
+    println(length(c[:OliveCore].open[getname(c)].projects))
+    if(length(c[:OliveCore].open[getname(c)].projects) == 2)
+        style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+        append!(cm, "pane_two", projbuild)
+        append!(cm, "pane_two_tabs", tab)
+        return
+    end
+    if(cm["olivemain"]["pane"] == "1")
+        append!(cm, "pane_one", projbuild)
+        append!(cm, "pane_one_tabs", tab)
+    else
+        append!(cm, "pane_two", projbuild)
+        append!(cm, "pane_two_tabs", tab)
+    end
+    
 end
 #==output[code]
 UndefVarError: Cell not defined 
@@ -398,7 +411,7 @@ function build_tab(c::Connection, fname::String)
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
     "border-width" => 2px, "border-color" => "lightblue",
     "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 10px)
+    "margin-left" => 0px)
     tablabel = a("tablabel$(fname)", text = fname)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt)
