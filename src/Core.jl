@@ -546,16 +546,9 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     end for cell in frstcells])
     proj_window::Component{:div} = div(p.name)
     proj_window[:children] = retvs
+    style!(proj_window, "overflow-y" => "scroll", "overflow-x" => "hidden")
     proj_window::Component{:div}
 end
-
-function group(c::Connection)
-
-end
-
-can_read(c::Connection, d::Directory{<:Any}) = contains("r", d.access[group(c)])
-can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", d.access[group(c)])
-can_write(c::Connection, p::Project{<:Any}) = contains("w", d.access[group(c)])
 
 mutable struct Environment
     name::String
@@ -576,8 +569,6 @@ getindex(e::Vector{Environment}, name::String) = begin
     end
     e[pos]::Environment
 end
-
-
 
 mutable struct OliveCore <: ServerExtension
     olmod::Module
