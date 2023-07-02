@@ -252,8 +252,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
             end
         end for p in c[:OliveCore].open[getname(c)].projects]
         filter!(x::Any -> ~(isnothing(x)), mods)
+        push!(mods, Olive, olive)
         cells = Vector{Cell}([Cell(e, "docmodule", "", mod) for (e, mod) in enumerate(mods)])
-        println(cells)
         home_direc = Directory(c[:OliveCore].data["home"])
         projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
         :path => home_direc.uri, :env => home_direc.uri)

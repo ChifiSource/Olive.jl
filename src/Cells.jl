@@ -1587,11 +1587,18 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:docmodule},
     cells::Vector{Cell}, windowname::String)
     mainbox::Component{:section} = section("cellcontainer$(cell.id)")
     n::Vector{Symbol} = names(cell.outputs, all = true)
-    remove::Vector{Symbol} =  [Symbol("#eval"), Symbol("#include"), :eval, :example, :include]
-    filter!(x -> ~(x in remove), n)
+    remove::Vector{Symbol} =  [Symbol("#eval"), Symbol("#include"), :eval, :example, :include, Symbol(string(cell.outputs))]
+    filter!(x -> ~(x in remove) || ~(contains(string(x), "#")), n)
     selectorbuttons::Vector{Servable} = [begin
-        type_n = getfield(cell.outputs, n)
-        T = typeof(type_n)
-        println(@doc(T))
+        docdiv = div("doc$name", text = string(name))
+        on(c, docdiv, "click") do cm2::ComponentModifier
+            exp = Meta.parse("""t = eval(Meta.parse("$name")); @doc(t)""")
+            docs = cell.outputs.eval(exp)
+            docum = tmd("docs$name", string(docs))
+            append!(cm2, docdiv, docum)
+        end
+        docdiv
     end for name in n]
+    mainbox[:children] = vcat([h("$(cell.outputs)", 2, text = string(cell.outputs))], selectorbuttons)
+    mainbox
 end
