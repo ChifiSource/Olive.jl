@@ -216,29 +216,15 @@ end
 
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = begin
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
-        tm = ToolipsMarkdown.TextStyleModifier("")
+        sample = ToolipsMarkdown.TextStyleModifier("")
         ToolipsMarkdown.highlight_julia!(tm)
-        dic = Dict{String, Dict{<:Any, <:Any}}()
-        push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
-        push!(dic, "julia" => Dict{String, String}(
-            [string(k) => string(v[1][2]) for (k, v) in tm.styles]))
+        push!(c[:OliveCore].client_data[getname(c)],
+        "highlighting" => Dict{String, String}([string(k) => string(v) for (k, v) in tm.styles]))
     end
-    dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
-    sect = section("highlight_settings")
-    highheader = h("highlighthead", 3, text = "highlights")
-    push!(sect, highheader)
-    for colorset in keys(dic)
-        [begin 
-            label = h("colorlabel", 5, text = color)
-            vbox = ToolipsDefaults.colorinput("$(color)$(colorset)", 
-            value = "'$(dic[colorset][color])'")
-            clrdiv = div("clrdiv$(color)$(colorset)")
-            style!(clrdiv, "display" => "inline-block")
-            push!(clrdiv, label, vbox)
-            push!(sect, clrdiv)
-        end for color in keys(dic[colorset])]
-    end
-    append!(om, "settingsmenu", sect)
+end
+
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
+
 end
 
 function save_settings!(c::Connection; core::Bool = false)
@@ -540,15 +526,31 @@ create an OliveaExtension and
 """
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]
-    retvs = Vector{Servable}([begin
-        Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        frstcells, p.name)::Component{<:Any}
-    end for cell in frstcells])
-    proj_window::Component{:div} = div(p.name)
+    retvs = Vector{Servable}()
+    [begin
+        push!(retvs, Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
+        frstcells, p.name))
+    end for cell in frstcells]
+    overwindow = div("$(p.name)over")
+    style!(overwindow, "display" => "inline-block",
+    "min-width" => 50percent,
+    "padding" => 0px, "margin-top" => 2px, "overflow" => "hidden",
+    "height" => 95percent)
+    proj_window = div(p.name)
+    style!(proj_window, "border-width" => 2px, "border-style" => "solid",
+    "overflow-y" => "scroll !important", "height" => 92percent, "min-width" => 40percent)
     proj_window[:children] = retvs
-    style!(proj_window, "overflow-y" => "scroll", "overflow-x" => "hidden")
-    proj_window::Component{:div}
+    push!(overwindow, build_tab(c, p.name), proj_window)
+    overwindow::Component{:div}
 end
+
+function group(c::Connection)
+
+end
+
+can_read(c::Connection, d::Directory{<:Any}) = contains("r", d.access[group(c)])
+can_evaluate(c::Connection, p::Project{<:Any}) = contains("e", d.access[group(c)])
+can_write(c::Connection, p::Project{<:Any}) = contains("w", d.access[group(c)])
 
 mutable struct Environment
     name::String
@@ -569,6 +571,8 @@ getindex(e::Vector{Environment}, name::String) = begin
     end
     e[pos]::Environment
 end
+
+
 
 mutable struct OliveCore <: ServerExtension
     olmod::Module

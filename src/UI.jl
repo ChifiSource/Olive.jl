@@ -383,22 +383,7 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     projbuild = build(c, cm, myproj)
-    tab::Component{:div} = build_tab(c, myproj.name)
-    println(length(c[:OliveCore].open[getname(c)].projects))
-    if(length(c[:OliveCore].open[getname(c)].projects) == 2)
-        style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
-        append!(cm, "pane_two", projbuild)
-        append!(cm, "pane_two_tabs", tab)
-        return
-    end
-    if(cm["olivemain"]["pane"] == "1")
-        append!(cm, "pane_one", projbuild)
-        append!(cm, "pane_one_tabs", tab)
-    else
-        append!(cm, "pane_two", projbuild)
-        append!(cm, "pane_two_tabs", tab)
-    end
-    
+    append!(cm, "olivemain", projbuild)
 end
 #==output[code]
 UndefVarError: Cell not defined 
@@ -411,7 +396,7 @@ function build_tab(c::Connection, fname::String)
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
     "border-width" => 2px, "border-color" => "lightblue",
     "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px)
+    "margin-left" => 10px)
     tablabel = a("tablabel$(fname)", text = fname)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt)
@@ -420,7 +405,7 @@ function build_tab(c::Connection, fname::String)
         if ~("$(fname)close" in keys(cm.rootc))
             closebutton = topbar_icon("$(fname)close", "close")
             on(c, closebutton, "click") do cm2::ComponentModifier
-                remove!(cm2, "$(fname)")
+                remove!(cm2, "$(fname)over")
                 pos = findfirst(proj -> proj.name == fname,
                 c[:OliveCore].open[getname(c)].projects)
                 deleteat!(c[:OliveCore].open[getname(c)].projects, pos)
