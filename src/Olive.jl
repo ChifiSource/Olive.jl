@@ -182,7 +182,6 @@ main = route("/") do c::Connection
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :path => home_direc.uri, :env => home_direc.uri)
     myproj::Project{<:Any} = Project{:olive}(home_direc.uri, projdict)
-
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, home_direc.uri)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
     env::Environment = Environment(getname(c))
@@ -205,19 +204,49 @@ main = route("/") do c::Connection
    Base.invokelatest(olmod.build, c, d, olmod, exp = true)
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
+    olivemain["pane"] = "2"
+    pane_one::Component{:section} = section("pane_one")
+    pane_one_tabs::Component{:div} = div("pane_one_tabs")
+    style!(pane_one_tabs, "display" => "inline", "padding" => 0px, "width" => 50percent)
+    pane_two_tabs::Component{:div} = div("pane_two_tabs")
+    style!(pane_two_tabs, "display" => "inline", "padding" => 0px, "width" => 50percent)
+    pane_container_one::Component{:div} = div("pane_container_one")
+    style!(pane_container_one, "width" => 100percent, "overflow" => "hidden", "display" => "inline-block",
+    "transition" => 1seconds)
+    pane_container_two::Component{:div} = div("pane_container_two")
+    style!(pane_container_two, "width" => 0percent, "overflow" => "hidden", "display" => "inline-block",
+    "opacity" => 0percent, "transition" => 1seconds)
+    on(c, pane_container_one, "click") do cm::ComponentModifier
+        cm[olivemain] = "pane" => "1"
+    end
+    pane_two::Component{:section} = section("pane_two")
+    on(c, pane_container_two, "click") do cm::ComponentModifier
+        cm[olivemain] = "pane" => "2"
+    end
+    style!(pane_one, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
+    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent)
+    style!(pane_two, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
+    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent)
+    push!(pane_container_one, pane_one_tabs, pane_one)
+    push!(pane_container_two, pane_two_tabs, pane_two)
+    push!(olivemain, pane_container_one, pane_container_two)
     olivemain["selected"] = myproj.id
-    style!(olivemain, "overflow-x" => "scroll", "position" => "relative",
+    style!(olivemain, "overflow-x" => "hidden", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",
     "height" => 90percent, "display" => "inline-flex")
     bod = body("mainbody")
     style!(bod, "overflow" => "hidden")
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
-    script!(c, "load", type = "Timeout", time = 250) do cm::ComponentModifier
+    script!(c, "load", type = "Timeout") do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
+        tabs::Vector{Servable} = Vector{Servable}([begin
+            build_tab(c, proj.name) 
+        end for proj in env.projects])
+        set_children!(cm, "pane_one_tabs", tabs)
         [begin
             window::Component{:div} = Base.invokelatest(olmod.build, c,
             cm, proj)
-            append!(cm, "olivemain", window)
+            append!(cm, "pane_one", window)
         end for proj in env.projects]
     end
     write!(c, bod)
