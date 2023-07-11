@@ -9,7 +9,7 @@ Olive.jl is a customizable Integrated Development Environment for Julia programm
 - Deployability
 - Customization
 
-Keep in mind this version of Olive (while functional) is still a work in progress build. Thank you for reporting bugs to the issues page!
+Keep in mind this version of Olive (while functional) is still a **work in progress** build. Thank you for reporting bugs to the issues page!
 ###### map
 - [get started](#get-started)
 - [basic olive](#basic-olive)
