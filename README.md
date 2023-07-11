@@ -9,6 +9,7 @@ Olive.jl is a customizable Integrated Development Environment for Julia programm
 - Deployability
 - Customization
 
+Keep in mind this version of Olive (while functional) is still a work in progress build. Thank you for reporting bugs to the issues page!
 ###### map
 - [get started](#get-started)
 - [basic olive](#basic-olive)
@@ -51,9 +52,10 @@ This should provide you with a link to get started with Olive!
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/jtyjtyjtyjdfdjdhgj.png?raw=true"></img>
 
 ### basic olive
-When first starting Olive, you will arrive at the `setup` route. This screen will ask you to select a home directory. After picking your directory, press `confirm` and you will be greeted with the second portion of setup which will ask you for your name and if you would like to add OliveDefaults. Respond -- you'll definitely want to pick your username! OliveDefaults is an entirely optional extension that will get added -- not loaded -- to your Olive Pkg environment. After confirming, your `olive` home directory will be setup. This home directory is important because it is used in order to extend Olive. After the setup completes, you will automatically be redirected to your new Olive homepage, also known as `explorer` at route `/`. This page requires a key to enter. The directories here will be your olive home and working directories. The home directory will contain a `Project.toml` file with your Olive data, as well as a module source file for a module called `olive`. 
+When first starting Olive, you will arrive at the `setup` route. This screen will ask you to select a home directory. After picking your directory, press `confirm` and you will be greeted with the second portion of setup which will ask you for your name and if you would like to add OliveDefaults. Respond -- you'll definitely want to pick your username! OliveDefaults is an entirely optional extension that will get added -- not loaded -- to your Olive Pkg environment. After confirming, your `olive` home directory will be setup. This home directory is important because it is used in order to extend Olive. After the setup completes, you will automatically be redirected to your new Olive homepage! This page requires a key to enter. The directories here will be your olive home and working directories. Files can be opened by clicking the menu in the top left.
 
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/rtjrjrtjrhjgjhjytuj.png"></img>
+
+**TODO** explorer image here.
 
 This is where extensions and changes can be written on top of olive from the outside in. Double clicking a file in the directory will yield a loading of the `/session` route. This route contains the actual editor, as well as the project explorer. The project explorer can be opened by clicking the top left. Client settings can be altered by clicking the top right settings icon. These settings are saved whenever the settings menu is closed.
 ##### cells 
