@@ -615,7 +615,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
         "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
         "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
-        on(c, inputbox, "keypress") do cm2::ComponentModifier
+        on(c, inputbox, "keyup") do cm2::ComponentModifier
             cell_highlight!(c, cm2, cell, cells, windowname)
         end
         on(cm, inputbox, "paste") do cl
