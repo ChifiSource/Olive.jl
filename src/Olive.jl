@@ -181,7 +181,7 @@ main = route("/") do c::Connection
     home_direc = Directory(c[:OliveCore].data["home"])
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :path => home_direc.uri, :env => home_direc.uri)
-    myproj::Project{<:Any} = Project{:olive}(home_direc.uri, projdict)
+    myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, home_direc.uri)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
     env::Environment = Environment(getname(c))
@@ -224,9 +224,9 @@ main = route("/") do c::Connection
         cm[olivemain] = "pane" => "2"
     end
     style!(pane_one, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
-    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent)
+    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px)
     style!(pane_two, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
-    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent)
+    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px)
     push!(pane_container_one, pane_one_tabs, pane_one)
     push!(pane_container_two, pane_two_tabs, pane_two)
     push!(olivemain, pane_container_one, pane_container_two)

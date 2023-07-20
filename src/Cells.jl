@@ -1588,7 +1588,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:docmodule},
     mainbox::Component{:section} = section("cellcontainer$(cell.id)")
     n::Vector{Symbol} = names(cell.outputs, all = true)
     remove::Vector{Symbol} =  [Symbol("#eval"), Symbol("#include"), :eval, :example, :include, Symbol(string(cell.outputs))]
-    filter!(x -> ~(x in remove) || ~(contains(string(x), "#")), n)
+    filter!(x -> ~(x in remove) && ~(contains(string(x), "#")), n)
     selectorbuttons::Vector{Servable} = [begin
         docdiv = div("doc$name", text = string(name))
         on(c, docdiv, "click") do cm2::ComponentModifier
