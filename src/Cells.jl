@@ -615,8 +615,15 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
         "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
         "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
-        on(c, inputbox, "input") do cm2::ComponentModifier
+        on(c, inputbox, "keypress") do cm2::ComponentModifier
             cell_highlight!(c, cm2, cell, cells, windowname)
+        end
+        on(cm, inputbox, "paste") do cl
+            push!(cl.changes, """
+            e.preventDefault();
+            var text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+            """)
         end
         push!(inputbox, highlight_box, inside)
     else

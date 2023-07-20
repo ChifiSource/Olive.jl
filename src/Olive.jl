@@ -175,8 +175,10 @@ main = route("/") do c::Connection
     if ~(getip(c) in keys(c[:OliveCore].names))
         push!(c[:OliveCore].names, getip(c) => uname)
     end
+    on(c, "copy") do cm::ComponentModifier
+        push!(cm.changes, "")
+    end
     c[:OliveCore].names[getip(c)] = uname
-    c[:OliveCore].client_data[getname(c)]["selected"] = "files"
     cells = Vector{Cell}([Cell(1, "versioninfo", "")])
     home_direc = Directory(c[:OliveCore].data["home"])
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,

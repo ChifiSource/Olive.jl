@@ -334,7 +334,7 @@ UndefVarError: Connection not defined
 
 function olive_main()
     main = div("olivemain", ex = 0)
-    style!(main, "transition" => ".8s", "overflow"  =>  "scroll")
+    style!(main, "transition" => ".8s", "overflow"  =>  "scroll", "padding" => 2px)
     main::Component{:div}
 end
 #==output[code]
@@ -404,14 +404,15 @@ UndefVarError: Cell not defined 
 ==#
 #==|||==#
 
-function build_tab(c::Connection, fname::String)
+function build_tab(c::Connection, name::String)
+    fname = replace(name, " " => "")
     tabbody = div("tab$(fname)")
     style!(tabbody, "border-bottom-right-radius" => 0px,
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
     "border-width" => 2px, "border-color" => "lightblue",
     "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
     "margin-left" => 0px)
-    tablabel = a("tablabel$(fname)", text = fname)
+    tablabel = a("tablabel$(fname)", text = name)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt)
     push!(tabbody, tablabel)
@@ -419,8 +420,16 @@ function build_tab(c::Connection, fname::String)
         if ~("$(fname)close" in keys(cm.rootc))
             closebutton = topbar_icon("$(fname)close", "close")
             on(c, closebutton, "click") do cm2::ComponentModifier
+                println(length(c[:OliveCore].open[getname(c)].projects))
+                if(length(c[:OliveCore].open[getname(c)].projects) == 1)
+                    
+                elseif length(c[:OliveCore].open[getname(c)].projects) == 2
+                    style!(cm2, "pane_container_two", "width" => 0percent, "opacity" => 0percent)
+                end
                 remove!(cm2, "$(fname)")
-                pos = findfirst(proj -> proj.name == fname,
+                remove!(cm2, "tab$(fname)")
+                [println(e => proj.name) for (e, proj) in enumerate(c[:OliveCore].open[getname(c)].projects)]
+                pos = findfirst(proj -> proj.name == name,
                 c[:OliveCore].open[getname(c)].projects)
                 deleteat!(c[:OliveCore].open[getname(c)].projects, pos)
                 olive_notify!(cm2, "project $(fname) closed", color = "blue")
