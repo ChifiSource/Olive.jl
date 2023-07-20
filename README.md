@@ -4,29 +4,27 @@
 </div>
 
 #### welcome to olive
-Olive.jl is a customizable Integrated Development Environment for Julia programming in a notebook-like environment. Executable blocks of code are surrounded by Markdown in a far more reproducible form than ever before. Olive features
+Olive.jl is an Extensible Notebook Integrated Development Environment (ENIDE) written in the Julia programming language. Olive notebooks feature markdown and more 
 - Extensibility
 - Deployability
-- Customization
+- Endless Customization
+- Regular Julia Files
+- 
 
 Keep in mind this version of Olive (while functional) is still a **work in progress** build. Thank you for reporting bugs to the issues page!
 ###### map
+- [olive?](#olive?)
 - [get started](#get-started)
 - [basic olive](#basic-olive)
-    - setup
-    - basics
 - [extending olive](#extending-olive)
-    - building extensions
 - [deploying olive](#deploying-olive)
-    - `0.0.9` deployment status
 - [contributing](#contributing)
-    - how to contribute
-    - issues
 - [tech stack](#tech-stack)
-    - toolips
-    - other
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/thethetherthgfhtrj.png"></img>
+
+
+### olive?
 
 ### get started
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**.
