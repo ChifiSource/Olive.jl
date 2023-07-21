@@ -435,10 +435,14 @@ function close_project(c::Connection, cm2::ComponentModifier, name::String)
             )]))
         end
         append!(cm2, "pane_one_tabs", build_tab(c, lastproj.name))
-        style!(cm2, "pane_container_two", "width" => 0percent, "opacity" => 0percent)        
+        style!(cm2, "pane_container_two", "width" => 0percent, "opacity" => 0percent) 
+        pos = findfirst(proj -> proj.name == name,
+        projs)
+        deleteat!(projs, pos)
+        return       
     end
-    remove!(cm2, "$(fname)")
-    remove!(cm2, "tab$(fname)")
+    remove!(cm2, "$nname")
+    remove!(cm2, "tab$(nname)")
     [println(e => proj.name) for (e, proj) in enumerate(c[:OliveCore].open[getname(c)].projects)]
     pos = findfirst(proj -> proj.name == name,
     projs)

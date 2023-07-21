@@ -568,7 +568,7 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
         Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
         frstcells, p.name)::Component{<:Any}
     end for cell in frstcells])
-    proj_window::Component{:div} = div(p.name)
+    proj_window::Component{:div} = div(replace(p.name, " " => ""))
     proj_window[:children] = retvs
     style!(proj_window, "overflow-y" => "scroll", "overflow-x" => "hidden")
     proj_window::Component{:div}
