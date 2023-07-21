@@ -382,27 +382,69 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, source)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
-    projbuild = build(c, cm, myproj)
     tab::Component{:div} = build_tab(c, myproj.name)
-    if(length(c[:OliveCore].open[getname(c)].projects) <= 2)
+    open_project(c, cm, myproj, tab)    
+end
+
+function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
+    n_projects::Int64 = length(c[:OliveCore].open[getname(c)].projects)
+    if(n_projects == 2)
         style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+        projbuild = build(c, cm, proj)
+        proj.data[:pane] = "two"
         append!(cm, "pane_two", projbuild)
         append!(cm, "pane_two_tabs", tab)
         return
-    end
-    if(cm["olivemain"]["pane"] == "1")
+    elseif(n_projects == 1)
+        proj.data[:pane] = "one"
+        projbuild = build(c, cm, proj)
         append!(cm, "pane_one", projbuild)
         append!(cm, "pane_one_tabs", tab)
-    else
-        append!(cm, "pane_two", projbuild)
-        append!(cm, "pane_two_tabs", tab)
+        return
     end
-    
+    if(cm["olivemain"]["pane"] == "1")
+        append!(cm, "pane_one_tabs", tab)
+        proj.data[:pane] = "one"
+    else
+        append!(cm, "pane_two_tabs", tab)
+        proj.data[:pane] = "two"
+    end
 end
+
 #==output[code]
 UndefVarError: Cell not defined 
 ==#
 #==|||==#
+
+function close_project(c::Connection, cm2::ComponentModifier, name::String)
+    fname = replace(name, " " => "")
+    projs = c[:OliveCore].open[getname(c)].projects
+    n_projects::Int64 = length(projs)
+    if(n_projects == 1)
+
+    elseif n_projects == 2
+        lastproj = findfirst(pre -> pre.name != name, projs)
+        lastproj = projs[lastproj]
+        if(lastproj.data[:pane] == "two")
+            lastproj.data[:pane] = "one"
+            nname = replace(name, " " => "")
+            remove!(cm2, "$nname")
+            remove!(cm2, "tab$(nname)")
+            set_children!(cm2, "pane_one", Vector{Servable}([
+                Base.invokelatest(c[:OliveCore].olmod.build, c, cm2, lastproj
+            )]))
+        end
+        append!(cm2, "pane_one_tabs", build_tab(c, lastproj.name))
+        style!(cm2, "pane_container_two", "width" => 0percent, "opacity" => 0percent)        
+    end
+    remove!(cm2, "$(fname)")
+    remove!(cm2, "tab$(fname)")
+    [println(e => proj.name) for (e, proj) in enumerate(c[:OliveCore].open[getname(c)].projects)]
+    pos = findfirst(proj -> proj.name == name,
+    projs)
+    deleteat!(projs, pos)
+    olive_notify!(cm2, "project $(fname) closed", color = "blue")
+end
 
 function build_tab(c::Connection, name::String)
     fname = replace(name, " " => "")
@@ -420,19 +462,7 @@ function build_tab(c::Connection, name::String)
         if ~("$(fname)close" in keys(cm.rootc))
             closebutton = topbar_icon("$(fname)close", "close")
             on(c, closebutton, "click") do cm2::ComponentModifier
-                println(length(c[:OliveCore].open[getname(c)].projects))
-                if(length(c[:OliveCore].open[getname(c)].projects) == 1)
-                    
-                elseif length(c[:OliveCore].open[getname(c)].projects) == 2
-                    style!(cm2, "pane_container_two", "width" => 0percent, "opacity" => 0percent)
-                end
-                remove!(cm2, "$(fname)")
-                remove!(cm2, "tab$(fname)")
-                [println(e => proj.name) for (e, proj) in enumerate(c[:OliveCore].open[getname(c)].projects)]
-                pos = findfirst(proj -> proj.name == name,
-                c[:OliveCore].open[getname(c)].projects)
-                deleteat!(c[:OliveCore].open[getname(c)].projects, pos)
-                olive_notify!(cm2, "project $(fname) closed", color = "blue")
+                close_project(c, cm2, name)
             end
             savebutton = topbar_icon("$(fname)save", "save")
             on(c, savebutton, "click") do cm2::ComponentModifier

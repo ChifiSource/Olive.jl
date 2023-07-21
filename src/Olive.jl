@@ -175,21 +175,23 @@ main = route("/") do c::Connection
     if ~(getip(c) in keys(c[:OliveCore].names))
         push!(c[:OliveCore].names, getip(c) => uname)
     end
-    on(c, "copy") do cm::ComponentModifier
-        push!(cm.changes, "")
-    end
     c[:OliveCore].names[getip(c)] = uname
-    cells = Vector{Cell}([Cell(1, "versioninfo", "")])
-    home_direc = Directory(c[:OliveCore].data["home"])
-    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
-    :path => home_direc.uri, :env => home_direc.uri)
-    myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, home_direc.uri)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
-    env::Environment = Environment(getname(c))
-    push!(env.directories, home_direc)
-    push!(env.projects, myproj)
-    push!(c[:OliveCore].open, env)
+    envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
+    if isnothing(envsearch)
+        cells = Vector{Cell}([Cell(1, "versioninfo", "")])
+        home_direc = Directory(c[:OliveCore].data["home"])
+        env::Environment = Environment(getname(c))
+        projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
+        :path => home_direc.uri, :env => home_direc.uri, :pane => "one")
+        myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
+        Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, home_direc.uri)
+        Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+        push!(env.directories, home_direc)
+        push!(env.projects, myproj)
+        push!(c[:OliveCore].open, env)
+    else
+        env = c[:OliveCore].open[getname(c)]
+    end
     # setup base env
     write!(c, olivesheet())
     c[:OliveCore].client_data[getname(c)]["selected"] = "session"
@@ -203,7 +205,7 @@ main = route("/") do c::Connection
     ui_settings::Component{:section} = settings_menu(c)
     style!(ui_settings, "position" => "sticky")
     ui_explorer[:children] = Vector{Servable}([begin
-   Base.invokelatest(olmod.build, c, d, olmod, exp = true)
+    Base.invokelatest(olmod.build, c, d, olmod, exp = true)
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
     olivemain["pane"] = "2"
@@ -232,7 +234,6 @@ main = route("/") do c::Connection
     push!(pane_container_one, pane_one_tabs, pane_one)
     push!(pane_container_two, pane_two_tabs, pane_two)
     push!(olivemain, pane_container_one, pane_container_two)
-    olivemain["selected"] = myproj.id
     style!(olivemain, "overflow-x" => "hidden", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",
     "height" => 90percent, "display" => "inline-flex")
@@ -241,28 +242,17 @@ main = route("/") do c::Connection
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
     script!(c, "load", type = "Timeout") do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
-        tabs::Vector{Servable} = Vector{Servable}([begin
-            build_tab(c, proj.name) 
-        end for proj in env.projects])
-        set_children!(cm, "pane_one_tabs", tabs)
         [begin
             window::Component{:div} = Base.invokelatest(olmod.build, c,
             cm, proj)
-            append!(cm, "pane_one", window)
+            append!(cm, "pane_$(proj.data[:pane])", window)
+            append!(cm, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj.name))
         end for proj in env.projects]
+        if length(env.projects) > 1
+            style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+        end
     end
     write!(c, bod)
-end
-#==output[code]
-==#
-#==|||==#
-explorer = route("/explorer") do c::Connection
-    loader_body = div("loaderbody", align = "center")
-    style!(loader_body, "margin-top" => 10percent)
-    write!(c, olivesheet())
-    icon = olive_loadicon()
-    
-    
 end
  #==output[code]
  ==#
@@ -277,7 +267,7 @@ to offering some examples.
  ```
  """
 devmode = route("/") do c::Connection
-    explorer.page(c)
+    
 end
 #==output[code]
 ==#
@@ -406,7 +396,7 @@ setup = route("/") do c::Connection
                          direc = cm["selector"]["text"]
                          oc.data["home"] = "$direc/olive"
                          source_module!(oc)
-                         push!(c.routes, fourofour, main, explorer)
+                         push!(c.routes, fourofour, main)
                          unamekey = ToolipsSession.gen_ref(16)
                          push!(c[:OliveCore].client_keys, unamekey => username)
                          push!(c[:OliveCore].client_data,
@@ -554,7 +544,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         oc.data["home"] = homedirec * "/olive"
         oc.data["wd"] = pwd()
         source_module!(oc)
-        rs = routes(fourofour, main, explorer, docbrowser, icons, mainicon)
+        rs = routes(fourofour, main, docbrowser, icons, mainicon)
     end
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session", "/doc"])])
