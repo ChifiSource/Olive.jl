@@ -231,6 +231,53 @@ function settings_menu(c::Connection)
     "overflow-y" => "scroll", "padding" => 0px)
     mainmenu::Component{:section}
 end
+
+function work_menu(c::Connection)
+    becell = "workmenu"
+    env::Environment = c[:OliveCore].open[getname(c)]
+    working_area = section(becell)
+    open_heading = h("open$becell", 2, text = "open")
+    pinfo_box = div("pinfo$becell")
+    pinfo_box[:children] = Vector{Servable}(
+    [work_preview(c, p) for p in env.projects]
+    )
+    dinfo_box = div("dinfo$becell")
+    dinfo_box[:children] = Vector{Servable}(
+    [work_preview(c, d) for d in env.directories]
+    )
+    push!(working_area, open_heading, pinfo_box, dinfo_box)
+    working_area
+end
+
+function work_preview(c::Connection, p::Project{<:Any})
+    name = p.id
+    preview = div("preview$name")
+    style!(preview, "display" => "inline-block", "width" => 15percent, "height" => 15percent, "border-radius" => 0px)
+    name_label = h("label$name", 4, text = p.name)
+    savebutton = topbar_icon("save$name", "save")
+    style!(savebutton, "font-size"  => 17pt, "color" => "gray")
+    on(c, savebutton, "click") do cm::ComponentModifier
+        save_project(c, cm, p)
+    end
+    saveasbutton = topbar_icon("saveas$name", "save_as")
+    style!(saveasbutton, "font-size"  => 17pt, "color" => "gray")
+    on(c, saveasbutton, "click") do cm::ComponentModifier
+        save_project(c, cm, p)
+    end
+    push!(preview, name_label, br(), savebutton, saveasbutton)
+    preview::Component{:div}
+end
+
+function work_preview(c::Connection, d::Directory{<:Any})
+    becell = replace(d.uri, "/" => "|")
+    preview = div("preview$becell", text = d.uri)
+    style!(preview, "background-color" => "lightblue")
+    on(c, preview, "click") do cm::ComponentModifier
+
+    end
+    preview::Component{:div}
+end
+
 #==output[code]
 UndefVarError: Connection not defined
 ==#
@@ -389,6 +436,7 @@ end
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
     projects = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projects)
+    append!(cm, "pinfoworkmenu", work_preview(c, proj))
     projbuild = build(c, cm, proj)
     if(n_projects == 2)
         style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
@@ -430,13 +478,15 @@ UndefVarError: Cell not defined 
 ==#
 #==|||==#
 
-function close_project(c::Connection, cm2::ComponentModifier, name::String)
+function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:Any})
+    name = proj.id
     fname = replace(name, " " => "")
     projs = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
     nname = replace(name, " " => "")
     remove!(cm2, "$nname")
     remove!(cm2, "tab$(nname)")
+    remove!(cm2, "preview$(proj.id)")
     if(n_projects == 1)
     elseif n_projects == 2
         lastproj = findfirst(pre -> pre.name != name, projs)
@@ -479,7 +529,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         if ~("$(fname)close" in keys(cm.rootc))
             closebutton = topbar_icon("$(fname)close", "close")
             on(c, closebutton, "click") do cm2::ComponentModifier
-                close_project(c, cm2, name)
+                close_project(c, cm2, p)
             end
             restartbutton = topbar_icon("$(fname)restart", "restart_alt")
             on(c, restartbutton, "click") do cm2::ComponentModifier
@@ -543,7 +593,7 @@ UndefVarError: ComponentModifier not defined
 ==#
 #==|||==#
 
-function save_project(cm2::ComponentModifier, p::Project{<:Any})
+function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     fname = p.name
     save_type = split(fname, ".")[2]
     savepath = c[:OliveCore].open[getname(c)][fname][:path]
