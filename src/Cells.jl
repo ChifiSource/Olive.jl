@@ -615,8 +615,15 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
         "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
         "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
-        on(c, inputbox, "input") do cm2::ComponentModifier
+        on(c, inputbox, "keyup") do cm2::ComponentModifier
             cell_highlight!(c, cm2, cell, cells, windowname)
+        end
+        on(cm, inputbox, "paste") do cl
+            push!(cl.changes, """
+            e.preventDefault();
+            var text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+            """)
         end
         push!(inputbox, highlight_box, inside)
     else
@@ -1588,7 +1595,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:docmodule},
     mainbox::Component{:section} = section("cellcontainer$(cell.id)")
     n::Vector{Symbol} = names(cell.outputs, all = true)
     remove::Vector{Symbol} =  [Symbol("#eval"), Symbol("#include"), :eval, :example, :include, Symbol(string(cell.outputs))]
-    filter!(x -> ~(x in remove) || ~(contains(string(x), "#")), n)
+    filter!(x -> ~(x in remove) && ~(contains(string(x), "#")), n)
     selectorbuttons::Vector{Servable} = [begin
         docdiv = div("doc$name", text = string(name))
         on(c, docdiv, "click") do cm2::ComponentModifier

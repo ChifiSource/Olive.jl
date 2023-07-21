@@ -259,21 +259,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
         :path => home_direc.uri, :env => home_direc.uri)
         myproj::Project{:doc} = Project{:doc}(home_direc.uri, projdict)
         push!(c[:OliveCore].open[getname(c)].projects, myproj)
-        projbuild = build(c, cm, myproj)
         tab::Component{:div} = build_tab(c, "documentation")
-        if(length(c[:OliveCore].open[getname(c)].projects) <= 2)
-            style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
-            append!(cm, "pane_two", projbuild)
-            append!(cm, "pane_two_tabs", tab)
-            return
-        end
-        if(cm["olivemain"]["pane"] == "1")
-            append!(cm, "pane_one", projbuild)
-            append!(cm, "pane_one_tabs", tab)
-        else
-            append!(cm, "pane_two", projbuild)
-            append!(cm, "pane_two_tabs", tab)
-        end
+        open_project(c, om, proj, tab)
     end
     insert!(om, "rightmenu", 1, explorericon)
 end
