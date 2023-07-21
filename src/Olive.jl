@@ -246,7 +246,7 @@ main = route("/") do c::Connection
             window::Component{:div} = Base.invokelatest(olmod.build, c,
             cm, proj)
             append!(cm, "pane_$(proj.data[:pane])", window)
-            append!(cm, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj.name))
+            append!(cm, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj))
         end for proj in env.projects]
         if length(env.projects) > 1
             style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
