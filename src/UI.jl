@@ -254,7 +254,7 @@ function work_preview(c::Connection, p::Project{<:Any})
     preview = div("preview$name")
     style!(preview, "display" => "inline-block", "border-radius" => 0px)
     name_label = a("label$name", text = p.name)
-    style!(name_label, "color" => "#A2646F")
+    style!(name_label, "color" => "#A2646F", "display" => "inline-block")
     savebutton = topbar_icon("save$name", "save")
     style!(savebutton, "font-size"  => 20pt, "color" => "gray", 
     "display" => "inline-block")
@@ -274,7 +274,7 @@ end
 function work_preview(c::Connection, d::Directory{<:Any})
     becell = replace(d.uri, "/" => "|")
     preview = div("preview$becell", text = d.uri)
-    style!(preview, "background-color" => "lightblue")
+    style!(preview, "background-color" => "#A2646F", "color" => "white", "font-weight" => "bold")
     on(c, preview, "click") do cm::ComponentModifier
 
     end
