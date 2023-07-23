@@ -228,9 +228,11 @@ main = route("/") do c::Connection
         cm[olivemain] = "pane" => "2"
     end
     style!(pane_one, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
-    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px)
+    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px, 
+    "border-color" => "#333333")
     style!(pane_two, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
-    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px)
+    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px, 
+    "border-color" => "#333333")
     push!(pane_container_one, pane_one_tabs, pane_one)
     push!(pane_container_two, pane_two_tabs, pane_two)
     push!(olivemain, pane_container_one, pane_container_two)

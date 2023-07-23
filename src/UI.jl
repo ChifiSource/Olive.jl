@@ -252,15 +252,18 @@ end
 function work_preview(c::Connection, p::Project{<:Any})
     name = p.id
     preview = div("preview$name")
-    style!(preview, "display" => "inline-block", "width" => 15percent, "height" => 15percent, "border-radius" => 0px)
-    name_label = h("label$name", 4, text = p.name)
+    style!(preview, "display" => "inline-block", "border-radius" => 0px)
+    name_label = a("label$name", text = p.name)
+    style!(name_label, "color" => "#A2646F")
     savebutton = topbar_icon("save$name", "save")
-    style!(savebutton, "font-size"  => 17pt, "color" => "gray")
+    style!(savebutton, "font-size"  => 20pt, "color" => "gray", 
+    "display" => "inline-block")
     on(c, savebutton, "click") do cm::ComponentModifier
         save_project(c, cm, p)
     end
     saveasbutton = topbar_icon("saveas$name", "save_as")
-    style!(saveasbutton, "font-size"  => 17pt, "color" => "gray")
+    style!(saveasbutton, "font-size"  => 20pt, "color" => "gray", 
+    "display" => "inline-block")
     on(c, saveasbutton, "click") do cm::ComponentModifier
         save_project(c, cm, p)
     end
@@ -455,7 +458,7 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
         inpane = findall(p::Project{<:Any} -> p[:pane] == "one", projects)
         [begin
             if projects[p].id != proj.id 
-                style!(cm, """tab$(replace(projects[p].name, " " => ""))""", "background-color" => "lightgray")
+                style!(cm, """tab$(projects[p].id)""", "background-color" => "lightgray")
             end
         end  for p in inpane]
         append!(cm, "pane_one_tabs", tab)
@@ -465,7 +468,7 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
         inpane = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
         [begin
             if projects[p].id != proj.id 
-                style!(cm, """tab$(replace(projects[p].name, " " => ""))""", "background-color" => "lightgray")
+                style!(cm, """tab$(projects[p].id)""", "background-color" => "lightgray")
             end
         end  for p in inpane]
         append!(cm, "pane_two_tabs", tab)
@@ -516,7 +519,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     tabbody = div("tab$(fname)")
     style!(tabbody, "border-bottom-right-radius" => 0px,
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "border-width" => 2px, "border-color" => "lightblue",
+    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
     "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
     "margin-left" => 0px, "transition" => 1seconds)
     if(hidden)
@@ -524,7 +527,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     end
     tablabel = a("tablabel$(fname)", text = p.name)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt)
+    "font-size"  => 13pt, "color" => "#A2646F")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
@@ -561,12 +564,16 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
             inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
             [begin
                 if projects[e].id != p.id 
-                    style!(cm, """tab$(replace(projects[e].name, " " => ""))""", "background-color" => "lightgray")
+                    style!(cm, """tab$(projects[e].id)""", "background-color" => "lightgray")
+                    newtablabel = a("tab$label", text = p.name)
+                    style!(newtablabel, "font-weight" => "bold", "margin-right" => 5px,
+                    "font-size"  => 13pt, "color" => "#A2646F")
+                    set_children!(cm, """tab$(projects[e].id)""", [newtablabel])
                 end
             end  for e in inpane]
             projbuild = build(c, cm, p)
-            style!(cm, tabbody, "background-color" => "white")
             set_children!(cm, "pane_$(p[:pane])", [projbuild])
+            style!(cm, tabbody, "background-color" => "white")
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
             on(c, decollapse_button, "click") do cm2::ComponentModifier
                 remove!(cm2, closebutton)
