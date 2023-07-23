@@ -488,11 +488,12 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     remove!(cm2, "tab$(nname)")
     remove!(cm2, "preview$(proj.id)")
     if(n_projects == 1)
+        # TODO start screen here
     elseif n_projects == 2
-        lastproj = findfirst(pre -> pre.name != name, projs)
+        lastproj = findfirst(pre -> pre.id != proj.id, projs)
         lastproj = projs[lastproj]
         if(lastproj.data[:pane] == "two")
-            lpjn = replace(lastproj.name, " " => "")
+            lpjn = lastproj.id
             remove!(cm2, lpjn)
             remove!(cm2, "tab$lpjn")
             lastproj.data[:pane] = "one"
@@ -503,14 +504,14 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
         end
         style!(cm2, "pane_container_two", "width" => 0percent, "opacity" => 0percent)  
     end
-    pos = findfirst(proj -> proj.name == name,
+    pos = findfirst(pro -> pro.id == proj.id,
     projs)
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(fname) closed", color = "blue")
 end
 
 function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
-    name = p.name
+    name = p.id
     fname = replace(name, " " => "")
     tabbody = div("tab$(fname)")
     style!(tabbody, "border-bottom-right-radius" => 0px,
@@ -521,7 +522,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     if(hidden)
         style!(tabbody, "background-color" => "gray")
     end
-    tablabel = a("tablabel$(fname)", text = name)
+    tablabel = a("tablabel$(fname)", text = p.name)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt)
     push!(tabbody, tablabel)

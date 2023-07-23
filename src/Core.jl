@@ -566,9 +566,9 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]
     retvs = Vector{Servable}([begin
         Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        frstcells, p.name)::Component{<:Any}
+        frstcells, p.id)::Component{<:Any}
     end for cell in frstcells])
-    proj_window::Component{:div} = div(replace(p.name, " " => ""))
+    proj_window::Component{:div} = div(p.id)
     proj_window[:children] = retvs
     style!(proj_window, "overflow-y" => "scroll", "overflow-x" => "hidden")
     proj_window::Component{:div}
