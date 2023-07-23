@@ -108,7 +108,9 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         "copy" => ["C", "ctrl", "shift"],
         "paste" => ["V", "ctrl", "shift"],
         "cut" => ["X", "ctrl", "shift"],
-        "new" => ["Q", "ctrl", "shift"]
+        "new" => ["Enter", "ctrl", "shift"],
+        "focusup" => ["ArrowUp", "shift"],
+        "focusdown" => ["ArrowDown", "shift"]
         ))
     end
     if om.data["selected"] == "files"
@@ -566,7 +568,7 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]
     retvs = Vector{Servable}([begin
         Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        frstcells, p.id)::Component{<:Any}
+        frstcells, p)::Component{<:Any}
     end for cell in frstcells])
     proj_window::Component{:div} = div(p.id)
     proj_window[:children] = retvs
