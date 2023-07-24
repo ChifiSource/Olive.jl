@@ -82,7 +82,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}, 
     proj::Project{<:Any})
-    i::Int64 = findfirst(p::Project{<:Any} -> p.id == proj.id, c[:OliveCore].open[getname(c)].projects)
+    i::Int64 = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
     if i == 1 || isnothing(i)
         return
     end
@@ -91,8 +91,8 @@ end
 
 function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}, 
     proj::Project{<:Any})
-    i::Int64 = findfirst(p::Project{<:Any} -> p.id == proj.id, c[:OliveCore].open[getname(c)].projects)
-    if i == length(c[:OliveCore].open[getname(c)].projects) || isnothing(i)
+    i::Int64 = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
+    if i == length(cells) || isnothing(i)
         return
     end
     focus!(cm, "cell$(cells[i + 1].id)")
@@ -525,11 +525,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cell.source = cm["cell$(cell.id)"]["text"]
     if pos != length(cells)
         focus!(cm, "cell$(cells[pos + 1].id)")
-    end
-    if pos == length(cells)
+    else
         new_cell = Cell(length(cells) + 1, "creator", "")
         push!(cells, new_cell)
-        ToolipsSession.append!(cm, window, build(c, cm, new_cell, cells, proj))
+        ToolipsSession.append!(cm, proj.id, build(c, cm, new_cell, cells, proj))
         focus!(cm, "cell$(new_cell.id)")
     end
 end
@@ -751,7 +750,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     olmod = c[:OliveCore].olmod
     signatures = [m.sig.parameters[4] for m in methods(Olive.build,
     [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
-    Vector{Cell}, String])]
+    Vector{Cell}, Project{<:Any}])]
      buttonbox = div("cellcontainer$(cell.id)")
      push!(buttonbox, cbox)
      push!(buttonbox, h("spawn$(cell.id)", 3, text = "new cell"))
@@ -1210,7 +1209,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     style!(inner, "display" => "flex")
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
     bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
-        if cm2["rawcell$(cell.id)"]["text"] == ""
+        if cm2["cell$(cell.id)"]["text"] == ""
             pos = findfirst(lcell -> lcell.id == cell.id, cells)
             new_cell = Cell(pos, "code", "")
             cells[pos] = new_cell
@@ -1250,8 +1249,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
          pinned = spl[2]
          [begin
             if pin != " "
-                push!(output, iframe("$(e)$(cell.id)pin", width = "500", height = "500",
-                src = "/doc?mod=$(windowname)&get=$pin"))
+
             end
         end for (e, pin) in enumerate(split(pinned, " "))]
      else
@@ -1414,7 +1412,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     interior = div("cellinterior$(cell.id)")
     style!(interior, "display" => "flex")
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.outputs)
-    bind!(km, "Backspace") do cm2::ComponentModifier
+    bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
         if cm2["rawcell$(cell.id)"]["text"] == ""
             pos = findfirst(lcell -> lcell.id == cell.id, cells)
             new_cell = Cell(pos, "code", "")
