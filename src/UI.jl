@@ -602,11 +602,15 @@ UndefVarError: ComponentModifier not defined
 #==|||==#
 
 function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
-    fname = p.name
-    save_type = split(fname, ".")[2]
-    savepath = c[:OliveCore].open[getname(c)][fname][:path]
-    cells = c[:OliveCore].open[getname(c)][fname][:cells]
-    savecell = Cell(1, string(save_type), fname, savepath)
+    save_split = split(p.name, ".")
+    if length(save_split) < 2
+        save_type = "Any"
+    else
+        save_type = join(save_split[2:length(save_split)])
+    end
+    savepath = p[:path]
+    cells = p[:cells]
+    savecell = Cell(1, save_type, p.name, savepath)
     ret = olive_save(cells, savecell)
     if isnothing(ret)
         olive_notify!(cm2, "file $(savepath) saved", color = "green")
@@ -615,6 +619,23 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     end
 end
 
+function save_project(c::Connection, cm::ComponentModifier, p::Project{<:Any}, path::String)
+    save_split = split(p.name, ".")
+    if length(save_split) < 2
+        save_type = "Any"
+    else
+        save_type = join(save_split[2:length(save_split)])
+    end
+    p[:path] = path
+    cells = p[:cells]
+    savecell = Cell(1, save_type, fname, savepath)
+    ret = olive_save(cells, savecell)
+    if isnothing(ret)
+        olive_notify!(cm2, "file $(savepath) saved", color = "green")
+    else
+        olive_notify!(cm2, "file $(savepath) saved", color = "$ret")
+    end
+end
 function olive_loadicon()
     srcdir = @__DIR__
     iconb64 = read(srcdir * "/images/loadicon.png", String)
