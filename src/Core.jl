@@ -110,11 +110,9 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         "cut" => ["X", "ctrl", "shift"],
         "new" => ["Enter", "ctrl", "shift"],
         "focusup" => ["ArrowUp", "shift"],
-        "focusdown" => ["ArrowDown", "shift"]
+        "focusdown" => ["ArrowDown", "shift"],
+        "save" => ["s", "ctrl"]
         ))
-    end
-    if om.data["selected"] == "files"
-        return
     end
     keybind_section = section("settings_keys")
     shftlabel = a("shiftlabel", text = "  shift:    ")

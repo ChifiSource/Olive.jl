@@ -93,12 +93,18 @@ function olive_motd()
     - Added drag indicator to file cells (no drag yet).
     - Removed last evaluation key from cell.
     - Updated directory styles.
+    - Changed windowing from in-line to pane view
+    - prevented defaults
+    - added window key-bindings, shift focus (`shift + ArrowUp`)
+    - Added syntax highlighting colors to settings panel.
+    - Added workspace manager, directory additions.
 
     This version was mainly focused on fixing the issues associated with
-    the initial `0.0.8` release. There were also some slight tweaks made to
-    the data structure within Olive. Some cells have received updates, along
-    with the addition of **include** cells and sub projects.
-    Coming updates will introduce **module** cells to expand on this.
+    the initial `0.0.8` release. There have also been substantial revisions 
+    to windowing. There is now a new work-space manager with a split-pane view.
+    There were also some slight tweaks made to the data structure within Olive. 
+    Some cells have received updates, along with the addition of **include** cells, 
+    **module** cells, and sub-projects. 
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
@@ -148,6 +154,10 @@ it out. Endemic of future projects? **definitely**
 """
 main = route("/") do c::Connection
     args = getargs(c)
+    write!(c, script("nosave", text = """document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            }});"""))
     if ~(:key in keys(args))
         coverimg::Component{:img} = olive_cover()
         olivecover = div("topdiv", align = "center")

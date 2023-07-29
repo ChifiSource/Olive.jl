@@ -596,6 +596,9 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}
     proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
+    bind!(km, keybindings["save"], prevent_default = true) do cm::ComponentModifier
+        save_project(c, cm, proj)
+    end
     bind!(km, keybindings["up"]) do cm2::ComponentModifier
         cell_up!(c, cm2, cell, cells, proj)
     end
@@ -715,7 +718,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
-    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km, on = :down)
     builtcell::Component{:div}
 end
 #==output[code]
@@ -1066,8 +1069,6 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:versioninfo},
     cells::Vector{Cell}, proj::Project{<:Any})
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
     proj, sidebox = false, highlight = false)
     km = cell_bind!(c, cell, cells, proj)
