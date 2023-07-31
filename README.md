@@ -58,8 +58,10 @@ When first starting Olive, you will arrive at the `setup` route. This screen wil
 This is where extensions and changes can be written on top of olive from the outside in. Double clicking a file in the directory will yield a loading of the `/session` route. This route contains the actual editor, as well as the project explorer. The project explorer can be opened by clicking the top left. Client settings can be altered by clicking the top right settings icon. These settings are saved whenever the settings menu is closed.
 ##### cells 
 There are several types of cells that come with Olive, and adding cells is as easy as using modules. The main cell that one will interact with in this regard is the `code` cell. This is your standard Julia input and output. Pressing `;` in a `code` cell will yield a `shell` cell, pressing `]` will yield a `pkgrepl` cell, and `?` will yield a `helprepl` cell. It should also be noted that `#=TODO` and `#=NOTE` also create their own respective comment cells. The default cell bindings are as follows
-- `ctrl` + `shift` + `Enter` runs current cell.
-- `ctrl` + `shift` + `Q` Adds new creator cell.
+- `shift` + `Enter` runs current cell.
+- `shift` + `ArrowUp` moves focus up.
+- `shift` + `ArrowDown` moves focus down.
+- `ctrl` + `shift` + `Enter` Adds new creator cell.
 - `ctrl` + `shift` + `Delete` Deletes the current cell
 - `ctrl` + `shift` + `ArrowUp` Moves the current cell up
 - `ctrl` + `shift` + `ArrowDown` moves cells down.
