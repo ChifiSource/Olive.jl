@@ -4,16 +4,11 @@
 </div>
 
 #### welcome to olive
-Olive.jl is an Extensible Notebook Integrated Development Environment (ENIDE) written in the Julia programming language. Olive notebooks feature markdown and more 
-- Extensibility
-- Deployability
-- Endless Customization
-- Regular Julia Files
-- 
+Olive.jl is an Extensible Notebook Integrated Development Environment (ENIDE) written in the Julia programming language.
 
 Keep in mind this version of Olive (while functional) is still a **work in progress** build. Thank you for reporting bugs to the issues page!
 ###### map
-- [olive?](#olive?)
+- [olive?](#olive)
 - [get started](#get-started)
 - [basic olive](#basic-olive)
 - [extending olive](#extending-olive)
@@ -24,7 +19,7 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/thethetherthgfhtrj.png"></img>
 
 
-### olive?
+### olive
 
 ### get started
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**.
@@ -85,7 +80,12 @@ This is the portion of Olive that is the most under development, so there is not
 ##### directories
 Directories are the final piece of the puzzle. When arriving at the main explorer screen, you will be greeted with two different directories: these are your `olive` home directory and project, and then your working directory. These directories contain file cells inside of them, as well as some controls to make new files or folders inside of the tab for the cells. Double clicking a file will open that file inside of session.
 ### extending olive
-If there is one thing that Olive has built its methodology on, this would be extensibility. The primary extension focus for `0.0.8` is on cells, but there will be even more extension capabilities coming to Olive in the near future. Projects and Directories are both able to be extended, there just is not much convenience to doing so at the moment -- so this is currently not recommended. If you would like to attempt to create your own extensions with this current iteration of Olive, it is sensible to look into the documentation for
+
+
+#### installing extensions
+
+
+#### creating extensions
 - `build`
 - `evaluate`
 - `build_base_cell`
