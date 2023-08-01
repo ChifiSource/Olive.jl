@@ -204,7 +204,6 @@ main = route("/") do c::Connection
     end
     # setup base env
     write!(c, olivesheet())
-    c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
     # setup base UI
     notifier::Component{:div} = olive_notific()

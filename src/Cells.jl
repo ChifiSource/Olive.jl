@@ -1071,7 +1071,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:versioninfo},
     cells::Vector{Cell}, proj::Project{<:Any})
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
     proj, sidebox = false, highlight = false)
-    km = cell_bind!(c, cell, cells, proj)
+    km = Base.invokelatest(cell_bind!, c, cell, cells, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
