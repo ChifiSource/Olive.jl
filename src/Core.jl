@@ -157,6 +157,9 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
         push!(c[:OliveCore].client_data[getname(c)],
         "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown"))
     end
+    if om.data["selected"] == "files"
+        return
+    end
     creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
     creatorkeysmen = section("creatormenu")
     regkeys = div("regkeyss")

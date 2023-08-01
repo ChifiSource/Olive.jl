@@ -850,18 +850,6 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
         focus!(cm, "cell$(new_cell.id)")
     end
     cursorpos = parse(Int64, cm["cell$(cell.id)"]["caret"])
-    if cursorpos > 1
-        lastn = findprev("\n", curr, cursorpos)
-        if ~(isnothing(lastn))
-            lastline = findprev("\n", curr, lastn[1] - 1)
-            if isnothing(lastline)
-                lastline = 1:lastn[1] - 1
-            end
-            if contains(curr[lastline[1]:cursorpos], "function")
-                # auto-indent goes here.
-            end
-        end
-    end
     cell.source = curr
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
@@ -1071,7 +1059,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:versioninfo},
     cells::Vector{Cell}, proj::Project{<:Any})
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
     proj, sidebox = false, highlight = false)
-    km = Base.invokelatest(cell_bind!, c, cell, cells, proj)
+    km = cell_bind!(c, cell, cells, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)

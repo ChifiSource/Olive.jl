@@ -204,6 +204,7 @@ main = route("/") do c::Connection
     end
     # setup base env
     write!(c, olivesheet())
+    c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
     # setup base UI
     notifier::Component{:div} = olive_notific()
@@ -280,36 +281,6 @@ to offering some examples.
  """
 devmode = route("/") do c::Connection
     
-end
-#==output[code]
-==#
-#==|||==#
-#==output[TODO]
-I would love for the doc browser to be completed..
-I want it to work primarily off of just requests, and client functions.
-Other than the search of course. There is a lot more
-==#
-#==|||==#
-docbrowser = route("/doc") do c::Connection
-    notifier::Component{:div} = olive_notific()
-    write!(c, DOCTYPE())
-    write!(c, olivesheet())
-    write!(c, notifier)
-    if ~(getname(c) in keys(c[:OliveCore].open))~
-        # TODO doc for OLMOD
-        push!(c[:OliveCore].open, getname(c) => Project{:doc}())
-        return
-    end
-    p::Project{<:Any} = c[:OliveCore].open[getname(c)]
-    mod = getarg(c, :mod, first(p.open)[1])
-    getdoc = getarg(c, :get, "$(p.name)")
-    docs = p.open[mod][:mod].evalin(Meta.parse("@doc($(getdoc))"))
-    T = p.open[mod][:mod].evalin(Meta.parse("$(getdoc)"))
-    if typeof(T) == Module
-        write!(c, h("mod", 1, text = "module"))
-    end
-    write!(c, h("T", 2, text = string(typeof(T))))
-    write!(c, tmd(ToolipsSession.gen_ref(), string(docs)))
 end
 #==output[code]
 ==#
@@ -545,7 +516,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     rootname::String = ""
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if ~(isdir("$homedirec/olive"))
-        rs = routes(setup, fourofour, icons, mainicon, docbrowser)
+        rs = routes(setup, fourofour, icons, mainicon)
     else
         config = TOML.parse(read("$homedirec/olive/Project.toml", String))
         Pkg.activate("$homedirec/olive")
@@ -556,7 +527,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         oc.data["home"] = homedirec * "/olive"
         oc.data["wd"] = pwd()
         source_module!(oc)
-        rs = routes(fourofour, main, docbrowser, icons, mainicon)
+        rs = routes(fourofour, main, icons, mainicon)
     end
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/", "/session", "/doc"])])
@@ -568,66 +539,6 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
             "link for $(rootname): http://$(IP):$(PORT)/?key=$key")
     end
     server::Toolips.ToolipsServer
-end
-#==output[code]
-==#
-#==|||==#
-function create(name::String; nodeps::Bool = false)
-    Pkg.generate(name)
-    Pkg.activate(name)
-    Pkg.add("Olive")
-    Pkg.add("TOML")
-    Pkg.add("Pkg")
-    Pkg.activate("$name/public")
-    Pkg.add("Pkg")
-    open("$name/src/$name.jl") do io
-        write!(io, """
-        module $name
-        using Olive
-        using Olive.Toolips
-        using Olive.ToolipsSession
-        import Olive: build
-
-        function start(IP::String = "127.0.0.1", PORT::8000)
-            oc = OliveCore()
-            config = TOML.parse(read("public/Project.toml", String))
-            Pkg.activate("public")
-            oc.data = config["olive"]
-            rootname = oc.data["root"]
-            oc.client_data = config["oliveusers"]
-            oc.data["home"] = @
-            oc.data["wd"] = pwd()
-            source_module!(oc)
-            rs = routes(fourofour, main, explorer, docbrowser, icons, mainicon)
-        end
-
-        end # module
-        """)
-    end
-end
-#==output[code]
-==#
-#==|||==#
-function create_extension(name::String; nodeps::Bool = false)
-    Pkg.generate(name)
-    Pkg.activate(name)
-    Pkg.add("Olive")
-    open("$name/src/$name.jl") do io
-        write!(io, """
-        module $name
-        using Olive
-        using Olive.Toolips
-        using Olive.ToolipsSession
-        import Olive: build
-
-        function build(c::Connection, om::OliveModifier,
-            oe::OliveExtension{:$name})
-
-        end
-
-        end # module
-        """)
-    end
 end
 #==output[code]
 ==#
