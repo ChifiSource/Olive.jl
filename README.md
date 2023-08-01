@@ -85,6 +85,8 @@ Directories are the final piece of the puzzle. When arriving at the main explore
 #### installing extensions
 
 
+#### common extensions
+
 #### creating extensions
 - `build`
 - `evaluate`
@@ -98,7 +100,7 @@ Directories are the final piece of the puzzle. When arriving at the main explore
 
 [Here](https://chifi.dev/adding-python-cells-to-olive-3d564633dc04?source=your_stories_page-------------------------------------) is an article where I go about creating a Python extension for Olive, and [here](https://github.com/ChifiSource/OlivePy.jl) is a link to that project so you may see it for yourself
 ### deploying olive
-Olive has been built with deployability in mind, but we should keep in mind that `0.0.8` is still an early version of Olive. It is not recommended to deploy this version as there is insufficient memory management and permission management on the back-end. This cuurrent form of Olive is certainly recommended to be used personally, and locally, but this is set to change by `0.1.0` :)
+Olive has a goal to be very deployable, but it is recommended to wait for `0.1.0` to deploy `Olive`. It is also recommended to add `OliveSession`; this provides a number of great features for multiple users, including better directory management, login screens, and sharable sessions.
 
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
@@ -110,8 +112,8 @@ Olive is a complicated project, and there is a lot going on from merely Olive it
 - sponsoring ChifiSource creators (in each repo's sponsors section)
 
 I thank you for all of your help with our project, or just for considering contributing!
-#### issues
-When submitting issues for Olive, it is important to make sure of a few things.
+#### issues and pull-requests
+When submitting issues for Olive, it is important to make sure of a few things. We are not super strict, but making sure of these few things will be helpful for maintainers!
 1. You have replicated the issue on `Olive#Unstable`
 2. The issue does not currently exist.
 3. **Pull Request TO UNSTABLE**
