@@ -1140,7 +1140,7 @@ inputcell_style (generic function with 1 method)
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     cells::Vector{Cell}, proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
-    proj = c[:OliveCore].open[getname(c)][window]
+    proj = c[:OliveCore].open[getname(c)][proj.name]
     varname = "data"
     if length(curr) > 2
         if contains(curr[1:2], "[")
