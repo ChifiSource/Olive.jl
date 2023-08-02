@@ -154,10 +154,6 @@ it out. Endemic of future projects? **definitely**
 """
 main = route("/") do c::Connection
     args = getargs(c)
-    write!(c, script("nosave", text = """document.addEventListener('keydown', e => {
-        if (e.ctrlKey && e.key === 's') {
-            e.preventDefault();
-            }});"""))
     if ~(:key in keys(args))
         coverimg::Component{:img} = olive_cover()
         olivecover = div("topdiv", align = "center")

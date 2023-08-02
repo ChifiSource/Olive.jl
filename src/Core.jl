@@ -111,7 +111,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         "new" => ["Enter", "ctrl", "shift"],
         "focusup" => ["ArrowUp", "shift"],
         "focusdown" => ["ArrowDown", "shift"],
-        "save" => ["s", "ctrl"]
+        "save" => ["s", "ctrl"],
+        "saveas" => ["S", "ctrl", "shift"]
         ))
     end
     keybind_section = section("settings_keys")
@@ -239,30 +240,6 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
         end for color in keys(dic[colorset])]
     end
     append!(om, "settingsmenu", sect)
-end
-
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
-    explorericon = topbar_icon("docico", "newspaper")
-    on(c, explorericon, "click") do cm::ComponentModifier
-        mods = [begin 
-            if :mod in keys(p.data)
-                p.data[:mod]
-            else
-                nothing
-            end
-        end for p in c[:OliveCore].open[getname(c)].projects]
-        filter!(x::Any -> ~(isnothing(x)), mods)
-        push!(mods, Olive, olive)
-        cells = Vector{Cell}([Cell(e, "docmodule", "", mod) for (e, mod) in enumerate(mods)])
-        home_direc = Directory(c[:OliveCore].data["home"])
-        projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
-        :path => home_direc.uri, :env => home_direc.uri)
-        myproj::Project{:doc} = Project{:doc}(home_direc.uri, projdict)
-        push!(c[:OliveCore].open[getname(c)].projects, myproj)
-        tab::Component{:div} = build_tab(c, "documentation")
-        open_project(c, om, proj, tab)
-    end
-    insert!(om, "rightmenu", 1, explorericon)
 end
 
 function save_settings!(c::Connection; core::Bool = false)
