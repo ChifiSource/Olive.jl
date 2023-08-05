@@ -260,16 +260,26 @@ end
 function work_filemenu(c::Connection, path::String)
     selector_indicator = h("selector", 4, text = path)
     selector_box = div("selectorbox")
-    controls = div("selectorcontrols")
+    controls = div("filecontrols")
     style!(selector_box, "display" => "inline-block")
     style!(selector_indicator, "display" => "inline-block")
+    adddirec = topbar_icon("add_direc", "arrow_upward")
+    style!(adddirec, "color" => "gray")
+    on(c, adddirec, "click") do cm::ComponentModifier
+        newdirec = cm[selector_indicator]["text"]
+        newdirectory = Directory(newdirec)
+        addeddirec = build(c, newdirectory, c[:OliveCore].olmod)
+        append!(cm, "projectexplorer", addeddirec)
+        append!(cm, "dinfoworkmenu", work_preview(c, newdirectory))
+    end
+    push!(controls, selector_indicator, adddirec)
     push!(selector_box, selector_indicator, controls)
     filebox = section("filebox")
     style!(filebox, "height" => 40percent, "overflow-y" => "scroll")
     filebox[:children] = vcat(Vector{Servable}([build_returner(c, path)]),
     Vector{Servable}([build_comp(c, path, f) for f in readdir(path)]))
     cellover = div("dirselectover")
-    push!(cellover, selector_indicator, filebox)
+    push!(cellover, controls, filebox)
     cellover
 end
 
