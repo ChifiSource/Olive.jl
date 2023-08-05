@@ -190,10 +190,10 @@ olivesheet (generic function with 1 method)
 
 function projectexplorer()
     pexplore = divider("projectexplorer")
-    style!(pexplore, "background" => "transparent", "position" => "fixed",
+    style!(pexplore, "background" => "transparent", "position" => "absolute",
     "z-index" => "1", "top" => "0", "overflow-x" => "hidden",
-     "padding-top" => 75px, "width" => "0", "height" => "100%", "left" => "0",
-     "transition" => "0.8s", "overflow-y" => "hidden")
+     "padding-top" => 75px, "width" => "0", "height" => "90%", "left" => "0",
+     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%")
     pexplore
 end
 #==output[code]
@@ -205,13 +205,15 @@ function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
     on(c, explorericon, "click") do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
-            style!(cm, "projectexplorer", "width" => "500px")
+            style!(cm, "projectexplorer", "width" => "500px", 
+            "overflow-y" => "scroll")
             style!(cm, "olivemain", "margin-left" => "500px")
             style!(cm, explorericon, "color" => "lightblue")
             set_text!(cm, explorericon, "folder_open")
             cm["olivemain"] = "ex" => "1"
         else
-            style!(cm, "projectexplorer", "width" => "0px")
+            style!(cm, "projectexplorer", "width" => "0px", 
+            "overflow-y" => "hidden")
             style!(cm, "olivemain", "margin-left" => "0px")
             set_text!(cm, explorericon, "drive_file_move_rtl")
             style!(cm, explorericon, "color" => "black")
