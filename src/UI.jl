@@ -245,8 +245,30 @@ function work_menu(c::Connection)
     dinfo_box[:children] = Vector{Servable}(
     [work_preview(c, d) for d in env.directories]
     )
-    push!(working_area, open_heading, pinfo_box, dinfo_box)
+    dirselector = work_filemenu(c, env.directories[1].uri)
+    push!(working_area, open_heading, pinfo_box, dinfo_box, 
+    dirselector)
     working_area
+end
+
+function switch_work_dir!(cm::ComponentModifier, path::String)
+
+end
+
+function work_filemenu(c::Connection, path::String)
+    selector_indicator = h("selector", 4, text = path)
+    selector_box = div("selectorbox")
+    controls = div("selectorcontrols")
+    style!(selector_box, "display" => "inline-block")
+    style!(selector_indicator, "display" => "inline-block")
+    push!(selector_box, selector_indicator, controls)
+    filebox = section("filebox")
+    style!(filebox, "height" => 40percent, "overflow-y" => "scroll")
+    filebox[:children] = vcat(Vector{Servable}([build_returner(c, path)]),
+    Vector{Servable}([build_comp(c, path, f) for f in readdir(path)]))
+    cellover = div("dirselectover")
+    push!(cellover, selector_indicator, filebox)
+    cellover
 end
 
 function work_preview(c::Connection, p::Project{<:Any})
