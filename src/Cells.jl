@@ -302,7 +302,7 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cell::Cell{:ipynb},
     d::Directory{<:Any}; explorer::Bool = false)
     filecell = build_base_cell(c, cell, d, explorer = explorer)
-    style!(filecell, "background-color" => "orange")
+    style!(filecell, "background-color" => "#FD5800")
     if explorer
         on(c, filecell, "dblclick") do cm::ComponentModifier
             cs::Vector{Cell{<:Any}} = IPyCells.read_ipynb(cell.outputs)
@@ -600,7 +600,12 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}
         save_project(c, cm, proj)
     end
     bind!(km, keybindings["saveas"], prevent_default = true) do cm::ComponentModifier
-        alert!(cm, "hi")
+        style!(cm, "projectexplorer", "width" => "500px")
+        style!(cm, "olivemain", "margin-left" => "500px")
+        style!(cm, "explorerico", "color" => "lightblue")
+        set_text!(cm, "explorerico", "folder_open")
+        cm["olivemain"] = "ex" => "1"
+        save_project(c, cm, proj)
     end
     bind!(km, keybindings["up"]) do cm2::ComponentModifier
         cell_up!(c, cm2, cell, cells, proj)
@@ -648,7 +653,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
         "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
         "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
-        on(c, inputbox, "keyup") do cm2::ComponentModifier
+        on(c, inputbox, "keyup", ["cell$(cell.id)", "rawcell$(cell.id)"]) do cm2::ComponentModifier
             cell_highlight!(c, cm2, cell, cells, proj)
         end
         on(cm, inputbox, "paste") do cl
@@ -1140,7 +1145,7 @@ inputcell_style (generic function with 1 method)
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     cells::Vector{Cell}, proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
-    proj = c[:OliveCore].open[getname(c)][proj.name]
+    proj = c[:OliveCore].open[getname(c)][window]
     varname = "data"
     if length(curr) > 2
         if contains(curr[1:2], "[")

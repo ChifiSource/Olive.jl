@@ -8,8 +8,6 @@ This software is MIT-licensed.
 Welcome to olive! olive is an integrated development environment written in
 julia and for other languages and data editing. Crucially, olive is abstract
     in definition and allows for the creation of unique types for names.
-##### Module Composition
-- [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
 """
 module Olive
 #==output[code]
@@ -241,6 +239,10 @@ main = route("/") do c::Connection
     "border-color" => "#333333")
     push!(pane_container_one, pane_one_tabs, pane_one)
     push!(pane_container_two, pane_two_tabs, pane_two)
+    loadicondiv = div("loaddiv", align = "center")
+    style!(loadicondiv, "padding" => 10percent, "transition" => "1.5s")
+    push!(loadicondiv, olive_loadicon())
+    push!(pane_one, loadicondiv)
     push!(olivemain, pane_container_one, pane_container_two)
     style!(olivemain, "overflow-x" => "hidden", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",
@@ -248,17 +250,21 @@ main = route("/") do c::Connection
     bod = body("mainbody")
     style!(bod, "overflow" => "hidden")
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
-    script!(c, "load", type = "Timeout") do cm::ComponentModifier
+    script!(c, "load", ["olivemain"], type = "Timeout") do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
-        [begin
-            window::Component{:div} = Base.invokelatest(olmod.build, c,
-            cm, proj)
-            append!(cm, "pane_$(proj.data[:pane])", window)
-            append!(cm, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj))
-        end for proj in env.projects]
+        style!(cm, "loaddiv", "opacity" => 0percent)
         ToolipsSession.insert!(cm, "projectexplorer", 1, work_menu(c))
-        if length(env.projects) > 1
-            style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+        next!(c, loadicondiv, cm, ["olivemain"]) do cm2::ComponentModifier
+            remove!(cm2, "loaddiv")
+            [begin
+                window::Component{:div} = Base.invokelatest(olmod.build, c,
+                cm2, proj)
+                append!(cm2, "pane_$(proj.data[:pane])", window)
+                append!(cm2, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj))
+            end for proj in env.projects]
+            if length(env.projects) > 1
+                style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+            end
         end
     end
     write!(c, bod)

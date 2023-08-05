@@ -427,7 +427,10 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
         environment = c[:OliveCore].data["home"]
     end
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :path => fpath, :env => environment)
+    :env => environment)
+    if fpath != c[:OliveCore].data["home"]
+        push!(projdict, :path => fpath)
+    end
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, source)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
@@ -620,7 +623,7 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
 end
 
 function save_project(c::Connection, cm::ComponentModifier, p::Project{<:Any}, path::String)
-    save_split = split(p.name, ".")
+    save_split = split(path, ".")
     if length(save_split) < 2
         save_type = "Any"
     else
@@ -636,13 +639,13 @@ function save_project(c::Connection, cm::ComponentModifier, p::Project{<:Any}, p
         olive_notify!(cm2, "file $(savepath) saved", color = "$ret")
     end
 end
+
 function olive_loadicon()
     srcdir = @__DIR__
     iconb64 = read(srcdir * "/images/loadicon.png", String)
     myimg = img("olive-loader", src = iconb64, class = "loadicon")
     animate!(myimg, spin_forever())
     myimg
-
 end
 #==output[code]
 olive_loadicon (generic function with 1 method)
