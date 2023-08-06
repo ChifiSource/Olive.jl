@@ -248,14 +248,22 @@ function work_menu(c::Connection)
     dinfo_box[:children] = Vector{Servable}(
     [work_preview(c, d) for d in env.directories]
     )
+    fileedit = div("fileeditbox")
+    style!(fileedit, "height" => 0percent, "opacity" => 0percent, "transition" => 1seconds, 
+    "display" => "flex")
     dirselector = work_filemenu(c, env.directories[1].uri)
     push!(working_area, open_heading, Component("worksep", "hr"), pinfo_box, dinfo_box, 
-    dirselector)
+    dirselector, fileedit)
     working_area
 end
 
-function switch_work_dir!(cm::ComponentModifier, path::String)
-
+function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
+    #  c[:OliveCore].open[getip(c)].pwd = path
+    pathsplit = split(path, "/")
+    path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
+    set_text!(cm, "selector", string(path))
+    children::Vector{Servable} = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])
+    set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
 end
 
 function work_filemenu(c::Connection, path::String)
@@ -307,7 +315,7 @@ function work_preview(c::Connection, p::Project{<:Any})
     style!(saveasbutton, "font-size"  => 20pt, "color" => "gray", 
     "display" => "inline-block")
     on(c, saveasbutton, "click") do cm::ComponentModifier
-        save_project(c, cm, p)
+        save_project_as(c, cm, p)
     end
     push!(preview, name_label, br(), savebutton, saveasbutton)
     preview::Component{:div}
@@ -664,9 +672,17 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     end
 end
 
-function save_project(c::Connection, cm::ComponentModifier, p::Project{<:Any}, path::String)
-    save_split = split(path, ".")
-    if length(save_split) < 2
+function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any})
+    save_split = split(p.data[:path], ".")
+    fname = p.name * "(1)"
+    switch_work_dir!(c, cm, p.data[:path])
+    namebox = ToolipsDefaults.textdiv("saveas$(p.id)", text = fname)
+    #outputformats = 
+    savebutton = button("saveasbutton", text = "save")
+    style!(namebox, "display" => "flex", "width" => 100percent)
+    set_children!(cm, "fileeditbox", [namebox, savebutton])
+    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+  #==  if length(save_split) < 2
         save_type = "Any"
     else
         save_type = join(save_split[2:length(save_split)])
@@ -679,7 +695,7 @@ function save_project(c::Connection, cm::ComponentModifier, p::Project{<:Any}, p
         olive_notify!(cm2, "file $(savepath) saved", color = "green")
     else
         olive_notify!(cm2, "file $(savepath) saved", color = "$ret")
-    end
+    end ==#
 end
 
 function olive_loadicon()

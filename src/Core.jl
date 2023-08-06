@@ -555,9 +555,11 @@ mutable struct Environment
     name::String
     directories::Vector{Directory}
     projects::Vector{Project}
+    pwd::String
     function Environment(name::String)
         new(name, Vector{Directory}(),
-        Vector{Project}())::Environment
+        Vector{Project}(), "")::Environment
+        # TODO, set this   ^^ to user's home.
     end
 end
 

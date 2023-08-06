@@ -163,6 +163,7 @@ function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{<:Any})
         [write(io, string(cell.source) * "\n") for cell in cells]
     end
 end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -605,7 +606,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}
         style!(cm, "explorerico", "color" => "lightblue")
         set_text!(cm, "explorerico", "folder_open")
         cm["olivemain"] = "ex" => "1"
-        save_project(c, cm, proj)
+        save_project_as(c, cm, proj)
     end
     bind!(km, keybindings["up"]) do cm2::ComponentModifier
         cell_up!(c, cm2, cell, cells, proj)
