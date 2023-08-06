@@ -58,8 +58,18 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
+    if length(cells) == 1
+        olive_notify!(cm, "you cannot the last cell in the project", color = "red")
+        return
+    end
+    pos = findfirst(c -> c.id == cell.id, cells)
     remove!(cm, "cellcontainer$(cell.id)")
-    deleteat!(cells, findfirst(c -> c.id == cell.id, cells))
+    deleteat!(cells, pos)
+    if pos == 1
+        focus!(cm, "cell$(cells[pos + 1].id)")
+    else
+        focus!(cm, "cell$(cells[pos - 1].id)")
+    end
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
