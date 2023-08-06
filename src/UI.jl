@@ -238,6 +238,7 @@ function work_menu(c::Connection)
     becell = "workmenu"
     env::Environment = c[:OliveCore].open[getname(c)]
     working_area = section(becell)
+    style!(working_area, "padding" => 12px)
     open_heading = h("open$becell", 2, text = "open")
     pinfo_box = div("pinfo$becell")
     pinfo_box[:children] = Vector{Servable}(
@@ -248,7 +249,7 @@ function work_menu(c::Connection)
     [work_preview(c, d) for d in env.directories]
     )
     dirselector = work_filemenu(c, env.directories[1].uri)
-    push!(working_area, open_heading, pinfo_box, dinfo_box, 
+    push!(working_area, open_heading, Component("worksep", "hr"), pinfo_box, dinfo_box, 
     dirselector)
     working_area
 end
@@ -264,18 +265,25 @@ function work_filemenu(c::Connection, path::String)
     style!(selector_box, "display" => "inline-block")
     style!(selector_indicator, "display" => "inline-block")
     adddirec = topbar_icon("add_direc", "arrow_upward")
-    style!(adddirec, "color" => "gray")
+    style!(adddirec, "color" => "gray", "font-size" => 10pt)
     on(c, adddirec, "click") do cm::ComponentModifier
+        env = c[:OliveCore].open[getname(c)]
         newdirec = cm[selector_indicator]["text"]
+        if length(findall(d -> d.uri == newdirec, env.directories)) > 0
+            olive_notify!(cm, "this directory is already open!", color = "red")
+            return
+        end
         newdirectory = Directory(newdirec)
         addeddirec = build(c, newdirectory, c[:OliveCore].olmod)
         append!(cm, "projectexplorer", addeddirec)
         append!(cm, "dinfoworkmenu", work_preview(c, newdirectory))
+        push!(env.directories, newdirectory)
     end
     push!(controls, selector_indicator, adddirec)
     push!(selector_box, selector_indicator, controls)
     filebox = section("filebox")
-    style!(filebox, "height" => 40percent, "overflow-y" => "scroll")
+    style!(filebox, "height" => 40percent, "overflow-y" => "scroll", 
+    "padding" => 2px)
     filebox[:children] = vcat(Vector{Servable}([build_returner(c, path)]),
     Vector{Servable}([build_comp(c, path, f) for f in readdir(path)]))
     cellover = div("dirselectover")

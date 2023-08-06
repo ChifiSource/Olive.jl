@@ -883,7 +883,7 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
     icon["width"] = "20"
     remove!(cm2, cell_run)
     set_children!(cm2, "cellside$(cell.id)", [icon])
-    script!(c, cm2, "$(cell.id)eval") do cm::ComponentModifier
+    script!(c, cm2, "$(cell.id)eval", type = "Timeout") do cm::ComponentModifier
         # get code
         rawcode::String = cm["cell$(cell.id)"]["text"]
         execcode::String = *("begin\n", rawcode, "\nend\n")
