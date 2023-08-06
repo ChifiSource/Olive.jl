@@ -147,11 +147,13 @@ Olive has a goal to be very deployable, but it is recommended to wait for `0.1.0
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
 - simply using olive
+- creating extensions for olive
 - sharing olive with your friends!
 - starring olive
 - forking olive
 - submitting issues
 - sponsoring ChifiSource creators (in each repo's sponsors section)
+- participating in the community
 
 I thank you for all of your help with our project, or just for considering contributing!
 #### issues and pull-requests
