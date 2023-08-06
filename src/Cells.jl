@@ -116,94 +116,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-"""
-**Olive Cells**
-### build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; explorer::Bool = false) -> ::Component{:div}
-------------------
-The catchall/default `build` function for directory cells. This function is what
-creates the gray boxes for files that Olive cannot read inside of directories.
-Using this function as a template, you can create your own directory cells.
-Write a new method for this function in order to build cells for a new
-file type. Note that you might also want to extend `olive_save` in order
-to save your new file type. Bind `dblclick` and use the `load_session` or
-`add_to_session` methods, dependent on `explorer`... Which should also be `false`
-by default. `directory_cells` will put the file path into `cell.outputs` and
-the file name into `cell.source`.
-#### example
-```
-```
-Here are some other **important** functions to look at for creating cells:
-- `cell_bind!`
-- `build_base_cell`
-- `evaluate`
-- `bind!`
-- `cell_highlight!`
-- `olive_save`
-"""
-function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
-    explorer::Bool = false)
-    hiddencell = div("cell$(cell.id)")
-    hiddencell["class"] = "cell-jl"
-    style!(hiddencell, "background-color" => "white")
-    name = a("cell$(cell.id)label", text = cell.source)
-    style!(name, "color" => "black")
-    push!(hiddencell, name)
-    hiddencell
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-"""
-**Olive Cells**
-### olive_save(cells::Vector{Cell}, sc::Cell{<:Any})
-------------------
-Saves the vector of cells into the output format of `sc`. For example, if we
-were saving a Julia file, we would write
-`olive_save(cells::Vector{Cell}, sc::Cell{:jl})`
-#### example
-```
-cells = IPyCells.read_jl("myfolder/myjl.jl")
-filecell = Cell(1, "jl", "myjl.jl", "myfolder/myjl.jl")
-olive_save(cells, filecell) # saves `cells` to "myfolder/myjl.jl"
-```
-"""
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{<:Any})
-    open(sc.outputs, "w") do io
-        [write(io, string(cell.source) * "\n") for cell in cells]
-    end
-end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
-    files = readdir(dir)
-    return([build_file_cell(e, path, dir) for (e, path) in enumerate(files)]::AbstractVector)
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function build_file_cell(e::Int64, path::String, dir::String)
-    if ~(isdir(dir * "/" * path))
-        splitdir::Vector{SubString} = split(path, "/")
-        fname::String = string(splitdir[length(splitdir)])
-        fsplit = split(fname, ".")
-        fending::String = ""
-        if length(fsplit) > 1
-            fending = string(fsplit[2])
-        end
-        Cell(e, fending, fname, replace(dir * "/" * path, "\\" => "/"))
-    else
-        Cell(e, "dir", path, dir)
-    end
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 """
 **Olive Cells**
 ```
@@ -271,6 +184,100 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     "font-size" => 14pt, "margin-left" => 5px)
     push!(hiddencell, delbutton, name, finfo)
     hiddencell
+end
+
+"""
+**Olive Cells**
+### build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; explorer::Bool = false) -> ::Component{:div}
+------------------
+The catchall/default `build` function for directory cells. This function is what
+creates the gray boxes for files that Olive cannot read inside of directories.
+Using this function as a template, you can create your own directory cells.
+Write a new method for this function in order to build cells for a new
+file type. Note that you might also want to extend `olive_save` in order
+to save your new file type. Bind `dblclick` and use the `load_session` or
+`add_to_session` methods, dependent on `explorer`... Which should also be `false`
+by default. `directory_cells` will put the file path into `cell.outputs` and
+the file name into `cell.source`.
+#### example
+```
+```
+Here are some other **important** functions to look at for creating cells:
+- `cell_bind!`
+- `build_base_cell`
+- `evaluate`
+- `bind!`
+- `cell_highlight!`
+- `olive_save`
+"""
+function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
+    explorer::Bool = false)
+    hiddencell = div("cell$(cell.id)")
+    hiddencell["class"] = "cell-jl"
+    style!(hiddencell, "background-color" => "white")
+    name = a("cell$(cell.id)label", text = cell.source)
+    style!(name, "color" => "black")
+    push!(hiddencell, name)
+    hiddencell
+end
+
+function olive_read(cell::Cell{<:Any})
+
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+"""
+"""
+mutable struct ProjectExport{T <: Any} end
+
+"""
+**Olive Cells**
+### olive_save(cells::Vector{Cell}, sc::Cell{<:Any})
+------------------
+Saves the vector of cells into the output format of `sc`. For example, if we
+were saving a Julia file, we would write
+`olive_save(cells::Vector{Cell}, sc::Cell{:jl})`
+#### example
+```
+cells = IPyCells.read_jl("myfolder/myjl.jl")
+filecell = Cell(1, "jl", "myjl.jl", "myfolder/myjl.jl")
+olive_save(cells, filecell) # saves `cells` to "myfolder/myjl.jl"
+```
+"""
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
+    pe::ProjectExport{<:Any})
+    open(sc.outputs, "w") do io
+        [write(io, string(cell.source) * "\n") for cell in cells]
+    end
+end
+
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
+    files = readdir(dir)
+    return([build_file_cell(e, path, dir) for (e, path) in enumerate(files)]::AbstractVector)
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function build_file_cell(e::Int64, path::String, dir::String)
+    if ~(isdir(dir * "/" * path))
+        splitdir::Vector{SubString} = split(path, "/")
+        fname::String = string(splitdir[length(splitdir)])
+        fsplit = split(fname, ".")
+        fending::String = ""
+        if length(fsplit) > 1
+            fending = string(fsplit[2])
+        end
+        Cell(e, fending, fname, replace(dir * "/" * path, "\\" => "/"))
+    else
+        Cell(e, "dir", path, dir)
+    end
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
