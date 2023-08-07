@@ -679,29 +679,30 @@ function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any}
     save_split = split(p.data[:path], ".")
     fnamesplit = split(save_split[1], "/")
     epname = join(save_split[2:length(save_split)], ".")
-    fname = save_split[1] * "(1)" * epname 
+    fname = fnamesplit[length(fnamesplit)] * "(1)" * "." * epname 
     switch_work_dir!(c, cm, p.data[:path])
-    namebox = ToolipsDefaults.textdiv("saveas$(p.id)", text = fname)
+    namebox = ToolipsDefaults.textdiv("saveasbox", text = fname)
     output_opts = Vector{Servable}([begin
         mname = m.sig.parameters[4]
         if mname == ProjectExport{<:Any}
             ToolipsDefaults.option("rawselect", text = "raw")
         else
-            ToolipsDefaults.option(string(mname.parameters[1]), text = string(mname.parameters[1]))
+            ToolipsDefaults.option(string(e), text = string(mname.parameters[1]))
         end  
-    end for m in methods(olive_save)])
+    end for (e, m) in enumerate(methods(olive_save))])
     selectorbox = ToolipsDefaults.dropdown("outputfmt", output_opts)
+    selectorbox["value"] = output_opts[1][:text]
     savebutton = button("saveasbutton", text = "save")
     style!(namebox, "display" => "flex", "width" => 100percent)
-    on(c, savebutton, "click") do cm2::ComponentModifier
-        finalname = cm[namebox]["text"]
-        path = cm["selector"]["text"]
-        exporttype = cm[selectorbox]["value"]
+    on(c, savebutton, "click", ["saveasbox", "outputfmt", "selector"]) do cm2::ComponentModifier
+        finalname = cm2[namebox]["text"]
+        path = cm2["selector"]["text"]
+        exporttype = cm2[selectorbox]["value"]
         if epname != exporttype
-            p[:export] = epname
+            p.data[:export] = epname
         end
-        cells = p[:cells]
-        p[:path] = path * finalname
+        cells = p.data[:cells]
+        p.data[:path] = path * "/" * finalname
         pe::ProjectExport{<:Any} = ProjectExport{Symbol(exporttype)}()
         ret = olive_save(cells, p, pe)
         if isnothing(ret)

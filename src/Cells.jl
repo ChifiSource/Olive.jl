@@ -216,7 +216,7 @@ Here are some other **important** functions to look at for creating cells:
 """
 function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     explorer::Bool = false)
-    hiddencell = div("cell$(cell.id)")
+    hiddencell = build_base_cell(c, cell, d)
     hiddencell["class"] = "cell-jl"
     style!(hiddencell, "background-color" => "white")
     name = a("cell$(cell.id)label", text = cell.source)
@@ -275,7 +275,7 @@ end
 
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{:jl})
-    IPyCells.save(cells, sc.outputs)
+    IPyCells.save(cells, p.data[:path])
 end
 
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
@@ -513,7 +513,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
-    windowname, sidebox = true, highlight = false)
+    proj, sidebox = true, highlight = false)
     km = cell_bind!(c, cell, cells, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     sidebox = interior[:children]["cellside$(cell.id)"]
