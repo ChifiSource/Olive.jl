@@ -663,8 +663,12 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     end
     savepath = p[:path]
     cells = p[:cells]
-    savecell = Cell(1, save_type, p.name, savepath)
-    ret = olive_save(cells, savecell)
+    if :export in keys(p.data)
+        pe::ProjectExport{<:Any} = ProjectExport{p[:export]}()
+    else
+        pe = ProjectExport{Symbol(save_type)}()
+    end
+    ret = olive_save(cells, p, pe)
     if isnothing(ret)
         olive_notify!(cm2, "file $(savepath) saved", color = "green")
     else
@@ -677,10 +681,13 @@ function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any}
     fname = p.name * "(1)"
     switch_work_dir!(c, cm, p.data[:path])
     namebox = ToolipsDefaults.textdiv("saveas$(p.id)", text = fname)
-    #outputformats = 
+    output_opts = Vector{Servable}([begin
+        ToolipsDefaults.options(string(m.sig.parameters[4]), text = string(m.sig.parameters[4]))
+    end for m in methods(olive_save)])
+    selectorbox = ToolipsDefaults.dropdown("outputfmt". output_opts)
     savebutton = button("saveasbutton", text = "save")
     style!(namebox, "display" => "flex", "width" => 100percent)
-    set_children!(cm, "fileeditbox", [namebox, savebutton])
+    set_children!(cm, "fileeditbox", [namebox, selectorbox, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
   #==  if length(save_split) < 2
         save_type = "Any"

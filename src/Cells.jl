@@ -268,7 +268,7 @@ olive_save(cells, filecell) # saves `cells` to "myfolder/myjl.jl"
 """
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{<:Any})
-    open(sc.outputs, "w") do io
+    open(p[:path].outputs, "w") do io
         [write(io, string(cell.source) * "\n") for cell in cells]
     end
 end
@@ -280,7 +280,7 @@ end
 
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{:ipynb})
-    IPyCells.save_ipynb(cells, sc.outputs)
+    IPyCells.save_ipynb(cells, p[:path])
 end
 
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
