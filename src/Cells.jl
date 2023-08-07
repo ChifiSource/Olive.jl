@@ -518,7 +518,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     sidebox = interior[:children]["cellside$(cell.id)"]
     [style!(child, "color" => "red") for child in sidebox[:children]]
-    insert!(builtcell[:children], 1, h("unknown", 3, text = "cell $(cell.type)"))
+    insert!(builtcell[:children], 1, h("unknown", 3, text = "$(cell.type)"))
     style!(sidebox, "background" => "transparent")
     inp = interior[:children]["cellinput$(cell.id)"]
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
@@ -557,6 +557,21 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         ToolipsSession.append!(cm, proj.id, build(c, cm, new_cell, cells, proj))
         focus!(cm, "cell$(new_cell.id)")
     end
+end
+
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
+    cells::Vector{Cell}, proj::Project{<:Any})
+    pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    cell.source = cm["cell$(cell.id)"]["text"]
+    if pos != length(cells)
+        focus!(cm, "cell$(cells[pos + 1].id)")
+    else
+        new_cell = Cell(length(cells) + 1, "txt", "")
+        push!(cells, new_cell)
+        ToolipsSession.append!(cm, proj.id, build(c, cm, new_cell, cells, proj))
+        focus!(cm, "cell$(new_cell.id)")
+    end
+    set_text!(cm, "cell$(cell.id)out", "<sep></sep>")
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
