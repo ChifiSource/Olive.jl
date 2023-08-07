@@ -661,7 +661,6 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     else
         save_type = join(save_split[2:length(save_split)])
     end
-    savepath = p[:path]
     cells = p[:cells]
     if :export in keys(p.data)
         pe::ProjectExport{<:Any} = ProjectExport{p[:export]}()
@@ -678,31 +677,41 @@ end
 
 function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any})
     save_split = split(p.data[:path], ".")
-    fname = p.name * "(1)"
+    fnamesplit = split(save_split[1], "/")
+    epname = join(save_split[2:length(save_split)], ".")
+    fname = save_split[1] * "(1)" * epname 
     switch_work_dir!(c, cm, p.data[:path])
     namebox = ToolipsDefaults.textdiv("saveas$(p.id)", text = fname)
     output_opts = Vector{Servable}([begin
-        ToolipsDefaults.option(string(m.sig.parameters[4]), text = string(m.sig.parameters[4]))
+        mname = m.sig.parameters[4]
+        if mname == ProjectExport{<:Any}
+            ToolipsDefaults.option("rawselect", text = "raw")
+        else
+            ToolipsDefaults.option(string(mname.parameters[1]), text = string(mname.parameters[1]))
+        end  
     end for m in methods(olive_save)])
     selectorbox = ToolipsDefaults.dropdown("outputfmt", output_opts)
     savebutton = button("saveasbutton", text = "save")
     style!(namebox, "display" => "flex", "width" => 100percent)
+    on(c, savebutton, "click") do cm2::ComponentModifier
+        finalname = cm[namebox]["text"]
+        path = cm["selector"]["text"]
+        exporttype = cm[selectorbox]["value"]
+        if epname != exporttype
+            p[:export] = epname
+        end
+        cells = p[:cells]
+        p[:path] = path * finalname
+        pe::ProjectExport{<:Any} = ProjectExport{Symbol(exporttype)}()
+        ret = olive_save(cells, p, pe)
+        if isnothing(ret)
+            olive_notify!(cm2, "file $(p[:path]) saved", color = "green")
+        else
+            olive_notify!(cm2, "file $(p[:path]) saved", color = "$ret")
+        end
+    end
     set_children!(cm, "fileeditbox", [namebox, selectorbox, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
-  #==  if length(save_split) < 2
-        save_type = "Any"
-    else
-        save_type = join(save_split[2:length(save_split)])
-    end
-    p[:path] = path
-    cells = p[:cells]
-    savecell = Cell(1, save_type, fname, savepath)
-    ret = olive_save(cells, savecell)
-    if isnothing(ret)
-        olive_notify!(cm2, "file $(savepath) saved", color = "green")
-    else
-        olive_notify!(cm2, "file $(savepath) saved", color = "$ret")
-    end ==#
 end
 
 function olive_loadicon()
