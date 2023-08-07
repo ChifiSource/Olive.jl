@@ -682,9 +682,9 @@ function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any}
     switch_work_dir!(c, cm, p.data[:path])
     namebox = ToolipsDefaults.textdiv("saveas$(p.id)", text = fname)
     output_opts = Vector{Servable}([begin
-        ToolipsDefaults.options(string(m.sig.parameters[4]), text = string(m.sig.parameters[4]))
+        ToolipsDefaults.option(string(m.sig.parameters[4]), text = string(m.sig.parameters[4]))
     end for m in methods(olive_save)])
-    selectorbox = ToolipsDefaults.dropdown("outputfmt". output_opts)
+    selectorbox = ToolipsDefaults.dropdown("outputfmt", output_opts)
     savebutton = button("saveasbutton", text = "save")
     style!(namebox, "display" => "flex", "width" => 100percent)
     set_children!(cm, "fileeditbox", [namebox, selectorbox, savebutton])

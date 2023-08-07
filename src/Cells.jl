@@ -334,7 +334,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any};
     childbox = div("child$(cell.id)")
     style!(container, "padding" => 0px, "margin-bottom" => 0px)
     expandarrow = topbar_icon("$(cell.id)expand", "expand_more")
-    style!(expandarrow, "color" => "white")
+    style!(expandarrow, "color" => "gray")
     style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-width-left" => 1px, 
     "border-color" => "darkblue", "height" => 0percent, 
     "border-width" => 0px, "transition" => 1seconds)
