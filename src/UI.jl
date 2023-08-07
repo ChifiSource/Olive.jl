@@ -710,6 +710,7 @@ function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any}
         else
             olive_notify!(cm2, "file $(p[:path]) saved", color = "$ret")
         end
+        style!(cm, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
     end
     set_children!(cm, "fileeditbox", [namebox, selectorbox, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
