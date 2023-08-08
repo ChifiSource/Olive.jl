@@ -237,8 +237,8 @@ end
 function work_menu(c::Connection)
     becell = "workmenu"
     env::Environment = c[:OliveCore].open[getname(c)]
-    working_area = containersection(becell)
-    style!(working_area[:children][4], "padding" => 12px)
+    working_area = containersection(c, becell, text = "inspector")
+    style!(working_area[:children][2], "padding" => 12px)
     pinfo_box = div("pinfo$becell")
     pinfo_box[:children] = Vector{Servable}(
     [work_preview(c, p) for p in env.projects]
@@ -251,28 +251,38 @@ function work_menu(c::Connection)
     style!(fileedit, "height" => 0percent, "opacity" => 0percent, "transition" => 1seconds, 
     "display" => "flex")
     dirselector = work_filemenu(c, env.directories[1].uri)
-    push!(working_area[:children][4], open_heading, Component("worksep", "hr"), pinfo_box, dinfo_box, 
+    push!(working_area[:children][2], Component("worksep", "hr"), pinfo_box, dinfo_box, 
     dirselector, fileedit)
     working_area
 end
 
-function containersection(name::String, level::Int64 = 2)
+function containersection(c::Connection, name::String, level::Int64 = 3;
+    text::String = name, fillto::Int64 = 60)
     arrow = topbar_icon("expander", "expand_more")
-    style!(arrow, "background-color" => "darkgray")
+    style!(arrow, "color" => "darkgray", "font-size" => 17pt)
     outersection = section("outer$name", ex = "0")
-    push!(outersection, heading, arrow, Component("sep$name", "sep"))
+    heading = h("$name-heading", level, text = text)
+    style!(outersection, "padding" => 3px, "transition" => 1seconds)
+    style!(heading, "display" => "inline-block")
+    upperdiv = div("$name-upper")
+    push!(upperdiv, heading, arrow, Component("sep$name", "sep"))
+    push!(outersection, upperdiv)
     innersection = section("$name")
-    style!(innersection, "opacity" => 0percent, "height" => 0percent)
+    style!(innersection, "opacity" => 0percent, "height" => 0percent, 
+    "padding" => 0px, "transition" => 1seconds)
     on(c, arrow, "click") do cm::ComponentModifier
-        if cm[outersection]["ex"] == 0
-            style!(innersection, "opacity" => 100percent, "height" => "auto")
-            style!(arrow, "color" => "darkpink")
+        if cm[outersection]["ex"] == "0"
+            style!(cm, innersection, "opacity" => 100percent, "height" => "$fillto%")
+            style!(cm, arrow, "color" => "darkpink")
+            cm[outersection] = "ex" => "1"
             return
         end
-        style!(innersection, "opacity" => 0percent, "height" => 0percent)
-        style!(arrow, "color" => "darkpink")
+        style!(cm, innersection, "opacity" => 0percent, "height" => 0percent)
+        style!(cm, arrow, "color" => "darkgray")
+        cm[outersection] = "ex" => "0"
     end
     push!(outersection, innersection)
+    outersection::Component{:section}
 end
 
 function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)

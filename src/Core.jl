@@ -321,7 +321,7 @@ create an OliveaExtension and
 function build(c::Connection, dir::Directory{<:Any}, m::Module;
 exp::Bool = false)
     becell = replace(dir.uri, "/" => "|")
-    container = containersection(becell)
+    container = containersection(c, becell)
     style!(container, "overflow" => "hidden")
     containercontrols = div("$(dir.uri)controls", align = "center")
     dir_b = topbar_icon("dirb$(becell)", "expand_more")
