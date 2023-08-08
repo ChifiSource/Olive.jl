@@ -618,7 +618,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
             [begin
                 if projects[e].id != p.id 
                     style!(cm, """tab$(projects[e].id)""", "background-color" => "lightgray")
-                    newtablabel = a("tab$label", text = p.name)
+                    newtablabel = a("tab$label", text = projects[e].name)
                     style!(newtablabel, "font-weight" => "bold", "margin-right" => 5px,
                     "font-size"  => 13pt, "color" => "#A2646F")
                     set_children!(cm, """tab$(projects[e].id)""", [newtablabel])
