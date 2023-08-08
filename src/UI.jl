@@ -237,9 +237,8 @@ end
 function work_menu(c::Connection)
     becell = "workmenu"
     env::Environment = c[:OliveCore].open[getname(c)]
-    working_area = section(becell)
-    style!(working_area, "padding" => 12px)
-    open_heading = h("open$becell", 2, text = "open")
+    working_area = containersection(becell)
+    style!(working_area[:children][4], "padding" => 12px)
     pinfo_box = div("pinfo$becell")
     pinfo_box[:children] = Vector{Servable}(
     [work_preview(c, p) for p in env.projects]
@@ -252,9 +251,28 @@ function work_menu(c::Connection)
     style!(fileedit, "height" => 0percent, "opacity" => 0percent, "transition" => 1seconds, 
     "display" => "flex")
     dirselector = work_filemenu(c, env.directories[1].uri)
-    push!(working_area, open_heading, Component("worksep", "hr"), pinfo_box, dinfo_box, 
+    push!(working_area[:children][4], open_heading, Component("worksep", "hr"), pinfo_box, dinfo_box, 
     dirselector, fileedit)
     working_area
+end
+
+function containersection(name::String, level::Int64 = 2)
+    arrow = topbar_icon("expander", "expand_more")
+    style!(arrow, "background-color" => "darkgray")
+    outersection = section("outer$name", ex = "0")
+    push!(outersection, heading, arrow, Component("sep$name", "sep"))
+    innersection = section("$name")
+    style!(innersection, "opacity" => 0percent, "height" => 0percent)
+    on(c, arrow, "click") do cm::ComponentModifier
+        if cm[outersection]["ex"] == 0
+            style!(innersection, "opacity" => 100percent, "height" => "auto")
+            style!(arrow, "color" => "darkpink")
+            return
+        end
+        style!(innersection, "opacity" => 0percent, "height" => 0percent)
+        style!(arrow, "color" => "darkpink")
+    end
+    push!(outersection, innersection)
 end
 
 function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)

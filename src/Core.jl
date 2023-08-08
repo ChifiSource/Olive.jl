@@ -219,10 +219,14 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
         tm = ToolipsMarkdown.TextStyleModifier("")
         ToolipsMarkdown.highlight_julia!(tm)
+        tomltm = ToolipsMarkdown.TextStyleModifier("")
+        toml_style!(tomltm)
         dic = Dict{String, Dict{<:Any, <:Any}}()
         push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
         push!(dic, "julia" => Dict{String, String}(
             [string(k) => string(v[1][2]) for (k, v) in tm.styles]))
+        push!(dic, "toml" => Dict{String, String}(
+            [string(k) => string(v[1][2]) for (k, v) in tomltm.styles]))
     end
     dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
     sect = section("highlight_settings")
@@ -317,7 +321,7 @@ create an OliveaExtension and
 function build(c::Connection, dir::Directory{<:Any}, m::Module;
 exp::Bool = false)
     becell = replace(dir.uri, "/" => "|")
-    container = div(dir.uri, align = "left")
+    container = containersection(becell)
     style!(container, "overflow" => "hidden")
     containercontrols = div("$(dir.uri)controls", align = "center")
     dir_b = topbar_icon("dirb$(becell)", "expand_more")
