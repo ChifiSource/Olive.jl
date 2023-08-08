@@ -898,11 +898,12 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
          cells, proj))
         focus!(cm, "cell$(new_cell.id)")
     end
-    cursorpos = parse(Int64, cm["cell$(cell.id)"]["caret"])
     cell.source = curr
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
+    tm = c[:OliveCore].client_data[getname(c)]["highlighters"][:julia]
+    tm.raw = cell.source
+    ToolipsMarkdown.mark_julia!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+    ToolipsMarkdown.clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1131,11 +1132,15 @@ end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
-function toml_block!(tm::ToolipsMarkdown.TextModifier)
+function mark_toml!(tm::ToolipsMarkdown.TextModifier)
     ToolipsMarkdown.mark_after!(tm, "[", :keys, until = ["]"])
     ToolipsMarkdown.mark_between!(tm, "\"", :string)
     ToolipsMarkdown.mark_all!(tm, "=", :equals)
     [ToolipsMarkdown.mark_all!(tm, string(dig), :number) for dig in digits(1234567890)]
+end
+
+function toml_block!(tm::ToolipsMarkdown.TextStyleModifier)
+    mark_toml(tm)
     toml_style!(tm)
 end
 #==|||==#
@@ -1225,9 +1230,11 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:tomlv
     cells::Vector{Cell}, proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     cell.source = curr
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    toml_block!(tm)
+    tm = c[:OliveCore].client_data[getname(c)]["highlighters"][:toml]
+    tm.raw = cell.source
+    mark_toml!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+    clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

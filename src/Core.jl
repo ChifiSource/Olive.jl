@@ -228,6 +228,15 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
         push!(dic, "toml" => Dict{String, String}(
             [string(k) => string(v[1][2]) for (k, v) in tomltm.styles]))
     end
+    if ~("highlighters" in keys(c[:OliveCore].client_data[getname(c)]))
+        highlighting = c[:OliveCore].client_data[getname(c)]["highlighting"]
+        julia_highlighter = TextStyleModifier("")
+        toml_highlighter = TextStyleModifier("")
+        ToolipsMarkdown.mark_julia()
+        toml_block(toml_highlighter)
+        push!(c[:OliveCore].client_data[getname(c)], 
+        "highlighters" => Dict{Symbol, ToolipsMarkdown.TextStyleModifier}())
+    end
     dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
     sect = section("highlight_settings")
     highheader = h("highlighthead", 3, text = "highlights")
@@ -251,7 +260,8 @@ function save_settings!(c::Connection; core::Bool = false)
     alltoml = read("$homedir/Project.toml", String)
     current_toml = TOML.parse(alltoml)
     name = getname(c)
-    client_settings = c[:OliveCore].client_data[name]
+    client_settings = deepcopy(c[:OliveCore].client_data[name])
+    [onsave(client_settings, oe{m.sig.parameters[3].parameters}) for m in methods(onsave)]
     current_toml["oliveusers"][name] = client_settings
     datakeys = c[:OliveCore].data
     toml_datakeys = keys(current_toml["olive"])
@@ -267,6 +277,10 @@ function save_settings!(c::Connection; core::Bool = false)
     open("$homedir/Project.toml", "w") do io
         TOML.print(io, current_toml)
     end
+end
+
+function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
+    delete!(cd, "highlighters")
 end
 
 """
@@ -321,7 +335,7 @@ create an OliveaExtension and
 function build(c::Connection, dir::Directory{<:Any}, m::Module;
 exp::Bool = false)
     becell = replace(dir.uri, "/" => "|")
-    container = containersection(c, becell)
+    container = containersection(c, becell, text = "hello")
     style!(container, "overflow" => "hidden")
     containercontrols = div("$(dir.uri)controls", align = "center")
     dir_b = topbar_icon("dirb$(becell)", "expand_more")
