@@ -171,6 +171,10 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
         outputfmt = "kb"
         fs = round(fs / 1000)
     end
+    on(c, hiddencell, "dblclick") do cm::ComponentModifier
+        cs::Vector{Cell{<:Any}} = olive_read(cell)
+        add_to_session(c, cs, cm, cell.source, cell.outputs)
+    end
     finfo = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
     style!(finfo, "color" => "white", "float" => "right", "font-weight" => "bold")
     delbutton = topbar_icon("$(cell.id)expand", "cancel")
@@ -212,7 +216,7 @@ Here are some other **important** functions to look at for creating cells:
 """
 function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     explorer::Bool = false)
-    hiddencell = div("cell$(cell.id)")
+    hiddencell = build_base_cell(c, cell, d)
     hiddencell["class"] = "cell-jl"
     style!(hiddencell, "background-color" => "white")
     name = a("cell$(cell.id)label", text = cell.source)
@@ -222,8 +226,24 @@ function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
 end
 
 function olive_read(cell::Cell{<:Any})
-
+    src = read(cell.outputs, String)
+    [begin 
+        Cell(e, "txt", string(cellsource)) 
+    end for (e, cellsource) in enumerate(split(src, "\n\n"))]
 end
+
+function olive_read(cell::Cell{:jl})
+    IPyCells.read_jl(cell.outputs)
+end
+
+function olive_read(cell::Cell{:ipynb})
+    IPyCells.read_ipynb(cell.outputs)
+end
+
+function olive_read(cell::Cell{:toml})
+    read_toml(cell.outputs)
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -248,8 +268,32 @@ olive_save(cells, filecell) # saves `cells` to "myfolder/myjl.jl"
 """
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{<:Any})
-    open(sc.outputs, "w") do io
+    open(p[:path].outputs, "w") do io
         [write(io, string(cell.source) * "\n") for cell in cells]
+    end
+end
+
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
+    pe::ProjectExport{:jl})
+    IPyCells.save(cells, p.data[:path])
+end
+
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
+    pe::ProjectExport{:ipynb})
+    IPyCells.save_ipynb(cells, p[:path])
+end
+
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
+    pe::ProjectExport{:toml})
+    joinedstr = join([toml_string(cell) for cell in cells])
+    ret = ""
+    try
+        ret = TOML.parse(joinedstr * "\n")
+    catch e
+        return "TOML parse error: $(e)"
+    end
+    open(p[:path], "w") do io
+        TOML.print(io, ret)
     end
 end
 
@@ -290,6 +334,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any};
     childbox = div("child$(cell.id)")
     style!(container, "padding" => 0px, "margin-bottom" => 0px)
     expandarrow = topbar_icon("$(cell.id)expand", "expand_more")
+    style!(expandarrow, "color" => "gray")
     style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-width-left" => 1px, 
     "border-color" => "darkblue", "height" => 0percent, 
     "border-width" => 0px, "transition" => 1seconds)
@@ -298,7 +343,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any};
     build(c, mcell, d, explorer = true)
     end
     for mcell in directory_cells(cell.outputs * "/" * cell.source)])
-    on(c, filecell, "dblclick") do cm::ComponentModifier
+    on(c, filecell, "click") do cm::ComponentModifier
         if cm[filecell]["ex"] == "0"
             style!(cm, childbox, "height" => 50percent, "opacity" => 100percent)
             cm[filecell] = "ex" => "1"
@@ -321,26 +366,13 @@ function build(c::Connection, cell::Cell{:ipynb},
     d::Directory{<:Any}; explorer::Bool = false)
     filecell = build_base_cell(c, cell, d, explorer = explorer)
     style!(filecell, "background-color" => "#FD5800")
-    if explorer
-        on(c, filecell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = IPyCells.read_ipynb(cell.outputs)
-            add_to_session(c, cs, cm, cell.source, cell.outputs)
-        end
-    else
-        on(c, filecell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = IPyCells.read_ipynb(cell.outputs)
-            load_session(c, cs, cm, cell.source, cell.outputs, d)
-        end
-    end
     filecell
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{:ipynb})
-    IPyCells.save_ipynb(cells, sc.outputs)
-end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -350,26 +382,13 @@ function build(c::Connection, cell::Cell{:jl},
     hiddencell = build_base_cell(c, cell, d, explorer = explorer)
     hiddencell["class"] = "cell-jl"
     style!(hiddencell, "cursor" => "pointer")
-    if explorer
-        on(c, hiddencell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = IPyCells.read_jl(cell.outputs)
-            add_to_session(c, cs, cm, cell.source, cell.outputs)
-        end
-    else
-        on(c, hiddencell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = IPyCells.read_jl(cell.outputs)
-            load_session(c, cs, cm, cell.source, cell.outputs, d)
-        end
-    end
     hiddencell
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{:jl})
-    IPyCells.save(cells, sc.outputs)
-end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -446,18 +465,7 @@ end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, sc::Cell{:toml})
-    joinedstr = join([toml_string(cell) for cell in cells])
-    ret = ""
-    try
-        ret = TOML.parse(joinedstr * "\n")
-    catch e
-        return "TOML parse error: $(e)"
-    end
-    open(sc.outputs, "w") do io
-        TOML.print(io, ret)
-    end
-end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -505,12 +513,12 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
-    windowname, sidebox = true, highlight = false)
+    proj, sidebox = true, highlight = false)
     km = cell_bind!(c, cell, cells, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     sidebox = interior[:children]["cellside$(cell.id)"]
     [style!(child, "color" => "red") for child in sidebox[:children]]
-    insert!(builtcell[:children], 1, h("unknown", 3, text = "cell $(cell.type)"))
+    insert!(builtcell[:children], 1, h("unknown", 3, text = "$(cell.type)"))
     style!(sidebox, "background" => "transparent")
     inp = interior[:children]["cellinput$(cell.id)"]
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
@@ -549,6 +557,21 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         ToolipsSession.append!(cm, proj.id, build(c, cm, new_cell, cells, proj))
         focus!(cm, "cell$(new_cell.id)")
     end
+end
+
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
+    cells::Vector{Cell}, proj::Project{<:Any})
+    pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    cell.source = cm["cell$(cell.id)"]["text"]
+    if pos != length(cells)
+        focus!(cm, "cell$(cells[pos + 1].id)")
+    else
+        new_cell = Cell(length(cells) + 1, "txt", "")
+        push!(cells, new_cell)
+        ToolipsSession.append!(cm, proj.id, build(c, cm, new_cell, cells, proj))
+        focus!(cm, "cell$(new_cell.id)")
+    end
+    set_text!(cm, "cell$(cell.id)out", "<sep></sep>")
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
