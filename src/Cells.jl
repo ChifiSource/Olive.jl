@@ -890,7 +890,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
         focus!(cm, "cell$(new_cell.id)")
     elseif curr_raw == "include("
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "include", cells[pos].source, cells[pos].outputs)
+        new_cell = Cell(pos, "include", "", cells[pos].outputs)
         deleteat!(cells, pos)
         insert!(cells, pos, new_cell)
         remove!(cm, "cellcontainer$(cell.id)")
@@ -1569,13 +1569,30 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
     proj, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, cells, proj)
+    bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
+        if cm2["rawcell$(cell.id)"]["text"] == ""
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
+            new_cell = Cell(pos, "code", "")
+            cells[pos] = new_cell
+            cell = new_cell
+            remove!(cm2, outside)
+            built = build(c, cm2, new_cell, cells, proj)
+            ToolipsSession.insert!(cm2, windowname, pos, built)
+            focus!(cm2, "cell$(cell.id)")
+        end
+    end
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     style!(interior[:children]["cellside$(cell.id)"],
-    "background-color" => "red")
+    "background-color" => "lightgreen")
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
     builtcell::Component{:div}
+end
+
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include}, 
+    cells::Vector{Cell}, proj::Project{<:Any})
+
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
@@ -1585,6 +1602,48 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:inclu
     ToolipsMarkdown.julia_block!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
 end
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
+    cells::Vector{Cell}, proj::Project{<:Any})
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    ToolipsMarkdown.julia_block!(tm)
+    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    proj, sidebox = true, highlight = true)
+    km = cell_bind!(c, cell, cells, proj)
+    bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
+        if cm2["rawcell$(cell.id)"]["text"] == ""
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
+            new_cell = Cell(pos, "code", "")
+            cells[pos] = new_cell
+            cell = new_cell
+            remove!(cm2, outside)
+            built = build(c, cm2, new_cell, cells, proj)
+            ToolipsSession.insert!(cm2, windowname, pos, built)
+            focus!(cm2, "cell$(cell.id)")
+        end
+    end
+    interior = builtcell[:children]["cellinterior$(cell.id)"]
+    inp = interior[:children]["cellinput$(cell.id)"]
+    style!(interior[:children]["cellside$(cell.id)"],
+    "background-color" => "lightgreen")
+    inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    builtcell::Component{:div}
+end
+
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
+    cells::Vector{Cell}, proj::Project{<:Any})
+
+end
+
+function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:module},
+    cells::Vector{Cell}, proj::Project{<:Any})
+    cell.source = cm["cell$(cell.id)"]["text"]
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    ToolipsMarkdown.julia_block!(tm)
+    set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+end
+
 
 #==output[code]
 inputcell_style (generic function with 1 method)
