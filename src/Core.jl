@@ -261,6 +261,19 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
         end for color in keys(dic[colorset])]
         push!(sect, colorsetbox)
     end
+    updatebutton = button("highupdate", text = "apply")
+    on(c, updatebutton, "click") do cm::ComponentModifier
+        [begin
+            hl = c[:OliveCore].client_data[getname(c)]["highlighters"][highlighter[1]]
+            styles = Dict([k[1] => cm["$(k[1])$(highlighter[1])"]["value"] for k in dic[highlighter[1]]])
+            hl.styles = Dict([Symbol(k[1]) => ["color" => k[2]] for k in styles])
+            dic[highlighter[1]] = styles
+        end for highlighter in dic]
+        olive_notify!(cm, "Your syntax highlighters have been updated", color = "green")
+    end
+    push!(sect, Component("highsep", "sep
+    
+    "), updatebutton)
     append!(om, "settingsmenu", sect)
 end
 
@@ -357,7 +370,7 @@ exp::Bool = false)
             dirtext = toml_cats["name"]
         end
         if "type" in keys(toml_cats)
-
+            
         end
     end
     container = containersection(c, becell, text = dirtext)
@@ -381,7 +394,6 @@ exp::Bool = false)
         "font-weight" => "bold", "display" => "flex", "align" => "center", "cursor" => "pointer", "border-radius" => 0px)
         push!(containerheader, srcbutton)
     end
-   containercontrols = section("containercontrols$becell")
     cells::Vector{Servable} = Vector{Servable}([begin
         Base.invokelatest(m.build, c, cell, dir, explorer = exp)
     end for cell in dir.cells])
@@ -391,14 +403,14 @@ exp::Bool = false)
     new_fb = topbar_icon("newfb$(becell)", "article")
     style!(new_dirb, "color" => "white", "font-size" => 23pt, "display" => "flex", "background-color" => "blue")
     style!(new_fb, "color" => "white", "font-size" => 23pt, "background-color" => "red")
-    push!(containercontrols, new_dirb, new_fb)
+    push!(containerheader, new_dirb, new_fb)
     on(c, new_dirb, "click") do cm::ComponentModifier
         
     end
     on(c, new_fb, "click") do cm::ComponentModifier
 
     end
-    push!(containerbody, containercontrols, cellcontainer)
+    push!(containerbody, cellcontainer)
     return(container)
 end
 
@@ -526,23 +538,9 @@ function source_module!(oc::OliveCore)
     oc.olmod = olmod
 end
 
-build(f::Function, oc::OliveCore) = f(oc)::OliveCore
-
-is_cell(cell::Cell{<:Any}, s::String) = begin
-
-end
-
-function getindex(oc::OliveCore, s::String)
-
-end
-
-function setindex!(oc::OliveCore)
-
-end
-
 OliveLogger() = Logger(Dict{Any, Crayon}(
     1 => Crayon(foreground = :blue),
-    2 => Crayon(foreground = :black),
+    2 => Crayon(foreground = :magenta),
     3 => Crayon(foreground = :red),
          :time_crayon => Crayon(foreground = :blue),
         :message_crayon => Crayon(foreground = :light_magenta, bold = true)), prefix = "🫒 olive> ")

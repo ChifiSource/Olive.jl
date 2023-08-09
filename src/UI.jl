@@ -267,7 +267,7 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
     upperdiv = div("$name-upper")
     push!(upperdiv, heading, arrow, Component("sep$name", "sep"))
     push!(outersection, upperdiv)
-    innersection = section("$name")
+    innersection = div("$name")
     style!(innersection, "opacity" => 0percent, "height" => 0percent, 
     "padding" => 0px, "transition" => 1seconds, "pointer-events" => "none")
     on(c, arrow, "click") do cm::ComponentModifier
@@ -489,7 +489,7 @@ UndefVarError: Cell not defined 
 #==|||==#
 
 function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
-    cm::ComponentModifier, source::String, fpath::String;
+    cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
     all_paths::Vector{String} = [begin
         project[:path]
@@ -507,7 +507,7 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
         environment = c[:OliveCore].data["home"]
     end
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :env => environment)
+    :env => environment, projpairs ...)
     if fpath != c[:OliveCore].data["home"]
         push!(projdict, :path => fpath)
     end
@@ -569,9 +569,8 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     fname = replace(name, " " => "")
     projs = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
-    nname = replace(name, " " => "")
-    remove!(cm2, "$nname")
-    remove!(cm2, "tab$(nname)")
+    remove!(cm2, "$name")
+    remove!(cm2, "tab$(name)")
     remove!(cm2, "preview$(proj.id)")
     if(n_projects == 1)
         # TODO start screen here
@@ -613,6 +612,22 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     "font-size"  => 13pt, "color" => "#A2646F")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
+        projects = c[:OliveCore].open[getname(c)].projects
+        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
+        [begin
+            if projects[e].id != p.id 
+                style!(cm, """tab$(projects[e].id)""", "background-color" => "lightgray")
+                newtablabel = a("tab$label", text = projects[e].name)
+                style!(newtablabel, "font-weight" => "bold", "margin-right" => 5px,
+                "font-size"  => 13pt, "color" => "#A2646F")
+                set_children!(cm, """tab$(projects[e].id)""", [newtablabel])
+            end
+        end  for e in inpane]
+        projbuild = build(c, cm, p)
+        set_children!(cm, "pane_$(p[:pane])", [projbuild])
+        style!(cm, tabbody, "background-color" => "white")
+    end
+    on(c, tabbody, "dblclick") do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             closebutton = topbar_icon("$(fname)close", "close")
             on(c, closebutton, "click") do cm2::ComponentModifier
@@ -643,20 +658,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
                 end
                 end for cell in cells]
             end
-            projects = c[:OliveCore].open[getname(c)].projects
-            inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
-            [begin
-                if projects[e].id != p.id 
-                    style!(cm, """tab$(projects[e].id)""", "background-color" => "lightgray")
-                    newtablabel = a("tab$label", text = projects[e].name)
-                    style!(newtablabel, "font-weight" => "bold", "margin-right" => 5px,
-                    "font-size"  => 13pt, "color" => "#A2646F")
-                    set_children!(cm, """tab$(projects[e].id)""", [newtablabel])
-                end
-            end  for e in inpane]
-            projbuild = build(c, cm, p)
-            set_children!(cm, "pane_$(p[:pane])", [projbuild])
-            style!(cm, tabbody, "background-color" => "white")
+
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
             on(c, decollapse_button, "click") do cm2::ComponentModifier
                 remove!(cm2, closebutton)
@@ -699,9 +701,9 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     end
     ret = olive_save(cells, p, pe)
     if isnothing(ret)
-        olive_notify!(cm2, "file $(savepath) saved", color = "green")
+        olive_notify!(cm2, "project $(p.name) saved", color = "green")
     else
-        olive_notify!(cm2, "file $(savepath) saved", color = "$ret")
+        olive_notify!(cm2, "file $(p.name) failed to save.", color = "red")
     end
 end
 

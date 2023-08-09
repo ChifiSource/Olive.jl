@@ -96,13 +96,22 @@ function olive_motd()
     - added window key-bindings, shift focus (`shift + ArrowUp`)
     - Added syntax highlighting colors to settings panel.
     - Added workspace manager, directory additions.
-
+    - Added pane-based window management
+    - Revised highlighting
+    - Changed extension dispatches
+    - Changed cell dispatches to include projects
+    - olive now opens any file
     This version was mainly focused on fixing the issues associated with
     the initial `0.0.8` release. There have also been substantial revisions 
     to windowing. There is now a new work-space manager with a split-pane view.
     There were also some slight tweaks made to the data structure within Olive. 
     Some cells have received updates, along with the addition of **include** cells, 
-    **module** cells, and sub-projects. 
+    **module** cells, and sub-projects.
+    #### moving forward
+    With the step from `0.0.9` to `0.1.0`, Olive is going to focus primarily on 
+    memory management and performance, with a secondary focus on 
+    making the features that olive already has better. This feature will 
+    mostly seek to wrap up all that is incomplete in this release.
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
@@ -263,7 +272,7 @@ main = route("/") do c::Connection
                 append!(cm2, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj))
             end for proj in env.projects]
             if length(env.projects) > 1
-                style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+                style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
             end
         end
     end

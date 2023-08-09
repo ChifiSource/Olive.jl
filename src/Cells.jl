@@ -268,9 +268,10 @@ olive_save(cells, filecell) # saves `cells` to "myfolder/myjl.jl"
 """
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{<:Any})
-    open(p[:path].outputs, "w") do io
-        [write(io, string(cell.source) * "\n") for cell in cells]
+    open(p.data[:path], "w") do io
+        [write(io, string(cell.source) * "\n") for cell in p.data[:cells]]
     end
+    nothing
 end
 
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
@@ -280,7 +281,7 @@ end
 
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{:ipynb})
-    IPyCells.save_ipynb(cells, p[:path])
+    IPyCells.save_ipynb(cells, p.data[:path])
 end
 
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
@@ -770,6 +771,22 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km, on = :down)
     builtcell::Component{:div}
 end
+
+function on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
+    cell::Cell{:code}, proj::Project{<:Any})
+
+end
+
+function on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
+    cell::Cell{:code}, proj::Project{<:Any})
+
+end
+
+function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
+    cell::Cell{:code}, proj::Project{<:Any})
+
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -891,8 +908,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     elseif curr_raw == "include("
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "include", "", cells[pos].outputs)
-        deleteat!(cells, pos)
-        insert!(cells, pos, new_cell)
+        cells[pos] = new_cell
         remove!(cm, "cellcontainer$(cell.id)")
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, proj))
@@ -1140,7 +1156,7 @@ function mark_toml!(tm::ToolipsMarkdown.TextModifier)
 end
 
 function toml_block!(tm::ToolipsMarkdown.TextStyleModifier)
-    mark_toml(tm)
+    mark_toml!(tm)
     toml_style!(tm)
 end
 #==|||==#
@@ -1599,7 +1615,17 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include}, 
     cells::Vector{Cell}, proj::Project{<:Any})
-
+    path = cm["cell$(cell.id)"]["text"]
+    if ~(isfile(path))
+        olive_notify!(cm, "$path is not a file!", color = "red")
+    end
+    formatsplit = split(path, ".")
+    fnamesplit = split(path, "/")
+    fname = fnamesplit[length(fnamesplit)]
+    format = join(formatsplit[2:length(formatsplit)])
+    fcell = Cell(1, format, fname, path)
+    new_cells = olive_read(fcell)
+    add_to_session(c, new_cells, cm, fname, path, type = "include")
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
