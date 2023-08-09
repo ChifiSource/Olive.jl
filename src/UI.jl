@@ -488,11 +488,13 @@ UndefVarError: Cell not defined 
 ==#
 #==|||==#
 
-function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
+function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
-    all_paths::Vector{String} = [begin
+    all_paths = [begin
+    if :path in keys(project.data)
         project[:path]
+    end
     end for project in c[:OliveCore].open[getname(c)].projects]
     if fpath in all_paths
         olive_notify!(cm, "project already open!", color = "red")
@@ -583,10 +585,10 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
             remove!(cm2, lpjn)
             remove!(cm2, "tab$lpjn")
             lastproj.data[:pane] = "one"
-            set_children!(cm2, "pane_one", Vector{Servable}([
+            append!(cm2, "pane_one_tabs", build_tab(c, lastproj))
+                        set_children!(cm2, "pane_one", Vector{Servable}([
                 Base.invokelatest(c[:OliveCore].olmod.build, c, cm2, lastproj
             )]))
-            append!(cm2, "pane_one_tabs", build_tab(c, lastproj))
         end
         style!(cm2, "pane_container_two", "width" => 0percent, "opacity" => 0percent)  
     end
@@ -594,6 +596,15 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     projs)
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(fname) closed", color = "blue")
+end
+
+function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
+
+end
+
+
+function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
+
 end
 
 function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
@@ -689,6 +700,10 @@ UndefVarError: ComponentModifier not defined
 
 function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     save_split = split(p.name, ".")
+    if ~(:path in keys(p.data))
+        olive_notify!(cm2, "this project cannot be saved.", color = "darkred")
+        return
+    end
     if length(save_split) < 2
         save_type = "Any"
     else

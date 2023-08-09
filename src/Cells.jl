@@ -1617,10 +1617,9 @@ end
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include}, 
     cells::Vector{Cell}, proj::Project{<:Any})
     path = cm["cell$(cell.id)"]["text"]
+    cell.source = path
     env = c[:OliveCore].open[getname(c)]
-    println(env.pwd * "/" * path)
     if ~(isfile(path))
-        println(path)
         olive_notify!(cm, "$path is not a file!", color = "red")
     end
     projs = c[:OliveCore].open[getname(c)].projects
@@ -1633,8 +1632,8 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
             fcell = Cell(1, format, fname, path)
             new_cells = olive_read(fcell)
             inclproj = add_to_session(c, new_cells, cm, fname, 
-            path, type = "include")
-            inclproj[:mod] = proj[:mod]
+            env.pwd, type = "include")
+            inclproj.data[:mod] = proj[:mod]
             olive_notify!(cm, "file $fname included", color = "darkgreen")
             set_text!(cm, "cell$(cell.id)out", fname)
         end

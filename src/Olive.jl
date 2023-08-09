@@ -189,27 +189,33 @@ main = route("/") do c::Connection
         push!(c[:OliveCore].names, getip(c) => uname)
     end
     c[:OliveCore].names[getip(c)] = uname
+    # check for environment, if none load.
     envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
     if isnothing(envsearch)
         cells = Vector{Cell}([Cell(1, "versioninfo", "")])
-        home_direc = Directory(c[:OliveCore].data["home"])
         env::Environment = Environment(getname(c))
+        env.pwd = c[:OliveCore].data["wd"]
+        pwd_direc = Directory(env.pwd)
         projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
-        :path => home_direc.uri, :env => home_direc.uri, :pane => "one")
+        :pane => "one", :env => c[:OliveCore].data["home"])
         myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
-        Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, home_direc.uri)
+        Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, 
+        c[:OliveCore].data["home"])
         Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
-        push!(env.directories, home_direc)
+        push!(env.directories, pwd_direc)
+        if c[:OliveCore].data["root"] == getname(c)
+            home_direc = Directory(c[:OliveCore].data["home"])
+            push!(env.directories, home_direc)
+        end
         push!(env.projects, myproj)
         push!(c[:OliveCore].open, env)
     else
         env = c[:OliveCore].open[getname(c)]
     end
-    # setup base env
+     # setup base UI
     write!(c, olivesheet())
     c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
-    # setup base UI
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
     style!(ui_topbar, "position" => "sticky")
@@ -265,6 +271,7 @@ main = route("/") do c::Connection
         ToolipsSession.insert!(cm, "projectexplorer", 1, work_menu(c))
         next!(c, loadicondiv, cm, ["olivemain"]) do cm2::ComponentModifier
             remove!(cm2, "loaddiv")
+            switch_work_dir!(c, cm, env.pwd)
             [begin
                 window::Component{:div} = Base.invokelatest(olmod.build, c,
                 cm2, proj)
