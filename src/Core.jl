@@ -219,16 +219,37 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
         tm = ToolipsMarkdown.TextStyleModifier("")
         ToolipsMarkdown.highlight_julia!(tm)
+        tomltm = ToolipsMarkdown.TextStyleModifier("")
+        toml_style!(tomltm)
         dic = Dict{String, Dict{<:Any, <:Any}}()
         push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
         push!(dic, "julia" => Dict{String, String}(
             [string(k) => string(v[1][2]) for (k, v) in tm.styles]))
+        push!(dic, "toml" => Dict{String, String}(
+            [string(k) => string(v[1][2]) for (k, v) in tomltm.styles]))
+    end
+    if ~("highlighters" in keys(c[:OliveCore].client_data[getname(c)]))
+        highlighting = c[:OliveCore].client_data[getname(c)]["highlighting"]
+        julia_highlighter = ToolipsMarkdown.TextStyleModifier("")
+        toml_highlighter = ToolipsMarkdown.TextStyleModifier("")
+        julia_highlighter.styles = Dict([begin
+            Symbol(k[1]) => ["color" => k[2]]
+        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["julia"]])
+        toml_highlighter.styles = Dict([begin
+            Symbol(k[1]) => ["color" => k[2]]
+        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["toml"]])
+        push!(c[:OliveCore].client_data[getname(c)], 
+        "highlighters" => Dict{String, ToolipsMarkdown.TextStyleModifier}(
+            "julia" => julia_highlighter, "toml" => toml_highlighter
+        ))
     end
     dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
     sect = section("highlight_settings")
-    highheader = h("highlighthead", 3, text = "highlights")
+    highheader = h("highlighthead", 3, text = "fonts and highlighting")
     push!(sect, highheader)
     for colorset in keys(dic)
+        colorsetbox = div("$colorset-settings")
+        push!(colorsetbox, h("$colorset-label", 4, text = colorset))
         [begin 
             label = h("colorlabel", 5, text = color)
             vbox = ToolipsDefaults.colorinput("$(color)$(colorset)", 
@@ -236,8 +257,9 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
             clrdiv = div("clrdiv$(color)$(colorset)")
             style!(clrdiv, "display" => "inline-block")
             push!(clrdiv, label, vbox)
-            push!(sect, clrdiv)
+            push!(colorsetbox, clrdiv)
         end for color in keys(dic[colorset])]
+        push!(sect, colorsetbox)
     end
     append!(om, "settingsmenu", sect)
 end
@@ -247,7 +269,8 @@ function save_settings!(c::Connection; core::Bool = false)
     alltoml = read("$homedir/Project.toml", String)
     current_toml = TOML.parse(alltoml)
     name = getname(c)
-    client_settings = c[:OliveCore].client_data[name]
+    client_settings = deepcopy(c[:OliveCore].client_data[name])
+    [onsave(client_settings, OliveExtension{m.sig.parameters[3].parameters[1]}()) for m in methods(onsave)]
     current_toml["oliveusers"][name] = client_settings
     datakeys = c[:OliveCore].data
     toml_datakeys = keys(current_toml["olive"])
@@ -263,6 +286,10 @@ function save_settings!(c::Connection; core::Bool = false)
     open("$homedir/Project.toml", "w") do io
         TOML.print(io, current_toml)
     end
+end
+
+function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
+    delete!(cd, "highlighters")
 end
 
 """
@@ -317,83 +344,26 @@ create an OliveaExtension and
 function build(c::Connection, dir::Directory{<:Any}, m::Module;
 exp::Bool = false)
     becell = replace(dir.uri, "/" => "|")
-    container = div(dir.uri, align = "left")
-    style!(container, "overflow" => "hidden")
-    containercontrols = div("$(dir.uri)controls", align = "center")
-    dir_b = topbar_icon("dirb$(becell)", "expand_more")
-    style!(dir_b, "color" => "white", "font-size" => 23pt, "display" => "flex", 
-    "background-color" => "#8B4000", "font-weight" => "bold")
-    push!(containercontrols, dir_b)
+    dirtext = split(replace(dir.uri, homedir() => "~",), "/")
+    if length(dirtext) > 3
+        dirtext = join(dirtext[length(dirtext) - 3:length(dirtext)], "/")
+    else
+        dirtext = join(dirtext, "/")
+    end
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
         if "name" in keys(toml_cats)
-            projname = toml_cats["name"]
-            envtop = a("headingenv$(dir.uri)", text = projname)
-            style!(envtop, "padding" => 4px, "background-color" => "blue",
-            "font-size" => 12pt, "font-weight" => "bold", "margin-top" => 0px,
-            "border-radius" => 0px, "color" => "white", "display" => "flex")
-            push!(containercontrols, envtop)
+            dirtext = toml_cats["name"]
         end
         if "type" in keys(toml_cats)
-            projtype = toml_cats["type"]
-            projtop = a("typeenv$(dir.uri)", text = projtype)
-            style!(projtop, "padding" => 4px, "background-color" => "darkgreen",
-            "font-size" => 12pt, "border-radius" => 0px, "color" => "white", "margin-top" => 0px,
-            "display" => "flex")
-            push!(containercontrols, projtype)
+
         end
     end
-    dirtext = split(replace(dir.uri, homedir() => "~",), "/")
-    if length(dirtext) > 3
-        dirtext = dirtext[length(dirtext) - 3:length(dirtext)]
-    end
-    dirtop = a("heading$(dir.uri)", text = join(dirtext, "/"))
-    style!(dirtop, "color" => "white", "background-color" => "darkblue",
-    "font-size" => 12pt, "border-radius" => 0px,
-    "font-weight" => "bold", "padding" => 4px, "display" => "flex")
-    push!(containercontrols, dirtop)
-    cells = [begin
-        Base.invokelatest(m.build, c, cell, dir, explorer = exp)
-    end for cell in dir.cells]
-    cellcontainer = section("$(becell)cells", ex = 0)
-    style!(cellcontainer, "padding" => 10px, "background-color" => "transparent",
-    "overflow" => "visible", "border-style" => "solid", "border-width" => 0px, "border-radius" => 0px,
-    "border-color" => "darkblue", "border-bottom-width" => 1px, "border-top-width" => 1px,
-    "transition" => 1seconds, "height" => 0percent, "opacity" => 0percent)
-    cellcontainer[:children] = cells
-    newtxt = ToolipsDefaults.textdiv("newtxt$becell", text = "")
-    newtxt["align"] = "left"
-    style!(newtxt, "border-width" => 0px,
-    "opacity" => 0percent, "transition" => "1s", "width" => 0percent,
-    "display" => "flex", "padding" => "0px", "outline" => "none",
-    "background-color" => "white", "font-weight" => "bold", "color" => "darkblue",
-    "border-style" => "solid", "border-width" => 2px)
-    style!(containercontrols, "padding" => 0px, "overflow" => "visible",
-    "display" => "flex", "margin-left" => 0px,
-    "border-width" => 0px, "border-radius" => 0px,
-    "border-bottom-left-radius" => "0px",
-    "border-bottom-right-radius" => 0px, "background-color" => "white",
-    "border-style" => "solid", "border-color" => "darkblue")
-    new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
-    collapse_b = topbar_icon("col$becell", "expand_more")
-    new_fb = topbar_icon("newfb$(becell)", "article")
-    style!(new_dirb, "color" => "white", "font-size" => 23pt, "display" => "flex", "background-color" => "blue")
-    style!(collapse_b, "color" => "white", "font-size" => 23pt, "display" => "flex", "background-color" => "red",
-    "transition" => 1seconds)
-    style!(new_fb, "color" => "white", "font-size" => 23pt, "background-color" => "red")
-    on(c, collapse_b, "click") do cm2::ComponentModifier
-        if cm2[cellcontainer]["ex"] == "0"
-            cm2[cellcontainer] = "ex" => 1
-            style!(cm2, cellcontainer, "height" => 20percent, "opacity" => 100percent, 
-            "overflow-y" => "scroll")
-            style!(cm2, collapse_b, "transform" => "rotate(-90deg)")
-            return
-        end
-        cm2[cellcontainer] = "ex" => 0
-        style!(cm2, collapse_b, "transform" => "rotate(0deg)")
-        style!(cm2, cellcontainer, "height" => 0percent, "opacity" => 0percent)        
-    end
+    container = containersection(c, becell, text = dirtext)
+    containerheader = container[:children][1]
+    containerbody = container[:children][2]
+    style!(container, "overflow" => "hidden")
     if dir.uri == c[:OliveCore].data["home"]
         srcbutton = div("src$(becell)", text = "source")
         on(c, srcbutton, "click") do cm::ComponentModifier
@@ -409,80 +379,26 @@ exp::Bool = false)
         end
         style!(srcbutton, "background-color" => "red", "font-size" => 12pt, "padding" => 4px, "color" => "white",
         "font-weight" => "bold", "display" => "flex", "align" => "center", "cursor" => "pointer", "border-radius" => 0px)
-        push!(containercontrols, srcbutton)
+        push!(containerheader, srcbutton)
     end
-    push!(containercontrols, new_dirb, new_fb, collapse_b)
+   containercontrols = section("containercontrols$becell")
+    cells::Vector{Servable} = Vector{Servable}([begin
+        Base.invokelatest(m.build, c, cell, dir, explorer = exp)
+    end for cell in dir.cells])
+    cellcontainer = section("$(becell)cells")
+    cellcontainer[:children] = cells
+    new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
+    new_fb = topbar_icon("newfb$(becell)", "article")
+    style!(new_dirb, "color" => "white", "font-size" => 23pt, "display" => "flex", "background-color" => "blue")
+    style!(new_fb, "color" => "white", "font-size" => 23pt, "background-color" => "red")
+    push!(containercontrols, new_dirb, new_fb)
     on(c, new_dirb, "click") do cm::ComponentModifier
-        newconfbutton = button("fconfbutt$(becell)", text = "confirm")
-        if ~(newconfbutton.name in keys(cm.rootc))
-            cancelbutton = button("fcancbutt$(becell)", text = "cancel")
-            on(c, cancelbutton, "click") do cm2::ComponentModifier
-                remove!(cm2, newconfbutton)
-                remove!(cm2, cancelbutton)
-                set_text!(cm2, newtxt, "")
-                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
-            end
-            on(c, newconfbutton, "click") do cm2::ComponentModifier
-                fname = cm2[newtxt]["text"]
-                dirname = replace(cm2[cellcontainer]["sel"], "|" => "/")
-                final_dir = dirname * "/" * fname
-                mkdir(final_dir)
-                newcells = directory_cells(dirname)
-                #if typeof()
-                remove!(cm2, newconfbutton)
-                remove!(cm2, cancelbutton)
-                set_text!(cm2, newtxt, "")
-                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
-                olive_notify!(cm2, "directory $final_dir created!", color = "green")
-                set_children!(cm2, "$(becell)cells",
-                Vector{Servable}([build(c, cel, dir, explorer = exp) for cel in newcells]))
-            end
-            append!(cm, containercontrols, newconfbutton)
-            append!(cm, containercontrols, cancelbutton)
-            style!(cm, newtxt, "width" => 35percent, "opacity" => 100percent)
-            style!(cm, newconfbutton, "opacity" => 100percent)
-            focus!(cm, newtxt)
-            return
-        end
-        olive_notify!(cm, "you already have a naming box open...", color = "red")
+        
     end
     on(c, new_fb, "click") do cm::ComponentModifier
-        newconfbutton = button("fconfbutt$(becell)", text = "confirm")
-        if ~(newconfbutton.name in keys(cm.rootc))
-            cancelbutton = button("fcancbutt$(becell)", text = "cancel")
-            on(c, cancelbutton, "click") do cm2::ComponentModifier
-                remove!(cm2, newconfbutton)
-                remove!(cm2, cancelbutton)
-                set_text!(cm2, newtxt, "")
-                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
-            end
-            on(c, newconfbutton, "click") do cm2::ComponentModifier
-                fname = cm2[newtxt]["text"]
-                dirname = replace(cm2[cellcontainer]["sel"], "|" => "/")
-                final_dir = dirname * "/" * fname
-                touch(final_dir)
-                newcells = directory_cells(dirname)
-                remove!(cm2, newconfbutton)
-                remove!(cm2, cancelbutton)
-                set_text!(cm2, newtxt, "")
-                style!(cm2, newtxt, "width" => 0percent, "opacity" => 0percent)
-                olive_notify!(cm2, "file $final_dir created!", color = "green")
-                set_children!(cm2, "$(becell)cells",
-                Vector{Servable}(
-                [build(c, cel, dir, explorer = exp) for cel in newcells]))
-            end
-            append!(cm, containercontrols, newconfbutton)
-            append!(cm, containercontrols, cancelbutton)
-            style!(cm, newtxt, "width" => 20percent, "opacity" => 100percent)
-            style!(cm, newconfbutton, "opacity" => 100percent)
-            focus!(cm, newtxt)
-            return
-        end
-        olive_notify!(cm, "you already have a naming box open...", color = "red")
+
     end
-    style!(containercontrols[:children][length(containercontrols[:children])], 
-    "border-top-left-radius" => 0px, "border-bottom-left-radius" => 0px, "border-radius" => 8px)
-    push!(container, newtxt, containercontrols, cellcontainer)
+    push!(containerbody, containercontrols, cellcontainer)
     return(container)
 end
 
@@ -599,11 +515,9 @@ function source_module!(oc::OliveCore)
     olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
     filter!(ocell -> ocell.type == "code" || ocell.source != "\n" || cell.source != "\n\n",
     olive_cells)
-
     modstr = join(
         [cell.source for cell in olive_cells[2:length(olive_cells)]]
         )
-    println(modstr)
     modend = findlast("end", modstr)
     modstr = modstr[1:modend[1] + 3]
     pmod = Meta.parse(modstr[1:length(modstr) - 1])
