@@ -517,6 +517,7 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     tab::Component{:div} = build_tab(c, myproj)
     open_project(c, cm, myproj, tab)    
+    myproj::Project{<:Any}
 end
 
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
