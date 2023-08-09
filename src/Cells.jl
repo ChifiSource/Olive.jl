@@ -899,7 +899,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
         focus!(cm, "cell$(new_cell.id)")
     end
     cell.source = curr
-    tm = c[:OliveCore].client_data[getname(c)]["highlighters"][:julia]
+    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
     tm.raw = cell.source
     ToolipsMarkdown.mark_julia!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
@@ -1230,7 +1230,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:tomlv
     cells::Vector{Cell}, proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     cell.source = curr
-    tm = c[:OliveCore].client_data[getname(c)]["highlighters"][:toml]
+    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
     tm.raw = cell.source
     mark_toml!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))

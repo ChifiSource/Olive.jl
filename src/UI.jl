@@ -258,7 +258,7 @@ end
 
 function containersection(c::Connection, name::String, level::Int64 = 3;
     text::String = name, fillto::Int64 = 60)
-    arrow = topbar_icon("expander", "expand_more")
+    arrow = topbar_icon("$name-expander", "expand_more")
     style!(arrow, "color" => "darkgray", "font-size" => 17pt)
     outersection = section("outer$name", ex = "0")
     heading = h("$name-heading", level, text = text)
@@ -269,15 +269,17 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
     push!(outersection, upperdiv)
     innersection = section("$name")
     style!(innersection, "opacity" => 0percent, "height" => 0percent, 
-    "padding" => 0px, "transition" => 1seconds)
+    "padding" => 0px, "transition" => 1seconds, "pointer-events" => "none")
     on(c, arrow, "click") do cm::ComponentModifier
         if cm[outersection]["ex"] == "0"
-            style!(cm, innersection, "opacity" => 100percent, "height" => "$fillto%")
+            style!(cm, innersection, "opacity" => 100percent, "height" => "$fillto%", 
+            "pointer-events" => "auto")
             style!(cm, arrow, "color" => "darkpink")
             cm[outersection] = "ex" => "1"
             return
         end
-        style!(cm, innersection, "opacity" => 0percent, "height" => 0percent)
+        style!(cm, innersection, "opacity" => 0percent, "height" => 0percent, 
+        "pointer-events" => "none")
         style!(cm, arrow, "color" => "darkgray")
         cm[outersection] = "ex" => "0"
     end
