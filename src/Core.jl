@@ -115,7 +115,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         "saveas" => ["S", "ctrl", "shift"]
         ))
     end
-    keybind_section = section("settings_keys")
+    keybind_drop = containersection(c, "keybindings", fillto = 80)
+    keybind_section = keybind_drop[:children][2]
     shftlabel = a("shiftlabel", text = "  shift:    ")
     ctrllabel = a("ctrllabel", text = "  ctrl:   ")
     keybind_section[:children] = Vector{Servable}(vcat([h("setkeyslbl", 2, text = "keybindings")],
@@ -150,7 +151,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         ctrllabel, ctrl_checkbox, setinput, br(), confirm)
         newkeymain
     end for keybinding in c[:OliveCore].client_data[getname(c)]["keybindings"]]))
-    append!(om, "settingsmenu", keybind_section)
+    append!(om, "settingsmenu", keybind_drop)
 end
 
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begin
@@ -162,7 +163,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
         return
     end
     creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
-    creatorkeysmen = section("creatormenu")
+    creatorkeysdropd = containersection(c, "creatorkeys", text = "creator keys")
+    creatorkeysmen = creatorkeysdropd[:children][2]
     regkeys = div("regkeyss")
     regkeys[:children] = [begin
         mainbox = div("creatorkey$(key[1])")
@@ -188,7 +190,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
     newsection = div("newcreator")
     push!(newsection, h("news", 4, text = "bind new"), setinput)
     signatures = [m.sig.parameters[4] for m in methods(c[:OliveCore].olmod.build,
-    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell, Vector{Cell}, String])]
+    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell, Vector{Cell}, Project{<:Any}])]
     opts = Vector{Servable}()
     for sig in signatures
         if sig == Cell{:creator} || sig == Cell{<:Any} || sig == Cell{:versioninfo}
@@ -212,7 +214,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
     end
     push!(newsection, sigselector, addbutton)
     push!(creatorkeysmen, newsection)
-    append!(om, "settingsmenu", creatorkeysmen)
+    append!(om, "settingsmenu", creatorkeysdropd)
 end
 
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = begin
@@ -244,7 +246,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
         ))
     end
     dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
-    sect = section("highlight_settings")
+    container = containersection(c, "highlighting", fillto = 80)
+    sect = container[:children][2]
     highheader = h("highlighthead", 3, text = "fonts and highlighting")
     push!(sect, highheader)
     for colorset in keys(dic)
@@ -274,7 +277,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
     push!(sect, Component("highsep", "sep
     
     "), updatebutton)
-    append!(om, "settingsmenu", sect)
+    append!(om, "settingsmenu", container)
 end
 
 function save_settings!(c::Connection; core::Bool = false)

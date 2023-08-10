@@ -1678,7 +1678,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     if length(findall(p -> p.id == cell.outputs, projects)) > 0
         modname = cell.outputs
         src = join([begin
-        """$(cell.source)\n# --\n$(cell.outputs)\n#=-=#\n$(cell.ctype)\n# --\n""" 
+        """$(cell.source)\n# --\n$(cell.outputs)\n#=-=#\n$(cell.type)\n# --\n""" 
         end for cell in projects[modname][:cells]])
         cell.source = """module $modname\n$src\nend"""
         return
