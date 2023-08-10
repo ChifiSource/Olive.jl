@@ -1673,7 +1673,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     style!(interior[:children]["cellside$(cell.id)"],
-    "background-color" => "lightgreen")
+    "background-color" => "red")
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
     builtcell::Component{:div}
@@ -1681,21 +1681,25 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     cells::Vector{Cell}, proj::Project{<:Any})
-    modname = cm["cell$(id)"]["text"]
-    if length(findall(p -> p.id == cell.id, c[:OliveCore].open[getip(c)].projects)) > 0
-
+    if length(findall(p -> p.id == cell.id, c[:OliveCore].open[getname(c)].projects)) > 0
+        return
     elseif contains("module", cell.source)
-        
+        new_cells = IPyCells.jlcells(cell.source)
     else
-        env = proj.data[:env]
         new_cells = Vector{Cell}()
-        projdict = Dict{Symbol, Any}(:cells => new_cells)
-        inclproj = Project{:module}(modname, projdict)
-        inclproj.id = cell.id
-        proj.id
-        olive_notify!(cm, "module $modname added", color = "red")
-        set_text!(cm, "cell$(cell.id)out", fname)
     end
+    modname = cm["cell$(cell.id)"]["text"]
+    modstr = olive_module(cell.id, proj[:env])
+    newmod = proj.data[:mod].evalin(modstr)
+    projdict = Dict{Symbol, Any}(:cells => new_cells, :env => proj[:env], 
+    :path => proj[:path], :newmod => mod)
+    proj.data[:mod].evalin("""$modname = $(cell.id)""")
+    inclproj = Project{:module}(modname, projdict)
+    inclproj.id = cell.id
+    tab = build_tab(c, inclproj)
+    open_project(c, cm, inclproj, tab)
+    olive_notify!(cm, "module $modname added", color = "red")
+    set_text!(cm, "cell$(cell.id)out", modname)
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:module},
