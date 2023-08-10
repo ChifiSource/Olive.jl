@@ -1696,6 +1696,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     proj.data[:mod].evalin("""$modname = $(cell.id)""")
     inclproj = Project{:module}(modname, projdict)
     inclproj.id = cell.id
+    push!(c[:OliveCore].open[getname(c)].projects, inclproj)
     tab = build_tab(c, inclproj)
     open_project(c, cm, inclproj, tab)
     olive_notify!(cm, "module $modname added", color = "red")

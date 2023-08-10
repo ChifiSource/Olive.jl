@@ -543,8 +543,8 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
         proj.data[:pane] = "one"
         inpane = findall(p::Project{<:Any} -> p[:pane] == "one", projects)
         [begin
-            if projects[p].id != proj.id 
-                style!(cm, """tab$(projects[p].id)""", "background-color" => "lightgray")
+            if projects[p].id != proj.id
+                style_tab_closed!(cm, projects[p])
             end
         end  for p in inpane]
         append!(cm, "pane_one_tabs", tab)
@@ -554,7 +554,7 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
         inpane = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
         [begin
             if projects[p].id != proj.id 
-                style!(cm, """tab$(projects[p].id)""", "background-color" => "lightgray")
+                style_tab_closed!(cm, projects[p])
             end
         end  for p in inpane]
         append!(cm, "pane_two_tabs", tab)
@@ -562,14 +562,26 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
     end
 end
 
+function style_tab_closed!(cm::ComponentModifier, proj::Project{<:Any})
+    style!(cm, """tab$(proj.id)""", "background-color" => "lightgray")
+end
+
+function style_tab_closed!(cm::ComponentModifier, proj::Project{:include})
+    style!(cm, """tab$(proj.id)""", "background-color" => "#1E5631")
+end
+
+function style_tab_closed!(cm::ComponentModifier, proj::Project{:module})
+    style!(cm, """tab$(proj.id)""", "background-color" => "#4E0707")
+end
+
+
 #==output[code]
 UndefVarError: Cell not defined 
 ==#
 #==|||==#
 
 function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:Any})
-    name = proj.id
-    fname = replace(name, " " => "")
+    fname = p.id
     projs = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
     remove!(cm2, "$name")
@@ -599,44 +611,38 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
 end
 
 function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
-    name = p.id
-    fname = replace(name, " " => "")
+    fname = p.id
     tabbody = div("tab$(fname)")
     style!(tabbody, "border-bottom-right-radius" => 0px,
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
     "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
     "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "#F6FAE4")
+    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "green")
     if(hidden)
         style!(tabbody, "background-color" => "gray")
     end
     tablabel = a("tablabel$(fname)", text = p.name)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "#F6FAE4")
+    "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
-                style!(cm, """tab$(projects[e].id)""", "background-color" => "lightgray")
-                newtablabel = a("tab$label", text = projects[e].name)
-                style!(newtablabel, "font-weight" => "bold", "margin-right" => 5px,
-                "font-size"  => 13pt, "color" => "#A2646F")
-                set_children!(cm, """tab$(projects[e].id)""", [newtablabel])
+                style_tab_closed!(cm, projects[e])
             end
         end  for e in inpane]
         projbuild = build(c, cm, p)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
-        style!(cm, tabbody, "background-color" => "lightgreen")
+        style!(cm, tabbody, "background-color" => "green")
     end
     tabbody::Component{:div}
 end
 
 
 function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
-    name = p.id
-    fname = replace(name, " " => "")
+    fname = p.id
     tabbody = div("tab$(fname)")
     style!(tabbody, "border-bottom-right-radius" => 0px,
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
@@ -648,30 +654,25 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     end
     tablabel = a("tablabel$(fname)", text = p.name)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "#A2646F")
+    "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
-                style!(cm, """tab$(projects[e].id)""", "background-color" => "lightgray")
-                newtablabel = a("tab$label", text = projects[e].name)
-                style!(newtablabel, "font-weight" => "bold", "margin-right" => 5px,
-                "font-size"  => 13pt, "color" => "#FF6C5C")
-                set_children!(cm, """tab$(projects[e].id)""", [newtablabel])
+                style_tab_closed!(cm, projects[e])
             end
         end  for e in inpane]
         projbuild = build(c, cm, p)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
-        style!(cm, tabbody, "background-color" => "red")
+        style!(cm, tabbody, "background-color" => "#FF6C5C")
     end
     tabbody::Component{:div}
 end
 
 function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
-    name = p.id
-    fname = replace(name, " " => "")
+    fname = p.id
     tabbody = div("tab$(fname)")
     style!(tabbody, "border-bottom-right-radius" => 0px,
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
@@ -690,11 +691,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
-                style!(cm, """tab$(projects[e].id)""", "background-color" => "lightgray")
-                newtablabel = a("tab$label", text = projects[e].name)
-                style!(newtablabel, "font-weight" => "bold", "margin-right" => 5px,
-                "font-size"  => 13pt, "color" => "#A2646F")
-                set_children!(cm, """tab$(projects[e].id)""", [newtablabel])
+                style_tab_closed!(cm, projects[e])
             end
         end  for e in inpane]
         projbuild = build(c, cm, p)
