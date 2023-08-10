@@ -581,7 +581,7 @@ UndefVarError: Cell not defined 
 #==|||==#
 
 function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:Any})
-    fname = p.id
+    name = proj.id
     projs = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
     remove!(cm2, "$name")
@@ -607,7 +607,7 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     pos = findfirst(pro -> pro.id == proj.id,
     projs)
     deleteat!(projs, pos)
-    olive_notify!(cm2, "project $(fname) closed", color = "blue")
+    olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
 end
 
 function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)

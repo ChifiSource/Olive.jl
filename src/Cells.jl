@@ -991,13 +991,6 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
     end
 end
 #==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function string(cell::Cell{:markdown})
-        "\"\"\"$(cell.source)\"\"\"\n#==|||==#\n"::String
-end
-#==output[code]
 Session cells
 ==#
 #==|||==#
@@ -1681,26 +1674,39 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     cells::Vector{Cell}, proj::Project{<:Any})
-    if length(findall(p -> p.id == cell.id, c[:OliveCore].open[getname(c)].projects)) > 0
+    projects = c[:OliveCore].open[getname(c)].projects
+    if length(findall(p -> p.id == cell.outputs, projects)) > 0
+        modname = cell.outputs
+        src = join([begin
+        """$(cell.source)\n# --\n$(cell.outputs)\n#=-=#\n$(cell.ctype)\n# --\n""" 
+        end for cell in projects[modname][:cells]])
+        cell.source = """module $modname\n$src\nend"""
         return
-    elseif contains("module", cell.source)
-        new_cells = IPyCells.jlcells(cell.source)
+    elseif contains(cell.source, "module")
+        r = maximum(findfirst("module", cell.source))
+        start = findnext("\n", r, cell.source)
+        nd = minimum(findlast("end", cell.source)) - 1
+        modsrc = split(cell.source[start:nd], "\n# --"\n)
+        new_cells = [begin
+            src = string(modsrc[cellc - 1])
+            outptype = split(modsrc[cellc], "\n#=-=#\n")
+        end for cellc in range(1, length(modsrc), step = 2)]
     else
-        new_cells = Vector{Cell}()
+        new_cells = Vector{Cell}([Cell(1, "code", "")])
     end
     modname = cm["cell$(cell.id)"]["text"]
-    modstr = olive_module(cell.id, proj[:env])
-    newmod = proj.data[:mod].evalin(modstr)
+    modstr = olive_module(modname, proj[:env])
+    newmod = proj.data[:mod].evalin(Meta.parse(modstr))
     projdict = Dict{Symbol, Any}(:cells => new_cells, :env => proj[:env], 
-    :path => proj[:path], :newmod => mod)
-    proj.data[:mod].evalin("""$modname = $(cell.id)""")
+    :path => proj[:path], :mod => newmod)
     inclproj = Project{:module}(modname, projdict)
-    inclproj.id = cell.id
+    inclproj.id = modname
     push!(c[:OliveCore].open[getname(c)].projects, inclproj)
     tab = build_tab(c, inclproj)
     open_project(c, cm, inclproj, tab)
     olive_notify!(cm, "module $modname added", color = "red")
     set_text!(cm, "cell$(cell.id)out", modname)
+    cell.outputs = modname
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:module},
@@ -1710,8 +1716,6 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:modul
     ToolipsMarkdown.julia_block!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
 end
-
-
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
