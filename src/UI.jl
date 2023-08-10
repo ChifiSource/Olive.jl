@@ -488,11 +488,13 @@ UndefVarError: Cell not defined 
 ==#
 #==|||==#
 
-function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
+function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
-    all_paths::Vector{String} = [begin
+    all_paths = [begin
+    if :path in keys(project.data)
         project[:path]
+    end
     end for project in c[:OliveCore].open[getname(c)].projects]
     if fpath in all_paths
         olive_notify!(cm, "project already open!", color = "red")
@@ -517,6 +519,7 @@ function add_to_session(c::Connection, cs::Vector{Cell{<:Any}},
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     tab::Component{:div} = build_tab(c, myproj)
     open_project(c, cm, myproj, tab)    
+    myproj::Project{<:Any}
 end
 
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
@@ -540,8 +543,8 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
         proj.data[:pane] = "one"
         inpane = findall(p::Project{<:Any} -> p[:pane] == "one", projects)
         [begin
-            if projects[p].id != proj.id 
-                style!(cm, """tab$(projects[p].id)""", "background-color" => "lightgray")
+            if projects[p].id != proj.id
+                style_tab_closed!(cm, projects[p])
             end
         end  for p in inpane]
         append!(cm, "pane_one_tabs", tab)
@@ -551,13 +554,26 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
         inpane = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
         [begin
             if projects[p].id != proj.id 
-                style!(cm, """tab$(projects[p].id)""", "background-color" => "lightgray")
+                style_tab_closed!(cm, projects[p])
             end
         end  for p in inpane]
         append!(cm, "pane_two_tabs", tab)
         set_children!(cm, "pane_two", [projbuild])
     end
 end
+
+function style_tab_closed!(cm::ComponentModifier, proj::Project{<:Any})
+    style!(cm, """tab$(proj.id)""", "background-color" => "lightgray")
+end
+
+function style_tab_closed!(cm::ComponentModifier, proj::Project{:include})
+    style!(cm, """tab$(proj.id)""", "background-color" => "#1E5631")
+end
+
+function style_tab_closed!(cm::ComponentModifier, proj::Project{:module})
+    style!(cm, """tab$(proj.id)""", "background-color" => "#4E0707")
+end
+
 
 #==output[code]
 UndefVarError: Cell not defined 
@@ -566,7 +582,6 @@ UndefVarError: Cell not defined 
 
 function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:Any})
     name = proj.id
-    fname = replace(name, " " => "")
     projs = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
     remove!(cm2, "$name")
@@ -582,22 +597,82 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
             remove!(cm2, lpjn)
             remove!(cm2, "tab$lpjn")
             lastproj.data[:pane] = "one"
-            set_children!(cm2, "pane_one", Vector{Servable}([
+            append!(cm2, "pane_one_tabs", build_tab(c, lastproj))
+                        set_children!(cm2, "pane_one", Vector{Servable}([
                 Base.invokelatest(c[:OliveCore].olmod.build, c, cm2, lastproj
             )]))
-            append!(cm2, "pane_one_tabs", build_tab(c, lastproj))
         end
         style!(cm2, "pane_container_two", "width" => 0percent, "opacity" => 0percent)  
     end
     pos = findfirst(pro -> pro.id == proj.id,
     projs)
     deleteat!(projs, pos)
-    olive_notify!(cm2, "project $(fname) closed", color = "blue")
+    olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
+end
+
+function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
+    fname = p.id
+    tabbody = div("tab$(fname)")
+    style!(tabbody, "border-bottom-right-radius" => 0px,
+    "border-bottom-left-radius" => 0px, "display" => "inline-block",
+    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
+    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
+    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "green")
+    if(hidden)
+        style!(tabbody, "background-color" => "gray")
+    end
+    tablabel = a("tablabel$(fname)", text = p.name)
+    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
+    "font-size"  => 13pt, "color" => "white")
+    push!(tabbody, tablabel)
+    on(c, tabbody, "click") do cm::ComponentModifier
+        projects = c[:OliveCore].open[getname(c)].projects
+        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
+        [begin
+            if projects[e].id != p.id 
+                style_tab_closed!(cm, projects[e])
+            end
+        end  for e in inpane]
+        projbuild = build(c, cm, p)
+        set_children!(cm, "pane_$(p[:pane])", [projbuild])
+        style!(cm, tabbody, "background-color" => "green")
+    end
+    tabbody::Component{:div}
+end
+
+
+function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
+    fname = p.id
+    tabbody = div("tab$(fname)")
+    style!(tabbody, "border-bottom-right-radius" => 0px,
+    "border-bottom-left-radius" => 0px, "display" => "inline-block",
+    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
+    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
+    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "#FF6C5C")
+    if(hidden)
+        style!(tabbody, "background-color" => "gray")
+    end
+    tablabel = a("tablabel$(fname)", text = p.name)
+    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
+    "font-size"  => 13pt, "color" => "white")
+    push!(tabbody, tablabel)
+    on(c, tabbody, "click") do cm::ComponentModifier
+        projects = c[:OliveCore].open[getname(c)].projects
+        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
+        [begin
+            if projects[e].id != p.id 
+                style_tab_closed!(cm, projects[e])
+            end
+        end  for e in inpane]
+        projbuild = build(c, cm, p)
+        set_children!(cm, "pane_$(p[:pane])", [projbuild])
+        style!(cm, tabbody, "background-color" => "#FF6C5C")
+    end
+    tabbody::Component{:div}
 end
 
 function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
-    name = p.id
-    fname = replace(name, " " => "")
+    fname = p.id
     tabbody = div("tab$(fname)")
     style!(tabbody, "border-bottom-right-radius" => 0px,
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
@@ -616,11 +691,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
-                style!(cm, """tab$(projects[e].id)""", "background-color" => "lightgray")
-                newtablabel = a("tab$label", text = projects[e].name)
-                style!(newtablabel, "font-weight" => "bold", "margin-right" => 5px,
-                "font-size"  => 13pt, "color" => "#A2646F")
-                set_children!(cm, """tab$(projects[e].id)""", [newtablabel])
+                style_tab_closed!(cm, projects[e])
             end
         end  for e in inpane]
         projbuild = build(c, cm, p)
@@ -688,6 +759,10 @@ UndefVarError: ComponentModifier not defined
 
 function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     save_split = split(p.name, ".")
+    if ~(:path in keys(p.data))
+        olive_notify!(cm2, "this project cannot be saved.", color = "darkred")
+        return
+    end
     if length(save_split) < 2
         save_type = "Any"
     else

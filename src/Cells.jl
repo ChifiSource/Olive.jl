@@ -872,21 +872,21 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     elseif curr_raw == ";"
         remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "shell", "")
+        new_cell = Cell(pos, "shellrepl", "")
         deleteat!(cells, pos)
         insert!(cells, pos, new_cell)
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, proj))
          focus!(cm, "cell$(new_cell.id)")
     elseif curr_raw == "?"
+        remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "helprepl", "")
         deleteat!(cells, pos)
         insert!(cells, pos, new_cell)
-        remove!(cm, "cellcontainer$(cell.id)")
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, proj))
-        focus!(cm, "cell$(new_cell.id)")
+         focus!(cm, "cell$(new_cell.id)")
     elseif curr_raw == "#=TODO"
         remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
@@ -897,22 +897,23 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
          cells, proj))
          focus!(cm, "cell$(new_cell.id)")
     elseif curr_raw == "#=NOTE"
+        remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "NOTE", "")
         deleteat!(cells, pos)
         insert!(cells, pos, new_cell)
-        remove!(cm, "cellcontainer$(cell.id)")
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, proj))
-        focus!(cm, "cell$(new_cell.id)")
-    elseif curr_raw == "include("
+         focus!(cm, "cell$(new_cell.id)")
+    elseif curr_raw == "include(\""
+        remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "include", "", cells[pos].outputs)
-        cells[pos] = new_cell
-        remove!(cm, "cellcontainer$(cell.id)")
+        new_cell = Cell(pos, "include", "")
+        deleteat!(cells, pos)
+        insert!(cells, pos, new_cell)
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, proj))
-        focus!(cm, "cell$(new_cell.id)")
+         focus!(cm, "cell$(new_cell.id)")
     end
     cell.source = curr
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
@@ -988,13 +989,6 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
             new_cell = cells[pos + 1]
         end
     end
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function string(cell::Cell{:markdown})
-        "\"\"\"$(cell.source)\"\"\"\n#==|||==#\n"::String
 end
 #==output[code]
 Session cells
@@ -1587,6 +1581,7 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     cells::Vector{Cell}, proj::Project{<:Any})
+    projs = c[:OliveCore].open[getname(c)].projects
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
@@ -1616,16 +1611,29 @@ end
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include}, 
     cells::Vector{Cell}, proj::Project{<:Any})
     path = cm["cell$(cell.id)"]["text"]
-    if ~(isfile(path))
+    cell.source = path
+    env = c[:OliveCore].open[getname(c)]
+    if ~(isfile(env.pwd * "/" * path))
         olive_notify!(cm, "$path is not a file!", color = "red")
     end
-    formatsplit = split(path, ".")
-    fnamesplit = split(path, "/")
-    fname = fnamesplit[length(fnamesplit)]
-    format = join(formatsplit[2:length(formatsplit)])
-    fcell = Cell(1, format, fname, path)
-    new_cells = olive_read(fcell)
-    add_to_session(c, new_cells, cm, fname, path, type = "include")
+    projs = c[:OliveCore].open[getname(c)].projects
+    if cell.source != "" && length(findall(p -> p.id == cell.outputs, projs)) == 0
+        if isfile(cell.source)
+            formatsplit = split(path, ".")
+            fnamesplit = split(path, "/")
+            fname = string(fnamesplit[length(fnamesplit)])
+            format = string(join(formatsplit[2:length(formatsplit)]))
+            fcell = Cell(1, format, fname, env.pwd * "/" * path)
+            new_cells = olive_read(fcell)
+            inclproj = add_to_session(c, new_cells, cm, fname, 
+            env.pwd, type = "include")
+            inclproj.data[:mod] = proj[:mod]
+            olive_notify!(cm, "file $fname included", color = "darkgreen")
+            set_text!(cm, "cell$(cell.id)out", fname)
+        end
+    end
+    cell.source = "include(\"path\")"
+    cell.outputs = path
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
@@ -1658,7 +1666,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     style!(interior[:children]["cellside$(cell.id)"],
-    "background-color" => "lightgreen")
+    "background-color" => "red")
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
     builtcell::Component{:div}
@@ -1666,7 +1674,39 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     cells::Vector{Cell}, proj::Project{<:Any})
-
+    projects = c[:OliveCore].open[getname(c)].projects
+    if length(findall(p -> p.id == cell.outputs, projects)) > 0
+        modname = cell.outputs
+        src = join([begin
+        """$(cell.source)\n# --\n$(cell.outputs)\n#=-=#\n$(cell.ctype)\n# --\n""" 
+        end for cell in projects[modname][:cells]])
+        cell.source = """module $modname\n$src\nend"""
+        return
+    elseif contains(cell.source, "module")
+        r = maximum(findfirst("module", cell.source))
+        start = findnext("\n", r, cell.source)
+        nd = minimum(findlast("end", cell.source)) - 1
+        modsrc = split(cell.source[start:nd], "\n# --"\n)
+        new_cells = [begin
+            src = string(modsrc[cellc - 1])
+            outptype = split(modsrc[cellc], "\n#=-=#\n")
+        end for cellc in range(1, length(modsrc), step = 2)]
+    else
+        new_cells = Vector{Cell}([Cell(1, "code", "")])
+    end
+    modname = cm["cell$(cell.id)"]["text"]
+    modstr = olive_module(modname, proj[:env])
+    newmod = proj.data[:mod].evalin(Meta.parse(modstr))
+    projdict = Dict{Symbol, Any}(:cells => new_cells, :env => proj[:env], 
+    :path => proj[:path], :mod => newmod)
+    inclproj = Project{:module}(modname, projdict)
+    inclproj.id = modname
+    push!(c[:OliveCore].open[getname(c)].projects, inclproj)
+    tab = build_tab(c, inclproj)
+    open_project(c, cm, inclproj, tab)
+    olive_notify!(cm, "module $modname added", color = "red")
+    set_text!(cm, "cell$(cell.id)out", modname)
+    cell.outputs = modname
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:module},
@@ -1676,8 +1716,6 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:modul
     ToolipsMarkdown.julia_block!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
 end
-
-
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#

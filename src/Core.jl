@@ -487,7 +487,6 @@ mutable struct Environment
     function Environment(name::String)
         new(name, Vector{Directory}(),
         Vector{Project}(), "")::Environment
-        # TODO, set this   ^^ to user's home.
     end
 end
 
