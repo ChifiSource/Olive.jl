@@ -1681,7 +1681,21 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     cells::Vector{Cell}, proj::Project{<:Any})
+    modname = cm["cell$(id)"]["text"]
+    if length(findall(p -> p.id == cell.id, c[:OliveCore].open[getip(c)].projects)) > 0
 
+    elseif contains("module", cell.source)
+        
+    else
+        env = proj.data[:env]
+        new_cells = Vector{Cell}()
+        projdict = Dict{Symbol, Any}(:cells => new_cells)
+        inclproj = Project{:module}(modname, projdict)
+        inclproj.id = cell.id
+        proj.id
+        olive_notify!(cm, "module $modname added", color = "red")
+        set_text!(cm, "cell$(cell.id)out", fname)
+    end
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:module},
