@@ -872,21 +872,21 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     elseif curr_raw == ";"
         remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "shell", "")
+        new_cell = Cell(pos, "shellrepl", "")
         deleteat!(cells, pos)
         insert!(cells, pos, new_cell)
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, proj))
          focus!(cm, "cell$(new_cell.id)")
     elseif curr_raw == "?"
+        remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "helprepl", "")
         deleteat!(cells, pos)
         insert!(cells, pos, new_cell)
-        remove!(cm, "cellcontainer$(cell.id)")
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, proj))
-        focus!(cm, "cell$(new_cell.id)")
+         focus!(cm, "cell$(new_cell.id)")
     elseif curr_raw == "#=TODO"
         remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
@@ -897,22 +897,23 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
          cells, proj))
          focus!(cm, "cell$(new_cell.id)")
     elseif curr_raw == "#=NOTE"
+        remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
         new_cell = Cell(pos, "NOTE", "")
         deleteat!(cells, pos)
         insert!(cells, pos, new_cell)
-        remove!(cm, "cellcontainer$(cell.id)")
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, proj))
-        focus!(cm, "cell$(new_cell.id)")
-    elseif curr_raw == "include("
+         focus!(cm, "cell$(new_cell.id)")
+    elseif curr_raw == "include(\""
+        remove!(cm, "cellcontainer$(cell.id)")
         pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "include", "", cells[pos].outputs)
-        cells[pos] = new_cell
-        remove!(cm, "cellcontainer$(cell.id)")
+        new_cell = Cell(pos, "include", "")
+        deleteat!(cells, pos)
+        insert!(cells, pos, new_cell)
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
          cells, proj))
-        focus!(cm, "cell$(new_cell.id)")
+         focus!(cm, "cell$(new_cell.id)")
     end
     cell.source = curr
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
@@ -1619,7 +1620,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     path = cm["cell$(cell.id)"]["text"]
     cell.source = path
     env = c[:OliveCore].open[getname(c)]
-    if ~(isfile(path))
+    if ~(isfile(env.pwd * "/" * path))
         olive_notify!(cm, "$path is not a file!", color = "red")
     end
     projs = c[:OliveCore].open[getname(c)].projects
@@ -1629,7 +1630,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
             fnamesplit = split(path, "/")
             fname = string(fnamesplit[length(fnamesplit)])
             format = string(join(formatsplit[2:length(formatsplit)]))
-            fcell = Cell(1, format, fname, path)
+            fcell = Cell(1, format, fname, env.pwd * "/" * path)
             new_cells = olive_read(fcell)
             inclproj = add_to_session(c, new_cells, cm, fname, 
             env.pwd, type = "include")
@@ -1638,6 +1639,8 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
             set_text!(cm, "cell$(cell.id)out", fname)
         end
     end
+    cell.source = "include(\"path\")"
+    cell.outputs = path
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
