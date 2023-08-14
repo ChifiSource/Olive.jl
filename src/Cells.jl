@@ -658,12 +658,12 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}
     bind!(km, keybindings["delete"]) do cm2::ComponentModifier
         cell_delete!(c, cm2, cell, cells)
     end
+    bind!(km, keybindings["new"]) do cm2::ComponentModifier
+        cell_new!(c, cm2, cell, cells, proj)
+    end
     bind!(km, keybindings["evaluate"]) do cm2::ComponentModifier
         remove_last_eval(c, cm2, cell)
         evaluate(c, cm2, cell, cells, proj)
-    end
-    bind!(km, keybindings["new"]) do cm2::ComponentModifier
-        cell_new!(c, cm2, cell, cells, proj)
     end
     bind!(km, keybindings["focusup"]) do cm::ComponentModifier
         focus_up!(c, cm, cell, cells, proj)
@@ -691,8 +691,8 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         style!(highlight_box, "position" => "absolute",
         "background" => "transparent", "z-index" => "5", "padding" => 20px,
         "border-top-left-radius" => "0px !important",
-        "border-radius" => "0px !important", "line-height" => 15px,
-        "max-width" => 90percent, "border-width" =>  0px,  "pointer-events" => "none",
+        "border-radius" => "0px !important", "line-height" => 15px, "overflow" => "hidden",
+        "max-width" => 100percent, "border-width" =>  0px,  "pointer-events" => "none",
         "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
         "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
         on(c, inputbox, "keyup", ["cell$(cell.id)", "rawcell$(cell.id)"]) do cm2::ComponentModifier
@@ -745,11 +745,11 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
         push!(interiorbox, inputbox)
     end
     # TODO move these styles to stylesheet
-    style!(inputbox, "padding" => 0px, "width" => 90percent,
+    style!(inputbox, "padding" => 0px, "width" => 100percent, "overflow-x" => "hidden",
     "overflow" => "hidden", "border-top-left-radius" => "0px !important",
     "border-bottom-left-radius" => 0px, "border-radius" => "0px !important",
     "position" => "relative", "height" => "auto")
-    style!(interiorbox, "display" => "flex")
+    style!(interiorbox, "display" => "flex", "width" => "auto", "overflow" => "hidden")
     push!(outside, interiorbox, output)
     outside::Component{:div}
 end
@@ -1678,7 +1678,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     if length(findall(p -> p.id == cell.outputs, projects)) > 0
         modname = cell.outputs
         src = join([begin
-        """$(cell.source)\n# --\n$(cell.outputs)\n#=-=#\n$(cell.type)\n# --\n""" 
+        """$(cell.source)\n# --\n#==$(cell.outputs)\n#=-=#\n$(cell.type)\n==# --\n""" 
         end for cell in projects[modname][:cells]])
         cell.source = """module $modname\n$src\nend"""
         return
@@ -1690,6 +1690,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
         new_cells = [begin
             src = string(modsrc[cellc - 1])
             outptype = split(modsrc[cellc], "\n#=-=#\n")
+            Cell(cellc - 1, string(outptype[2]))
         end for cellc in range(1, length(modsrc), step = 2)]
     else
         new_cells = Vector{Cell}([Cell(1, "code", "")])

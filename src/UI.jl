@@ -574,6 +574,69 @@ function style_tab_closed!(cm::ComponentModifier, proj::Project{:module})
     style!(cm, """tab$(proj.id)""", "background-color" => "#4E0707")
 end
 
+function switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any})
+    projects = c[:OliveCore].open[getname(c)].projects
+    if proj[:pane] == "one"
+        proj[:pane] = "two"
+        inpane = findall(p::Project{<:Any} -> p[:pane] == "one", projects)
+        outpane = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
+        if ~(length(inpane) > 0)
+            [begin
+                project[:pane] = "one"
+                remove!(cm, project.id)
+                remove!(cm, )
+            end for project in outpane]
+            remove!(cm, "$name")
+            remove!(cm, "tab$(name)")
+            remove!(cm, "preview$(proj.id)")
+        else
+            
+        end
+    else
+
+    end
+end
+
+
+function tab_controls(c::Connection, p::Project{<:Any})
+    fname = p.id
+    closebutton = topbar_icon("$(fname)close", "close")
+    on(c, closebutton, "click") do cm2::ComponentModifier
+        close_project(c, cm2, p)
+    end
+    restartbutton = topbar_icon("$(fname)restart", "restart_alt")
+    on(c, restartbutton, "click") do cm2::ComponentModifier
+        new_name = string(split(fname, ".")[1])
+        myproj = c[:OliveCore].open[getname(c)][fname]
+        delete!(myproj.data, :mod)
+        source_module!(myproj, new_name)
+        olive_notify!(cm2, "module for $(fname) re-sourced")
+    end
+    add_button = topbar_icon("$(fname)add", "add_circle")
+    on(c, add_button, "click") do cm2::ComponentModifier
+        cells = c[:OliveCore].open[getname(c)][fname][:cells]
+        new_cell = Cell(length(cells) + 1, "creator", "")
+        push!(cells, new_cell)
+        append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
+    end
+    runall_button = topbar_icon("$(fname)run", "start")
+    on(c, runall_button, "click") do cm2::ComponentModifier
+        cells = c[:OliveCore].open[getname(c)][fname][:cells]
+        [begin
+        try
+            evaluate(c, cm2, cell, cells, fname)
+        catch
+        end
+        end for cell in cells]
+    end
+    switchpane_button = topbar_icon("$(fname)switch", "arrow_right")
+    style!(closebutton, "font-size"  => 17pt, "color" => "red")
+    style!(restartbutton, "font-size"  => 17pt, "color" => "darkgray")
+    style!(switchpane_button, "font-size"  => 17pt, "color" => "darkgray")
+    style!(add_button, "font-size"  => 17pt, "color" => "darkgray")
+    style!(runall_button, "font-size"  => 17pt, "color" => "darkgray")
+    [add_button, switchpane_button, restartbutton, runall_button, closebutton]
+end
 
 #==output[code]
 UndefVarError: Cell not defined 
@@ -700,54 +763,19 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     end
     on(c, tabbody, "dblclick") do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
-            closebutton = topbar_icon("$(fname)close", "close")
-            on(c, closebutton, "click") do cm2::ComponentModifier
-                close_project(c, cm2, p)
-            end
-            restartbutton = topbar_icon("$(fname)restart", "restart_alt")
-            on(c, restartbutton, "click") do cm2::ComponentModifier
-                new_name = string(split(fname, ".")[1])
-                myproj = c[:OliveCore].open[getname(c)][fname]
-                delete!(myproj.data, :mod)
-                source_module!(myproj, new_name)
-                olive_notify!(cm2, "module for $(fname) re-sourced")
-            end
-            add_button = topbar_icon("$(fname)add", "add_circle")
-            on(c, add_button, "click") do cm2::ComponentModifier
-                cells = c[:OliveCore].open[getname(c)][fname][:cells]
-                new_cell = Cell(length(cells) + 1, "creator", "")
-                push!(cells, new_cell)
-                append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
-            end
-            runall_button = topbar_icon("$(fname)run", "start")
-            on(c, runall_button, "click") do cm2::ComponentModifier
-                cells = c[:OliveCore].open[getname(c)][fname][:cells]
-                [begin
-                try
-                    evaluate(c, cm2, cell, cells, fname)
-                catch
-                end
-                end for cell in cells]
-            end
-
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
             on(c, decollapse_button, "click") do cm2::ComponentModifier
-                remove!(cm2, closebutton)
-                remove!(cm2, add_button)
-                remove!(cm2, runall_button)
-                remove!(cm2, restartbutton)
+                remove!(cm2, "$(fname)close")
+                remove!(cm2, "$(fname)add")
+                remove!(cm2, "$(fname)restart")
+                remove!(cm2, "$(fname)run")
+                remove!(cm2, "$(fname)switch")
                 remove!(cm2, decollapse_button)
             end
-            style!(closebutton, "font-size"  => 17pt, "color" => "red")
-            style!(restartbutton, "font-size"  => 17pt, "color" => "gray")
             style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
-            style!(add_button, "font-size"  => 17pt, "color" => "gray")
-            style!(runall_button, "font-size"  => 17pt, "color" => "gray")
-            append!(cm, tabbody, decollapse_button)
-            append!(cm, tabbody, add_button)
-            append!(cm, tabbody, restartbutton)
-            append!(cm, tabbody, runall_button)
-            append!(cm, tabbody, closebutton)
+            controls = tab_controls(c, p)
+            insert!(controls, 1, decollapse_button)
+            [append!(cm, tabbody, serv) for serv in controls]
         end
     end
     tabbody

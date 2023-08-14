@@ -10,7 +10,7 @@ julia and for other languages and data editing. Crucially, olive is abstract
     in definition and allows for the creation of unique types for names.
 """
 module Olive
-#==output[code]
+#==output[module]
 ==#
 #==|||==#
 import Base: write, display, getindex, setindex!, string
@@ -26,17 +26,15 @@ using ToolipsMarkdown
 using ToolipsBase64
 using TOML
 using Revise
-#==output[NOTE]
-This 'evalin' function is exported and to be addressed throughout code (for the olmod container).
-==#
-#==|||==#
+#--
 global evalin(ex::Any) = begin
     Main.eval(ex)
 end
 export evalin
-#==output[code]
-==#
-#==|||==#
+# --
+
+ #=-=#
+# --
 function version()
     srcdir = replace(@__DIR__, "\\" => "/")
     splits = split(srcdir, "/")
@@ -140,8 +138,13 @@ end
 ==#
 #==|||==#
 include("Core.jl")
+#==output[include]
+Core.jl
+==#
+#==|||==#
 include("UI.jl")
-#==output[code]
+#==output[include]
+UI.jl
 ==#
 #==|||==#
 """
@@ -247,10 +250,10 @@ main = route("/") do c::Connection
         cm[olivemain] = "pane" => "2"
     end
     style!(pane_one, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
-    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px, 
+    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 95percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px, 
     "border-color" => "#333333")
     style!(pane_two, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
-    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 100percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px, 
+    "overflow-x" => "hidden", "padding" => 0px, "max-height" => 95percent, "border-top-left-radius" => 0px, "border-top-right-radius" => 0px, 
     "border-color" => "#333333")
     push!(pane_container_one, pane_one_tabs, pane_one)
     push!(pane_container_two, pane_two_tabs, pane_two)
@@ -317,8 +320,8 @@ setup = route("/") do c::Connection
     push!(questions, h("questions-heading", 2, text = "a few more things ..."))
     opts = [button("no", text = "no"), button("yes", text = "yes")]
     push!(questions, h("questions-defaults", 4, text = "would you like to add OliveDefaults?"))
-    push!(questions, p("defaults-explain", text = """this extension will give the
-    capability to add custom styles, adds more cells, and more!"""))
+    push!(questions, p("defaults-explain", text = """this extension adds a documentation browser, 
+    style customizer, and autocomplete functionality for code cells."""))
     defaults_q = ToolipsDefaults.button_select(c, "defaults_q", opts)
     push!(questions, defaults_q)
     push!(questions, h("questions-name", 2,
@@ -374,17 +377,15 @@ setup = route("/") do c::Connection
                  set_text!(cm3, statindicator, "project created !")
                  Pkg.activate("$(cm["selector"]["text"])/olive")
                  Pkg.add("Pkg")
+                 Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
                  cm3[loadbar] = "value" => ".50"
                  style!(cm3, loadbar, "opacity" => 99percent)
                  next!(c, loadbar, cm3) do cm4
                      txt = ""
                      if dfaults == "yes"
                          Pkg.add(
-                         url = "https://github.com/ChifiSource/Olive.jl"
-                         )
-                         Pkg.add(
                          url = "https://github.com/ChifiSource/OliveDefaults.jl"
-                         )
+                         ) 
                          txt = txt * "defaults loaded! "
                      end
                      set_text!(cm4, statindicator, txt)
@@ -455,18 +456,13 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
             write(o,
             """\"""
             ## welcome to olive!
-            Welcome to olive: the extensible notebook application for Julia.
+            Welcome to olive: the multiple dispatch notebook application for Julia.
             This is  your olive home module's file. This is where extensions
-            for olive can be loaded. If you would  like to make your own
-            extension, extend `Olive.build` below... `?(Olive.build)` might
-            be helpful. Alternatively, simply use `using` to load extensions
-            from modules. For example,
-            ```julia
-            using OliveDefaults.Styler
-            using OlivePy
-            ```
-            Above all, have fun! Thanks for trying olive! Report any issues to
-            [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
+            for Olive can be loaded. **Note the distinction in case.**
+            This homefile was created using a pre-release version of Olive.
+
+            Thank you for trying Olive.
+            - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
             \"""
             #==|||==#
             module olive
@@ -482,9 +478,6 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
             using Olive.Toolips: Connection
             import Olive: build
             # add extensions here!
-            build(oc::OliveCore) = begin
-                oc::OliveCore
-            end
             #==output[code]
             olive.build
             ==#
@@ -513,7 +506,8 @@ The start function comprises routes into a Vector{Route} and then constructs
     a ServerTemplate before starting and returning the WebServer.
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
-    devmode::Bool = false, homedirec::String = homedir())
+    devmode::Bool = false, path::String = homedir())
+    homedirec = path
     if devmode
         s = OliveServer(OliveCore("Dev"))
         s.start()
@@ -561,7 +555,26 @@ end
 #==output[code]
 ==#
 #==|||==#
-export OliveCore, build, Pkg, TOML, Toolips, ToolipsSession
+function make_extension(name::String)
+    Pkg.generate(name)
+    Pkg.activate(name)
+    Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
+    cd(name)
+    mkdir(olive)
+    touch("olive/src/olive.jl")
+    open("olive/src/olive.jl", "w") do o::IO
+        write(o, 
+        """module olive
+            dir = @__DIR__
+            include("../../src/$name.jl")
+        end""")
+    end
+    @info "Olive extension files successfully created."
+end
+#==output[code]
+==#
+#==|||==#
+export OliveCore, build, Pkg, TOML
 export OliveExtension, OliveModifier, Cell
 #==output[code]
 ==#

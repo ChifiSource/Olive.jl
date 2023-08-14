@@ -381,7 +381,7 @@ exp::Bool = false)
     containerbody = container[:children][2]
     style!(container, "overflow" => "hidden")
     if dir.uri == c[:OliveCore].data["home"]
-        srcbutton = div("src$(becell)", text = "source")
+        srcbutton = topbar_icon("srchome", "play_arrow")
         on(c, srcbutton, "click") do cm::ComponentModifier
             home = c[:OliveCore].data["home"]
             try
@@ -393,8 +393,8 @@ exp::Bool = false)
                 color = "red")
             end
         end
-        style!(srcbutton, "background-color" => "red", "font-size" => 12pt, "padding" => 4px, "color" => "white",
-        "font-weight" => "bold", "display" => "flex", "align" => "center", "cursor" => "pointer", "border-radius" => 0px)
+        style!(srcbutton,"font-size" => 20pt, "color" => "red",
+        "font-weight" => "bold", "cursor" => "pointer")
         push!(containerheader, srcbutton)
     end
     cells::Vector{Servable} = Vector{Servable}([begin
@@ -404,13 +404,18 @@ exp::Bool = false)
     cellcontainer[:children] = cells
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
     new_fb = topbar_icon("newfb$(becell)", "article")
-    style!(new_dirb, "color" => "white", "font-size" => 23pt, "display" => "flex", "background-color" => "blue")
-    style!(new_fb, "color" => "white", "font-size" => 23pt, "background-color" => "red")
-    push!(containerheader, new_dirb, new_fb)
+    openworkb = topbar_icon("newfb$(becell)", "open_in_browser")
+    style!(new_dirb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
+    style!(new_fb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
+    style!(openworkb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
+    push!(containerheader, openworkb, new_dirb, new_fb)
     on(c, new_dirb, "click") do cm::ComponentModifier
         
     end
     on(c, new_fb, "click") do cm::ComponentModifier
+
+    end
+    on(c, openworkb, "click") do cm::ComponentModifier
 
     end
     push!(containerbody, cellcontainer)
@@ -478,7 +483,7 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     end for cell in frstcells])
     proj_window::Component{:div} = div(p.id)
     proj_window[:children] = retvs
-    style!(proj_window, "overflow-y" => "scroll", "overflow-x" => "hidden")
+    style!(proj_window, "overflow-y" => "scroll", "overflow-x" => "hidden", "padding" => 7px)
     proj_window::Component{:div}
 end
 
