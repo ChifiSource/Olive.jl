@@ -936,7 +936,7 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
     style!(cell_drag, "color" => "white", "font-size" => 17pt)
     style!(cell_run, "color" => "white", "font-size" => 17pt)
     on(c, cell_run, "click") do cm2::ComponentModifier
-        evaluate(c, cm2, cell, cells, window)
+        evaluate(c, cm2, cell, cells, proj)
     end
     icon.name = "load$(cell.id)"
     icon["width"] = "20"

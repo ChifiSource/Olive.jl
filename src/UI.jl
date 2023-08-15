@@ -607,35 +607,42 @@ function tab_controls(c::Connection, p::Project{<:Any})
     restartbutton = topbar_icon("$(fname)restart", "restart_alt")
     on(c, restartbutton, "click") do cm2::ComponentModifier
         new_name = string(split(fname, ".")[1])
-        myproj = c[:OliveCore].open[getname(c)][fname]
-        delete!(myproj.data, :mod)
-        source_module!(myproj, new_name)
+        delete!(p.data, :mod)
+        source_module!(p, new_name)
         olive_notify!(cm2, "module for $(fname) re-sourced")
     end
     add_button = topbar_icon("$(fname)add", "add_circle")
     on(c, add_button, "click") do cm2::ComponentModifier
-        cells = c[:OliveCore].open[getname(c)][fname][:cells]
+        cells = p[:cells]
         new_cell = Cell(length(cells) + 1, "creator", "")
         push!(cells, new_cell)
         append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
     end
     runall_button = topbar_icon("$(fname)run", "start")
     on(c, runall_button, "click") do cm2::ComponentModifier
-        cells = c[:OliveCore].open[getname(c)][fname][:cells]
-        [begin
-        try
-            evaluate(c, cm2, cell, cells, fname)
-        catch
-        end
-        end for cell in cells]
+        step_evaluate(c, cm2, p)
     end
     switchpane_button = topbar_icon("$(fname)switch", "arrow_right")
+    on(c, switchpane_button, "click") do cm2::ComponentModifier
+
+    end
     style!(closebutton, "font-size"  => 17pt, "color" => "red")
     style!(restartbutton, "font-size"  => 17pt, "color" => "darkgray")
     style!(switchpane_button, "font-size"  => 17pt, "color" => "darkgray")
     style!(add_button, "font-size"  => 17pt, "color" => "darkgray")
     style!(runall_button, "font-size"  => 17pt, "color" => "darkgray")
     [add_button, switchpane_button, restartbutton, runall_button, closebutton]
+end
+
+function step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
+    e += 1
+    script!(c, cm, "$(proj.data[:cells][e].id)eval", type = "Timeout") do cm2::ComponentModifier
+        evaluate(c, cm2, proj.data[:cells][e], proj.data[:cells], proj)
+        if e == length(proj.data[:cells])
+            return
+        end
+        step_evaluate(c, cm2, proj, e)
+    end
 end
 
 #==output[code]
