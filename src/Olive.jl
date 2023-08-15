@@ -10,9 +10,7 @@ julia and for other languages and data editing. Crucially, olive is abstract
     in definition and allows for the creation of unique types for names.
 """
 module Olive
-#==output[module]
-==#
-#==|||==#
+
 import Base: write, display, getindex, setindex!, string
 using IPyCells
 using IPyCells: Cell
@@ -26,14 +24,13 @@ using ToolipsMarkdown
 using ToolipsBase64
 using TOML
 using Revise
-#--
+#==nothing#=-=#code==#
+# --
 global evalin(ex::Any) = begin
     Main.eval(ex)
 end
 export evalin
-# --
-
- #=-=#
+#==nothing#=-=#code==#
 # --
 function version()
     srcdir = replace(@__DIR__, "\\" => "/")
@@ -42,24 +39,11 @@ function version()
     projinfo = TOML.parse(read(oliveprojdir * "/Project.toml", String))
     projinfo["version"]
 end
-#==output[code]
-==#
-#==|||==#
-#==output[TODO]
-check out what imma do below: in the module... AHAHAHA
-It will require the changing of a lot of arguments though. :)
-import Base: cd, mkdir, pwd
-import Base: run,
-[Base.delete_method(m) for m in methods(cd)]
-function cd(s::String)
-
-end
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 function olive_module(modname::String, environment::String)
     """module $(modname)
     using Pkg
-
 
     function evalin(ex::Any)
             Pkg.activate("$environment")
@@ -67,9 +51,8 @@ function olive_module(modname::String, environment::String)
     end
     end"""
 end
-#==output[code]
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 function olive_motd()
     recent_str::String = """# olive editor
     ##### version $(version()) (pre-release)
@@ -113,40 +96,14 @@ function olive_motd()
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
-#==output[code]
-==#
-#==|||==#
-#==
-- Olive.jl./src/Olive.jl
--- deps/includes  (you are here)
--- default routes
--- extension loader
--- Server Defaults
-- [Core.jl](./src/Core.jl)
--- OliveExtensions
--- OliveModifiers
--- Directories
--- Projects
--- server extension
--- display
--- filetracker
-- [UI.jl](./src/UI.jl)
--- styles
-- [Extensions.jl](./src/Extensions.jl)
-==#
-#==output[code]
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 include("Core.jl")
-#==output[include]
-Core.jl
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 include("UI.jl")
-#==output[include]
-UI.jl
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 """
 ### route ("/") (main)
 --------------------
@@ -288,9 +245,8 @@ main = route("/") do c::Connection
     end
     write!(c, bod)
 end
- #==output[code]
- ==#
- #==|||==#
+#==nothing#=-=#code==#
+# --
  """
  ### devmode ("/") (devmode)
  --------------------
@@ -303,9 +259,8 @@ to offering some examples.
 devmode = route("/") do c::Connection
     
 end
-#==output[code]
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 setup = route("/") do c::Connection
     write!(c, olivesheet())
     bod = body("mainbody")
@@ -425,15 +380,13 @@ setup = route("/") do c::Connection
     push!(bod, confirm_button)
     write!(c, bod)
 end
-#==output[code]
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
 end
-#==output[code]
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 icons = route("/MaterialIcons.otf") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/fonts/MaterialIcons.otf"))
@@ -442,63 +395,8 @@ mainicon = route("/favicon.ico") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/images/favicon.ico"))
 end
-#==output[code]
-==#
-#==|||==#
-function create_project(homedir::String = homedir(), olivedir::String = "olive")
-        try
-            cd(homedir)
-            Pkg.generate("olive")
-        catch
-            throw("unable to access your applications directory.")
-        end
-        open("$homedir/$olivedir/src/olive.jl", "w") do o
-            write(o,
-            """\"""
-            ## welcome to olive!
-            Welcome to olive: the multiple dispatch notebook application for Julia.
-            This is  your olive home module's file. This is where extensions
-            for Olive can be loaded. **Note the distinction in case.**
-            This homefile was created using a pre-release version of Olive.
-
-            Thank you for trying Olive.
-            - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
-            \"""
-            #==|||==#
-            module olive
-            #==output[code]
-            this cell starts the module, you probably don't want to run it.
-            ==#
-            #==|||==#
-            #==output[versioninfo]
-
-            ==#
-            #==|||==#
-            using Olive
-            using Olive.Toolips: Connection
-            import Olive: build
-            # add extensions here!
-            #==output[code]
-            olive.build
-            ==#
-            #==|||==#
-            # ?build
-            #==output[helprepl]
-
-            ==#
-            #==|||==#
-            end # module
-            #==output[code]
-            this cell ends the module, you probably don't want to run it.
-            ==#
-            #==|||==#
-            """)
-        end
-        @info "olive files created! welcome to olive! "
-end
-#==output[code]
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 """
 start(IP::String, PORT::Integer, extensions::Vector{Any}); devmode::Bool = false -> ::Toolips.WebServer
 --------------------
@@ -552,9 +450,8 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     end
     server::Toolips.ToolipsServer
 end
-#==output[code]
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 function make_extension(name::String)
     Pkg.generate(name)
     Pkg.activate(name)
@@ -571,15 +468,14 @@ function make_extension(name::String)
     end
     @info "Olive extension files successfully created."
 end
-#==output[code]
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 export OliveCore, build, Pkg, TOML
 export OliveExtension, OliveModifier, Cell
-#==output[code]
-==#
-#==|||==#
+#==nothing#=-=#code==#
+# --
 end # - module
-#==output[code]
+#==output[module]
+Olive
 ==#
 #==|||==#

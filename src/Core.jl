@@ -453,6 +453,58 @@ end
 
 getindex(p::Project{<:Any}, symb::Symbol) = p.data[symb]
 
+function create_project(homedir::String = homedir(), olivedir::String = "olive")
+    try
+        cd(homedir)
+        Pkg.generate("olive")
+    catch
+        throw("unable to access your applications directory.")
+    end
+    open("$homedir/$olivedir/src/olive.jl", "w") do o
+        write(o,
+        """\"""
+        ## welcome to olive!
+        Welcome to olive: the multiple dispatch notebook application for Julia.
+        This is  your olive home module's file. This is where extensions
+        for Olive can be loaded. **Note the distinction in case.**
+        This homefile was created using a pre-release version of Olive.
+
+        Thank you for trying Olive.
+        - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
+        \"""
+        #==|||==#
+        module olive
+        #==output[code]
+        this cell starts the module, you probably don't want to run it.
+        ==#
+        #==|||==#
+        #==output[versioninfo]
+
+        ==#
+        #==|||==#
+        using Olive
+        using Olive.Toolips: Connection
+        import Olive: build
+        # add extensions here!
+        #==output[code]
+        olive.build
+        ==#
+        #==|||==#
+        # ?build
+        #==output[helprepl]
+
+        ==#
+        #==|||==#
+        end # module
+        #==output[code]
+        this cell ends the module, you probably don't want to run it.
+        ==#
+        #==|||==#
+        """)
+    end
+    @info "olive files created! welcome to olive! "
+end
+
 getindex(p::Vector{Project{<:Any}}, s::String) = begin
     pos = findfirst(proj::Project{<:Any} -> proj.name == s, p)
     if isnothing(pos)

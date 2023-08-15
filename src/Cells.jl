@@ -760,15 +760,18 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell}, proj::Project{<:Any})
     windowname::String = proj.id
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
+    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
+    tm.raw = cell.source
+    ToolipsMarkdown.mark_julia!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
     proj, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, cells, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
+    ToolipsMarkdown.clear!(tm)
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km, on = :down)
+#    [on_code_build(c::Connection, cm::ComponentModifier, cell::Cell{:code}, OliveExtension{param}()) for ]
     builtcell::Component{:div}
 end
 
@@ -1160,8 +1163,9 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     cells::Vector{Cell}, proj::Project{<:Any})
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    toml_block!(tm)
+    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
+    tm.raw = cell.source
+    mark_toml!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
     proj, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, cells, proj)
@@ -1191,6 +1195,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
         cm2[collapsebutt] = "col" => "false"
     end
     style!(sideb, "background-color" => "lightblue")
+    ToolipsMarkdown.clear!(tm)
     sideb[:children] = [sideb[:children][1:2], collapsebutt]
     builtcell::Component{:div}
 end
@@ -1645,10 +1650,8 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     cells::Vector{Cell}, proj::Project{<:Any})
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
-    proj, sidebox = true, highlight = true)
+    proj, sidebox = true, highlight = false)
     km = cell_bind!(c, cell, cells, proj)
     bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
         if cm2["rawcell$(cell.id)"]["text"] == ""
@@ -1664,9 +1667,10 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     end
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
+    inp[:children]["cell$(cell.id)"][:text] = cell.outputs
+    style!(inp[:children]["cell$(cell.id)"], "color" => "darkgray")
     style!(interior[:children]["cellside$(cell.id)"],
     "background-color" => "red")
-    inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
     builtcell::Component{:div}
 end
@@ -1674,8 +1678,8 @@ end
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     cells::Vector{Cell}, proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
-    if length(findall(p -> p.id == cell.outputs, projects)) > 0
-        modname = cell.outputs
+    if length(findall(proj -> proj.id == cell.outputs, projects)) > 0
+        modname = cm["cell$(cell.id)"]["text"]
         src = join([begin
         """$(cell.source)\n# --\n#==$(cell.outputs)\n#=-=#\n$(cell.type)\n==# --\n""" 
         end for cell in projects[modname][:cells]])
@@ -1683,14 +1687,14 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
         return
     elseif contains(cell.source, "module")
         r = maximum(findfirst("module", cell.source))
-        start = findnext("\n", r, cell.source)
+        st = findnext("\n", cell.source, r)[1]
         nd = minimum(findlast("end", cell.source)) - 1
-        modsrc = split(cell.source[start:nd], "\n# --"\n)
+        modsrc = split(cell.source[st:nd], "# --")
         new_cells = [begin
             src = string(modsrc[cellc - 1])
-            outptype = split(modsrc[cellc], "\n#=-=#\n")
-            Cell(cellc - 1, string(outptype[2]))
-        end for cellc in range(1, length(modsrc), step = 2)]
+            outptype = split(replace(modsrc[cellc], "#==" => "", "==#" => ""), "\n#=-=#\n")
+            Cell(cellc - 1, string(outptype[2]), src, string(outptype[1]))
+        end for cellc in range(2, length(modsrc), step = 2)]
     else
         new_cells = Vector{Cell}([Cell(1, "code", "")])
     end
@@ -1715,6 +1719,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:modul
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+    ToolipsMarkdown.clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
