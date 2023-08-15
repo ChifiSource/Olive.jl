@@ -593,7 +593,6 @@ function source_module!(oc::OliveCore)
     modstr = modstr[1:modend[1] + 3]
     pmod = Meta.parse(modstr[1:length(modstr) - 1])
     olmod::Module = Main.evalin(pmod)
-    Base.invokelatest(olmod.build, oc)
     oc.olmod = olmod
 end
 
