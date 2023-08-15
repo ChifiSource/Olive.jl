@@ -238,7 +238,7 @@ main = route("/") do c::Connection
                 append!(cm2, "pane_$(proj.data[:pane])", window)
                 append!(cm2, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj))
             end for proj in env.projects]
-            if length(env.projects) > 1
+            if length(findall(proj -> proj[:pane] == "two", env.projects)) > 0
                 style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
             end
         end

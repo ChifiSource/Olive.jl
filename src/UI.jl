@@ -597,6 +597,15 @@ function switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any}
     remove!(cm, "tab$(name)")
     set_children!(cm, "pane_$pane", [build(c, cm, proj)])
     append!(cm, "pane_$(pane)_tabs", build_tab(c, proj))
+    if pane == "one"
+        if length(findall(p::Project{<:Any} -> p[:pane] == "two", projects)) == 0
+            style!(cm, "pane_container_two", "width" => 0percent, "opacity" => 0percent)
+        end
+    else
+        if length(findall(p::Project{<:Any} -> p[:pane] == "two", projects)) == 1
+            style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+        end
+    end
 end
 
 
@@ -624,7 +633,7 @@ function tab_controls(c::Connection, p::Project{<:Any})
     on(c, runall_button, "click") do cm2::ComponentModifier
         step_evaluate(c, cm2, p)
     end
-    switchpane_button = topbar_icon("$(fname)switch", "arrow_right")
+    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
     on(c, switchpane_button, "click") do cm2::ComponentModifier
         switch_pane!(c, cm2, p)
     end
