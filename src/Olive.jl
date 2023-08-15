@@ -11,7 +11,7 @@ julia and for other languages and data editing. Crucially, olive is abstract
 """
 module Olive
 
-import Base: write, display, getindex, setindex!, string
+import Base: write, display, getindex, setindex!, string, showerror
 using IPyCells
 using IPyCells: Cell
 using Pkg
@@ -405,7 +405,6 @@ The start function comprises routes into a Vector{Route} and then constructs
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     devmode::Bool = false, path::String = homedir())
-    homedirec = path
     if devmode
         s = OliveServer(OliveCore("Dev"))
         s.start()
@@ -428,19 +427,42 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     if ~(isdir("$homedirec/olive"))
         rs = routes(setup, fourofour, icons, mainicon)
     else
-        config = TOML.parse(read("$homedirec/olive/Project.toml", String))
-        Pkg.activate("$homedirec/olive")
-        Pkg.instantiate()
-        oc.data = config["olive"]
-        rootname = oc.data["root"]
-        oc.client_data = config["oliveusers"]
-        oc.data["home"] = homedirec * "/olive"
-        oc.data["wd"] = pwd()
-        source_module!(oc)
+        try
+            config = TOML.parse(read("$homedirec/olive/Project.toml", String))
+            Pkg.activate("$homedirec/olive")
+            Pkg.instantiate()
+            oc.data = config["olive"]
+            rootname = oc.data["root"]
+            oc.client_data = config["oliveusers"]
+            oc.data["home"] = homedirec * "/olive"
+            oc.data["wd"] = pwd()
+        catch e::Exception
+            throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
+            @info """If you are unsure why this is happening, the best choice is probably just to start 
+            with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)"""
+            if a == "y"
+
+            else
+
+            end
+        end
+        try
+            source_module!(oc)
+        catch e::Exception
+            throw(StartError(e, "module load", "Failed to source olive home module."))
+            @info """If you are unsure why this is happening, the best choice is probably just to start 
+            with a fresh olive.jl source file. Would you like to recreate your olive source file? (y or n)"""
+            a = readline()
+            if a == "y"
+
+            else
+
+            end
+        end
         rs = routes(fourofour, main, icons, mainicon)
     end
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
-    oc, Session(["/", "/session", "/doc"])])
+    oc, Session(["/"])])
     server.start();
     if rootname != ""
         key = ToolipsSession.gen_ref(16)
@@ -450,24 +472,20 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     end
     server::Toolips.ToolipsServer
 end
-#==nothing#=-=#code==#
-# --
-function make_extension(name::String)
-    Pkg.generate(name)
-    Pkg.activate(name)
-    Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
-    cd(name)
-    mkdir(olive)
-    touch("olive/src/olive.jl")
-    open("olive/src/olive.jl", "w") do o::IO
-        write(o, 
-        """module olive
-            dir = @__DIR__
-            include("../../src/$name.jl")
-        end""")
+
+struct StartError{E <: Exception} <: Exception
+    on::String
+    cause::E
+    message::String
+    function StartError(cause::Exception, on::String, message::String = "")
+        new{typeof(cause)}(on, cause, message)
     end
-    @info "Olive extension files successfully created."
 end
+
+function showerror(io::IO, err::StartError{<:Any})
+    println(io, """on $(on).\n$message\n$(showerror(io, err.cause))""")
+end
+
 #==nothing#=-=#code==#
 # --
 export OliveCore, build, Pkg, TOML
