@@ -10,10 +10,20 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 
 ###### map
 - [get started](#get-started)
-- [basic olive](#basic-olive)
-- [extending olive](#extending-olive)
+   - [setup](#setup)
+   - [directories](#directories)
+   - [cells](#cells)
+   - [projects](#projects)
+- [extensions](#extensions)
+   - [installing extensions](#installing-extensions)
+   - [common extensions](#common-extensions)
+   - [creating extensions](#creating-extensions)
 - [deploying olive](#deploying-olive)
+   - [`0.0.9`deployment status](#status)
+   - [creating an olive server](#creating-a-server)
+   - [OliveSession](#session)
 - [contributing](#contributing)
+    - [guidelines](#guidelines)
 - [tech stack](#tech-stack)
 ---
 ### get started
@@ -36,10 +46,8 @@ Next, use `Olive.start()`:
 using Olive; Olive.start()
 ```
 This should provide you with a link to get started with Olive!
-
+##### setup
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/cccccsa.png"></img>
-
-### basic olive
 When first starting Olive, you will arrive at the `setup` route. This screen will ask you to select a home directory. After picking your directory, press `confirm` and you will be greeted with the second portion of setup which will ask you for your name and if you would like to add OliveDefaults. Respond -- you'll definitely want to pick your username! OliveDefaults is an entirely optional extension that will get added -- not loaded -- to your Olive Pkg environment. After confirming, your `olive` home directory will be setup. This home directory is important because it is used in order to extend Olive. After the setup completes, you will automatically be redirected to your new Olive homepage! This page requires a key to enter. The directories here will be your olive home and working directories. Files can be opened by clicking the menu in the top left.
 
 
@@ -68,7 +76,7 @@ Projects are what holds your olive session together. Whenever a project is built
 This is the portion of Olive that is the most under development, so there is not much to say -- but these are definitely something to be aware of.
 ##### directories
 Directories are the final piece of the puzzle. When arriving at the main explorer screen, you will be greeted with two different directories: these are your `olive` home directory and project, and then your working directory. These directories contain file cells inside of them, as well as some controls to make new files or folders inside of the tab for the cells. Double clicking a file will open that file inside of session.
-### extending olive
+### extensions
 
 
 #### installing extensions
@@ -137,7 +145,13 @@ Directories are the final piece of the puzzle. When arriving at the main explore
 [Here](https://chifi.dev/adding-python-cells-to-olive-3d564633dc04?source=your_stories_page-------------------------------------) is an article where I go about creating a Python extension for Olive, and [here](https://github.com/ChifiSource/OlivePy.jl) is a link to that project so you may see it for yourself
 ### deploying olive
 Olive has a goal to be very deployable, but it is recommended to wait for `0.1.0` to deploy `Olive`. It is also recommended to add `OliveSession`; this provides a number of great features for multiple users, including better directory management, login screens, and sharable sessions.
+   - [`0.0.9`deployment status](#status)
+   - [creating an olive server](#creating-a-server)
+   - [OliveSession](#session)
+#### status
+#### creating a server
 
+#### session
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
 - simply using olive
@@ -150,8 +164,8 @@ Olive is a complicated project, and there is a lot going on from merely Olive it
 - participating in the community
 
 I thank you for all of your help with our project, or just for considering contributing!
-#### issues and pull-requests
-When submitting issues for Olive, it is important to make sure of a few things. We are not super strict, but making sure of these few things will be helpful for maintainers!
+#### guidelines
+When submitting issues or pull-requests for Olive, it is important to make sure of a few things. We are not super strict, but making sure of these few things will be helpful for maintainers!
 1. You have replicated the issue on `Olive#Unstable`
 2. The issue does not currently exist.
 3. **Pull Request TO UNSTABLE**
