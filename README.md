@@ -3,14 +3,14 @@
 <h6>| 0.0.9 |</h6>
 </div>
 
-#### welcome to olive
-Olive.jl is an Extensible Notebook Integrated Development Environment (ENIDE) written in the Julia programming language.
+
 
 Keep in mind this version of Olive (while functional) is still a **work in progress** build. Thank you for reporting bugs to the issues page!
 
 ###### map
 - [get started](#get-started)
    - [setup](#setup)
+   - [user interface](#user-interface)
    - [directories](#directories)
    - [cells](#cells)
    - [projects](#projects)
