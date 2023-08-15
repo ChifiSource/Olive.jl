@@ -580,25 +580,23 @@ end
 
 function switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
-    if proj[:pane] == "one"
-        proj[:pane] = "two"
-        inpane = findall(p::Project{<:Any} -> p[:pane] == "one", projects)
-        outpane = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
-        if ~(length(inpane) > 0)
-            [begin
-                project[:pane] = "one"
-                remove!(cm, project.id)
-                remove!(cm, )
-            end for project in outpane]
-            remove!(cm, "$name")
-            remove!(cm, "tab$(name)")
-            remove!(cm, "preview$(proj.id)")
-        else
-            
-        end
+    name = proj.id
+    if proj.data[:pane] == "one"
+        pane = "two"
     else
-
+        pane = "one"
     end
+    proj.data[:pane] = pane
+    inpane = findall(p::Project{<:Any} -> p[:pane] == proj[:pane], projects)
+    [begin
+    if projects[e].id != proj.id 
+            style_tab_closed!(cm, projects[e])
+        end
+    end  for e in inpane]
+    remove!(cm, "$name")
+    remove!(cm, "tab$(name)")
+    set_children!(cm, "pane_$pane", [build(c, cm, proj)])
+    append!(cm, "pane_$(pane)_tabs", build_tab(c, proj))
 end
 
 
@@ -628,7 +626,7 @@ function tab_controls(c::Connection, p::Project{<:Any})
     end
     switchpane_button = topbar_icon("$(fname)switch", "arrow_right")
     on(c, switchpane_button, "click") do cm2::ComponentModifier
-
+        switch_pane!(c, cm2, p)
     end
     style!(closebutton, "font-size"  => 17pt, "color" => "red")
     style!(restartbutton, "font-size"  => 17pt, "color" => "darkgray")
@@ -658,7 +656,7 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     name = proj.id
     projs = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
-    remove!(cm2, "$name")
+    set_children!(cm2, "pane_$(proj.data[:pane])", Vector{Servable}())
     remove!(cm2, "tab$(name)")
     remove!(cm2, "preview$(proj.id)")
     if(n_projects == 1)
