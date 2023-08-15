@@ -288,7 +288,11 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
 end
 
 function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
-    #  c[:OliveCore].open[getip(c)].pwd = path
+    c[:OliveCore].open[getname(c)].pwd = path
+    style!(cm, "workmenu", "opacity" => 100percent, "height" => 60percent, 
+    "pointer-events" => "auto")
+    style!(cm, "workmenu-expander", "color" => "darkpink")
+    cm["outerworkmenu"] = "ex" => "1"
     pathsplit = split(path, "/")
     path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     set_text!(cm, "selector", string(path))

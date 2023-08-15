@@ -277,11 +277,13 @@ end
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{:jl})
     IPyCells.save(cells, p.data[:path])
+    nothing
 end
 
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{:ipynb})
     IPyCells.save_ipynb(cells, p.data[:path])
+    nothing
 end
 
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
@@ -296,6 +298,7 @@ function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any},
     open(p[:path], "w") do io
         TOML.print(io, ret)
     end
+    nothing
 end
 
 #==output[code]
@@ -346,7 +349,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any};
     for mcell in directory_cells(cell.outputs * "/" * cell.source)])
     on(c, filecell, "click") do cm::ComponentModifier
         if cm[filecell]["ex"] == "0"
-            style!(cm, childbox, "height" => 50percent, "opacity" => 100percent)
+            style!(cm, childbox, "height" => "auto", "opacity" => 100percent)
             cm[filecell] = "ex" => "1"
             return
         end
@@ -574,26 +577,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
     end
     set_text!(cm, "cell$(cell.id)out", "<sep></sep>")
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function remove_last_eval(c::Connection, cm::ComponentModifier, cell::Cell{<:Any})
-    cursorpos = parse(Int64, cm["cell$(cell.id)"]["caret"])
-    rawt = cm["cell$(cell.id)"]["text"]
-    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
-    inp = keybindings["evaluate"][1]
-    if inp == "Enter"
-        inp = "\n"
-    end
-    if cursorpos > 1
-        lastn = findprev(inp, rawt, cursorpos)
-        if isnothing(lastn)
-            lastn = 1:cursorpos
-        end
-        cell.source = rawt[1:lastn[1] - 1] * rawt[maximum(lastn) + 1:length(rawt)]
-    end
-end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -662,7 +646,6 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}
         cell_new!(c, cm2, cell, cells, proj)
     end
     bind!(km, keybindings["evaluate"]) do cm2::ComponentModifier
-        remove_last_eval(c, cm2, cell)
         evaluate(c, cm2, cell, cells, proj)
     end
     bind!(km, keybindings["focusup"]) do cm::ComponentModifier
@@ -1030,7 +1013,8 @@ inputcell_style (generic function with 1 method)
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     cells::Vector{Cell}, proj::Project{<:Any})
     if cm["cell$(cell.id)"]["contenteditable"] == "true"
-        activemd = cm["cell$(cell.id)"]["text"]
+        activemd = replace(cm["cell$(cell.id)"]["text"], """<div style="background-color: rgb(255, 255, 255);">""" => "")
+        println(activemd)
         cell.source = activemd * "\n"
         newtmd = tmd("cell$(cell.id)tmd", cell.source)
         set_children!(cm, "cell$(cell.id)", [newtmd])
@@ -1059,16 +1043,16 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
     on(c, inpbox, "input") do cm::ComponentModifier
         cell.outputs = cm[inpbox]["text"]
     end
-    km = cell_bind!(c, cell, cells, window)
-    bind!(km, "Backspace") do cm2::ComponentModifier
+    km = cell_bind!(c, cell, cells, proj)
+    bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
         if cm2["cell$(cell.id)"]["text"] == ""
             pos = findfirst(lcell -> lcell.id == cell.id, cells)
             new_cell = Cell(pos, "code", "")
             deleteat!(cells, pos)
             insert!(cells, pos, new_cell)
             remove!(cm2, maincontainer)
-            built = build(c, cm2, new_cell, cells, window)
-            ToolipsSession.insert!(cm2, window, pos, built)
+            built = build(c, cm2, new_cell, cells, proj)
+            ToolipsSession.insert!(cm2, proj.id, pos, built)
             focus!(cm2, "cell$(cell.id)")
         end
     end
@@ -1097,16 +1081,16 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:NOTE},
     on(c, inpbox, "input") do cm::ComponentModifier
         cell.outputs = cm[inpbox]["text"]
     end
-    km = cell_bind!(c, cell, cells, window)
-    bind!(km, "Backspace") do cm2::ComponentModifier
+    km = cell_bind!(c, cell, cells, proj)
+    bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
         if cm2["cell$(cell.id)"]["text"] == ""
             pos = findfirst(lcell -> lcell.id == cell.id, cells)
             new_cell = Cell(pos, "code", "")
             deleteat!(cells, pos)
             insert!(cells, pos, new_cell)
             remove!(cm2, maincontainer)
-            built = build(c, cm2, new_cell, cells, window)
-            ToolipsSession.insert!(cm2, window, pos, built)
+            built = build(c, cm2, new_cell, cells, proj)
+            ToolipsSession.insert!(cm2, proj.id, pos, built)
             focus!(cm2, "cell$(cell.id)")
         end
     end
@@ -1275,7 +1259,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
             cell = new_cell
             remove!(cm2, outside)
             built = build(c, cm2, new_cell, cells, proj)
-            ToolipsSession.insert!(cm2, windowname, pos, built)
+            ToolipsSession.insert!(cm2, proj.id, pos, built)
             focus!(cm2, "cell$(cell.id)")
         end
     end

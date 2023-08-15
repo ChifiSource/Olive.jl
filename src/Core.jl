@@ -416,7 +416,7 @@ exp::Bool = false)
 
     end
     on(c, openworkb, "click") do cm::ComponentModifier
-
+        switch_work_dir!(c, cm, dir.uri)
     end
     push!(containerbody, cellcontainer)
     return(container)
@@ -587,7 +587,7 @@ function source_module!(oc::OliveCore)
     filter!(ocell -> ocell.type == "code" || ocell.source != "\n" || cell.source != "\n\n",
     olive_cells)
     modstr = join(
-        [cell.source for cell in olive_cells[2:length(olive_cells)]]
+        [cell.source for cell in olive_cells[1:length(olive_cells)]]
         )
     modend = findlast("end", modstr)
     modstr = modstr[1:modend[1] + 3]
