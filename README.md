@@ -20,6 +20,15 @@ Welcome to olive! Olive is a **pure julia** notebook editor built on the back of
 - **loadable** directories as **profiles**
 - **flexible** and modern design
 
+<span>
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2006-44-12.png" width = "500"></img><img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-11%2015-45-25.png" width = "500"></img>
+</span>
+<span>
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-11%2015-39-39.png" width = "500"></img>
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/cccccsa.png" width = "500"></img>
+</span>
+
+
 Keep in mind this version of Olive (while functional) is still a **work in progress** build. Thank you for reporting bugs to the issues page!
 
 ###### map
@@ -68,13 +77,10 @@ To change the IP or PORT, use the positional arguments `IP` (1, `String`) and `P
 
 Providing `devmode` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option is **not recommended**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions.
 #### setup
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/cccccsa.png"></img>
-When first starting Olive, you will arrive at the `setup` route. This screen will ask you to select a home directory. After picking your directory, press `confirm` and you will be greeted with the second portion of setup which will ask you for your name and if you would like to add OliveDefaults. Respond -- you'll definitely want to pick your username! OliveDefaults is an entirely optional extension that will get added -- not loaded -- to your Olive Pkg environment. After confirming, your `olive` home directory will be setup. This home directory is important because it is used in order to extend Olive. After the setup completes, you will automatically be redirected to your new Olive homepage! This page requires a key to enter. The directories here will be your olive home and working directories. Files can be opened by clicking the menu in the top left.
 
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-11%2015-44-55.png"></img>
-
-This is where extensions and changes can be written on top of olive from the outside in. Double clicking a file in the directory will yield a loading of the `/session` route. This route contains the actual editor, as well as the project explorer. The project explorer can be opened by clicking the top left. Client settings can be altered by clicking the top right settings icon. These settings are saved whenever the settings menu is closed.
-
+#### user interface
+Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` project. `Project` is the type name given to the julia-side representation of this area. In the image below, `dev.jl` and `prod.jl` are both projects.
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/uiui.png"></img>
 #### directories
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
 Directories are the final piece of the puzzle. When arriving at the main explorer screen, you will be greeted with two different directories: these are your `olive` home directory and project, and then your working directory. These directories contain file cells inside of them, as well as some controls to make new files or folders inside of the tab for the cells. Double clicking a file will open that file inside of session.
