@@ -1143,7 +1143,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 function mark_toml!(tm::ToolipsMarkdown.TextModifier)
-    ToolipsMarkdown.mark_after!(tm, "[", :keys, until = ["]"])
+    ToolipsMarkdown.mark_between!(tm, "[", "]", :keys)
     ToolipsMarkdown.mark_between!(tm, "\"", :string)
     ToolipsMarkdown.mark_all!(tm, "=", :equals)
     [ToolipsMarkdown.mark_all!(tm, string(dig), :number) for dig in digits(1234567890)]
@@ -1201,7 +1201,6 @@ inputcell_style (generic function with 1 method)
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     cells::Vector{Cell}, proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
-    proj = c[:OliveCore].open[getname(c)][window]
     varname = "data"
     if length(curr) > 2
         if contains(curr[1:2], "[")
@@ -1244,7 +1243,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:tomlv
     tm.raw = cell.source
     mark_toml!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
-    clear!(tm)
+    ToolipsMarkdown.clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1432,7 +1431,7 @@ Session cells
 function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     cells::Vector{Cell}, proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
-    mod = c[:OliveCore].open[getname(c)][windowname][:mod]
+    mod = proj[:mod]
     p = Pipe()
     err = Pipe()
     standard_out::String = ""
