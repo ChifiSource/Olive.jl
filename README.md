@@ -19,15 +19,13 @@ Welcome to olive! Olive is a **pure julia** notebook editor built on the back of
 - a **two-pane** design
 - **loadable** directories as **profiles**
 - **flexible** and modern design
-
-<span>
+<div align="center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2006-44-12.png" width = "300"></img><img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-11%2015-45-25.png" width = "300"></img>
-</span>
-<span>
+</div>
+<div align="center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-11%2015-39-39.png" width = "300"></img>
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/cccccsa.png" width = "300"></img>
-</span>
-
+</div>
 
 Keep in mind this version of Olive (while functional) is still a **work in progress** build. Thank you for reporting bugs to the issues page!
 
