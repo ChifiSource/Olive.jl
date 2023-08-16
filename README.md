@@ -73,6 +73,14 @@ To change the IP or PORT, use the positional arguments `IP` (1, `String`) and `P
 - `devmode`**::Bool** = `false`
 - `path`**::String** = `homedirec()`
 
+```julia
+IP = "127.0.0.1" # same as default (see ?(Olive.start))
+PORT = 8000
+startpath = "/home/dev/notebooks"
+using Olive
+
+Olive.start(IP, PORT, devmode = false, path = startpath)
+```
 Providing `devmode` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option is **not recommended**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions.
 #### setup
 
