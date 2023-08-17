@@ -19,6 +19,7 @@ Welcome to olive! Olive is a **pure julia** notebook editor built on the back of
 - a **two-pane** design
 - **loadable** directories as **profiles**
 - **flexible** and modern design
+- edit **any** file
 <div align="center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2006-44-12.png" width = "300"></img><img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-11%2015-45-25.png" width = "300"></img>
 </div>
@@ -33,6 +34,7 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 - [get started](#get-started)
    - [setup](#setup)
    - [user interface](#user-interface)
+   - [methodology](#parametric-methodology)
    - [directories](#directories)
    - [cells](#cells)
    - [projects](#projects)
@@ -83,16 +85,23 @@ Olive.start(IP, PORT, devmode = false, path = startpath)
 ```
 Providing `devmode` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option is **not recommended**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions.
 #### setup
-
+After running `Olive`, you will be greeted with a welcome screen. This screen also holds a directory selector. The currently selected directory is indicated by the label at the top. In this directory, a new Julia project will be created. This will be your `olive` home environment inside of this directory. This includes the folder `olive`, the `Project.toml environment and its `Manifest.toml` counter-part, the contained `src` directory and correstponding source file `src/olive.jl`.
 #### user interface
-Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` project. `Project` is the type name given to the julia-side representation of this area. In the image below, `dev.jl` and `prod.jl` are both projects.
+Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/uiui.png"></img>
+#### parametric methodology
 #### directories
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
 Directories are the final piece of the puzzle. When arriving at the main explorer screen, you will be greeted with two different directories: these are your `olive` home directory and project, and then your working directory. These directories contain file cells inside of them, as well as some controls to make new files or folders inside of the tab for the cells. Double clicking a file will open that file inside of session.
 #### cells 
-
+Cells are a general name for the components that compose a given `Olive` project's source file. To elaborate, cells are parametric and read in from files, while in base `Olive` this includes a limited scope of cells for Julia-bourne Data Science and Software Development, `Olive` extensions could easily change this.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2007-20-26.png"></img>
+There are 4 main types of cells that come with base `Olive`:
+- standard cells
+- REPL cells
+- project cells
+- and comment cells
+
 
 The repl cells include `pkgrepl`, `helprepl`, and `shell`. These three cells are all accessible from a `code` cell, or can be created on their own from a creator cell. The `pkgrepl` cell takes simple Pkg commands, and is meant to work pretty similarly to its Julia equivalent. The same can be said for the `shell` REPL cell. The `helprepl` will take a name of something you want documentation for. There are more plans for these cells in the future, and many bugs with them that are going to need to be ironed out. The final cell type that olive includes is the `tomlvalues` cell. This is a cell which can evaluate TOML into a dictionary, and can also be written to Julia or TOML.
 #### projects
