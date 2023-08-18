@@ -478,23 +478,7 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         this cell starts the module, you probably don't want to run it.
         ==#
         #==|||==#
-        #==output[versioninfo]
-
-        ==#
-        #==|||==#
         using Olive
-        using Olive.Toolips: Connection
-        import Olive: build
-        # add extensions here!
-        #==output[code]
-        olive.build
-        ==#
-        #==|||==#
-        # ?build
-        #==output[helprepl]
-
-        ==#
-        #==|||==#
         end # module
         #==output[code]
         this cell ends the module, you probably don't want to run it.
