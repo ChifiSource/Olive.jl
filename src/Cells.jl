@@ -703,7 +703,7 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     sidebox::Bool = false)
     windowname::String = proj.id
     outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
-    style!(outside, "transition" => 2seconds)
+    style!(outside, "transition" => 2seconds, "width" => 106percent)
     interiorbox::Component{:div} = div("cellinterior$(cell.id)")
     inputbox::Component{:div} = build_base_input(c, cm, cell, cells, proj,
     highlight = highlight)

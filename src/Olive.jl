@@ -42,14 +42,16 @@ end
 #==nothing#=-=#code==#
 # --
 function olive_module(modname::String, environment::String)
-    """module $(modname)
+    """begin
+    module $(modname)
     using Pkg
 
     function evalin(ex::Any)
             Pkg.activate("$environment")
             ret = eval(ex)
     end
-    end"""
+    end
+end"""
 end
 #==nothing#=-=#code==#
 # --
@@ -413,7 +415,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         return
     end
     srcdir = @__DIR__
-    if isfile("$srcdir/home.txt") && path == homedir()
+    if path == homedir() && isfile("$srcdir/home.txt")
         homedirec = read("$srcdir/home.txt", String)
     end
     oc::OliveCore = OliveCore("olive")
