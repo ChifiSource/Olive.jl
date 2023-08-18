@@ -574,7 +574,7 @@ function source_module!(oc::OliveCore)
         [cell.source for cell in olive_cells[1:length(olive_cells)]]
         )
     modend = findlast("end", modstr)
-    modstr = modstr[1:modend[1] + 3]
+    modstr = modstr[1:modend[1] + 2]
     pmod = Meta.parse(modstr[1:length(modstr) - 1])
     olmod::Module = Main.evalin(pmod)
     oc.olmod = olmod
