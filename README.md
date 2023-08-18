@@ -35,7 +35,6 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
    - [setup](#setup)
    - [user interface](#user-interface)
    - [environments](#environments)
-   - [inspector](#inspector)
    - [methodology](#parametric-methodology)
    - [directories](#directories)
    - [cells](#cells)
@@ -56,6 +55,7 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
    - [OliveSession](#session)
 - [contributing](#contributing)
    - [guidelines](#guidelines)
+   - [known issues](#known-issues)
 - [tech stack](#tech-stack)
 ---
 ### get started
@@ -104,20 +104,27 @@ When you start `Olive` for the first time, you will be greeted with a new link t
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/setup2sc.png"></img>
 
+This portion of the setup will ask for a name and if you want to add [OliveDefaults](https://github.com/ChifiSource/OliveDefaults.jl). This package provides `Olive` with some default extensions that many developers would likely prefer. This includes
+- The `Styler` extension.
+- The `DocBrowser` extension.
+- The `AutoComplete` extension
+- And the `Themes` extension.
 
+These extensions can be loaded individually; the setup will only add `OliveDefaults` with `Pkg`. The name is also pretty important, though certainly not necessary. Any name will work, including the default `root`. After pressing continue, a loadbar will appear and `Olive` will begin setting up your `olive` environment. After this loadbar finishes (so long as the setup completes successfully), you will be redirected to a new `Olive` session!
 #### user interface
-Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`.
+Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`. A `Project` in `Olive` is represented by a tab and the project's cells. This consumes the majority of the UI. These projects are contained within two separate panes, the **left pane** and the **right pane** respectively. The left pane **can** be open without the right pane, but the right pane **cannot** be open without the left pane. The project can be switched using the pane switcher button on the top of the project. At the top of the window will be the topbar. The topbar has two buttons on it, on the left this is a folder with an arrow. Clicking this button will open the **project explorer**. This is the menu to the left of your `Olive` session.  At the top of this menu, there is the **inspector**, and below this is where every `Directory` is placed. When a `Project` is added to the session, it will also add a preview into the inspector. In the top right there is a cog, this button will reveal the **settings menu**. All settings in `Olive` are added via extensions, so these will be your extension settings, such as key-bindings and syntax highlighting. Adding more extensions will often add new settings to this menu.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/uiui.png"></img>
 #### environments
-#### inspector
+Though not always prominent to the end-user, the `Environment` is also a crucial piece of this puzzle. This is the overall structure that encompasses all projects and directories for each user. Also contained within this `Environment` is the currently activated `Pkg` environment and the current working directory. When using the **inspector** to navigate directories, this will change the working directory of your environment, as will clicking the lightning bolt next to a `toml` file cell.
 #### parametric methodology
 Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method defintiions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creatorcell.png"></img>
 
+This is the defining characteristic of `Olive`, and also how the base `Olive` features are built. This is why `Olive` is a **multiple dispatch notebook**, not just that but a **parametric** multiple dispatch notebook. As a result, a lot of what `Projects`, `Cells`, and `Directories` do is pretty open-ended -- anything is possible. This is also how extensions for `Olive` work. While this might not be that important to know if you are not extending `Olive` on your own, it is helpful to know this going into `Olive` and the rest of this `README`.
 #### directories
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
-
+Directories are used to load `Olive` projects from files. At the top of the standard `Olive` `Directory`, there will be a button to change to the `Directory` inside of the **inspector** and a button to remove that directory from your current `Environment`. Most file actions, such as move and rename, are instead done through the **inspector**.
 #### cells 
 Cells are a general name for the components that compose a given `Olive` project's source file. To elaborate, cells are parametric and read in from files, while in base `Olive` this includes a limited scope of cells for Julia-bourne Data Science and Software Development, `Olive` extensions could easily change this.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2007-20-26.png"></img>
