@@ -34,20 +34,28 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 - [get started](#get-started)
    - [setup](#setup)
    - [user interface](#user-interface)
+   - [environments](#environments)
+   - [inspector](#inspector)
    - [methodology](#parametric-methodology)
    - [directories](#directories)
    - [cells](#cells)
+   - [base cells](#base-cells)
    - [projects](#projects)
+   - [base projects](#base-projects)
 - [extensions](#extensions)
    - [installing extensions](#installing-extensions)
    - [common extensions](#common-extensions)
    - [creating extensions](#creating-extensions)
+   - [directory extensions](#directory-extensions)
+   - [cell extensions](#cell-extensions)
+   - [project extensions](#project-extensions)
+   - [extension examples](#extension-examples)
 - [deploying olive](#deploying-olive)
    - [`0.0.9`deployment status](#status)
    - [creating an olive server](#creating-a-server)
    - [OliveSession](#session)
 - [contributing](#contributing)
-    - [guidelines](#guidelines)
+   - [guidelines](#guidelines)
 - [tech stack](#tech-stack)
 ---
 ### get started
@@ -100,33 +108,32 @@ When you start `Olive` for the first time, you will be greeted with a new link t
 #### user interface
 Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/uiui.png"></img>
+#### environments
+#### inspector
 #### parametric methodology
-Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method defintiions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. 
+Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method defintiions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
+
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creatorcell.png"></img>
+
 #### directories
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
 
 #### cells 
 Cells are a general name for the components that compose a given `Olive` project's source file. To elaborate, cells are parametric and read in from files, while in base `Olive` this includes a limited scope of cells for Julia-bourne Data Science and Software Development, `Olive` extensions could easily change this.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2007-20-26.png"></img>
-There are 4 main types of cells that come with base `Olive`:
+There are 5 main types of cells that come with base `Olive`:
+- file cells
 - standard cells
 - REPL cells
 - project cells
+- olive cells
 - and comment cells
-
-
-The repl cells include `pkgrepl`, `helprepl`, and `shell`. These three cells are all accessible from a `code` cell, or can be created on their own from a creator cell. The `pkgrepl` cell takes simple Pkg commands, and is meant to work pretty similarly to its Julia equivalent. The same can be said for the `shell` REPL cell. The `helprepl` will take a name of something you want documentation for. There are more plans for these cells in the future, and many bugs with them that are going to need to be ironed out. The final cell type that olive includes is the `tomlvalues` cell. This is a cell which can evaluate TOML into a dictionary, and can also be written to Julia or TOML.
+#### base cells
+###### file cells
+###### standard cells
+Olive's standard cells are cells that are used to input code or markdown into `Olive`. In base `Olive`, this includes
+- `tomlvalues` 
 #### projects
-Projects are what holds your olive session together. Whenever a project is built, it will present itself in your session as a window with a tab. Clicking the tab will yield some controls, these are... (from left to right)
-- collapse
-- save
-- save as
-- new
-- resource
-- run all
-- close
-
-This is the portion of Olive that is the most under development, so there is not much to say -- but these are definitely something to be aware of.
 
 ### extensions
 
