@@ -42,14 +42,13 @@ end
 #==nothing#=-=#code==#
 # --
 function olive_module(modname::String, environment::String)
-    """begin
+    """
     module $(modname)
     using Pkg
 
     function evalin(ex::Any)
             Pkg.activate("$environment")
             ret = eval(ex)
-    end
     end
 end"""
 end

@@ -474,16 +474,11 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         \"""
         #==|||==#
         module olive
-        #==output[code]
-        this cell starts the module, you probably don't want to run it.
-        ==#
-        #==|||==#
         using Olive
         end # module
         #==output[code]
-        this cell ends the module, you probably don't want to run it.
+        this cell starts the module, you probably don't want to run it.
         ==#
-        #==|||==#
         """)
     end
     @info "olive files created! welcome to olive! "
@@ -572,9 +567,10 @@ function source_module!(oc::OliveCore)
     olive_cells)
     modstr = join(
         [cell.source for cell in olive_cells[1:length(olive_cells)]]
-        )
+        , "\n")
+    print(modstr)
     modend = findlast("end", modstr)
-    modstr = modstr[1:modend[1] + 2]
+    modstr = modstr[1:modend[1] + 3]
     pmod = Meta.parse(modstr[1:length(modstr) - 1])
     olmod::Module = Main.evalin(pmod)
     oc.olmod = olmod
