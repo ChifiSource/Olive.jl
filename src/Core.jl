@@ -357,8 +357,7 @@ create an OliveaExtension and
 
 ```
 """
-function build(c::Connection, dir::Directory{<:Any}, m::Module;
-exp::Bool = false)
+function build(c::Connection, dir::Directory{<:Any}, m::Module)
     becell = replace(dir.uri, "/" => "|")
     dirtext = split(replace(dir.uri, homedir() => "~",), "/")
     if length(dirtext) > 3
@@ -398,7 +397,7 @@ exp::Bool = false)
         push!(containerheader, srcbutton)
     end
     cells::Vector{Servable} = Vector{Servable}([begin
-        Base.invokelatest(m.build, c, cell, dir, explorer = exp)
+        Base.invokelatest(m.build, c, cell, dir)
     end for cell in dir.cells])
     cellcontainer = section("$(becell)cells")
     cellcontainer[:children] = cells
