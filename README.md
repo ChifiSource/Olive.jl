@@ -6,6 +6,7 @@
 Welcome to olive! Olive is a **pure julia** notebook editor built on the back of multiple dispatch. Through multiple dispatch, olive is able to change functionality entirely by simply having new methods. Using extensions, olive can edit **any** file. Among other things, olive features ...
 - regular **julia modules**
 - unparalleled **extensibility**
+- **modular** design
 - **tabbing** notebooks
 - its own **julia** ecosystem
 - **customizable** settings
@@ -77,7 +78,7 @@ This should provide you with a link to get started with Olive!
 
 To change the IP or PORT, use the positional arguments `IP` (1, `String`) and `PORT` (2, `Int64`). There are also the key-word arguments
 - `path`**::String** = `homedirec()`
-- `nomod`**::Bool** = `false`
+- `free`**::Bool** = `false`
 - `devmode`**::Bool** = `false`
 
 ```julia
@@ -88,8 +89,7 @@ using Olive
 
 Olive.start(IP, PORT, devmode = false, path = startpath)
 ```
-Providing `devmode` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option will simply **disable authentication**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions. Providing `nomod` as true will load `Olive` with the most basic of `olive` home modules and a default `OliveCore` configuration.
-
+Providing `devmode` as `true` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option will simply **disable authentication**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions. Providing `free` as `true` will start the `Olive` server in **global mode**. This means that instead of using an `olive` home file, `olive` will use your default Julia environment. **In the future** (`0.1.0`), this will also scan your julia environment for extensions and load them. However, project settings will not be loaded.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/termsc.png"></img>
 
 #### setup
@@ -111,10 +111,23 @@ These extensions can be loaded individually; the setup will only add `OliveDefau
 #### user interface
 Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`. A `Project` in `Olive` is represented by a tab and the project's cells. This consumes the majority of the UI. These projects are contained within two separate panes, the **left pane** and the **right pane** respectively. The left pane **can** be open without the right pane, but the right pane **cannot** be open without the left pane. The project can be switched using the pane switcher button on the top of the project. At the top of the window will be the topbar. The topbar has two buttons on it, on the left this is a folder with an arrow. Clicking this button will open the **project explorer**. This is the menu to the left of your `Olive` session.  At the top of this menu, there is the **inspector**, and below this is where every `Directory` is placed. When a `Project` is added to the session, it will also add a preview into the inspector. In the top right there is a cog, this button will reveal the **settings menu**. All settings in `Olive` are added via extensions, so these will be your extension settings, such as key-bindings and syntax highlighting. Adding more extensions will often add new settings to this menu.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/uiui.png"></img>
+###### project explorer
+
+<div align="center">
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
+</div>
+
+The **project explorer** is a crucial component to your `Olive` session because it manages the entire underlying filesystem running in your `Environment`. At the top of the **project explorer** will be the **inspector**. Once expanded, this section contains a file browser and previews of directories and projects in your `Environment` currently. 
+
+<div align="center">
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/inspectorui.png" width="300"></img>
+</div>
+
+This will also be where other file operations take place, such as `save as` and `create file`. Below this will be your directories with **file cells** inside. On the top, there is a button to update the `Directory` and a button to `cd` to the directory. If this directory is your `olive` home root, this is added if the client is root, then there will also be a red run button, this button sources your `olive` home module.
 #### environments
-Though not always prominent to the end-user, the `Environment` is also a crucial piece of this puzzle. This is the overall structure that encompasses all projects and directories for each user. Also contained within this `Environment` is the currently activated `Pkg` environment and the current working directory. When using the **inspector** to navigate directories, this will change the working directory of your environment, as will clicking the lightning bolt next to a `toml` file cell.
+Though not always prominent to the end-user, the `Environment` is also a crucial piece of this puzzle. This is the overall structure that encompasses all projects and directories for each user. Also contained within this `Environment` is the currently activated `Pkg` environment and the current working directory. When using the **inspector** to navigate directories, this will change the working directory of your environment. Clicking the lightning bolt next to a `toml` file cell will change the currently activated environment.
 #### parametric methodology
-Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method defintiions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
+Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method definitions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creatorcell.png"></img>
 
@@ -123,23 +136,24 @@ This is the defining characteristic of `Olive`, and also how the base `Olive` fe
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
 Directories are used to load `Olive` projects from files. At the top of the standard `Olive` `Directory`, there will be a button to change to the `Directory` inside of the **inspector** and a button to remove that directory from your current `Environment`. Most file actions, such as move and rename, are instead done through the **inspector**.
 #### cells 
-Cells are a general name for the components that compose a given `Olive` project's source file. To elaborate, cells are parametric and read in from files, while in base `Olive` this includes a limited scope of cells for Julia-bourne Data Science and Software Development, `Olive` extensions could easily change this.
+Cells are a general name for the components that compose a given `Olive` project's source file. To elaborate, cells are parametric and read in from files, while in base `Olive` this includes a limited scope of cells for Julia-bourne Data Science and Software Development, `Olive` extensions could easily change this. Cells are rendered inside of `Project` windows and go into **pane one** or **pane two**. 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2007-20-26.png"></img>
-There are 5 main types of cells that come with base `Olive`:
-- file cells
-- standard cells
-- REPL cells
-- project cells
-- olive cells
-- and comment cells
+
 #### projects
 
 
 #### base
+Something unique about `Olive`, and yet another similarity to the Julia language itself, is that `Olive`'s core features are built using the same exact methodology one would use to build `Olive` extensions. In other words, `Olive`'s `code` cells are written into `Olive` as an extension. In its purest form, `Olive` is simply an anything editor that can have anything built on top of it. The base just **happens to** come with tools for **Data Science** and **Software Development** for Julia. That being said, it is worth going through the concept and the base separately. Now that we have a firm understanding of how these different things fit together (`Directories`, `Projects`, `Cells`, `Environments`), we can get a good idea of how the base `Olive` extensions work.
+###### base directory
+###### base cells
+###### base projects
 
 ### extensions
+`Olive` is not `Olive` without extensions. While the base `Olive` features are pretty cool, `Olive`'s base is intentionally built with a minimalist mindset. The idea is that **nothing is everyone's cup of tea**, so why use someone else's computer to load things for people who do not even want those things to begin with?
 
+Olive extensions work off of `Olive`'s [parametric multiple dispatch methodology](#parametric-methodology) for loading extensions. This means `Olive` loads extensions by mere existence of the `Method` definitions within those extensions. In order for this system to work, there has to be some kind of environment for `Olive` to load these dependencies into and there has to be some kind of source file to do `using` on these dependencies.
 
+*Sidenote: I say that this is **necessary**, 
 #### installing extensions
 
 
