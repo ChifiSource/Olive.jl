@@ -120,7 +120,7 @@ it out. Endemic of future projects? **definitely**
 ```
 ```
 """
-main = route("/") do c::Connection
+function session(c::Connection; key::Bool = false)
     args = getargs(c)
     if ~(:key in keys(args))
         coverimg::Component{:img} = olive_cover()
@@ -158,15 +158,22 @@ main = route("/") do c::Connection
         env.pwd = c[:OliveCore].data["wd"]
         pwd_direc = Directory(env.pwd)
         projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
-        :pane => "one", :env => c[:OliveCore].data["home"])
+        :pane => "one", :env => " ")
+        sourced_path = " "
+        if "home" in keys(c[:OliveCore].data)
+            push!(projdict, :env => c[:OliveCore].data["home"])
+            sourced_path = c[:OliveCore].data["home"]
+        end
         myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
         Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, 
-        c[:OliveCore].data["home"])
+        sourced_path)
         Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
         push!(env.directories, pwd_direc)
         if c[:OliveCore].data["root"] == getname(c)
-            home_direc = Directory(c[:OliveCore].data["home"])
-            push!(env.directories, home_direc)
+            if "home" in keys(c[:OliveCore].data)
+                home_direc = Directory(c[:OliveCore].data["home"])
+                push!(env.directories, home_direc)
+            end
         end
         push!(env.projects, myproj)
         push!(c[:OliveCore].open, env)
@@ -246,6 +253,8 @@ main = route("/") do c::Connection
     end
     write!(c, bod)
 end
+
+main = route("/", session)
 #==nothing#=-=#code==#
 # --
  """
@@ -405,24 +414,42 @@ The start function comprises routes into a Vector{Route} and then constructs
     a ServerTemplate before starting and returning the WebServer.
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
-    devmode::Bool = false, path::String = homedir())
+    devmode::Bool = false, path::String = homedir(), nomod::Bool = false)
     homedirec = path
-    if devmode
-        s = OliveServer(OliveCore("Dev"))
-        s.start()
-        s[:Logger].log("started new olive server in devmode.")
-        return
-    end
     srcdir = @__DIR__
     if path == homedir() && isfile("$srcdir/home.txt")
         homedirec = read("$srcdir/home.txt", String)
     end
-    oc::OliveCore = OliveCore("olive")
+    oc = OliveCore("olive")
     if Sys.iswindows()
         homedirec = replace(homedirec, "\\" => "/")
     end
+    if nomod
+        modstr = """module olive
+        using Olive
+        end"""
+        mod::Module = Main.evalin(Meta.parse(modstr))
+        oc::OliveCore = OliveCore("olive")
+        oc.olmod = mod
+        oc.data = Dict{String, Any}("root" => "root", "wd" => pwd())
+        oc.client_data = Dict{String, Any}("root" => Dict{String, Any}())
+        rs = routes(fourofour, main, icons, mainicon)
+        server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
+        oc, Session(["/"])])
+        server.start()
+        key = ToolipsSession.gen_ref(16)
+        push!(oc.client_keys, key => "root")
+        server[:Logger].log(2,
+            "olive link: http://$(IP):$(PORT)/?key=$key")
+        return
+    elseif devmode
+        rs = routes(fourofour, nokeyr, icons, mainicon)
+        server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
+        oc, Session(["/"])])
+        server.start()
+        return
+    end
     oc.data["home"] = homedirec
-    oc.data["wd"] = pwd()
     rootname::String = ""
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if ~(isdir("$homedirec/olive"))

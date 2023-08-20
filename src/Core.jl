@@ -380,7 +380,7 @@ exp::Bool = false)
     containerheader = container[:children][1]
     containerbody = container[:children][2]
     style!(container, "overflow" => "hidden")
-    if dir.uri == c[:OliveCore].data["home"]
+    if "home" in keys(c[:OliveCore].data) && dir.uri == c[:OliveCore].data["home"]
         srcbutton = topbar_icon("srchome", "play_arrow")
         on(c, srcbutton, "click") do cm::ComponentModifier
             home = c[:OliveCore].data["home"]
@@ -495,8 +495,7 @@ end
 """
 **Interface**
 ```
-build(c::Connection, cm::ComponentModifier, p::Project{<:Any};
-at::String = first(p.open)[1]
+build(c::Connection, cm::ComponentModifier, p::Project{<:Any})
 ```
 ------------------
 The catchall/default `build` function. If you want to add a custom directory,
@@ -560,15 +559,13 @@ end
 
 getname(c::Connection) = c[:OliveCore].names[getip(c)]::String
 
-function source_module!(oc::OliveCore)
-    homedirec = oc.data["home"]
+function source_module!(oc::OliveCore, homedirec::String = oc.data["home"])
     olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
     filter!(ocell -> ocell.type == "code" || ocell.source != "\n" || cell.source != "\n\n",
     olive_cells)
     modstr = join(
         [cell.source for cell in olive_cells[1:length(olive_cells)]]
         , "\n")
-    print(modstr)
     modend = findlast("end", modstr)
     modstr = modstr[1:modend[1] + 3]
     pmod = Meta.parse(modstr[1:length(modstr) - 1])
