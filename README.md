@@ -34,29 +34,25 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 - [get started](#get-started)
    - [setup](#setup)
    - [user interface](#user-interface)
-   - [environments](#environments)
-   - [methodology](#parametric-methodology)
-   - [directories](#directories)
-   - [cells](#cells)
-   - [base cells](#base-cells)
-   - [projects](#projects)
-   - [base projects](#base-projects)
+   - - [environments](#environments)
+   - - [methodology](#parametric-methodology)
+   - - [directories](#directories)
+   - - [cells](#cells)
+   - - [projects](#projects)
+   - [base](#base)
 - [extensions](#extensions)
    - [installing extensions](#installing-extensions)
    - [common extensions](#common-extensions)
    - [creating extensions](#creating-extensions)
-   - [directory extensions](#directory-extensions)
-   - [cell extensions](#cell-extensions)
-   - [project extensions](#project-extensions)
-   - [extension examples](#extension-examples)
+   - - [extension examples](#examples)
 - [deploying olive](#deploying-olive)
    - [`0.0.9`deployment status](#status)
-   - [creating an olive server](#creating-a-server)
    - [OliveSession](#session)
+   - [creating an olive server](#creating-a-server)
 - [contributing](#contributing)
    - [guidelines](#guidelines)
    - [known issues](#known-issues)
-- [tech stack](#tech-stack)
+   - [tech stack](#tech-stack)
 ---
 ### get started
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**.
@@ -80,8 +76,9 @@ using Olive; Olive.start()
 This should provide you with a link to get started with Olive! 
 
 To change the IP or PORT, use the positional arguments `IP` (1, `String`) and `PORT` (2, `Int64`). There are also the key-word arguments
-- `devmode`**::Bool** = `false`
 - `path`**::String** = `homedirec()`
+- `nomod`**::Bool** = `false`
+- `devmode`**::Bool** = `false`
 
 ```julia
 IP = "127.0.0.1" # same as default (see ?(Olive.start))
@@ -91,7 +88,7 @@ using Olive
 
 Olive.start(IP, PORT, devmode = false, path = startpath)
 ```
-Providing `devmode` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option is **not recommended**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions.
+Providing `devmode` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option will simply **disable authentication**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions. Providing `nomod` as true will load `Olive` with the most basic of `olive` home modules and a default `OliveCore` configuration.
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/termsc.png"></img>
 
@@ -135,12 +132,10 @@ There are 5 main types of cells that come with base `Olive`:
 - project cells
 - olive cells
 - and comment cells
-#### base cells
-###### file cells
-###### standard cells
-Olive's standard cells are cells that are used to input code or markdown into `Olive`. In base `Olive`, this includes
-- `tomlvalues` 
 #### projects
+
+
+#### base
 
 ### extensions
 
@@ -204,8 +199,7 @@ Olive's standard cells are cells that are used to input code or markdown into `O
 - `cell_bind!`
 - `olive_save`
 - `cell_highlight!`
-
-
+###### examples
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/rthtrhrtjrjy.png?raw=true"></img>
 
 [Here](https://chifi.dev/adding-python-cells-to-olive-3d564633dc04?source=your_stories_page-------------------------------------) is an article where I go about creating a Python extension for Olive, and [here](https://github.com/ChifiSource/OlivePy.jl) is a link to that project so you may see it for yourself
@@ -236,6 +230,7 @@ When submitting issues or pull-requests for Olive, it is important to make sure 
 2. The issue does not currently exist.
 3. **Pull Request TO UNSTABLE**
 4. This is an issue with Olive, not a dependency; if there is a problem with highlighting, please report that issue to [ToolipsMarkdown](https://github.com/ChifiSource/ToolipsMarkdown.jl). If there is an issue with Cell reading/writing, report that issue to [IPyCells](https://github.com/ChifiSource/IPyCells.jl)
+### known issues
 ### tech stack
 I appreciate those who are interested to take some time to look into the tech-stack used to create this project. I created a lot of these, and it took a lot of time.
 
