@@ -12,6 +12,7 @@ This file creates the basis for Olive.jl cells then builds olive cell types
 function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     windowname::String = proj.id
+    cells::Vector{Cell{<:Any}} = proj.data[:cells]
     pos = findall(lcell -> lcell.id == cell.id, cells)[1]
     if pos != 1
         switchcell = cells[pos - 1]
@@ -36,6 +37,7 @@ inputcell_style (generic function with 1 method)
 function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     windowname::String = proj.id
+    cells::Vector{Cell{<:Any}} = proj.data[:cells]
     pos = findall(lcell -> lcell.id == cell.id, cells)[1]
     if pos != length(cells)
         switchcell = cells[pos + 1]
@@ -58,6 +60,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
+    cells::Vector{Cell{<:Any}} = proj.data[:cells]
     if length(cells) == 1
         olive_notify!(cm, "you cannot the last cell in the project", color = "red")
         return
@@ -78,6 +81,7 @@ inputcell_style (generic function with 1 method)
 function cell_new!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any}; type::String = "creator")
     windowname::String = proj.id
+    cells::Vector{Cell{<:Any}} = proj.data[:cells]
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
     newcell = Cell(pos, type, "")
     insert!(cells, pos + 1, newcell)
@@ -92,6 +96,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}, 
     proj::Project{<:Any})
+    cells::Vector{Cell{<:Any}} = proj.data[:cells]
     i::Int64 = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
     if i == 1 || isnothing(i)
         return
@@ -101,6 +106,7 @@ end
 
 function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}, 
     proj::Project{<:Any})
+    cells::Vector{Cell{<:Any}} = proj.data[:cells]
     i::Int64 = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
     if i == length(cells) || isnothing(i)
         return
@@ -108,8 +114,7 @@ function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, ce
     focus!(cm, "cell$(cells[i + 1].id)")
 end
 
-function bind!(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
-    explorer::Bool = false)
+function bind!(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
 
 end
 #==output[code]
@@ -130,8 +135,7 @@ This is a callable build function that can be used to create a base file cell.
 
 ```
 """
-function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
-    explorer::Bool = false)
+function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
     hiddencell = div("cell$(cell.id)")
     hiddencell["class"] = "cell-hidden"
     name = a("cell$(cell.id)label", text = cell.source, contenteditable = true)
@@ -343,7 +347,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     "border-width" => 0px, "transition" => 1seconds)
     style!(filecell, "background-color" => "#FFFF88")
     childbox[:children] = Vector{Servable}([begin
-    build(c, mcell, d, explorer = true)
+    build(c, mcell, d)
     end
     for mcell in directory_cells(cell.outputs * "/" * cell.source)])
     on(c, filecell, "click") do cm::ComponentModifier
@@ -367,7 +371,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:ipynb},
     d::Directory{<:Any})
-    filecell = build_base_cell(c, cell, d, explorer = explorer)
+    filecell = build_base_cell(c, cell, d)
     style!(filecell, "background-color" => "#FD5800")
     filecell
 end
@@ -382,7 +386,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:jl},
     d::Directory{<:Any})
-    hiddencell = build_base_cell(c, cell, d, explorer = explorer)
+    hiddencell = build_base_cell(c, cell, d)
     hiddencell["class"] = "cell-jl"
     style!(hiddencell, "cursor" => "pointer")
     hiddencell
@@ -426,42 +430,34 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:toml},
     d::Directory)
-    hiddencell = build_base_cell(c, cell, d, explorer = explorer)
+    hiddencell = build_base_cell(c, cell, d)
     hiddencell["class"] = "cell-toml"
-    if explorer
-        on(c, hiddencell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = read_toml(cell.outputs)
-            add_to_session(c, cs, cm, cell.source, cell.outputs)
-        end
-        if cell.source == "Project.toml"
-            activatebutton = topbar_icon("$(cell.id)act", "bolt")
-            style!(activatebutton, "font-size" => 20pt, "color" => "white")
-            on(c, activatebutton, "click") do cm::ComponentModifier
-                [begin
-                    b = button("activate$(proj[1])", text = proj[1])
-                    on(c, b, "click") do cm2::ComponentModifier
-                        modname = split(proj[1], ".")[1] * replace(
-                        ToolipsSession.gen_ref(10),
-                        [string(dig) => "" for dig in digits(1234567890)] ...)
-                        proj[2][:mod] = eval(
-                        Meta.parse(olive_module(modname, cell.outputs)
-                        ))
-                        olive_notify!(cm2, "environment $(cell.outputs) activated",
-                        color = "blue")
+    on(c, hiddencell, "dblclick") do cm::ComponentModifier
+        cs::Vector{Cell{<:Any}} = read_toml(cell.outputs)
+        add_to_session(c, cs, cm, cell.source, cell.outputs)
+    end
+    if cell.source == "Project.toml"
+        activatebutton = topbar_icon("$(cell.id)act", "bolt")
+        style!(activatebutton, "font-size" => 20pt, "color" => "white")
+        on(c, activatebutton, "click") do cm::ComponentModifier
+            [begin
+                b = button("activate$(proj[1])", text = proj[1])
+                on(c, b, "click") do cm2::ComponentModifier
+                    modname = split(proj[1], ".")[1] * replace(
+                    ToolipsSession.gen_ref(10),
+                    [string(dig) => "" for dig in digits(1234567890)] ...)
+                    proj[2][:mod] = eval(
+                    Meta.parse(olive_module(modname, cell.outputs)))
+                    olive_notify!(cm2, "environment $(cell.outputs) activated",
+                    color = "blue")
                         [begin
                             remove!(cm2, "activate$k")
                         end for k in keys(c[:OliveCore].open[getname(c)].open)]
-                    end
-                    append!(cm, hiddencell, b)
-                end for proj in c[:OliveCore].open[getname(c)].projects]
-            end
-            insert!(hiddencell[:children], 2, activatebutton)
+                end
+                append!(cm, hiddencell, b)
+            end for proj in c[:OliveCore].open[getname(c)].projects]
         end
-    else
-        on(c, hiddencell, "dblclick") do cm::ComponentModifier
-            cs::Vector{Cell{<:Any}} = read_toml(cell.outputs)
-            load_session(c, cs, cm, cell.source, cell.outputs, d)
-        end
+        insert!(hiddencell[:children], 2, activatebutton)
     end
     hiddencell
 end
@@ -515,7 +511,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
-    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = false)
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
@@ -597,7 +593,7 @@ write this function for your cell and it should highlight properly.
 ```
 """
 function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{<:Any},
-    cells::Vector{Cell},  proj::Project{<:Any})
+    proj::Project{<:Any})
 
 end
 #==output[code]
@@ -617,8 +613,7 @@ Binds default cell controls, returns keymap to bind to your cell's input.
 
 ```
 """
-function cell_bind!(c::Connection, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}},
-    proj::Project{<:Any})
+function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
     bind!(km, keybindings["save"], prevent_default = true) do cm::ComponentModifier
@@ -745,7 +740,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
     tm.raw = cell.source
     ToolipsMarkdown.mark_julia!(tm)
-    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
@@ -753,7 +748,12 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     ToolipsMarkdown.clear!(tm)
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km, on = :down)
-#    [on_code_build(c::Connection, cm::ComponentModifier, cell::Cell{:code}, OliveExtension{param}()) for ]
+    [begin
+        xtname = m.sig.parameters[4]
+        if xtname != OliveExtension{<:Any}
+            println(xtname)
+        end
+    end for m in methods(on_code_build)]
     builtcell::Component{:div}
 end
 
@@ -768,6 +768,11 @@ function on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtens
 end
 
 function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
+    cell::Cell{:code}, proj::Project{<:Any})
+
+end
+
+function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{:pizza}, 
     cell::Cell{:code}, proj::Project{<:Any})
 
 end
@@ -1103,7 +1108,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:versioninfo},
     proj::Project{<:Any})
-    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = false, highlight = false)
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
@@ -1149,7 +1154,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
     tm.raw = cell.source
     mark_toml!(tm)
-    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]

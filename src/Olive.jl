@@ -440,7 +440,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     oc.data["home"] = homedirec
     rootname::String = ""
     if devmode
-        nokeyr = route("/" c -> session(c, key = false))
+        nokeyr = route("/", c -> session(c, key = false))
         rs = routes(fourofour, nokeyr, icons, mainicon)
     elseif ~(isdir("$homedirec/olive"))
         rs = routes(setup, fourofour, icons, mainicon)
