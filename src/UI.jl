@@ -670,6 +670,7 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     remove!(cm2, "preview$(proj.id)")
     if(n_projects == 1)
         # TODO start screen here
+        remove!(cm2, proj.id)
     elseif n_projects == 2
         lastproj = findfirst(pre -> pre.id != proj.id, projs)
         lastproj = projs[lastproj]
