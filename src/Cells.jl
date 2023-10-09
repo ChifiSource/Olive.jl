@@ -751,7 +751,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
-            println(xtname)
+            ext = xtname()
+            on_code_build(c, cm, ext, cell, proj)
         end
     end for m in methods(on_code_build)]
     builtcell::Component{:div}
@@ -769,76 +770,6 @@ end
 
 function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any})
-
-end
-
-function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{:pizza}, 
-    cell::Cell{:code}, proj::Project{<:Any})
-
-end
-
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
-    proj::Project{<:Any})
-    cells = proj[:cells]
-    windowname::String = proj.id
-    creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
-    cbox = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
-    style!(cbox, "outline" => "transparent", "color" => "white")
-    on(c, cbox, "input") do cm2::ComponentModifier
-        txt = cm2[cbox]["text"]
-        if txt in keys(creatorkeys)
-            cellt = creatorkeys[txt]
-            pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            remove!(cm2, buttonbox)
-            new_cell = Cell(5, string(cellt), "")
-            deleteat!(cells, pos)
-            insert!(cells, pos, new_cell)
-            insert!(cm2, windowname, pos, build(c, cm2, new_cell, proj))
-            focus!(cm2, "cell$(new_cell.id)")
-         elseif txt != ""
-             olive_notify!(cm2, "not a recognized cell hotkey", color = "red")
-             set_text!(cm2, cbox, "")
-        end
-    end
-    km = cell_bind!(c, cell, proj)
-    bind!(c, cm, cbox, km)
-    olmod = c[:OliveCore].olmod
-    signatures = [m.sig.parameters[4] for m in methods(Olive.build,
-    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
-    Vector{Cell}, Project{<:Any}])]
-     buttonbox = div("cellcontainer$(cell.id)")
-     push!(buttonbox, cbox)
-     push!(buttonbox, h("spawn$(cell.id)", 3, text = "new cell"))
-     for sig in signatures
-         if sig in (Cell{:creator}, Cell{<:Any}, Cell{:versioninfo})
-             continue
-         end
-         if length(sig.parameters) < 1
-             continue
-         end
-         b = button("$(sig)butt", text = string(sig.parameters[1]))
-         on(c, b, "click") do cm2::ComponentModifier
-             pos = findfirst(lcell -> lcell.id == cell.id, cells)
-             remove!(cm2, buttonbox)
-             new_cell = Cell(5, string(sig.parameters[1]), "")
-             deleteat!(cells, pos)
-             insert!(cells, pos, new_cell)
-             insert!(cm2, windowname, pos, build(c, cm2, new_cell,
-              proj))
-         end
-         push!(buttonbox, b)
-     end
-     buttonbox
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function last_line(source::String, caret::Int64)
 
 end
 #==output[code]
@@ -905,6 +836,13 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
          proj))
          focus!(cm, "cell$(new_cell.id)")
     end
+    [begin
+    xtname = m.sig.parameters[4]
+    if xtname != OliveExtension{<:Any}
+        ext = xtname()
+        on_code_highlight(c, cm, ext, cell, proj)
+    end
+    end for m in methods(on_code_highlight)]
     cell.source = curr
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
     tm.raw = cell.source
@@ -954,6 +892,13 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
         # output
         outp::String = ""
         od = OliveDisplay()
+        [begin
+        xtname = m.sig.parameters[4]
+        if xtname != OliveExtension{<:Any}
+            ext = xtname()
+            on_code_evaluate(c, cm, ext, cell, proj)
+        end
+    end for m in methods(on_code_evaluate)]
         if typeof(ret) <: Exception
             Base.showerror(od.io, ret)
             outp = replace(String(od.io.data), "\n" => "</br>")
@@ -1242,7 +1187,63 @@ end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
-
+#==|||==#
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
+    proj::Project{<:Any})
+    cells = proj[:cells]
+    windowname::String = proj.id
+    creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
+    cbox = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
+    style!(cbox, "outline" => "transparent", "color" => "white")
+    on(c, cbox, "input") do cm2::ComponentModifier
+        txt = cm2[cbox]["text"]
+        if txt in keys(creatorkeys)
+            cellt = creatorkeys[txt]
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
+            remove!(cm2, buttonbox)
+            new_cell = Cell(5, string(cellt), "")
+            deleteat!(cells, pos)
+            insert!(cells, pos, new_cell)
+            insert!(cm2, windowname, pos, build(c, cm2, new_cell, proj))
+            focus!(cm2, "cell$(new_cell.id)")
+         elseif txt != ""
+             olive_notify!(cm2, "not a recognized cell hotkey", color = "red")
+             set_text!(cm2, cbox, "")
+        end
+    end
+    km = cell_bind!(c, cell, proj)
+    bind!(c, cm, cbox, km)
+    olmod = c[:OliveCore].olmod
+    signatures = [m.sig.parameters[4] for m in methods(Olive.build,
+    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
+    Vector{Cell}, Project{<:Any}])]
+     buttonbox = div("cellcontainer$(cell.id)")
+     push!(buttonbox, cbox)
+     push!(buttonbox, h("spawn$(cell.id)", 3, text = "new cell"))
+     for sig in signatures
+         if sig in (Cell{:creator}, Cell{<:Any}, Cell{:versioninfo})
+             continue
+         end
+         if length(sig.parameters) < 1
+             continue
+         end
+         b = button("$(sig)butt", text = string(sig.parameters[1]))
+         on(c, b, "click") do cm2::ComponentModifier
+             pos = findfirst(lcell -> lcell.id == cell.id, cells)
+             remove!(cm2, buttonbox)
+             new_cell = Cell(5, string(sig.parameters[1]), "")
+             deleteat!(cells, pos)
+             insert!(cells, pos, new_cell)
+             insert!(cm2, windowname, pos, build(c, cm2, new_cell,
+              proj))
+         end
+         push!(buttonbox, b)
+     end
+     buttonbox
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     proj::Project{<:Any})
