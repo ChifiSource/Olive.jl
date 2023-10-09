@@ -783,6 +783,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     proj::Project{<:Any})
+    cells = proj[:cells]
     windowname::String = proj.id
     creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
     cbox = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
@@ -933,6 +934,7 @@ function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
     remove!(cm2, cell_run)
     set_children!(cm2, "cellside$(cell.id)", [icon])
     script!(c, cm2, "$(cell.id)eval", type = "Timeout") do cm::ComponentModifier
+        cells = proj[:cells]
         # get code
         rawcode::String = cm["cell$(cell.id)"]["text"]
         execcode::String = *("begin\n", rawcode, "\nend\n")
