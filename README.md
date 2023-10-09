@@ -47,14 +47,16 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 - [extensions](#extensions)
    - [installing extensions](#installing-extensions)
    - [common extensions](#common-extensions)
+     - [functionality extensions]()
+     - [language extensions]()
    - [creating extensions](#creating-extensions)
-   - [Toolips](#toolips-basics)
-   - [extensible functions](#extensible-functions)
-   - [general extensions]()
-   - [cell extensions]()
-   - [project extensions]()
-   - [directory extensions]()
-   - [extension examples](#examples)
+     - [Toolips](#toolips-basics)
+     - [extensible functions](#extensible-functions)
+     - [general extensions]()
+     - [cell extensions]()
+     - [project extensions]()
+     - [directory extensions]()
+  - [extension examples](#examples)
 - [deploying olive](#deploying-olive)
    - [`0.0.9`deployment status](#status)
    - [OliveSession](#session)
@@ -126,7 +128,7 @@ Olive's user-interface is relatively straightforward. When starting olive, you w
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
 </div>
 
-The **project explorer** is a crucial component to your `Olive` session because it manages the entire underlying filesystem running in your `Environment`. At the top of the **project explorer** will be the **inspector**. Once expanded, this section contains a file browser and previews of directories and projects in your `Environment` currently. 
+The **project explorer** is a crucial component to your `Olive` session because it manages the entire underlying filesystem running in your `Environment`. At the top of the **project explorer** will be the **inspector**. Once expanded, this section contains a file browser and previews of directories and projects in your `Environment` currently. Beneath this are the currently loaded directories. New directories can be added from the inspector by clicking the arrow next to the current working directory. Once added, we can open files from a given directory by double clicking.
 
 <div align="center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/inspectorui.png" width="300"></img>
@@ -134,7 +136,7 @@ The **project explorer** is a crucial component to your `Olive` session because 
 
 This will also be where other file operations take place, such as `save as` and `create file`. Below this will be your directories with **file cells** inside. On the top, there is a button to update the `Directory` and a button to `cd` to the directory. If this directory is your `olive` home root, this is added if the client is root, then there will also be a red run button, this button sources your `olive` home module.
 #### environments
-Though not always prominent to the end-user, the `Environment` is also a crucial piece of this puzzle. This is the overall structure that encompasses all projects and directories for each user. Also contained within this `Environment` is the currently activated `Pkg` environment and the current working directory. When using the **inspector** to navigate directories, this will change the working directory of your environment. Clicking the lightning bolt next to a `toml` file cell will change the currently activated environment.
+Though not always prominent to the end-user, the `Environment` is also a crucial piece of this puzzle. This is the overall structure that encompasses all projects and directories for each user. Also contained within this `Environment` is the currently activated `Pkg` environment and the current working directory. When using the **inspector** to navigate directories, this will change the working directory of your environment. Clicking the lightning bolt next to a `toml` file cell will change the currently activated environment. Your environment holds your `Pkg` environment and your working directory in addition to all of the projects currently open.
 #### parametric methodology
 Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method definitions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
 
