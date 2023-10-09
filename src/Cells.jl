@@ -1216,7 +1216,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     olmod = c[:OliveCore].olmod
     signatures = [m.sig.parameters[4] for m in methods(Olive.build,
     [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
-    Vector{Cell}, Project{<:Any}])]
+    Project{<:Any}])]
      buttonbox = div("cellcontainer$(cell.id)")
      push!(buttonbox, cbox)
      push!(buttonbox, h("spawn$(cell.id)", 3, text = "new cell"))
