@@ -60,7 +60,6 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
-    cells::Vector{Cell{<:Any}} = proj.data[:cells]
     if length(cells) == 1
         olive_notify!(cm, "you cannot the last cell in the project", color = "red")
         return
@@ -94,7 +93,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}, 
+function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, 
     proj::Project{<:Any})
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     i::Int64 = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
@@ -104,7 +103,7 @@ function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, cell
     focus!(cm, "cell$(cells[i - 1].id)")
 end
 
-function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, cells::Vector{Cell{<:Any}}, 
+function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     i::Int64 = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
@@ -616,6 +615,7 @@ Binds default cell controls, returns keymap to bind to your cell's input.
 function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
+    cells::Vector{Cell{<:Any}} = proj.data[:cells]
     bind!(km, keybindings["save"], prevent_default = true) do cm::ComponentModifier
         save_project(c, cm, proj)
     end
@@ -797,8 +797,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
             new_cell = Cell(5, string(cellt), "")
             deleteat!(cells, pos)
             insert!(cells, pos, new_cell)
-            insert!(cm2, windowname, pos, build(c, cm2, new_cell, cells,
-             proj))
+            insert!(cm2, windowname, pos, build(c, cm2, new_cell, proj))
             focus!(cm2, "cell$(new_cell.id)")
          elseif txt != ""
              olive_notify!(cm2, "not a recognized cell hotkey", color = "red")
@@ -828,7 +827,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
              new_cell = Cell(5, string(sig.parameters[1]), "")
              deleteat!(cells, pos)
              insert!(cells, pos, new_cell)
-             insert!(cm2, windowname, pos, build(c, cm2, new_cell, cells,
+             insert!(cm2, windowname, pos, build(c, cm2, new_cell,
               proj))
          end
          push!(buttonbox, b)
