@@ -11,21 +11,19 @@ This file creates the basis for Olive.jl cells then builds olive cell types
 #==|||==#
 function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
+    cells = proj[:cells]
     windowname::String = proj.id
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
-    pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+    pos = findfirst(lcell -> lcell.id == cell.id, cells)
     if pos != 1
         switchcell = cells[pos - 1]
-        originallen = length(cells)
-        cells[pos - 1] = cell
-        cells[pos] = switchcell
         remove!(cm2, "cellcontainer$(switchcell.id)")
         remove!(cm2, "cellcontainer$(cell.id)")
-        ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, switchcell, cells,
-        proj))
-        ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, cell, cells,
-        proj))
+        ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, switchcell, proj))
+        ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, cell, proj))
         focus!(cm2, "cell$(cell.id)")
+        cells[pos] = switchcell
+        cells[pos - 1] = cell
     else
         olive_notify!(cm2, "this cell cannot go up any further!", color = "red")
     end
@@ -36,20 +34,19 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
+    cells = proj[:cells]
     windowname::String = proj.id
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
-    pos = findall(lcell -> lcell.id == cell.id, cells)[1]
+    pos = findfirst(lcell -> lcell.id == cell.id, cells)
     if pos != length(cells)
         switchcell = cells[pos + 1]
-        cells[pos + 1] = cell
-        cells[pos] = switchcell
         remove!(cm, "cellcontainer$(switchcell.id)")
         remove!(cm, "cellcontainer$(cell.id)")
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, cells,
-        proj))
-        ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, cells,
-        proj))
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, proj))
+        ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, proj))
         focus!(cm, "cell$(cell.id)")
+        cells[pos] = switchcell
+        cells[pos + 1] = cell
     else
         olive_notify!(cm, "this cell cannot go down any further!", color = "red")
     end
@@ -96,7 +93,7 @@ inputcell_style (generic function with 1 method)
 function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, 
     proj::Project{<:Any})
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
-    i::Int64 = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
+    i = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
     if i == 1 || isnothing(i)
         return
     end
@@ -106,7 +103,7 @@ end
 function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
-    i::Int64 = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
+    i = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
     if i == length(cells) || isnothing(i)
         return
     end
