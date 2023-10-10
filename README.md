@@ -34,8 +34,8 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 ###### map
 - [get started](#get-started)
    - [setup](#setup)
+   - [documentation](#documentation)
    - [user interface](#user-interface)
-     - [
      - [environments](#environments)
      - [methodology](#parametric-methodology)
      - [directories](#directories)
@@ -44,7 +44,9 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
      - [keybindings](#keybindings)
    - [base](#base)
      - [cells](#base-cells)
-     - [directories and projects](#base-projects)
+     - [projects](#base-projects)
+     - [directories](#base-directories)
+     - [settings](#settings)
 - [extensions](#extensions)
    - [installing extensions](#installing-extensions)
    - [common extensions](#common-extensions)
@@ -137,6 +139,12 @@ The **project explorer** is a crucial component to your `Olive` session because 
 </div>
 
 This will also be where other file operations take place, such as `save as` and `create file`. Below this will be your directories with **file cells** inside. On the top, there is a button to update the `Directory` and a button to `cd` to the directory. If this directory is your `olive` home root, this is added if the client is root, then there will also be a red run button, this button sources your `olive` home module.
+#### documentation
+With the upcoming release of `0.1.0`, [chifi](https://github.com/ChifiSource) will also be releasing [OliveCreator](https://github.com/ChifiSource/OliveCreator.jl), this will be a website which hosts `Olive`. Along with this there will be interactive examples, notebooks, and most importantly -- documentation (for all chifi stuff, really awesome olive-based documentation). The problem is that this still requires a lot of work to `Olive` and its sister projects. In its current state the two best tools to learn `Olive` are
+- this README
+- or the [OliveDefaults](https://github.com/ChifiSource/OliveDefaults.jl) documentation browser.
+
+  I would recommend the latter. For the most part, this documentation is only needed if you are writing extensions for `Olive`. I could see knowledge of how the thing works being beneficial in these early pre-releases, however.
 #### environments
 Though not always prominent to the end-user, the `Environment` is also a crucial piece of this puzzle. This is the overall structure that encompasses all projects and directories for each user. Also contained within this `Environment` is the currently activated `Pkg` environment and the current working directory. When using the **inspector** to navigate directories, this will change the working directory of your environment. Clicking the lightning bolt next to a `toml` file cell will change the currently activated environment. Your environment holds your `Pkg` environment and your working directory in addition to all of the projects currently open.
 #### parametric methodology
@@ -159,17 +167,16 @@ There is no one cell, as the capabilities of a cell change with the type of that
 #### base
 Something unique about `Olive`, and yet another similarity to the Julia language itself, is that `Olive`'s core features are built using the same exact methodology one would use to build `Olive` extensions. In other words, `Olive`'s `code` cells are written into `Olive` as an extension. In its purest form, `Olive` is simply an anything editor that can have anything built on top of it. The base just **happens to** come with tools for **Data Science** and **Software Development** for Julia. That being said, it is worth going through the concept and the base separately. Now that we have a firm understanding of how these different things fit together (`Directories`, `Projects`, `Cells`, `Environments`), we can get a good idea of how the base `Olive` extensions work.
 ###### base directory
+The only directory that comes with `Olive` is the base directory. 
 ###### base cells
 ###### base projects
 
+###### settings
+
 ### extensions
-`Olive` is not `Olive` without extensions. While the base `Olive` features are pretty cool, `Olive`'s base is intentionally built with a minimalist mindset. The idea is that **nothing is everyone's cup of tea**, so why use someone else's computer to load things for people who do not even want those things to begin with?
-
-Olive extensions work off of `Olive`'s [parametric multiple dispatch methodology](#parametric-methodology) for loading extensions. This means `Olive` loads extensions by mere existence of the `Method` definitions within those extensions. In order for this system to work, there has to be some kind of environment for `Olive` to load these dependencies into and there has to be some kind of source file to do `using` on these dependencies.
-
-*Sidenote: I say that this is **necessary**, 
+`Olive` is not `Olive` without extensions. While the base `Olive` features are pretty cool, `Olive`'s base is intentionally built with a minimalist mindset. The idea is that **nothing is everyone's cup of tea**, so why use someone else's computer to load things for people who do not even want those things to begin with? With the `Olive` (and frankly, **Julia**) approach new features are added by adding new methods to existing `Olive` functions. With this, `Olive` becomes a notebook centralized on multiple dispatch! Olive extensions work off of `Olive`'s [parametric multiple dispatch methodology](#parametric-methodology) for loading extensions. A parameter is used to denote the existence of a new function, and each method of a given function becomes representative of that cell's action. As a result, extensions are loaded by merely having such method definitions loaded into memory. As a result, installing extensions is incredibly easy.
 #### installing extensions
-
+In order to install an `Olive` extension, we will start by adding that extension as a package to our `olive` home environment. From the Julia REPL running your `Olive` session, you may check the active environment
 
 #### common extensions
 
@@ -255,7 +262,7 @@ I thank you for all of your help with our project, or just for considering contr
 #### guidelines
 When submitting issues or pull-requests for Olive, it is important to make sure of a few things. We are not super strict, but making sure of these few things will be helpful for maintainers!
 1. You have replicated the issue on `Olive#Unstable`
-2. The issue does not currently exist.
+2. The issue does not currently exist... or does not have a planned implementation different to your own. In these cases, please collaborate on the issue, express your idea and we will select the best choice.
 3. **Pull Request TO UNSTABLE**
 4. This is an issue with Olive, not a dependency; if there is a problem with highlighting, please report that issue to [ToolipsMarkdown](https://github.com/ChifiSource/ToolipsMarkdown.jl). If there is an issue with Cell reading/writing, report that issue to [IPyCells](https://github.com/ChifiSource/IPyCells.jl)
 ### known issues
