@@ -165,7 +165,7 @@ function session(c::Connection; key::Bool = false)
             sourced_path = c[:OliveCore].data["home"]
         end
         myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
-        Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, 
+        Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, 
         sourced_path)
         Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
         push!(env.directories, pwd_direc)

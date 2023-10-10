@@ -544,15 +544,17 @@ mutable struct OliveCore <: ServerExtension
     names::Dict{String, String}
     client_data::Dict{String, Dict{String, Any}}
     open::Vector{Environment}
+    pool::Vector{String}
     client_keys::Dict{String, String}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         m = eval(Meta.parse("module olive end"))
         open = Vector{Environment}()
+        pool = Vector{String}()
         client_data = Dict{String, Dict{String, Any}}()
         client_keys::Dict{String, String} = Dict{String, String}()
         new(m, [:connection], data, Dict{String, String}(),
-        client_data, open, client_keys)
+        client_data, open, pool, client_keys)
     end
 end
 

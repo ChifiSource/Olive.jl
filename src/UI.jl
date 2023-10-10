@@ -475,9 +475,15 @@ end
 olive_main (generic function with 2 methods)
 ==#
 #==|||==#
-function source_module!(p::Project{<:Any}, name::String)
-    name = replace(ToolipsSession.gen_ref(10),
+function source_module!(c::Connection, p::Project{<:Any}, name::String)
+    openmods = c[:OliveCore].pool
+    if length(openmods) > 0
+        name = openmods[1]
+        deleteat!(openmods, 1)
+    else
+        name = replace(ToolipsSession.gen_ref(10),
     [string(dig) => "" for dig in digits(1234567890)] ...)
+    end
     modstr = olive_module(name, p[:env])
     mod::Module = Main.evalin(Meta.parse(modstr))
     push!(p.data, :mod => mod)
@@ -518,7 +524,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
         push!(projdict, :path => fpath)
     end
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, myproj, source)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, source)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     tab::Component{:div} = build_tab(c, myproj)
@@ -619,7 +625,7 @@ function tab_controls(c::Connection, p::Project{<:Any})
     on(c, restartbutton, "click") do cm2::ComponentModifier
         new_name = string(split(fname, ".")[1])
         delete!(p.data, :mod)
-        source_module!(p, new_name)
+        source_module!(c, p, new_name)
         olive_notify!(cm2, "module for $(fname) re-sourced")
     end
     add_button = topbar_icon("$(fname)add", "add_circle")
@@ -688,6 +694,7 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     end
     pos = findfirst(pro -> pro.id == proj.id,
     projs)
+    push!(c[:OliveCore].pool, proj.id)
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
 end
