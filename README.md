@@ -35,7 +35,7 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 - [get started](#get-started)
    - [setup](#setup)
    - [user interface](#user-interface)
-     - 
+     - [
      - [environments](#environments)
      - [methodology](#parametric-methodology)
      - [directories](#directories)
