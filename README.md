@@ -156,13 +156,41 @@ This is the defining characteristic of `Olive`, and also how the base `Olive` fe
 #### directories
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
 Directories are used to load `Olive` projects from files. At the top of the standard `Olive` `Directory`, there will be a button to change to the `Directory` inside of the **inspector** and a button to remove that directory from your current `Environment`. Most file actions, such as move and rename, are instead done through the **inspector**.
+#### projects
+In the same way that directories are containers for **file cells**, projects are containers for **session cells**.
 #### cells 
 Cells are a general name for the components that compose a given `Olive` project's source file. To elaborate, cells are parametric and read in from files, while in base `Olive` this includes a limited scope of cells for Julia-bourne Data Science and Software Development, `Olive` extensions could easily change this. Cells are rendered inside of `Project` windows and go into **pane one** or **pane two**. 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2007-20-26.png"></img>
 
-There is no one cell, as the capabilities of a cell change with the type of that cell. In the screenshot above, we see several different types of cells.
-#### projects
+There is no one cell, as the capabilities of a cell change with the type of that cell. In the screenshot above, we see several different types of cells. Cells are created using the `creator` cell, which is created by pressing `ctrl` + `Shift` + `Enter` in a cell. This will create a new creator cell, which uses **creator keys** to select a cell type. These keys may be edited inside of the **settings** menu.
 
+<div align="center">
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creatorcell.png"></img>
+</div>
+
+###### keybindings
+Using cells is simple. By default, olive bindings use `ctrl` alone for window features, `ctrl` + `shift` to do things inside of projects, and `shift` alone to work with a specific cell. The resulting key-bindings are
+- **window bindings**
+  - `ctrl` + `C` **copy**
+  - `ctrl` + `X` **cut**
+  - `ctrl` + `V` **paste**
+  - `ctrl` + `S` **save selected project**
+  - `ctrl` + `z` **undo**
+  - `ctrl` + `y` **redo**
+  - `ctrl` + `F` **search**
+- **project bindings**
+  - `ctrl` + `shift` + `X` **cut selected cell**
+  - `ctrl` + `shift` + `V` **paste selected cell**
+  - `ctrl` + `Shift` + `S` **save project as**
+  - `ctrl` + `shift` + `Delete` **delete selected cell**
+  - `ctrl` + `shift` + `Enter` **new cell**
+  - `ctrl` + `shift` + `↑` **move selected cell up**
+  - `ctrl` + `shift` + `↓` **move selected cell down**
+
+- **cell bindings**
+  - `shift` + `Enter` **run cell**
+  - `shift` + `↑` **shift focus up**
+  - `shift` + `↑` **shift focus down**
 
 #### base
 Something unique about `Olive`, and yet another similarity to the Julia language itself, is that `Olive`'s core features are built using the same exact methodology one would use to build `Olive` extensions. In other words, `Olive`'s `code` cells are written into `Olive` as an extension. In its purest form, `Olive` is simply an anything editor that can have anything built on top of it. The base just **happens to** come with tools for **Data Science** and **Software Development** for Julia. That being said, it is worth going through the concept and the base separately. Now that we have a firm understanding of how these different things fit together (`Directories`, `Projects`, `Cells`, `Environments`), we can get a good idea of how the base `Olive` extensions work.
