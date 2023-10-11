@@ -108,7 +108,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         "copy" => ["C", "ctrl", "shift"],
         "paste" => ["V", "ctrl", "shift"],
         "cut" => ["X", "ctrl", "shift"],
-        "new" => ["Enter", "ctrl", "shift"],
+        "new" => ["Q", "ctrl", "shift"],
         "focusup" => ["ArrowUp", "shift"],
         "focusdown" => ["ArrowDown", "shift"],
         "save" => ["s", "ctrl"],
@@ -192,7 +192,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
     newsection = div("newcreator")
     push!(newsection, h("news", 4, text = "bind new"), setinput)
     signatures = [m.sig.parameters[4] for m in methods(c[:OliveCore].olmod.build,
-    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell, Vector{Cell}, Project{<:Any}])]
+    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell, Project{<:Any}])]
     opts = Vector{Servable}()
     for sig in signatures
         if sig == Cell{:creator} || sig == Cell{<:Any} || sig == Cell{:versioninfo}
@@ -405,19 +405,19 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
     cellcontainer[:children] = cells
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
     new_fb = topbar_icon("newfb$(becell)", "article")
-    openworkb = topbar_icon("newfb$(becell)", "open_in_browser")
+    openworkb = topbar_icon("cd$(becell)", "open_in_browser")
     style!(new_dirb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
     style!(new_fb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
     style!(openworkb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
     push!(containerheader, openworkb, new_dirb, new_fb)
+    on(c, openworkb, "click") do cm::ComponentModifier
+        switch_work_dir!(c, cm, dir.uri)
+    end
     on(c, new_dirb, "click") do cm::ComponentModifier
         create_new_dir!(c, cm, dir)
     end
     on(c, new_fb, "click") do cm::ComponentModifier
         create_new!(c, cm, dir)
-    end
-    on(c, openworkb, "click") do cm::ComponentModifier
-        switch_work_dir!(c, cm, dir.uri)
     end
     push!(containerbody, cellcontainer)
     return(container)

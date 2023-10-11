@@ -303,6 +303,7 @@ end
 function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; directory::Bool = false)
     switch_work_dir!(c, cm, dir.uri)
     namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
+    style!(namebox, "width" => 25percent)
     savebutton = button("confirm_new", text = "confirm")
     cancelbutton = button("cancel_new", text = "cancel")
     on(c, savebutton, "click") do cm2::ComponentModifier
