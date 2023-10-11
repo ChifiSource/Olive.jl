@@ -414,7 +414,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
         create_new_dir!(c, cm, dir)
     end
     on(c, new_fb, "click") do cm::ComponentModifier
-        create_new_file!(c, cm, dir)
+        create_new!(c, cm, dir)
     end
     on(c, openworkb, "click") do cm::ComponentModifier
         switch_work_dir!(c, cm, dir.uri)

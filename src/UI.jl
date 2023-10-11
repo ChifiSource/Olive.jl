@@ -300,7 +300,7 @@ function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
     set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
 end
 
-function create_new_file!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any})
+function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; directory::Bool = false)
     switch_work_dir!(c, cm, dir.uri)
     namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
     savebutton = button("confirm_new", text = "confirm")
@@ -309,20 +309,28 @@ function create_new_file!(c::Connection, cm::ComponentModifier, dir::Directory{<
         finalname = cm2[namebox]["text"]
         path = cm2["selector"]["text"]
         try
-            
+            if directory
+                mkdir(path * "/" * finalname)
+            else
+                touch(path * "/" * finalname)
+            end
+            olive_notify!(cm2, "successfully created $finalname !", color = "green")
+            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
+            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
         catch e
-
+            olive_notify!(cm2, "failed to create $finalname !", color = "red")
         end
     end
     on(c, cancelbutton, "click") do cm2::ComponentModifier
         set_children!(cm2, "fileeditbox", Vector{Servable}())
+        style!(cm2, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
     end
     set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
 end
 
 function create_new_dir!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any})
-    switch_work_dir!(c, cm, dir.uri)
+    create_new!(c, cm, dir, directory = true)
 end
 
 function work_filemenu(c::Connection, path::String)
@@ -896,6 +904,7 @@ function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any}
         else
             olive_notify!(cm2, "file $(p[:path]) saved", color = "$ret")
         end
+        set_children!(cm2, "fileeditbox", Vector{Servable}())
         style!(cm, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
     end
     set_children!(cm, "fileeditbox", [namebox, selectorbox, savebutton])
