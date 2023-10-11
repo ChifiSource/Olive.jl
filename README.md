@@ -49,11 +49,12 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
      - [language extensions]()
    - [creating extensions](#creating-extensions)
      - [Toolips](#toolips-basics)
-     - [load extensions]()
-     - [cell extensions]()
-     - [project extensions]()
+     - [load extensions](#load-extensions)
+     - [code cell extensions](#code-cell-extensions)
      - [directory extensions]()
-     - 
+     - [cell extensions](#cell-extensions)
+     - [project extensions](#project-extensions)
+  - [extensible function reference](#function-reference)
   - [extension examples](#examples)
 - [deploying olive](#deploying-olive)
    - [`0.0.9`deployment status](#status)
@@ -264,6 +265,9 @@ Extensions for `Olive` can be as small as an icon, or as large as a new programm
 #### creating extensions
 As has been touched on quite extensively in this `README`, `Olive` loads extensions by checking for new methods of its functions. There are several different types of extensions that can be created for `Olive`, so let's get familiar with the what each function is for. The most essential function on this front is the `build` function. Though `Olive` is written in one language with both frontend and backend under the same hood, it is still written with a frontend and a backend. The only thing that is different on that front is that the translation between the two is done seemlessly through [Toolips](https://github.com/ChifiSource/Toolips.jl)' API. This `build` function is used to translate the Julia objects from the backend into GUI interface components. In fact we may view all of the functions for our cells by calling `methods` on it.
 ```julia
+julia> using Olive; import Olive: build
+🩷
+julia> methods(Olive.build)
 # 26 methods for generic function "build" from Olive:
   [1] build(c::Toolips.AbstractConnection, cm::ComponentModifier, p::Olive.Project)
      @ ~/dev/packages/olive/Olive.jl/src/Core.jl:507
@@ -287,6 +291,29 @@ As has been touched on quite extensively in this `README`, `Olive` loads extensi
  [21] build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds})
      @ ~/dev/packages/olive/Olive.jl/src/Core.jl:99
 ```
+Here we begin to see the different dispatches and what they do. The first method listed above is the build function for `Project{<:Any}`. This creates the regular projects that we are used to seeing inside of `Olive` that we are used to seeing, with the tab on top. The function responsible for creating these tabs is actually `build_tab`, just for fun let's look at the methods...
+
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2007-25-26.png"></img>
+
+```julia
+julia> methods(Olive.build_tab)
+# 3 methods for generic function "build_tab" from Olive:
+ [1] build_tab(c::Connection, p::Olive.Project{:include}; hidden)
+     @ ~/dev/packages/olive/Olive.jl/src/UI.jl:702
+ [2] build_tab(c::Connection, p::Olive.Project{:module}; hidden)
+     @ ~/dev/packages/olive/Olive.jl/src/UI.jl:733
+ [3] build_tab(c::Connection, p::Olive.Project; hidden)
+     @ ~/dev/packages/olive/Olive.jl/src/UI.jl:763
+```
+
+Below this, # 2 is the `Directory`, then is the `ipynb` file cell. Notice how the parameter is dispatched to `ipynb`, this symbolic representation denotes the existence of this cell. We also see that yes -- even `Olive`'s key-bindings are loaded in as an extension using this method. The `build` function is one that transcends across most `Olive` types, not every function is this complicated or has this many methods. There are several different types of extensions we might want to write...
+- load extensions
+- `code` cell extensions
+- `Directory` extensions
+- `Cell` extensions
+- `Project` extensions
+
+Creating extensions will require two prerequisites from the creator. Firstly, there will need to be knowledge of these dispatches
 ###### toolips
 `Olive` is the culmination of many different packages working in tandem -- the most essential of these packages is a web-development framework called [toolips](https://github.com/ChifiSource/Olive.jl). In order to create extensions for `Olive`, one will first need to familiarize themselves with `Toolips`. Luckily, the framework is really easy to use!
 - [Toolips tutorial videos]()
@@ -302,14 +329,18 @@ Here, we will do a brief toolips tutorial to get the basics of the framework dow
 
 ##### project extensions
 
-###### function reference
+#### function reference
+###### Cell functions
+###### Project functions
+###### Directory functions
+###### OliveExtension functions
 - `build`
 - `evaluate`
 - `build_base_cell`
 - `cell_bind!`
 - `olive_save`
 - `cell_highlight!`
-###### examples
+#### examples
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/rthtrhrtjrjy.png?raw=true"></img>
 
 [Here](https://chifi.dev/adding-python-cells-to-olive-3d564633dc04?source=your_stories_page-------------------------------------) is an article where I go about creating a Python extension for Olive, and [here](https://github.com/ChifiSource/OlivePy.jl) is a link to that project so you may see it for yourself
