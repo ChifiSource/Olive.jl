@@ -240,13 +240,9 @@ function work_menu(c::Connection)
     working_area = containersection(c, becell, text = "inspector")
     style!(working_area[:children][2], "padding" => 12px)
     pinfo_box = div("pinfo$becell")
-    pinfo_box[:children] = Vector{Servable}(
-    [work_preview(c, p) for p in env.projects]
-    )
+    pinfo_box[:children] = Vector{Servable}([work_preview(c, p) for p in env.projects])
     dinfo_box = div("dinfo$becell")
-    dinfo_box[:children] = Vector{Servable}(
-    [work_preview(c, d) for d in env.directories]
-    )
+    dinfo_box[:children] = Vector{Servable}([work_preview(c, d) for d in env.directories])
     fileedit = div("fileeditbox")
     style!(fileedit, "height" => 0percent, "opacity" => 0percent, "transition" => 1seconds, 
     "display" => "flex")
@@ -341,7 +337,22 @@ function work_filemenu(c::Connection, path::String)
     style!(selector_box, "display" => "inline-block")
     style!(selector_indicator, "display" => "inline-block")
     adddirec = topbar_icon("add_direc", "arrow_upward")
+    new_dirb = topbar_icon("newdirwork", "create_new_folder")
+    new_fb = topbar_icon("newfbwork", "article")
     style!(adddirec, "color" => "gray", "font-size" => 10pt)
+    style!(new_dirb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray", 
+    "margin-left" => 30px)
+    style!(new_fb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
+    on(c, new_dirb, "click") do cm::ComponentModifier
+        uri::String = cm[selector_indicator]["text"]
+        dir::Directory{<:Any} = Directory(uri)
+        create_new_dir!(c, cm, dir)
+    end
+    on(c, new_fb, "click") do cm::ComponentModifier
+        uri::String = cm[selector_indicator]["text"]
+        dir::Directory{<:Any} = Directory(uri)
+        create_new!(c, cm, dir)
+    end
     on(c, adddirec, "click") do cm::ComponentModifier
         env = c[:OliveCore].open[getname(c)]
         newdirec = cm[selector_indicator]["text"]
@@ -355,7 +366,7 @@ function work_filemenu(c::Connection, path::String)
         append!(cm, "dinfoworkmenu", work_preview(c, newdirectory))
         push!(env.directories, newdirectory)
     end
-    push!(controls, selector_indicator, adddirec)
+    push!(controls, selector_indicator, adddirec, new_dirb, new_fb)
     push!(selector_box, selector_indicator, controls)
     filebox = section("filebox")
     style!(filebox, "height" => 40percent, "overflow-y" => "scroll", 
