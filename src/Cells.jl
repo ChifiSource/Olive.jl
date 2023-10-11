@@ -1572,10 +1572,11 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
+    cells = proj[:cells]
     projs = c[:OliveCore].open[getname(c)].projects
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
-    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, proj)
     bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
@@ -1605,7 +1606,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     cell.source = path
     env = c[:OliveCore].open[getname(c)]
     if ~(isfile(env.pwd * "/" * path))
-        olive_notify!(cm, "$path is not a file!", color = "red")
+        olive_notify!(cm, "$(env.pwd * "/" * path) is not a file!", color = "red")
     end
     projs = c[:OliveCore].open[getname(c)].projects
     if cell.source != "" && length(findall(p -> p.id == cell.outputs, projs)) == 0

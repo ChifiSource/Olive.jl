@@ -300,6 +300,31 @@ function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
     set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
 end
 
+function create_new_file!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any})
+    switch_work_dir!(c, cm, dir.uri)
+    namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
+    savebutton = button("confirm_new", text = "confirm")
+    cancelbutton = button("cancel_new", text = "cancel")
+    on(c, savebutton, "click") do cm2::ComponentModifier
+        finalname = cm2[namebox]["text"]
+        path = cm2["selector"]["text"]
+        try
+            
+        catch e
+
+        end
+    end
+    on(c, cancelbutton, "click") do cm2::ComponentModifier
+        set_children!(cm2, "fileeditbox", Vector{Servable}())
+    end
+    set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
+    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+end
+
+function create_new_dir!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any})
+    switch_work_dir!(c, cm, dir.uri)
+end
+
 function work_filemenu(c::Connection, path::String)
     selector_indicator = h("selector", 4, text = path)
     selector_box = div("selectorbox")

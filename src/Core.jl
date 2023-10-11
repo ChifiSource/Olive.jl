@@ -112,10 +112,12 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         "focusup" => ["ArrowUp", "shift"],
         "focusdown" => ["ArrowDown", "shift"],
         "save" => ["s", "ctrl"],
-        "saveas" => ["S", "ctrl", "shift"]
+        "saveas" => ["S", "ctrl", "shift"],
+        "open" => ["O", "ctrl"],
+        "find" => ["F", "ctrl"]
         ))
     end
-    keybind_drop = containersection(c, "keybindings", fillto = 80)
+    keybind_drop = containersection(c, "keybindings", fillto = 90)
     keybind_section = keybind_drop[:children][2]
     shftlabel = a("shiftlabel", text = "  shift:    ")
     ctrllabel = a("ctrllabel", text = "  ctrl:   ")
@@ -409,10 +411,10 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
     style!(openworkb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
     push!(containerheader, openworkb, new_dirb, new_fb)
     on(c, new_dirb, "click") do cm::ComponentModifier
-        
+        create_new_dir!(c, cm, dir)
     end
     on(c, new_fb, "click") do cm::ComponentModifier
-
+        create_new_file!(c, cm, dir)
     end
     on(c, openworkb, "click") do cm::ComponentModifier
         switch_work_dir!(c, cm, dir.uri)
