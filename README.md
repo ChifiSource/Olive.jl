@@ -49,11 +49,11 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
      - [language extensions]()
    - [creating extensions](#creating-extensions)
      - [Toolips](#toolips-basics)
-     - [extensible functions](#extensible-functions)
-     - [general extensions]()
+     - [load extensions]()
      - [cell extensions]()
      - [project extensions]()
      - [directory extensions]()
+     - 
   - [extension examples](#examples)
 - [deploying olive](#deploying-olive)
    - [`0.0.9`deployment status](#status)
@@ -62,6 +62,7 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 - [contributing](#contributing)
    - [guidelines](#guidelines)
    - [known issues](#known-issues)
+   - [roadmap](#roadmap)
    - [tech stack](#tech-stack)
 ---
 ### get started
@@ -205,6 +206,13 @@ Now we simply save this. The `olive` directory has a run button that is used to 
 Extensions for `Olive` can be as small as an icon, or as large as a new programming language loaded from a new file format. `Olive` can edit anything however it wants to with the only limitation really being [Toolips](https://github.com/ChifiSource/Toolips.jl) and the web itself -- it's **great!**
 #### common extensions`
 **note** that a lot of extensions for `Olive` are waiting on this initial `0.0.9` (if this is on `master` it is here) release to be released. That being said, there might not be that much done yet depending on when this is being read.
+###### functionality extensions
+<table>
+<tr>  
+ <th><a href = "https://github.com/ChifiSource/OliveSession.jl"><img width = 120 src="https://github.com/ChifiSource/image_dump/blob/main/olive/olivesession.png"></a></th>
+</tr>
+</table>
+###### language extensions
 
 <div align = "left">
 
@@ -279,7 +287,22 @@ As has been touched on quite extensively in this `README`, `Olive` loads extensi
  [21] build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds})
      @ ~/dev/packages/olive/Olive.jl/src/Core.jl:99
 ```
+###### toolips
+`Olive` is the culmination of many different packages working in tandem -- the most essential of these packages is a web-development framework called [toolips](https://github.com/ChifiSource/Olive.jl). In order to create extensions for `Olive`, one will first need to familiarize themselves with `Toolips`. Luckily, the framework is really easy to use!
+- [Toolips tutorial videos]()
 
+Here, we will do a brief toolips tutorial to get the basics of the framework down. The Toolips process typically consists of composing `Components` together, creating callbacks, and then writing the `Components` to the `Connection.
+###### load extensions
+
+##### code cell extensions
+
+##### directory extensions
+
+##### cell extensions
+
+##### project extensions
+
+###### function reference
 - `build`
 - `evaluate`
 - `build_base_cell`
