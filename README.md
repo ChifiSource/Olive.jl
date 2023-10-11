@@ -151,6 +151,7 @@ Using cells is simple. By default, olive bindings use `ctrl` alone for window fe
   - `ctrl` + `y` **redo**
   - `ctrl` + `F` **search**
 - **project bindings**
+  - `ctrl` + `shift` + `C` **copy selected cell**
   - `ctrl` + `shift` + `X` **cut selected cell**
   - `ctrl` + `shift` + `V` **paste selected cell**
   - `ctrl` + `Shift` + `S` **save project as**
@@ -199,9 +200,11 @@ using OliveDefaults: DocBrowser
 ```
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/addeddbrowser.png"></img>
 
-Now we simply save this. The `olive` directory has a run button that is used to resource the module. Press this button, if you do not get an error message (which means there is an error in your code, or with `Olive` forming a module with your code) you have installed the extension. There should be an `Olive` notification that drops down and denotes the success of the operation. In the future, with `0.1.0` this might be moved to a new file in the `olive` home, `extensions.jl`. 
+Now we simply save this. The `olive` directory has a run button that is used to resource the module. Press this button, if you do not get an error message (which means there is an error in your code, or with `Olive` forming a module with your code) you have installed the extension. There should be an `Olive` notification that drops down and denotes the success of the operation. In the future, with `0.1.0` this might be moved to a new file in the `olive` home, `extensions.jl`. Refreshing the page will yield the addition of our `DocBrowser` extension.
 
-#### common extensions
+Extensions for `Olive` can be as small as an icon, or as large as a new programming language loaded from a new file format. `Olive` can edit anything however it wants to with the only limitation really being [Toolips](https://github.com/ChifiSource/Toolips.jl) and the web itself -- it's **great!**
+#### common extensions`
+**note** that a lot of extensions for `Olive` are waiting on this initial `0.0.9` (if this is on `master` it is here) release to be released. That being said, there might not be that much done yet depending on when this is being read.
 
 <div align = "left">
 
@@ -251,6 +254,32 @@ Now we simply save this. The `olive` directory has a run button that is used to 
 </table>
 
 #### creating extensions
+As has been touched on quite extensively in this `README`, `Olive` loads extensions by checking for new methods of its functions. There are several different types of extensions that can be created for `Olive`, so let's get familiar with the what each function is for. The most essential function on this front is the `build` function. Though `Olive` is written in one language with both frontend and backend under the same hood, it is still written with a frontend and a backend. The only thing that is different on that front is that the translation between the two is done seemlessly through [Toolips](https://github.com/ChifiSource/Toolips.jl)' API. This `build` function is used to translate the Julia objects from the backend into GUI interface components. In fact we may view all of the functions for our cells by calling `methods` on it.
+```julia
+# 26 methods for generic function "build" from Olive:
+  [1] build(c::Toolips.AbstractConnection, cm::ComponentModifier, p::Olive.Project)
+     @ ~/dev/packages/olive/Olive.jl/src/Core.jl:507
+  [2] build(c::Connection, dir::Olive.Directory, m::Module)
+     @ ~/dev/packages/olive/Olive.jl/src/Core.jl:360
+  [3] build(c::Connection, cell::Cell{:ipynb}, d::Olive.Directory)
+     @ ~/dev/packages/olive/Olive.jl/src/Cells.jl:368
+  [4] build(c::Connection, cell::Cell{:setup})
+     @ ~/dev/packages/olive/Olive.jl/src/Cells.jl:1716
+  [5] build(c::Connection, cell::Cell{:dir}, d::Olive.Directory)
+     @ ~/dev/packages/olive/Olive.jl/src/Cells.jl:334
+  [6] build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown}, proj::Olive.Project)
+     @ ~/dev/packages/olive/Olive.jl/src/Cells.jl:930
+...
+ [18] build(c::Connection, cm::ComponentModifier, cell::Cell, proj::Olive.Project)
+     @ ~/dev/packages/olive/Olive.jl/src/Cells.jl:506
+ [19] build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler})
+     @ ~/dev/packages/olive/Olive.jl/src/Core.jl:220
+ [20] build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys})
+     @ ~/dev/packages/olive/Olive.jl/src/Core.jl:157
+ [21] build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds})
+     @ ~/dev/packages/olive/Olive.jl/src/Core.jl:99
+```
+
 - `build`
 - `evaluate`
 - `build_base_cell`
