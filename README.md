@@ -55,6 +55,11 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
      - [cell extensions](#cell-extensions)
      - [project extensions](#project-extensions)
   - [extensible function reference](#function-reference)
+     - [code cell methods]()
+     - [load methods]()
+     - [cell methods]()
+     - [project methods]()
+     - [directory]()
   - [extension examples](#examples)
 - [deploying olive](#deploying-olive)
    - [`0.0.9`deployment status](#status)
@@ -182,10 +187,15 @@ Cells are components that compose a given `Olive` project's source file. To elab
 There is no one cell, as the capabilities of a cell change with the type of that cell. In the screenshot above, we see several different types of cells. Cells are created using the `creator` cell, which is created by pressing `ctrl` + `Shift` + `Enter` in a cell. This will create a new creator cell, which uses **creator keys** to select a cell type. These keys may be edited inside of the **settings** menu.
 
 <div align="center">
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creatorcell.png"></img>
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creator2.png"></img>
 </div>
 
 The `Olive` process typically consists of selecting a directory from the **inspector**, opening a file from within that directory, and then editing and saving. Most controls are done through the [hotkeys](#keybindings). Using `Olive` is simple other than this aspect. Fortunately, the end-user does not need to interact with the parametric part of `Olive` -- only enjoy the benefits. For end-users, adding features that entirely change `Olive` is as easy as installing a package with `Pkg` and using `using`.
+
+<div align="center">
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creatorkeysc.png"></img>
+</div>
+
 ### extensions
 `Olive` is not `Olive` without extensions. While the base `Olive` features are pretty cool, `Olive`'s base is intentionally built with a minimalist mindset. The idea is that **nothing is everyone's cup of tea**, so why use someone else's computer to load things for people who do not even want those things to begin with? With the `Olive` (and frankly, **Julia**) approach new features are added by adding new methods to existing `Olive` functions. With this, `Olive` becomes a notebook centralized on multiple dispatch! Olive extensions work off of `Olive`'s [parametric multiple dispatch methodology](#parametric-methodology) for loading extensions. A parameter is used to denote the existence of a new function, and each method of a given function becomes representative of that cell's action. 
 #### installing extensions
@@ -313,14 +323,13 @@ Below this, # 2 is the `Directory`, then is the `ipynb` file cell. Notice how th
 - `Cell` extensions
 - `Project` extensions
 
-Creating extensions will require two prerequisites from the creator. Firstly, there will need to be knowledge of these dispatches
+Creating extensions will require two prerequisites from the creator. Firstly, there will need to be knowledge of these dispatches and what they do and secondly familiarity with toolips. Toolips is the web-development framework used to build `Olive`.
 ###### toolips
-`Olive` is the culmination of many different packages working in tandem -- the most essential of these packages is a web-development framework called [toolips](https://github.com/ChifiSource/Olive.jl). In order to create extensions for `Olive`, one will first need to familiarize themselves with `Toolips`. Luckily, the framework is really easy to use!
+The most essential package to understand in order to work with `Olive` is [toolips](https://github.com/ChifiSouce/Toolips.jl). This is the web-development used to turn `Olive's` backend into a user-friendly UI. In this `README`, we will go through a very basic overview of how to use `Toolips`. Here are some other links to help get familiar with different aspects of toolips:
+
 - [Toolips tutorial videos]()
-
-Here, we will do a brief toolips tutorial to get the basics of the framework down. The Toolips process typically consists of composing `Components` together, creating callbacks, and then writing the `Components` to the `Connection.
 ###### load extensions
-
+Load extensions are the most basic form of `Olive` extension. These are extensions that are used whenever `Olive` loads up. In base `Olive`, load extensions are primarily used to add settings to the setting menu. For any UI component that you want to add, however, this will be the norm.
 ##### code cell extensions
 
 ##### directory extensions
