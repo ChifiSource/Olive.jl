@@ -465,19 +465,18 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         write(o,
         """\"""
         ## welcome to olive!
-        Welcome to olive: the multiple dispatch notebook application for Julia.
-        This is  your olive home module's file. This is where extensions
-        for Olive can be loaded. **Note the distinction in case.**
-        This homefile was created using a pre-release version of Olive.
-
-        Thank you for trying Olive.
+        Welcome to the `0.0.9` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
+        are added.
+        - [getting started with olive]()
+        - [installing extensions]()
         - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
+        
+        Thank you for trying olive !
         \"""
         #==|||==#
         using Olive
         import Olive: build
         #==output[code]
-        this cell starts the module, you probably don't want to run it.
         ==#
         """)
     end
@@ -577,7 +576,7 @@ function load_extensions!(oc::OliveCore)
     olive_cells)
     modstr = join(
         [cell.source for cell in olive_cells[1:length(olive_cells)]])
-    
+    println(modstr)
     olmod = oc.olmod
     olmod.evalin(Meta.parse(modstr))
 end
