@@ -63,8 +63,9 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
   - [extension examples](#examples)
 - [deploying olive](#deploying-olive)
    - [`0.0.9`deployment status](#status)
-   - [OliveSession](#session)
    - [creating an olive server](#creating-a-server)
+   - [olive servers](#olive-servers)
+   - [OliveSession](#session)
 - [contributing](#contributing)
    - [guidelines](#guidelines)
    - [known issues](#known-issues)
@@ -108,6 +109,7 @@ Olive.start(IP, PORT, devmode = false, path = startpath)
 Providing `devmode` as `true` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option will simply **disable authentication**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions. Providing `free` as `true` will start the `Olive` server in **global mode**. This means that instead of using an `olive` home file, `olive` will use your default Julia environment. **In the future** (`0.1.0`), this will also scan your julia environment for extensions and load them. However, project settings will not be loaded.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/termsc.png"></img>
 
+The `Olive.start` method also returns a `Toolips.WebServer`, this being the server that contains your entire `Olive` session. This provides an easy avenue to introspect and work with `Olive`, especially if you know what you are doing. There is more information on working with this server type in the [olive servers](#olive-servers) portion of this `README`.
 ##### setup
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/setupsc.png"></img>
@@ -360,7 +362,7 @@ Olive has a goal to be very deployable, but it is recommended to wait for `0.1.0
    - [OliveSession](#session)
 #### status
 #### creating a server
-
+#### olive servers
 #### session
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
