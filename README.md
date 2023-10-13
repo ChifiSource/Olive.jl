@@ -106,7 +106,8 @@ using Olive
 
 Olive.start(IP, PORT, devmode = false, path = startpath)
 ```
-Providing `devmode` as `true` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option will simply **disable authentication**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions. Providing `free` as `true` will start the `Olive` server in **global mode**. This means that instead of using an `olive` home file, `olive` will use your default Julia environment. **In the future** (`0.1.0`), this will also scan your julia environment for extensions and load them. However, project settings will not be loaded.
+Providing `devmode` as `true` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option will simply **disable authentication**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions. Providing `free` as `true` will start the `Olive` server in **global mode**. This means that instead of using an `olive` home file, `olive` will use your default Julia environment.
+
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/termsc.png"></img>
 
 The `Olive.start` method also returns a `Toolips.WebServer`, this being the server that contains your entire `Olive` session. This provides an easy avenue to introspect and work with `Olive`, especially if you know what you are doing. There is more information on working with this server type in the [olive servers](#olive-servers) portion of this `README`.
@@ -214,7 +215,7 @@ using OliveDefaults: DocBrowser
 ```
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/addeddbrowser.png"></img>
 
-Now we simply save this. The `olive` directory has a run button that is used to resource the module. Press this button, if you do not get an error message (which means there is an error in your code, or with `Olive` forming a module with your code) you have installed the extension. There should be an `Olive` notification that drops down and denotes the success of the operation. In the future, with `0.1.0` this might be moved to a new file in the `olive` home, `extensions.jl`. Refreshing the page will yield the addition of our `DocBrowser` extension.
+Now we simply save this. The `olive` directory has a run button that is used to resource the module. Press this button, if you do not get an error message (which means there is an error in your code, or with `Olive` forming a module with your code) you have installed the extension. There should be an `Olive` notification that drops down and denotes the success of the operation.
 
 Extensions for `Olive` can be as small as an icon, or as large as a new programming language loaded from a new file format. `Olive` can edit anything however it wants to with the only limitation really being [Toolips](https://github.com/ChifiSource/Toolips.jl) and the web itself -- it's **great!**
 #### common extensions`
