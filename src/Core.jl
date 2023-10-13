@@ -575,8 +575,8 @@ function load_extensions!(oc::OliveCore)
     olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
     filter!(ocell -> ocell.type == "code" || ocell.source != "\n" || cell.source != "\n\n",
     olive_cells)
-    modstr = "begin\n" * join(
-        [cell.source for cell in olive_cells[1:length(olive_cells)]]) * "\n\nend"
+    modstr = join(
+        [cell.source for cell in olive_cells[1:length(olive_cells)]])
     
     olmod = oc.olmod
     olmod.evalin(Meta.parse(modstr))
