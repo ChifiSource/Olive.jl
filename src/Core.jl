@@ -406,10 +406,12 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
     new_fb = topbar_icon("newfb$(becell)", "article")
     openworkb = topbar_icon("cd$(becell)", "open_in_browser")
+    refb = topbar_icon("refb$(becell)", "sync")
     style!(new_dirb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
     style!(new_fb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
+    style!(refb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
     style!(openworkb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    push!(containerheader, openworkb, new_dirb, new_fb)
+    push!(containerheader, openworkb, refb, new_dirb, new_fb)
     on(c, openworkb, "click") do cm::ComponentModifier
         switch_work_dir!(c, cm, dir.uri)
     end
@@ -418,6 +420,13 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
     end
     on(c, new_fb, "click") do cm::ComponentModifier
         create_new!(c, cm, dir)
+    end
+    on(c, refb, "click") do cm::ComponentModifier
+        dir.cells = directory_cells(dir.uri)
+        cells = Vector{Servable}([begin
+        Base.invokelatest(m.build, c, cell, dir)
+    end for cell in dir.cells])
+        set_children!(cm, cellcontainer, cells)
     end
     push!(containerbody, cellcontainer)
     return(container)
