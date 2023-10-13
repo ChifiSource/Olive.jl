@@ -356,7 +356,6 @@ setup = route("/") do c::Connection
                          push!(c[:OliveCore].client_data,
                          username => Dict{String, String}())
                          c[:OliveCore].data["root"] = username
-                         save_settings!(c, core = true)
                          redirect!(cm5, "/?key=$(unamekey)")
                      end
                  end

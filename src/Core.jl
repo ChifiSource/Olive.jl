@@ -386,7 +386,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
         on(c, srcbutton, "click") do cm::ComponentModifier
             home = c[:OliveCore].data["home"]
             try
-                source_module!(c[:OliveCore])
+                load_extension!(c[:OliveCore])
                 olive_notify!(cm, "olive module successfully sourced!", color = "green")
             catch e
                 olive_notify!(cm,
