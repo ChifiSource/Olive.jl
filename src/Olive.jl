@@ -354,7 +354,9 @@ setup = route("/") do c::Connection
                          unamekey = ToolipsSession.gen_ref(16)
                          push!(c[:OliveCore].client_keys, unamekey => username)
                          push!(c[:OliveCore].client_data,
-                         "emmy" => Dict{String, String}())
+                         username => Dict{String, String}())
+                         c[:OliveCore].data["root"] = username
+                         save_settings!(c, core = true)
                          redirect!(cm5, "/?key=$(unamekey)")
                      end
                  end
