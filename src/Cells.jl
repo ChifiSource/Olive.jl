@@ -624,9 +624,6 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
         cm["olivemain"] = "ex" => "1"
         save_project_as(c, cm, proj)
     end
-    bind!(km, keybindings["new"]) do cm2::ComponentModifier
-        cell_new!(c, cm2, cell, proj)
-    end
     bind!(km, keybindings["up"]) do cm2::ComponentModifier
         cell_up!(c, cm2, cell, proj)
     end
@@ -638,6 +635,9 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
     end
     bind!(km, keybindings["evaluate"]) do cm2::ComponentModifier
         evaluate(c, cm2, cell, proj)
+    end
+    bind!(km, keybindings["new"]) do cm2::ComponentModifier
+        cell_new!(c, cm2, cell, proj)
     end
     bind!(km, keybindings["focusup"]) do cm::ComponentModifier
         focus_up!(c, cm, cell, proj)

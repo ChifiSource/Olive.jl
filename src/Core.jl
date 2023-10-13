@@ -108,7 +108,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         "copy" => ["C", "ctrl", "shift"],
         "paste" => ["V", "ctrl", "shift"],
         "cut" => ["X", "ctrl", "shift"],
-        "new" => ["Q", "ctrl", "shift"],
+        "new" => ["Enter", "ctrl", "shift"],
         "focusup" => ["ArrowUp", "shift"],
         "focusdown" => ["ArrowDown", "shift"],
         "save" => ["s", "ctrl"],
@@ -581,7 +581,8 @@ OliveLogger() = Logger(Dict{Any, Crayon}(
     2 => Crayon(foreground = :magenta),
     3 => Crayon(foreground = :red),
          :time_crayon => Crayon(foreground = :blue),
-        :message_crayon => Crayon(foreground = :light_magenta, bold = true)), prefix = "🫒 olive> ")
+        :message_crayon => Crayon(foreground = :light_magenta, bold = true)), prefix = "🫒 olive> ", 
+        logat = )
 
 mutable struct OliveDisplay <: AbstractDisplay
     io::IOBuffer
