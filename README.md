@@ -1,6 +1,6 @@
 <div align = "center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/newoliveover.png" width="350">
-<h6>| 0.0.9 |</h6>
+<h6>🩷| 0.0.9 |🩷</h6>
 </div>
 
 Welcome to olive! Olive is a **pure julia** notebook editor built on the back of multiple dispatch. Through multiple dispatch, olive is able to change functionality entirely by simply having new methods. Using extensions, olive can edit **any** file. Among other things, olive features ...
@@ -36,22 +36,22 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
    - [setup](#setup)
    - [documentation](#documentation)
    - [user interface](#user-interface)
-     - [project explorer]()
-     - [session]()
+     - [project explorer](#project-explorer)
+     - [session](#session)
      - [keybindings](#keybindings)
-     - [settings]()
+     - [settings](#settings)
    - [methodology](#parametric-methodology)
    - [using olive](#using-olive)
 - [extensions](#extensions)
    - [installing extensions](#installing-extensions)
    - [common extensions](#common-extensions)
-     - [functionality extensions]()
-     - [language extensions]()
+     - [functionality extensions](#functionality-extensions)
+     - [language extensions](#language-extensions)
    - [creating extensions](#creating-extensions)
      - [Toolips](#toolips-basics)
      - [load extensions](#load-extensions)
      - [code cell extensions](#code-cell-extensions)
-     - [directory extensions]()
+     - [directory extensions](#directory-extensions)
      - [cell extensions](#cell-extensions)
      - [project extensions](#project-extensions)
   - [extensible function reference](#function-reference)
@@ -60,12 +60,13 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
      - [cell methods]()
      - [project methods]()
      - [directory]()
+  - [UI reference](#ui-reference)
   - [extension examples](#examples)
 - [deploying olive](#deploying-olive)
    - [`0.0.9`deployment status](#status)
    - [creating an olive server](#creating-a-server)
    - [olive servers](#olive-servers)
-   - [OliveSession](#session)
+   - [OliveSession](#olive-session)
 - [contributing](#contributing)
    - [guidelines](#guidelines)
    - [known issues](#known-issues)
@@ -151,7 +152,7 @@ The **project explorer** is a crucial component to your `Olive` session because 
 
 This will also be where other file operations take place, such as `save as` and `create file`. Below this will be your directories with **file cells** inside. On the top, there is a button to update the `Directory` and a button to `cd` to the directory. If this directory is your `olive` home root, this is added if the client is root, then there will also be a red run button, this button sources your `olive` home module. 
 ###### keybindings
-Using cells is simple. By default, olive bindings use `ctrl` alone for window features, `ctrl` + `shift` to do things inside of projects, and `shift` alone to work with a specific cell. The resulting key-bindings are
+Using cells is simple. By default, olive bindings use `ctrl` alone for window features, `ctrl` + `shift` to do things inside of `Cell`, and `shift` to work with the `Project`. Here is the keymap reflecting this:
 - **window bindings**
   - `ctrl` + `C` **copy**
   - `ctrl` + `X` **cut**
@@ -159,7 +160,9 @@ Using cells is simple. By default, olive bindings use `ctrl` alone for window fe
   - `ctrl` + `S` **save selected project**
   - `ctrl` + `z` **undo**
   - `ctrl` + `y` **redo**
-  - `ctrl` + `F` **search**
+  - `ctrl` + `F` **search** `**TODO (but has default)`
+  - `ctrl` + `O`  **open** `TODO `
+  - `ctrl` + `N` **new** `**TODO**`
 - **project bindings**
   - `ctrl` + `shift` + `C` **copy selected cell**
   - `ctrl` + `shift` + `X` **cut selected cell**
@@ -169,12 +172,15 @@ Using cells is simple. By default, olive bindings use `ctrl` alone for window fe
   - `ctrl` + `shift` + `Enter` **new cell**
   - `ctrl` + `shift` + `↑` **move selected cell up**
   - `ctrl` + `shift` + `↓` **move selected cell down**
+  - `ctrl` + `shift` + `O` **open**
 
 - **cell bindings**
   - `shift` + `Enter` **run cell**
   - `shift` + `↑` **shift focus up**
   - `shift` + `↑` **shift focus down**
 
+These keybindings can be edited inside of the [settings](https://github.com/ChifiSource/Olive.jl#settings)
+#### settings
 
 #### parametric methodology
 Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method definitions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
@@ -219,62 +225,7 @@ Now we simply save this. The `olive` directory has a run button that is used to 
 
 Extensions for `Olive` can be as small as an icon, or as large as a new programming language loaded from a new file format. `Olive` can edit anything however it wants to with the only limitation really being [Toolips](https://github.com/ChifiSource/Toolips.jl) and the web itself -- it's **great!**
 #### common extensions`
-**note** that a lot of extensions for `Olive` are waiting on this initial `0.0.9` (if this is on `master` it is here) release to be released. That being said, there might not be that much done yet depending on when this is being read.
-###### functionality extensions
-<table>
-<tr>  
- <th><a href = "https://github.com/ChifiSource/OliveSession.jl"><img width = 120 src="https://github.com/ChifiSource/image_dump/blob/main/olive/olivesession.png"></a></th>
-</tr>
-</table>
-###### language extensions
-
-<div align = "left">
-
-<table>
-<tr>  
- <th><a href = "https://github.com/ChifiSource/OliveSession.jl"><img width = 120 src="https://github.com/ChifiSource/image_dump/blob/main/olive/olivesession.png"></a></th>
-   <th><a href = "https://github.com/ChifiSource/OliveDefaults.jl"><img width = 120 src="https://github.com/ChifiSource/image_dump/blob/main/olive/olive2defaults.png" ></a></th>
-   <th><a href = "https://github.com/ChifiSource/OliveMarkdown.jl"><img width = 120 src="https://github.com/ChifiSource/image_dump/blob/main/olive/olivemd.png" ></a></th>
-   <th><a href = "https://github.com/ChifiSource/OlivePy.jl"><img width = 120 src="https://github.com/ChifiSource/image_dump/blob/main/olive/olivepy.png" ></a></th>
-  </tr>
-  
-  <tr>
-
-<td align = "center">
-      
-      
-      
-**unreleased**
-      
-      
- </td>
- <td align = "center">
-      
-      
-      
-**unreleased**
-      
-      
- </td>
-<td align = "center">
-      
-      
-      
-**unreleased**
-      
-      
- </td>
-  <td align = "center">
-      
-      
-      
-**unreleased**
-      
-      
- </td>
-</tr>
-</table>
-
+**note** that a lot of extensions for `Olive` are waiting on this initial `0.0.9` (if this is on `master` it is here) release to be released. That being said, there might not be that much done yet depending on when this is being read. There is a full list of [chifi](https:github.com/ChifiSource)-made extensions [here](https://github.com/ChifiSource#olive)
 #### creating extensions
 As has been touched on quite extensively in this `README`, `Olive` loads extensions by checking for new methods of its functions. There are several different types of extensions that can be created for `Olive`, so let's get familiar with the what each function is for. The most essential function on this front is the `build` function. Though `Olive` is written in one language with both frontend and backend under the same hood, it is still written with a frontend and a backend. The only thing that is different on that front is that the translation between the two is done seemlessly through [Toolips](https://github.com/ChifiSource/Toolips.jl)' API. This `build` function is used to translate the Julia objects from the backend into GUI interface components. In fact we may view all of the functions for our cells by calling `methods` on it.
 ```julia
@@ -330,9 +281,9 @@ Creating extensions will require two prerequisites from the creator. Firstly, th
 ###### toolips
 The most essential package to understand in order to work with `Olive` is [toolips](https://github.com/ChifiSouce/Toolips.jl). This is the web-development used to turn `Olive's` backend into a user-friendly UI. In this `README`, we will go through a very basic overview of how to use `Toolips`. Here are some other links to help get familiar with different aspects of toolips:
 
-- [Toolips tutorial videos]()
+- [Toolips tutorial videos](https://www.youtube.com/watch?v=_VqSM-mHBes&list=PLCXbkShHt01s3kd2ZA62KoKhWBFfKXNTd)
 ###### load extensions
-Load extensions are the most basic form of `Olive` extension. These are extensions that are used whenever `Olive` loads up. In base `Olive`, load extensions are primarily used to add settings to the setting menu. For any UI component that you want to add, however, this will be the norm.
+Load extensions are the most basic form of `Olive` extension. These are extensions that are used whenever `Olive` loads up. In base `Olive`, load extensions are primarily used to add settings to the setting menu. For any UI component that you want to add that is not already in `Olive`, however, this is how it is done.
 ##### code cell extensions
 
 ##### directory extensions
@@ -342,6 +293,7 @@ Load extensions are the most basic form of `Olive` extension. These are extensio
 ##### project extensions
 
 #### function reference
+#### UI reference
 ###### Cell functions
 ###### Project functions
 ###### Directory functions
@@ -364,7 +316,7 @@ Olive has a goal to be very deployable, but it is recommended to wait for `0.1.0
 #### status
 #### creating a server
 #### olive servers
-#### session
+#### olive session
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
 - simply using olive
