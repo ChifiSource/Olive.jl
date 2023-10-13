@@ -442,6 +442,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         nokeyr = route("/", c -> session(c, key = false))
         rs = routes(fourofour, nokeyr, icons, mainicon)
     elseif ~(isdir("$homedirec/olive"))
+        oc.data["wd"] = pwd()
         rs = routes(setup, fourofour, icons, mainicon)
     else
         try
