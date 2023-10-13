@@ -576,7 +576,7 @@ function load_extensions!(oc::OliveCore)
     filter!(ocell -> ocell.type == "code" || ocell.source != "\n" || cell.source != "\n\n",
     olive_cells)
     modstr = "begin\n" * join(
-        [cell.source for cell in olive_cells[1:length(olive_cells)]]) * "\nend"
+        [cell.source for cell in olive_cells[1:length(olive_cells)]]) * "\n\nend"
     
     olmod = oc.olmod
     olmod.evalin(Meta.parse(modstr))
