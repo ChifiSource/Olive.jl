@@ -431,7 +431,6 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
             "olive link: http://$(IP):$(PORT)/?key=$key")
         return
     elseif devmode
-        
         server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
         oc, Session(["/"])])
         server.start()
@@ -467,6 +466,12 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
             with a fresh olive.jl source file. Would you like to recreate your olive source file? (y or n)"""
         end
         rs = routes(fourofour, main, icons, mainicon)
+        try
+            load_extensions!(oc)
+        catch e
+            @info "Olive extensions failed to load."
+            show(e)
+        end
     end
     server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
     oc, Session(["/"])])

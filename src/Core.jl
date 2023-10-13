@@ -474,9 +474,8 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
         \"""
         #==|||==#
-        module olive
         using Olive
-        end # module
+        import Olive: build
         #==output[code]
         this cell starts the module, you probably don't want to run it.
         ==#
@@ -562,18 +561,25 @@ end
 
 getname(c::Connection) = c[:OliveCore].names[getip(c)]::String
 
-function source_module!(oc::OliveCore, homedirec::String = oc.data["home"])
+function source_module!(oc::OliveCore)
+    homemod = """module olive
+    using Olive
+    end"""
+    pmod = Meta.parse(homemod)
+    olmod::Module = Main.evalin(pmod)
+    oc.olmod = olmod
+end
+
+function load_extensions!(oc::OliveCore)
+    homedirec = oc.data["home"]
     olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
     filter!(ocell -> ocell.type == "code" || ocell.source != "\n" || cell.source != "\n\n",
     olive_cells)
-    modstr = join(
-        [cell.source for cell in olive_cells[1:length(olive_cells)]]
-        , "\n")
-    modend = findlast("end", modstr)
-    modstr = modstr[1:modend[1] + 3]
-    pmod = Meta.parse(modstr[1:length(modstr) - 1])
-    olmod::Module = Main.evalin(pmod)
-    oc.olmod = olmod
+    modstr = "begin;" * join(
+        [cell.source for cell in olive_cells[1:length(olive_cells)]]) * ";end"
+    
+    olmod = oc.olmod
+    olmod.evalin(Meta.parse(modstr))
 end
 
 OliveLogger() = Logger(Dict{Any, Crayon}(
@@ -581,8 +587,7 @@ OliveLogger() = Logger(Dict{Any, Crayon}(
     2 => Crayon(foreground = :magenta),
     3 => Crayon(foreground = :red),
          :time_crayon => Crayon(foreground = :blue),
-        :message_crayon => Crayon(foreground = :light_magenta, bold = true)), prefix = "🫒 olive> ", 
-        logat = )
+        :message_crayon => Crayon(foreground = :light_magenta, bold = true)), prefix = "🫒 olive> ")
 
 mutable struct OliveDisplay <: AbstractDisplay
     io::IOBuffer
