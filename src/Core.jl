@@ -594,7 +594,7 @@ OliveLogger() = Logger(Dict{Any, Crayon}(
     2 => Crayon(foreground = :magenta),
     3 => Crayon(foreground = :red),
          :time_crayon => Crayon(foreground = :blue),
-        :message_crayon => Crayon(foreground = :light_magenta, bold = true)), prefix = "🫒 olive> ")
+        :message_crayon => Crayon(foreground = :light_magenta, bold = true)), writeat = 0, prefix = "🫒 olive> ")
 
 mutable struct OliveDisplay <: AbstractDisplay
     io::IOBuffer
