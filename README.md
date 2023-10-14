@@ -282,8 +282,30 @@ Creating extensions will require two prerequisites from the creator. Firstly, th
 The most essential package to understand in order to work with `Olive` is [toolips](https://github.com/ChifiSouce/Toolips.jl). This is the web-development used to turn `Olive's` backend into a user-friendly UI. In this `README`, we will go through a very basic overview of how to use `Toolips`. Here are some other links to help get familiar with different aspects of toolips:
 
 - [Toolips tutorial videos](https://www.youtube.com/watch?v=_VqSM-mHBes&list=PLCXbkShHt01s3kd2ZA62KoKhWBFfKXNTd)
+###### development environment
+There is no one way to develop extensions for `Olive`. Extensions can be developed both inside of `Olive` and outside of `Olive`. The root user will be provided with the `olive` home directory, which has a red run button on it. Clicking this will load the extensions contained in `olive.jl`. The best workflow for this is probably to create a new `olive` home using the `path` key-word argument. There are usage instructions for this argument in [get started](#get-started). After which till generate a new `Olive` directory. This is helpful to not break or alter your home `olive` while developing extensions.
+```julia
+using Olive; Olive.start(path = "~/dev/olive_extensions")
+```
+Within this new `Olive`, we can create our new extension file, and then include it from our home file. This is a much safer way to develop and work with this home extensions file; reserving it for `using` and `includes` rather than coding directly into the `olive.jl` home file. An easy way to do this is to open `olive.jl` in `Olive`, create your file and use an `include` cell to include it. This will present the best possible workflow for developing an `Olive` extension -- as now you can write something, press the play button and refresh -- it is that simple.
+
+Alternatively, you could use another IDE and include the files later, or test in a different way -- how this is done is pretty open-ended, but doing it in `Olive` is pretty fast.
 ###### load extensions
-Load extensions are the most basic form of `Olive` extension. These are extensions that are used whenever `Olive` loads up. In base `Olive`, load extensions are primarily used to add settings to the setting menu. For any UI component that you want to add that is not already in `Olive`, however, this is how it is done.
+Load extensions are the most basic form of `Olive` extension. These are extensions that are used whenever `Olive` loads up. In base `Olive`, load extensions are primarily used to add settings to the setting menu. For any UI component that you want to add that is not already in `Olive`, however, this is how it is done. Creating a load extension is really easy with the prerequesite toolips knowledge. The only dispatch for these extensions is
+```julia
+build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any})
+```
+In order to create a new extension, we simply `import` and add a `Method`.
+```julia
+using Olive
+import Olive: build
+using Olive.Toolips
+using Olive.ToolipsSession
+
+function build(c::Connection, om::OliveModifier, oe::OliveExtension{:example}
+
+end
+```
 ##### code cell extensions
 
 ##### directory extensions
@@ -293,7 +315,7 @@ Load extensions are the most basic form of `Olive` extension. These are extensio
 ##### project extensions
 
 #### function reference
-#### UI reference
+
 ###### Cell functions
 ###### Project functions
 ###### Directory functions
@@ -304,6 +326,8 @@ Load extensions are the most basic form of `Olive` extension. These are extensio
 - `cell_bind!`
 - `olive_save`
 - `cell_highlight!`
+###### important functions
+#### UI reference
 #### examples
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/rthtrhrtjrjy.png?raw=true"></img>
 
