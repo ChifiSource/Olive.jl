@@ -306,13 +306,23 @@ function build(c::Connection, om::OliveModifier, oe::OliveExtension{:example}
 
 end
 ```
-##### code cell extensions
+For this example, I will use the `Olive.olive_notfiy!` function. There are a lot of different functions which work off of the `Connection` and a `ComponentModifier`, like the `OliveModifier`. Some of these functions come from `Olive` and others come from the various [toolips](#toolips) extensions which support this project. For a reference of `Olive's` functions for this, please refer to [important functions](#important-functions).
+```julia
+```
 
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2007-25-26.png"></img>
+
+Now if we source our `olive` home module, refreshing the page will yield our notification! The common workflow for this is to design components and then insert them into the editor. For a reference on where to insert, refer to the [UI reference](#UI-reference)
+
+##### code cell extensions
+A very approachable form of `Olive` extensions are `code` cell extensions. These are extensions that extend the capabilities of `Olive`'s base `code` cell.
 ##### directory extensions
 
 ##### cell extensions
 
 ##### project extensions
+
+##### format extensions
 
 #### function reference
 
