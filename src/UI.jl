@@ -240,7 +240,9 @@ function work_menu(c::Connection)
     working_area = containersection(c, becell, text = "inspector")
     style!(working_area[:children][2], "padding" => 12px)
     pinfo_box = div("pinfo$becell")
+    style!(pinfo_box, "display" => "flex", "flex-wrap" => "wrap")
     pinfo_box[:children] = Vector{Servable}([work_preview(c, p) for p in env.projects])
+    insert!(pinfo_box[:children], 1, work_newpreview(c))
     dinfo_box = div("dinfo$becell")
     dinfo_box[:children] = Vector{Servable}([work_preview(c, d) for d in env.directories])
     fileedit = div("fileeditbox")
@@ -378,10 +380,44 @@ function work_filemenu(c::Connection, path::String)
     cellover
 end
 
+function work_newpreview(c::Connection)
+    preview = div("preview_new")
+    style!(preview, "display" => "inline-block", "border-radius" => 4px, "border-width" => 2px, "border-color" => "lightgray", "border-style" => "solid")
+    name_label = a("labelpreviewnew", text = "create")
+    style!(name_label, "color" => "#A2646F", "display" => "inline-block")
+    controlsection = div("newcontrols")
+    newbuttons = Vector{Servable}([begin
+        name = m.sig.parameters[4]
+        if name == OliveExtension{<:Any}
+            name = "file"
+        else
+            name = string(name.parameters[1])
+        end
+        createbutt = button("create$name", text = name)
+        on(c, createbutt, "click") do cm::ComponentModifier
+            create_new(c, cm, OliveExtension{Symbol(name)}())
+        end
+        createbutt
+    end for m in methods(create_new, [Connection, ComponentModifier, OliveExtension])])
+    controlsection[:children] = newbuttons
+    push!(preview, name_label, br(), controlsection)
+    preview::Component{:div}
+end
+
+function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
+    projdata = Dict{String, Any}("cells" => Vector{Cell}())
+    newproj = Project()
+end
+
+function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{:module})
+    
+end
+
+
 function work_preview(c::Connection, p::Project{<:Any})
     name = p.id
     preview = div("preview$name")
-    style!(preview, "display" => "inline-block", "border-radius" => 0px)
+    style!(preview, "display" => "inline-block", "border-radius" => 4px, "border-width" => 2px, "border-color" => "lightgray", "border-style" => "solid")
     name_label = a("label$name", text = p.name)
     style!(name_label, "color" => "#A2646F", "display" => "inline-block")
     savebutton = topbar_icon("save$name", "save")
