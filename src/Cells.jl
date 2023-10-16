@@ -361,10 +361,10 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     childbox = div("child$(cell.id)")
     style!(container, "padding" => 0px, "margin-bottom" => 0px)
     expandarrow = topbar_icon("$(cell.id)expand", "expand_more")
-    style!(expandarrow, "color" => "gray")
+    style!(expandarrow, "color" => "gray", "font-size" => 17pt)
     style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-width-left" => 1px, 
     "border-color" => "darkblue", "height" => 0percent, 
-    "border-width" => 0px, "transition" => 1seconds)
+    "border-width" => 0px, "transition" => 1seconds, "padding" => 0px)
     style!(filecell, "background-color" => "#FFFF88")
     childbox[:children] = Vector{Servable}([begin
     build(c, mcell, d)
@@ -566,6 +566,7 @@ be it will not run with the `runall` window button.
 """
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
+    cells = proj[:cells]
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
     cell.source = cm["cell$(cell.id)"]["text"]
     if pos != length(cells)
@@ -580,6 +581,7 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
     proj::Project{<:Any})
+    cells = proj[:cells]
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
     cell.source = cm["cell$(cell.id)"]["text"]
     if pos != length(cells)
@@ -1646,34 +1648,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     end
 end
 
-function tab_controls(c::Connection, p::Project{:include})
-    fname = p.id
-    closebutton = topbar_icon("$(fname)close", "close")
-    on(c, closebutton, "click") do cm2::ComponentModifier
-        close_project(c, cm2, p)
-    end
-    add_button = topbar_icon("$(fname)add", "add_circle")
-    on(c, add_button, "click") do cm2::ComponentModifier
-        cells = p[:cells]
-        new_cell = Cell(length(cells) + 1, "creator", "")
-        push!(cells, new_cell)
-        append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
-    end
-    runall_button = topbar_icon("$(fname)run", "start")
-    on(c, runall_button, "click") do cm2::ComponentModifier
-        step_evaluate(c, cm2, p)
-    end
-    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
-    on(c, switchpane_button, "click") do cm2::ComponentModifier
-        switch_pane!(c, cm2, p)
-    end
-    style!(closebutton, "font-size"  => 17pt, "color" => "red")
-    style!(switchpane_button, "font-size"  => 17pt, "color" => "white")
-    style!(add_button, "font-size"  => 17pt, "color" => "white")
-    style!(runall_button, "font-size"  => 17pt, "color" => "white")
-    [add_button, switchpane_button, runall_button, closebutton]
-end
-
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     txt = cm["cell$(cell.id)"]["text"]
@@ -1689,34 +1663,6 @@ function string(cell::Cell{:include})
         "\n#==output[$(cell.type)]\n$(string(cell.outputs))\n==#\n#==|||==#\n"))::String
     end
     ""::String
-end
-
-function tab_controls(c::Connection, p::Project{:module})
-    fname = p.id
-    closebutton = topbar_icon("$(fname)close", "close")
-    on(c, closebutton, "click") do cm2::ComponentModifier
-        close_project(c, cm2, p)
-    end
-    add_button = topbar_icon("$(fname)add", "add_circle")
-    on(c, add_button, "click") do cm2::ComponentModifier
-        cells = p[:cells]
-        new_cell = Cell(length(cells) + 1, "creator", "")
-        push!(cells, new_cell)
-        append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
-    end
-    runall_button = topbar_icon("$(fname)run", "start")
-    on(c, runall_button, "click") do cm2::ComponentModifier
-        step_evaluate(c, cm2, p)
-    end
-    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
-    on(c, switchpane_button, "click") do cm2::ComponentModifier
-        switch_pane!(c, cm2, p)
-    end
-    style!(closebutton, "font-size"  => 17pt, "color" => "red")
-    style!(switchpane_button, "font-size"  => 17pt, "color" => "white")
-    style!(add_button, "font-size"  => 17pt, "color" => "white")
-    style!(runall_button, "font-size"  => 17pt, "color" => "white")
-    [add_button, switchpane_button, runall_button, closebutton]
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},

@@ -30,7 +30,7 @@ function ipy_style()
      "width" => 75percent, "overflow-x" => "hidden", "border-color" => "gray",
      "border-width" => 2px, "cursor" => "pointer",
     "padding" => 4px, "border-style" => "solid", "transition" => "0.5s")
-    s:"hover":["scale" => "1.05"]
+    s:"hover":["scale" => "1.01"]
     s::Style
 end
 #==output[code]
@@ -43,7 +43,7 @@ function toml_style()
     "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
     "transition" => "0.5s",
     "border-style" => "solid", "width" => 75percent)
-    s:"hover":["scale" => "1.05"]
+    s:"hover":["scale" => "1.01"]
     s::Style
 end
 #==output[code]
@@ -55,7 +55,7 @@ function jl_style()
     s = Style("div.cell-jl", "background-color" => "#F55887", "text-color" => "white",
     "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
     "border-style" => "solid", "width" => 75percent, "transition" => "0.5s")
-    s:"hover":["scale" => "1.05"]
+    s:"hover":["scale" => "1.01"]
     s::Style
 end
 #==output[code]
@@ -739,7 +739,7 @@ function tab_controls(c::Connection, p::Project{<:Any})
         cells = p[:cells]
         new_cell = Cell(length(cells) + 1, "creator", "")
         push!(cells, new_cell)
-        append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
+        append!(cm2, fname, build(c, cm2, new_cell, p))
     end
     runall_button = topbar_icon("$(fname)run", "start")
     on(c, runall_button, "click") do cm2::ComponentModifier
@@ -756,6 +756,63 @@ function tab_controls(c::Connection, p::Project{<:Any})
     style!(runall_button, "font-size"  => 17pt, "color" => "darkgray")
     [add_button, switchpane_button, restartbutton, runall_button, closebutton]
 end
+
+function tab_controls(c::Connection, p::Project{:include})
+    fname = p.id
+    closebutton = topbar_icon("$(fname)close", "close")
+    on(c, closebutton, "click") do cm2::ComponentModifier
+        close_project(c, cm2, p)
+    end
+    add_button = topbar_icon("$(fname)add", "add_circle")
+    on(c, add_button, "click") do cm2::ComponentModifier
+        cells = p[:cells]
+        new_cell = Cell(length(cells) + 1, "creator", "")
+        push!(cells, new_cell)
+        append!(cm2, fname, build(c, cm2, new_cell, p))
+    end
+    runall_button = topbar_icon("$(fname)run", "start")
+    on(c, runall_button, "click") do cm2::ComponentModifier
+        step_evaluate(c, cm2, p)
+    end
+    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
+    on(c, switchpane_button, "click") do cm2::ComponentModifier
+        switch_pane!(c, cm2, p)
+    end
+    style!(closebutton, "font-size"  => 17pt, "color" => "red")
+    style!(switchpane_button, "font-size"  => 17pt, "color" => "white")
+    style!(add_button, "font-size"  => 17pt, "color" => "white")
+    style!(runall_button, "font-size"  => 17pt, "color" => "white")
+    [add_button, switchpane_button, runall_button, closebutton]
+end
+
+function tab_controls(c::Connection, p::Project{:module})
+    fname = p.id
+    closebutton = topbar_icon("$(fname)close", "close")
+    on(c, closebutton, "click") do cm2::ComponentModifier
+        close_project(c, cm2, p)
+    end
+    add_button = topbar_icon("$(fname)add", "add_circle")
+    on(c, add_button, "click") do cm2::ComponentModifier
+        cells = p[:cells]
+        new_cell = Cell(length(cells) + 1, "creator", "")
+        push!(cells, new_cell)
+        append!(cm2, fname, build(c, cm2, new_cell, p))
+    end
+    runall_button = topbar_icon("$(fname)run", "start")
+    on(c, runall_button, "click") do cm2::ComponentModifier
+        step_evaluate(c, cm2, p)
+    end
+    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
+    on(c, switchpane_button, "click") do cm2::ComponentModifier
+        switch_pane!(c, cm2, p)
+    end
+    style!(closebutton, "font-size"  => 17pt, "color" => "red")
+    style!(switchpane_button, "font-size"  => 17pt, "color" => "white")
+    style!(add_button, "font-size"  => 17pt, "color" => "white")
+    style!(runall_button, "font-size"  => 17pt, "color" => "white")
+    [add_button, switchpane_button, runall_button, closebutton]
+end
+
 
 function step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
     e += 1
