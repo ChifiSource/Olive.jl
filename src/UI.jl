@@ -405,12 +405,17 @@ function work_newpreview(c::Connection)
 end
 
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
-    projdata = Dict{String, Any}("cells" => Vector{Cell}())
-    newproj = Project()
+    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}())
+    newproj = Project{:olive}("new", projdata)
+    projtab = build_tab(c, newproj)
+    open_project(c, cm, newproj, projtab)
 end
 
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{:module})
-    
+    namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
+    style!(namebox, "width" => 25percent)
+    savebutton = button("confirm_new", text = "confirm")
+    cancelbutton = button("cancel_new", text = "cancel")
 end
 
 

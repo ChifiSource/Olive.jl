@@ -1691,18 +1691,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
     proj, sidebox = true, highlight = false)
     km = cell_bind!(c, cell, proj)
-    bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
-        if cm2["rawcell$(cell.id)"]["text"] == ""
-            pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            new_cell = Cell(pos, "code", "")
-            cells[pos] = new_cell
-            cell = new_cell
-            remove!(cm2, outside)
-            built = build(c, cm2, new_cell, proj)
-            ToolipsSession.insert!(cm2, windowname, pos, built)
-            focus!(cm2, "cell$(cell.id)")
-        end
-    end
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children]["cell$(cell.id)"][:text] = cell.outputs
@@ -1713,26 +1701,44 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     builtcell::Component{:div}
 end
 
+# module sub-cell example
+#==
+
+cellsrc
+#==
+code/output
+==#
+==#
+function read_module_cells(s::String)
+    r = maximum(findfirst("module", cell.source))
+    st = findnext("\n", cell.source, r)[1]
+    nd = minimum(findlast("end", cell.source)) - 1
+    modsrc = split(cell.source[st:nd], "# --\n")
+    [begin
+            src = string(split(cellc, "#==\n")[1])
+            outptype = split(cellc[maximum(findfirst("#==\n", cellc)) + 1:findlast("==#\n", cellc)[1] - 1], "/")
+            Cell(cellc - 1, string(outptype[1]), src, string(outptype[2]))
+        end for cellc in modsrc]
+end
+
+function make_module_cells(project::Project{:module}, cell::Cell{:module})
+    src = join([begin
+    """$(cell.source)\n#--\n#==\n$(cell.type)/$(cell.outputs)\n==#\n""" 
+    end for cell in proj[:cells]])
+    cell.source = """module $modname\n$src\nend"""
+end
+
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
     if length(findall(proj -> proj.id == cell.outputs, projects)) > 0
+        proj = projects[modname]
+        make_module_cells(proj, cell)
         modname = cm["cell$(cell.id)"]["text"]
-        src = join([begin
-        """$(cell.source)\n# --\n#==$(cell.outputs)\n#=-=#\n$(cell.type)\n==# --\n""" 
-        end for cell in projects[modname][:cells]])
-        cell.source = """module $modname\n$src\nend"""
+        
         return
     elseif contains(cell.source, "module")
-        r = maximum(findfirst("module", cell.source))
-        st = findnext("\n", cell.source, r)[1]
-        nd = minimum(findlast("end", cell.source)) - 1
-        modsrc = split(cell.source[st:nd], "# --")
-        new_cells = [begin
-            src = string(modsrc[cellc - 1])
-            outptype = split(replace(modsrc[cellc], "#==" => "", "==#" => ""), "\n#=-=#\n")
-            Cell(cellc - 1, string(outptype[2]), src, string(outptype[1]))
-        end for cellc in range(2, length(modsrc), step = 2)]
+        new_cells = read_module_cells(cell.source)
     else
         new_cells = Vector{Cell}([Cell(1, "code", "")])
     end
