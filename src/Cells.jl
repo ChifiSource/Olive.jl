@@ -180,10 +180,37 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
         olive_notify!(cm, "file deleted", color = "red")
         remove!(cm, hiddencell)
     end
+    movbutton = topbar_icon("$(cell.id)move", "drive_file_move")
+    on(c, movbutton, "click") do cm::ComponentModifier
+        switch_work_dir!(c, cm, d.uri)
+        namebox = ToolipsDefaults.textdiv("new_namebox", text = cell.source)
+        style!(namebox, "width" => 25percent)
+        savebutton = button("confirm_new", text = "confirm")
+        cancelbutton = button("cancel_new", text = "cancel")
+        on(c, savebutton, "click") do cm2::ComponentModifier
+            finalname = cm2[namebox]["text"]
+            path = cm2["selector"]["text"]
+            try
+                mv(cell.outputs, path * "/" * finalname, force = true)
+            catch e
+                println(e)
+                olive_notify!(cm2, "failed to move $finalname", color = "red")
+            end
+            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
+            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+        end
+        on(c, cancelbutton, "click") do cm2::ComponentModifier
+            set_children!(cm2, "fileeditbox", Vector{Servable}())
+            style!(cm2, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+        end
+        set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
+        style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+    end
     style!(delbutton, "color" => "white", "font-size" => 17pt)
+    style!(movbutton, "color" => "white", "font-size" => 17pt)
     style!(name, "color" => "white", "font-weight" => "bold",
     "font-size" => 14pt, "margin-left" => 5px)
-    push!(hiddencell, delbutton, name, finfo)
+    push!(hiddencell, delbutton, movbutton, name, finfo)
     hiddencell
 end
 

@@ -309,9 +309,7 @@ function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}
     on(c, savebutton, "click") do cm2::ComponentModifier
         finalname = cm2[namebox]["text"]
         path = cm2["selector"]["text"]
-        println(path)
         try
-            println(path * "/" * finalname)
             if directory
                 mkdir(path * "/" * finalname)
             else
@@ -326,7 +324,7 @@ function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}
     end
     on(c, cancelbutton, "click") do cm2::ComponentModifier
         set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
     end
     set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
@@ -956,7 +954,8 @@ UndefVarError: ComponentModifier not defined
 function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     save_split = split(p.name, ".")
     if ~(:path in keys(p.data))
-        save_project_as(c, cm, p)
+        save_project_as(c, cm2, p)
+        return
     end
     if length(save_split) < 2
         save_type = "Any"
@@ -999,7 +998,8 @@ function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any}
     selectorbox = ToolipsDefaults.dropdown("outputfmt", output_opts)
     selectorbox["value"] = output_opts[1][:text]
     savebutton = button("saveasbutton", text = "save")
-    style!(namebox, "display" => "flex", "width" => 100percent)
+    style!(namebox, "display" => "flex", "width" => 100percent, "border" => "2px solid")
+    cancelbutton = button("cancel_new", text = "cancel")
     on(c, savebutton, "click", ["saveasbox", "outputfmt", "selector"]) do cm2::ComponentModifier
         finalname = cm2[namebox]["text"]
         path = cm2["selector"]["text"]
@@ -1019,7 +1019,11 @@ function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any}
         set_children!(cm2, "fileeditbox", Vector{Servable}())
         style!(cm, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
     end
-    set_children!(cm, "fileeditbox", [namebox, selectorbox, savebutton])
+    on(c, cancelbutton, "click") do cm2::ComponentModifier
+        set_children!(cm2, "fileeditbox", Vector{Servable}())
+        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+    end
+    set_children!(cm, "fileeditbox", [namebox, selectorbox, cancelbutton, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
 end
 
