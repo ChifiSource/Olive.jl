@@ -416,6 +416,24 @@ function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{:mo
     style!(namebox, "width" => 25percent)
     savebutton = button("confirm_new", text = "confirm")
     cancelbutton = button("cancel_new", text = "cancel")
+    on(c, savebutton, "click") do cm2::ComponentModifier
+        finalname = cm2[namebox]["text"]
+        path = cm2["selector"]["text"]
+        try
+            Pkg.generate(path * "/" * finalname)
+            olive_notify!(cm2, "successfully created $finalname !", color = "green")
+            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
+            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+        catch e
+            olive_notify!(cm2, "failed to create $finalname !", color = "red")
+        end
+    end
+    on(c, cancelbutton, "click") do cm2::ComponentModifier
+        set_children!(cm2, "fileeditbox", Vector{Servable}())
+        style!(cm2, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+    end
+    set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
+    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
 end
 
 
@@ -614,7 +632,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     tab::Component{:div} = build_tab(c, myproj)
-    open_project(c, cm, myproj, tab)    
+    open_project(c, cm, myproj, tab)
     myproj::Project{<:Any}
 end
 
@@ -934,8 +952,7 @@ UndefVarError: ComponentModifier not defined
 function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     save_split = split(p.name, ".")
     if ~(:path in keys(p.data))
-        olive_notify!(cm2, "this project cannot be saved.", color = "darkred")
-        return
+        save_project_as(c, cm, p)
     end
     if length(save_split) < 2
         save_type = "Any"
@@ -957,11 +974,15 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
 end
 
 function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any})
-    save_split = split(p.data[:path], ".")
+    projpath = c[:OliveCore].open[getname(c)].pwd
+    if :path in keys(p.data)
+        projpath = p[:path]
+    end
+    save_split = split(projpath, ".")
     fnamesplit = split(save_split[1], "/")
     epname = join(save_split[2:length(save_split)], ".")
     fname = fnamesplit[length(fnamesplit)] * "(1)" * "." * epname 
-    switch_work_dir!(c, cm, p.data[:path])
+    switch_work_dir!(c, cm, projpath)
     namebox = ToolipsDefaults.textdiv("saveasbox", text = fname)
     output_opts = Vector{Servable}([begin
         mname = m.sig.parameters[4]

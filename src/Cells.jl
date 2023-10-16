@@ -1688,7 +1688,8 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     proj::Project{<:Any})
-    builtcell::Component{:div} = build_base_cell(c, cm, cell, cells,
+    cells = proj[:cells]
+    builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = false)
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
@@ -1721,21 +1722,30 @@ function read_module_cells(s::String)
         end for cellc in modsrc]
 end
 
-function make_module_cells(project::Project{:module}, cell::Cell{:module})
+function make_module_cells(proj::Project{:module}, cell::Cell{:module})
     src = join([begin
-    """$(cell.source)\n#--\n#==\n$(cell.type)/$(cell.outputs)\n==#\n""" 
+    """$(cell.source)\n#==\n$(cell.type)/$(cell.outputs)\n==#\n#--\n""" 
     end for cell in proj[:cells]])
+    modname = cell.outputs
     cell.source = """module $modname\n$src\nend"""
+    cell.outputs = modname
+end
+
+function string(cell::Cell{:module})
+    if cell.source != ""
+        return(*(cell.source,
+        "\n#==output[$(cell.type)]\n$(string(cell.outputs))\n==#\n#==|||==#\n"))::String
+    end
+    ""::String
 end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
     if length(findall(proj -> proj.id == cell.outputs, projects)) > 0
+        modname = cell.outputs
         proj = projects[modname]
         make_module_cells(proj, cell)
-        modname = cm["cell$(cell.id)"]["text"]
-        
         return
     elseif contains(cell.source, "module")
         new_cells = read_module_cells(cell.source)
