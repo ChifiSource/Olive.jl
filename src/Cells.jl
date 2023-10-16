@@ -461,18 +461,16 @@ function build(c::Connection, cell::Cell{:toml},
         style!(activatebutton, "font-size" => 20pt, "color" => "white")
         on(c, activatebutton, "click") do cm::ComponentModifier
             [begin
-                b = button("activate$(proj[1])", text = proj[1])
+                b = button("activate$(proj.id)", text = proj.name)
                 on(c, b, "click") do cm2::ComponentModifier
-                    modname = split(proj[1], ".")[1] * replace(
-                    ToolipsSession.gen_ref(10),
-                    [string(dig) => "" for dig in digits(1234567890)] ...)
-                    proj[2][:mod] = eval(
+                    modname = proj.id
+                    proj.data[:mod] = eval(
                     Meta.parse(olive_module(modname, cell.outputs)))
                     olive_notify!(cm2, "environment $(cell.outputs) activated",
                     color = "blue")
                         [begin
-                            remove!(cm2, "activate$k")
-                        end for k in keys(c[:OliveCore].open[getname(c)].open)]
+                            remove!(cm2, "activate$(proj.id)")
+                        end for k in c[:OliveCore].open[getname(c)].projects]
                 end
                 append!(cm, hiddencell, b)
             end for proj in c[:OliveCore].open[getname(c)].projects]
@@ -1693,11 +1691,18 @@ function read_module_cells(s::String)
     r = maximum(findfirst("module", s))
     st = findnext("\n", s, r)[1]
     nd = minimum(findlast("end", s)) - 1
-    modsrc = split(s[st:nd], "# --\n")
+    modsrc = split(s[st:nd], "#--\n")
     [begin
-            src = string(split(cellc, "#==\n")[1])
-            outptype = split(cellc[maximum(findfirst("#==\n", cellc)) + 1:findlast("==#\n", cellc)[1] - 1], "/")
-            Cell(e, string(outptype[1]), src, string(outptype[2]))
+            srcsplt = split(cellc, "#==\n")
+            src = srcsplt[1]
+            if length(srcsplt) > 1
+                outptype = srcsplt[2]
+                outptype = replace(outptype, "==#" => "")
+                outsplit = split(outptype, "/")
+            else
+                outsplit = ["code", ""]
+            end
+            Cell(e, string(outsplit[1]), string(src), string(outsplit[2]))
         end for (e, cellc) in enumerate(modsrc)]
 end
 
