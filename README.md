@@ -316,10 +316,29 @@ end
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/loadextem.png"></img>
 
-Now if we save and source our `olive` home module, refreshing the page will yield our notification! The common workflow for this is to design components and then insert them into the editor. For a reference on where to insert, refer to the [UI reference](#UI-reference)
+Now if we save and source our `olive` home module, refreshing the page will yield our notification! The common workflow for this is to design components and then insert them into the editor. For a reference on where to insert, refer to the [UI reference](#UI-reference). Olive's dedicated area for these types of extensions is usually designated to topbar icons. Let's start a new project -- with a new clean `olive` and begin creating our first extension. We will be calling this extension `FirstExtension`. 
+```julia
+```
+
+The first thing I am going to do for this is set my working directory to my `olive/src` directory. Setting your working directory is done by navigating the **inspector**'s file browser. From the **inspector**, I will select the `file` button under `create`. This will initiate the naming of my new file. I will name this `OliveExtension.jl`
 
 ##### code cell extensions
-A very approachable form of `Olive` extensions are `code` cell extensions. These are extensions that extend the capabilities of `Olive`'s base `code` cell.
+A very approachable form of `Olive` extensions are `code` cell extensions. These are extensions that extend the capabilities of `Olive`'s base `code` cell. There are three different ways that we can extend the `code` cell:
+- run the function on evaluation with `on_code_evaluate`
+- run the function each time the cell is typed into with `on_code_highlight`
+- run the function when the cell is created with `on_code_build`. 
+```julia
+on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, cell::Cell{:code}, proj::Project{<:Any})
+
+on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, cell::Cell{:code}, proj::Project{<:Any})
+
+on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, cell::Cell{:code}, proj::Project{<:Any})
+```
+In order to make this dispatch, we simply rename `OliveExtension`'s parameter.
+```julia
+import Olive: on_code_evaluate, on_code_highlight, on_code_build
+
+```
 ##### directory extensions
 
 ##### cell extensions
@@ -352,7 +371,13 @@ Olive has a goal to be very deployable, but it is recommended to wait for `0.1.0
    - [creating an olive server](#creating-a-server)
    - [OliveSession](#session)
 #### status
+In its current form, `Olive` would certainly need some things to be deployable. The main concern on this front is that the Julia session is active. There are simple ways to get around this -- removing portions of `Base` and `Main` from the scope of the module they have access to. As of the release of `0.0.9`, [OliveSession](#olive-session) has not yet been completed, so this type of secure module is not really supported yet. That being said, `Olive` will be deployable, and for anyone wanting to create a server, the most optimal approach to doing so is probably using `OliveSession`. The project is certainly planned to fill this application, though -- so deployment will be very feasible in the near future. However, the goal is for this package to focus on the single-user experience while `OliveSession` focuses on the multi-user experience.
 #### creating a server
+Unless you are only sharing your `olive` with a limited number of people, you probably do not want this server to load from your home `olive`. That being said, it is really easy to create an `olive` at any path on your machine using the `path` key-word argument on `start`.
+```julia
+using Olive; Olive.start(path = ".")
+```
+This will give us an `olive` home directory inside of the provided URI. Inside of this directory, we can begin developing our module. 
 #### olive servers
 #### olive session
 ### contributing
