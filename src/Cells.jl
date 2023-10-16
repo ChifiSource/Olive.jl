@@ -1580,18 +1580,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, proj)
-    bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
-        if cm2["rawcell$(cell.id)"]["text"] == ""
-            pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            new_cell = Cell(pos, "code", "")
-            cells[pos] = new_cell
-            cell = new_cell
-            remove!(cm2, outside)
-            built = build(c, cm2, new_cell, proj)
-            ToolipsSession.insert!(cm2, windowname, pos, built)
-            focus!(cm2, "cell$(cell.id)")
-        end
-    end
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     style!(interior[:children]["cellside$(cell.id)"],
@@ -1606,17 +1594,18 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     path = cm["cell$(cell.id)"]["text"]
     cell.source = path
     env = c[:OliveCore].open[getname(c)]
-    if ~(isfile(env.pwd * "/" * path))
+    current_path::String = env.pwd
+    if :path in keys(proj.data)
+        current_path = proj.data[:path]
+    end
+    fullpath = current_path * "/" * path
+    if ~(isfile(fullpath))
         olive_notify!(cm, "$(env.pwd * "/" * path) is not a file!", color = "red")
     end
     projs = c[:OliveCore].open[getname(c)].projects
     if cell.source != "" && length(findall(p -> p.id == cell.outputs, projs)) == 0
         if isfile(cell.source)
-            formatsplit = split(path, ".")
-            fnamesplit = split(path, "/")
-            fname = string(fnamesplit[length(fnamesplit)])
-            format = string(join(formatsplit[2:length(formatsplit)]))
-            fcell = Cell(1, format, fname, env.pwd * "/" * path)
+            fcell = Cell(1, "jl", fname, fullpath)
             new_cells = olive_read(fcell)
             inclproj = add_to_session(c, new_cells, cm, fname, 
             env.pwd, type = "include")
@@ -1625,7 +1614,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
             set_text!(cm, "cell$(cell.id)out", fname)
         end
     end
-    cell.source = "include(\"path\")"
+    cell.source = "include(\"$fullpath\")"
     cell.outputs = path
 end
 
@@ -1635,6 +1624,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:inclu
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+    ToolipsMarkdown.clear!(tm)
 end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
