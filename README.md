@@ -36,8 +36,9 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
    - [setup](#setup)
    - [documentation](#documentation)
    - [user interface](#user-interface)
-     - [project explorer](#project-explorer)
+     - [topbar](#topbar)
      - [session](#session)
+     - [project explorer](#project-explorer)
      - [keybindings](#keybindings)
      - [settings](#settings)
    - [methodology](#parametric-methodology)
@@ -137,9 +138,11 @@ With the upcoming release of `0.1.0`, [chifi](https://github.com/ChifiSource) wi
 #### user interface
 Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`. A `Project` in `Olive` is represented by a tab and the project's cells. This consumes the majority of the UI. These projects are contained within two separate panes, the **left pane** and the **right pane** respectively. The left pane **can** be open without the right pane, but the right pane **cannot** be open without the left pane. The project can be switched using the pane switcher button on the top of the project. At the top of the window will be the topbar. The topbar has two buttons on it, on the left this is a folder with an arrow. Clicking this button will open the **project explorer**. This is the menu to the left of your `Olive` session.  At the top of this menu, there is the **inspector**, and below this is where every `Directory` is placed. When a `Project` is added to the session, it will also add a preview into the inspector. In the top right there is a cog, this button will reveal the **settings menu**. All settings in `Olive` are added via extensions, so these will be your extension settings, such as key-bindings and syntax highlighting. Adding more extensions will often add new settings to this menu.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/uiui.png"></img>
-
+##### topbar
 The **top bar** is responsible for holding extension controls, settings, and the **project explorer**. Inside of the **settings** there will be an editable configuration for all of the loaded `Olive` extensions. Inside of the **project explorer** is access to file operations and the **inspector**.
+##### session
 
+##### project explorer
 <div align="center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
 </div>
@@ -160,19 +163,19 @@ Using cells is simple. By default, olive bindings use `ctrl` alone for window fe
   - `ctrl` + `S` **save selected project**
   - `ctrl` + `z` **undo**
   - `ctrl` + `y` **redo**
-  - `ctrl` + `F` **search** `**TODO (but has default)`
+  - `ctrl` + `F` **search** `TODO (but has default)`
   - `ctrl` + `O`  **open** `TODO `
-  - `ctrl` + `N` **new** `**TODO**`
+  - `ctrl` + `N` **new** `TODO`
 - **project bindings**
-  - `ctrl` + `shift` + `C` **copy selected cell**
-  - `ctrl` + `shift` + `X` **cut selected cell**
-  - `ctrl` + `shift` + `V` **paste selected cell**
+  - `ctrl` + `shift` + `C` **copy selected cell** `TODO`
+  - `ctrl` + `shift` + `X` **cut selected cell** `TODO`
+  - `ctrl` + `shift` + `V` **paste selected cell** `TODO`
   - `ctrl` + `Shift` + `S` **save project as**
   - `ctrl` + `shift` + `Delete` **delete selected cell**
   - `ctrl` + `shift` + `Enter` **new cell**
   - `ctrl` + `shift` + `↑` **move selected cell up**
   - `ctrl` + `shift` + `↓` **move selected cell down**
-  - `ctrl` + `shift` + `O` **open**
+  - `ctrl` + `shift` + `O` **open** `TODO`
 
 - **cell bindings**
   - `shift` + `Enter` **run cell**
@@ -316,7 +319,7 @@ end
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/loadextem.png"></img>
 
-Now if we save and source our `olive` home module, refreshing the page will yield our notification! The common workflow for this is to design components and then insert them into the editor. For a reference on where to insert, refer to the [UI reference](#UI-reference). Olive's dedicated area for these types of extensions is usually designated to topbar icons. Let's start a new project -- with a new clean `olive` and begin creating our first extension. We will be calling this extension `FirstExtension`. 
+Now if we save and source our `olive` home module, refreshing the page will yield our notification! The common workflow for this is to design components and then insert them into the editor. For a reference on where to insert, refer to the [UI reference](#UI-reference). Olive's dedicated area for these types of extensions is usually designated to topbar icons. This is done by using the `append!` method on your `Component` to put it into one of the menus. The most common type of element this will be is a topbar icon, so let's do an extension using that. Refer to the [function reference important functions]() for a full list of default UI component functions within `Olive`.
 ```julia
 ```
 
@@ -338,6 +341,7 @@ In order to make this dispatch, we simply rename `OliveExtension`'s parameter.
 ```julia
 import Olive: on_code_evaluate, on_code_highlight, on_code_build
 
+function on_code_evaluate(c::Connection, cm::ComponentModifier,
 ```
 ##### directory extensions
 
@@ -377,9 +381,54 @@ Unless you are only sharing your `olive` with a limited number of people, you pr
 ```julia
 using Olive; Olive.start(path = ".")
 ```
-This will give us an `olive` home directory inside of the provided URI. Inside of this directory, we can begin developing our module. 
+This will give us an `olive` home directory inside of the provided URI. Inside of this directory, we can begin developing our module. From there, it is simply extending your `Olive` and manipulating it into being server-ready.
 #### olive servers
+The `Olive.start` function actually does not return `Nothing`, it returns a `Toolips.WebServer`.
+```julia
+help?> Toolips.WebServer
+  WebServer <: ToolipsServer
+  ––––––––––––––––––––––––––––
+
+    •  host::String
+
+    •  routes::Dict
+
+    •  extensions::Dict
+
+    •  server::Any
+
+    •  add::Function
+
+    •  remove::Function
+
+    •  start::Function
+
+  A web-server is given as a return from a ServerTemplate whenever ServerTemplate.start() is ran. It can be rerouted with route! and indexed similarly to
+  the Connection, with Symbols representing extensions and Strings representing routes.
+
+  example
+  ⋅⋅⋅⋅⋅⋅⋅⋅⋅
+
+  st = ServerTemplate()
+  ws = st.start()
+  routes(ws)
+  ...
+  extensions(ws)
+  ...
+  route!(ws, "/") do c::Connection
+      write!(c, "hello")
+  end
+
+```
+This is an introspectable server type that holds **all** of the data for your `Olive` session. From your Julia REPL, this can easily be introspected by accessing the extensions and routes.
+```julia
+oliveserver = Olive.start()
+
+oliveserver[:OliveCore]
+```
+This also means that the routes of an `Olive` server could be changed, or rerouted in anyway -- really.
 #### olive session
+A crucial project you are probably going to want to be aware of if you are planning to deploy `Olive` is [OliveSession](https://github.com/ChifiSource/OliveSession.jl). This is an `Olive` extension provided to make `Olive` far more deployable and multi-user friendly.
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
 - simply using olive
