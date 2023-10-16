@@ -780,67 +780,6 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
 end
 
-function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
-    fname = p.id
-    tabbody = div("tab$(fname)")
-    style!(tabbody, "border-bottom-right-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "green")
-    if(hidden)
-        style!(tabbody, "background-color" => "gray")
-    end
-    tablabel = a("tablabel$(fname)", text = p.name)
-    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "white")
-    push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].open[getname(c)].projects
-        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
-        [begin
-            if projects[e].id != p.id 
-                style_tab_closed!(cm, projects[e])
-            end
-        end  for e in inpane]
-        projbuild = build(c, cm, p)
-        set_children!(cm, "pane_$(p[:pane])", [projbuild])
-        style!(cm, tabbody, "background-color" => "green")
-    end
-    tabbody::Component{:div}
-end
-
-
-function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
-    fname = p.id
-    tabbody = div("tab$(fname)")
-    style!(tabbody, "border-bottom-right-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "#FF6C5C")
-    if(hidden)
-        style!(tabbody, "background-color" => "gray")
-    end
-    tablabel = a("tablabel$(fname)", text = p.name)
-    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "white")
-    push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].open[getname(c)].projects
-        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
-        [begin
-            if projects[e].id != p.id 
-                style_tab_closed!(cm, projects[e])
-            end
-        end  for e in inpane]
-        projbuild = build(c, cm, p)
-        set_children!(cm, "pane_$(p[:pane])", [projbuild])
-        style!(cm, tabbody, "background-color" => "#FF6C5C")
-    end
-    tabbody::Component{:div}
-end
-
 function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     fname = p.id
     tabbody = div("tab$(fname)")
@@ -887,6 +826,101 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     end
     tabbody
 end
+
+function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
+    fname = p.id
+    tabbody = div("tab$(fname)")
+    style!(tabbody, "border-bottom-right-radius" => 0px,
+    "border-bottom-left-radius" => 0px, "display" => "inline-block",
+    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
+    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
+    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "green")
+    if(hidden)
+        style!(tabbody, "background-color" => "gray")
+    end
+    tablabel = a("tablabel$(fname)", text = p.name)
+    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
+    "font-size"  => 13pt, "color" => "white")
+    push!(tabbody, tablabel)
+    on(c, tabbody, "click") do cm::ComponentModifier
+        projects = c[:OliveCore].open[getname(c)].projects
+        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
+        [begin
+            if projects[e].id != p.id 
+                style_tab_closed!(cm, projects[e])
+            end
+        end  for e in inpane]
+        projbuild = build(c, cm, p)
+        set_children!(cm, "pane_$(p[:pane])", [projbuild])
+        style!(cm, tabbody, "background-color" => "green")
+    end
+    on(c, tabbody, "dblclick") do cm::ComponentModifier
+        if ~("$(fname)close" in keys(cm.rootc))
+            decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
+            on(c, decollapse_button, "click") do cm2::ComponentModifier
+                remove!(cm2, "$(fname)close")
+                remove!(cm2, "$(fname)add")
+                remove!(cm2, "$(fname)run")
+                remove!(cm2, "$(fname)switch")
+                remove!(cm2, decollapse_button)
+            end
+            style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
+            controls = tab_controls(c, p)
+            insert!(controls, 1, decollapse_button)
+            [append!(cm, tabbody, serv) for serv in controls]
+        end
+    end
+    tabbody::Component{:div}
+end
+
+
+function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
+    fname = p.id
+    tabbody = div("tab$(fname)")
+    style!(tabbody, "border-bottom-right-radius" => 0px,
+    "border-bottom-left-radius" => 0px, "display" => "inline-block",
+    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
+    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
+    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "#FF6C5C")
+    if(hidden)
+        style!(tabbody, "background-color" => "gray")
+    end
+    tablabel = a("tablabel$(fname)", text = p.name)
+    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
+    "font-size"  => 13pt, "color" => "white")
+    push!(tabbody, tablabel)
+    on(c, tabbody, "click") do cm::ComponentModifier
+        projects = c[:OliveCore].open[getname(c)].projects
+        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
+        [begin
+            if projects[e].id != p.id 
+                style_tab_closed!(cm, projects[e])
+            end
+        end  for e in inpane]
+        projbuild = build(c, cm, p)
+        set_children!(cm, "pane_$(p[:pane])", [projbuild])
+        style!(cm, tabbody, "background-color" => "#FF6C5C")
+    end
+    on(c, tabbody, "dblclick") do cm::ComponentModifier
+        if ~("$(fname)close" in keys(cm.rootc))
+            decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
+            on(c, decollapse_button, "click") do cm2::ComponentModifier
+                remove!(cm2, "$(fname)close")
+                remove!(cm2, "$(fname)add")
+                remove!(cm2, "$(fname)run")
+                remove!(cm2, "$(fname)switch")
+                remove!(cm2, decollapse_button)
+            end
+            style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
+            controls = tab_controls(c, p)
+            insert!(controls, 1, decollapse_button)
+            [append!(cm, tabbody, serv) for serv in controls]
+        end
+    end
+    tabbody::Component{:div}
+end
+
+
 #==output[code]
 UndefVarError: ComponentModifier not defined
 ==#

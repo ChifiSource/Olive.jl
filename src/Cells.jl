@@ -1596,15 +1596,20 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     env = c[:OliveCore].open[getname(c)]
     current_path::String = env.pwd
     if :path in keys(proj.data)
-        current_path = proj.data[:path]
+        fnamesplit = split(proj.data[:path], "/")
+        current_path = join(fnamesplit[1:length(fnamesplit) - 1], "/")
     end
     fullpath = current_path * "/" * path
     if ~(isfile(fullpath))
-        olive_notify!(cm, "$(env.pwd * "/" * path) is not a file!", color = "red")
+        olive_notify!(cm, "$fullpath is not a file!", color = "red")
     end
+    cell.source = "include(\"$fullpath\")"
+    cell.outputs = path
     projs = c[:OliveCore].open[getname(c)].projects
-    if cell.source != "" && length(findall(p -> p.id == cell.outputs, projs)) == 0
-        if isfile(cell.source)
+    if length(findall(p -> p.id == cell.outputs, projs)) == 0
+        if isfile(fullpath)
+            fnamesplit = split(fullpath, "/")
+            fname = string(fnamesplit[length(fnamesplit)])
             fcell = Cell(1, "jl", fname, fullpath)
             new_cells = olive_read(fcell)
             inclproj = add_to_session(c, new_cells, cm, fname, 
@@ -1614,8 +1619,62 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
             set_text!(cm, "cell$(cell.id)out", fname)
         end
     end
-    cell.source = "include(\"$fullpath\")"
-    cell.outputs = path
+end
+
+function tab_controls(c::Connection, p::Project{:include})
+    fname = p.id
+    closebutton = topbar_icon("$(fname)close", "close")
+    on(c, closebutton, "click") do cm2::ComponentModifier
+        close_project(c, cm2, p)
+    end
+    add_button = topbar_icon("$(fname)add", "add_circle")
+    on(c, add_button, "click") do cm2::ComponentModifier
+        cells = p[:cells]
+        new_cell = Cell(length(cells) + 1, "creator", "")
+        push!(cells, new_cell)
+        append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
+    end
+    runall_button = topbar_icon("$(fname)run", "start")
+    on(c, runall_button, "click") do cm2::ComponentModifier
+        step_evaluate(c, cm2, p)
+    end
+    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
+    on(c, switchpane_button, "click") do cm2::ComponentModifier
+        switch_pane!(c, cm2, p)
+    end
+    style!(closebutton, "font-size"  => 17pt, "color" => "red")
+    style!(switchpane_button, "font-size"  => 17pt, "color" => "white")
+    style!(add_button, "font-size"  => 17pt, "color" => "white")
+    style!(runall_button, "font-size"  => 17pt, "color" => "white")
+    [add_button, switchpane_button, runall_button, closebutton]
+end
+
+function tab_controls(c::Connection, p::Project{:module})
+    fname = p.id
+    closebutton = topbar_icon("$(fname)close", "close")
+    on(c, closebutton, "click") do cm2::ComponentModifier
+        close_project(c, cm2, p)
+    end
+    add_button = topbar_icon("$(fname)add", "add_circle")
+    on(c, add_button, "click") do cm2::ComponentModifier
+        cells = p[:cells]
+        new_cell = Cell(length(cells) + 1, "creator", "")
+        push!(cells, new_cell)
+        append!(cm2, fname, build(c, cm2, new_cell, cells, fname))
+    end
+    runall_button = topbar_icon("$(fname)run", "start")
+    on(c, runall_button, "click") do cm2::ComponentModifier
+        step_evaluate(c, cm2, p)
+    end
+    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
+    on(c, switchpane_button, "click") do cm2::ComponentModifier
+        switch_pane!(c, cm2, p)
+    end
+    style!(closebutton, "font-size"  => 17pt, "color" => "red")
+    style!(switchpane_button, "font-size"  => 17pt, "color" => "white")
+    style!(add_button, "font-size"  => 17pt, "color" => "white")
+    style!(runall_button, "font-size"  => 17pt, "color" => "white")
+    [add_button, switchpane_button, runall_button, closebutton]
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
