@@ -685,7 +685,7 @@ function style_tab_closed!(cm::ComponentModifier, proj::Project{:include})
 end
 
 function style_tab_closed!(cm::ComponentModifier, proj::Project{:module})
-    style!(cm, """tab$(proj.id)""", "background-color" => "#4E0707")
+    style!(cm, """tab$(proj.id)""", "background-color" => "darkred")
 end
 
 function switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any})

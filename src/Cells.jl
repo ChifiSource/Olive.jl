@@ -1575,6 +1575,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     cells = proj[:cells]
     projs = c[:OliveCore].open[getname(c)].projects
+    if cell.source != ""
+        cell.source = replace(cell.source, "include(\"" => "", "\")" => "")
+    end
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
@@ -1592,7 +1595,6 @@ end
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include}, 
     proj::Project{<:Any})
     path = cm["cell$(cell.id)"]["text"]
-    cell.source = path
     env = c[:OliveCore].open[getname(c)]
     current_path::String = env.pwd
     if :path in keys(proj.data)
@@ -1603,10 +1605,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     if ~(isfile(fullpath))
         olive_notify!(cm, "$fullpath is not a file!", color = "red")
     end
-    cell.source = "include(\"$fullpath\")"
-    cell.outputs = path
+    cell.source = path
     projs = c[:OliveCore].open[getname(c)].projects
-    if length(findall(p -> p.id == cell.outputs, projs)) == 0
+    println(cell.source)
+    if isnothing(findfirst(p -> p.id == cell.outputs, projs))
         if isfile(fullpath)
             fnamesplit = split(fullpath, "/")
             fname = string(fnamesplit[length(fnamesplit)])
@@ -1615,6 +1617,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
             inclproj = add_to_session(c, new_cells, cm, fname, 
             env.pwd, type = "include")
             inclproj.data[:mod] = proj[:mod]
+            cell.outputs = inclproj.id
             olive_notify!(cm, "file $fname included", color = "darkgreen")
             set_text!(cm, "cell$(cell.id)out", fname)
         end
@@ -1649,6 +1652,23 @@ function tab_controls(c::Connection, p::Project{:include})
     [add_button, switchpane_button, runall_button, closebutton]
 end
 
+function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
+    proj::Project{<:Any})
+    txt = cm["cell$(cell.id)"]["text"]
+    tm = ToolipsMarkdown.TextStyleModifier(txt)
+    ToolipsMarkdown.julia_block!(tm)
+    set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+    ToolipsMarkdown.clear!(tm)
+end
+
+function string(cell::Cell{:include})
+    if cell.source != ""
+        return(*("include(\"$(cell.source)\")",
+        "\n#==output[$(cell.type)]\n$(string(cell.outputs))\n==#\n#==|||==#\n"))::String
+    end
+    ""::String
+end
+
 function tab_controls(c::Connection, p::Project{:module})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
@@ -1677,15 +1697,6 @@ function tab_controls(c::Connection, p::Project{:module})
     [add_button, switchpane_button, runall_button, closebutton]
 end
 
-function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
-    proj::Project{<:Any})
-    cell.source = cm["cell$(cell.id)"]["text"]
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
-    set_text!(cm, "cellhighlight$(cell.id)", string(tm))
-    ToolipsMarkdown.clear!(tm)
-end
-
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     proj::Project{<:Any})
     cells = proj[:cells]
@@ -1695,7 +1706,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children]["cell$(cell.id)"][:text] = cell.outputs
-    style!(inp[:children]["cell$(cell.id)"], "color" => "darkgray")
+    style!(inp[:children]["cell$(cell.id)"], "color" => "darkred")
     style!(interior[:children]["cellside$(cell.id)"],
     "background-color" => "red")
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
@@ -1711,15 +1722,15 @@ code/output
 ==#
 ==#
 function read_module_cells(s::String)
-    r = maximum(findfirst("module", cell.source))
-    st = findnext("\n", cell.source, r)[1]
-    nd = minimum(findlast("end", cell.source)) - 1
-    modsrc = split(cell.source[st:nd], "# --\n")
+    r = maximum(findfirst("module", s))
+    st = findnext("\n", s, r)[1]
+    nd = minimum(findlast("end", s)) - 1
+    modsrc = split(s[st:nd], "# --\n")
     [begin
             src = string(split(cellc, "#==\n")[1])
             outptype = split(cellc[maximum(findfirst("#==\n", cellc)) + 1:findlast("==#\n", cellc)[1] - 1], "/")
-            Cell(cellc - 1, string(outptype[1]), src, string(outptype[2]))
-        end for cellc in modsrc]
+            Cell(e, string(outptype[1]), src, string(outptype[2]))
+        end for (e, cellc) in enumerate(modsrc)]
 end
 
 function make_module_cells(proj::Project{:module}, cell::Cell{:module})
