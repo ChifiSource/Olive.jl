@@ -341,12 +341,19 @@ In order to make this dispatch, we simply rename `OliveExtension`'s parameter.
 ```julia
 import Olive: on_code_evaluate, on_code_highlight, on_code_build
 
-function on_code_evaluate(c::Connection, cm::ComponentModifier,
+function on_code_evaluate(c::Olive.Toolips.Connection, cm::Olive.ToolipsSession.ComponentModifier, oe::Olive.OliveExtension{:myeval},
+ cell::Cell{:code}, proj::Olive.Project{<:Any})
+    Olive.olive_notify!(cm, "hello")
+end
 ```
+Now everytime a cell is evaluated, we will receive a " hello" message. The inlets for this are clear -- for example, if I wanted to make a word suggestor I would check the current word `on_code_highlight`. Likewise, if I wanted to add a new button to the code cells I would do this with `on_code_build`. If I wanted to determine the names added when the cell evaluates, I would do so with `on_code_evaluate`.
 ##### directory extensions
-
+The next type of extension is the `Directory` extension. Directories are one of the few extension types that `Olive` does not use in its `Base`. The only real bindings for the `Directory` on this front are `build`.
+```julia
+```
+To create a directory, the main thing we are going to need to provide is the `Cell` representation of files. Other than this, things are pretty open-ended and controls can be laid essentially however one might want them to be.
 ##### cell extensions
-
+Cell extensions are probably the most complicated type of `Olive` extension -- aside from taking `Olive` apart and putting it back together again.
 ##### project extensions
 
 ##### format extensions
