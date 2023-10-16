@@ -291,8 +291,10 @@ function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
     "pointer-events" => "auto")
     style!(cm, "workmenu-expander", "color" => "darkpink")
     cm["outerworkmenu"] = "ex" => "1"
-    pathsplit = split(path, "/")
-    path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
+    if isfile(path)
+        pathsplit = split(path, "/")
+        path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
+    end
     set_text!(cm, "selector", string(path))
     children::Vector{Servable} = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])
     set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
@@ -307,7 +309,9 @@ function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}
     on(c, savebutton, "click") do cm2::ComponentModifier
         finalname = cm2[namebox]["text"]
         path = cm2["selector"]["text"]
+        println(path)
         try
+            println(path * "/" * finalname)
             if directory
                 mkdir(path * "/" * finalname)
             else

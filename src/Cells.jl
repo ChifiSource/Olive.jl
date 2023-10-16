@@ -135,9 +135,6 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
     hiddencell = div("cell$(cell.id)")
     hiddencell["class"] = "cell-hidden"
     name = a("cell$(cell.id)label", text = cell.source, contenteditable = true)
-    #bind!(c, name, "Enter") do cm::ComponentModifier
-    #    cm[name] = "contenteditable" => "false"
-    #end
     on(c, name, "click") do cm
         km = ToolipsSession.KeyMap()
         bind!(km, "Enter") do cm2
@@ -961,7 +958,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     if cm["cell$(cell.id)"]["contenteditable"] == "true"
         activemd = replace(cm["cell$(cell.id)"]["text"], """<div style="background-color: rgb(255, 255, 255);">""" => "")
-        println(activemd)
         cell.source = activemd * "\n"
         newtmd = tmd("cell$(cell.id)tmd", cell.source)
         set_children!(cm, "cell$(cell.id)", [newtmd])
@@ -1607,7 +1603,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     end
     cell.source = path
     projs = c[:OliveCore].open[getname(c)].projects
-    println(cell.source)
     if isnothing(findfirst(p -> p.id == cell.outputs, projs))
         if isfile(fullpath)
             fnamesplit = split(fullpath, "/")
