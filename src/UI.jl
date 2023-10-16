@@ -817,7 +817,7 @@ end
 function step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
     e += 1
     script!(c, cm, "$(proj.data[:cells][e].id)eval", type = "Timeout") do cm2::ComponentModifier
-        evaluate(c, cm2, proj.data[:cells][e], proj.data[:cells], proj)
+        evaluate(c, cm2, proj.data[:cells][e], proj)
         if e == length(proj.data[:cells])
             return
         end
