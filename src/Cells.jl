@@ -554,11 +554,12 @@ Also important for cells:
 - `bind!`
 - `cell_highlight!`
 - `olive_save`
+- `string`
 
 And code cells can be extended with
 - `on_code_evaluate`
 - `on_code_highlight`
-- `on_code_`
+- `on_code_build`
 """
 function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
