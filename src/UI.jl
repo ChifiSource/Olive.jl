@@ -37,7 +37,6 @@ end
 ipy_style (generic function with 1 method)
 ==#
 #==|||==#
-
 function toml_style()
     s = Style("div.cell-toml", "background-color" => "blue", "text-color" => "white",
     "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
@@ -50,7 +49,6 @@ end
 toml_style (generic function with 1 method)
 ==#
 #==|||==#
-
 function jl_style()
     s = Style("div.cell-jl", "background-color" => "#F55887", "text-color" => "white",
     "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
@@ -62,7 +60,6 @@ end
 jl_style (generic function with 1 method)
 ==#
 #==|||==#
-
 function spin_forever()
     load = Animation("spin_forever", delay = 0.0, length = 1.0, iterations = 0)
     load[:to] = "transform" => "rotate(360deg)"
@@ -72,7 +69,6 @@ end
 spin_forever (generic function with 1 method)
 ==#
 #==|||==#
-
 function load_spinner()
     mys = Style("img.loadicon", "transition" => ".5s")
     animate!(mys, spin_forever())
@@ -82,7 +78,6 @@ end
 load_spinner (generic function with 1 method)
 ==#
 #==|||==#
-
 function usingcell_style()
     st::Style = Style("div.usingcell", border = "0px solid gray", padding = "40px",
     "border-radius" => 5px, "background-color" => "#CCCCFF")
@@ -92,7 +87,6 @@ end
 usingcell_style (generic function with 1 method)
 ==#
 #==|||==#
-
 function cell_style()
     st::Style = Style("div.cell", "border-color" => "gray", padding = "20px",
     "background-color" => "white", "border-top-left-radius" => 0px,
@@ -105,7 +99,6 @@ end
 cell_style (generic function with 1 method)
 ==#
 #==|||==#
-
 hdeps_style() = Style("h1.deps", color = "white")
 #==output[code]
 hdeps_style (generic function with 1 method)
@@ -135,7 +128,6 @@ end
 iconstyle (generic function with 1 method)
 ==#
 #==|||==#
-
 function hidden_style()
     Style("div.cell-hidden",
     "background-color" => "gray",
@@ -146,7 +138,6 @@ end
 hidden_style (generic function with 1 method)
 ==#
 #==|||==#
-
 function julia_style()
     defset = ("padding" => 0px, "font-size" => 16pt, "margin-top" => 0px,
     "margin-bottom" => 0px, "margin" => 0px, "letter-spacing" => 1px,
@@ -169,7 +160,6 @@ end
 julia_style (generic function with 1 method)
 ==#
 #==|||==#
-
 function olivesheet()
     st = ToolipsDefaults.sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
@@ -187,7 +177,6 @@ end
 olivesheet (generic function with 1 method)
 ==#
 #==|||==#
-
 function projectexplorer()
     pexplore = divider("projectexplorer")
     style!(pexplore, "background" => "transparent", "position" => "absolute",
@@ -200,7 +189,6 @@ end
 projectexplorer (generic function with 1 method)
 ==#
 #==|||==#
-
 function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
     on(c, explorericon, "click") do cm::ComponentModifier
@@ -226,14 +214,16 @@ end
 UndefVarError: ComponentModifier not defined
 ==#
 #==|||==#
-
 function settings_menu(c::Connection)
     mainmenu = section("settingsmenu", open = "0")
     style!(mainmenu, "opacity" => 0percent,  "height" => 0percent,
     "overflow-y" => "scroll", "padding" => 0px)
     mainmenu::Component{:section}
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function work_menu(c::Connection)
     becell = "workmenu"
     env::Environment = c[:OliveCore].open[getname(c)]
@@ -253,7 +243,10 @@ function work_menu(c::Connection)
     dirselector, fileedit)
     working_area
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function containersection(c::Connection, name::String, level::Int64 = 3;
     text::String = name, fillto::Int64 = 60)
     arrow = topbar_icon("$name-expander", "expand_more")
@@ -284,7 +277,10 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
     push!(outersection, innersection)
     outersection::Component{:section}
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
     c[:OliveCore].open[getname(c)].pwd = path
     style!(cm, "workmenu", "opacity" => 100percent, "height" => 60percent, 
@@ -299,7 +295,10 @@ function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
     children::Vector{Servable} = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])
     set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; directory::Bool = false)
     switch_work_dir!(c, cm, dir.uri)
     namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
@@ -329,11 +328,17 @@ function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}
     set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function create_new_dir!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any})
     create_new!(c, cm, dir, directory = true)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function work_filemenu(c::Connection, path::String)
     selector_indicator = h("selector", 4, text = path)
     selector_box = div("selectorbox")
@@ -381,7 +386,10 @@ function work_filemenu(c::Connection, path::String)
     push!(cellover, controls, filebox)
     cellover
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function work_newpreview(c::Connection)
     preview = div("preview_new")
     style!(preview, "display" => "inline-block", "border-radius" => 4px, "border-width" => 2px, "border-color" => "lightgray", "border-style" => "solid")
@@ -405,14 +413,20 @@ function work_newpreview(c::Connection)
     push!(preview, name_label, br(), controlsection)
     preview::Component{:div}
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
     projdata = Dict{Symbol, Any}(:cells => Vector{Cell}())
     newproj = Project{:olive}("new", projdata)
     projtab = build_tab(c, newproj)
     open_project(c, cm, newproj, projtab)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{:module})
     namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
     style!(namebox, "width" => 25percent)
@@ -437,8 +451,10 @@ function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{:mo
     set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
 end
-
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function work_preview(c::Connection, p::Project{<:Any})
     name = p.id
     preview = div("preview$name")
@@ -460,7 +476,10 @@ function work_preview(c::Connection, p::Project{<:Any})
     push!(preview, name_label, br(), savebutton, saveasbutton)
     preview::Component{:div}
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function work_preview(c::Connection, d::Directory{<:Any})
     becell = replace(d.uri, "/" => "|")
     preview = div("preview$becell", text = d.uri)
@@ -470,12 +489,10 @@ function work_preview(c::Connection, d::Directory{<:Any})
     end
     preview::Component{:div}
 end
-
 #==output[code]
 UndefVarError: Connection not defined
 ==#
 #==|||==#
-
 function olive_notify!(cm::AbstractComponentModifier, message::String,
     duration::Int64 = 2000;  color::String = "pink")
     set_text!(cm, "olive-notifier", message)
@@ -489,7 +506,6 @@ end
 UndefVarError: AbstractComponentModifier not defined
 ==#
 #==|||==#
-
 function olive_notific()
     notifier = div("olive-notifier", align = "center")
     style!(notifier, "background-color" => "pink", "color" => "white",
@@ -504,7 +520,6 @@ end
 olive_notific (generic function with 1 method)
 ==#
 #==|||==#
-
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
     on(c, settingicon, "click", ["settingsmenu"]) do cm::ComponentModifier
@@ -529,7 +544,6 @@ end
 UndefVarError: ComponentModifier not defined
 ==#
 #==|||==#
-
 function topbar(c::Connection)
     topbar = divider("menubar")
     leftmenu = span("leftmenu", align = "left")
@@ -550,7 +564,6 @@ end
 UndefVarError: Connection not defined
 ==#
 #==|||==#
-
 function topbar_icon(name::String, icon::String)
     ico = span(name, class = "material-icons", text = icon,
      margin = "15px")
@@ -561,7 +574,6 @@ end
 topbar_icon (generic function with 1 method)
 ==#
 #==|||==#
-
 function olive_body(c::Connection)
     olivebody = body("olivebody")
     style!(olivebody, "overflow-x" => "hidden", "transition" => ".8s")
@@ -571,7 +583,6 @@ end
 UndefVarError: Connection not defined
 ==#
 #==|||==#
-
 function olive_main()
     main = div("olivemain", ex = 0)
     style!(main, "transition" => ".8s", "overflow"  =>  "scroll", "padding" => 2px)
@@ -591,19 +602,21 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String)
     [string(dig) => "" for dig in digits(1234567890)] ...)
     end
     modstr = olive_module(name, p[:env])
-    mod::Module = Main.evalin(Meta.parse(modstr))
+    Main.evalin(Meta.parse(modstr))
+    mod::Module = getfield(Main, Symbol(name))
     push!(p.data, :mod => mod)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function check!(p::Project{<:Any})
 
 end
-
 #==output[code]
 UndefVarError: Cell not defined 
 ==#
 #==|||==#
-
 function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
@@ -637,7 +650,10 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     open_project(c, cm, myproj, tab)
     myproj::Project{<:Any}
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
     projects = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projects)
@@ -677,19 +693,31 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
         set_children!(cm, "pane_two", [projbuild])
     end
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function style_tab_closed!(cm::ComponentModifier, proj::Project{<:Any})
     style!(cm, """tab$(proj.id)""", "background-color" => "lightgray")
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function style_tab_closed!(cm::ComponentModifier, proj::Project{:include})
     style!(cm, """tab$(proj.id)""", "background-color" => "#1E5631")
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function style_tab_closed!(cm::ComponentModifier, proj::Project{:module})
     style!(cm, """tab$(proj.id)""", "background-color" => "darkred")
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
     name = proj.id
@@ -719,8 +747,10 @@ function switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any}
         end
     end
 end
-
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function tab_controls(c::Connection, p::Project{<:Any})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
@@ -756,7 +786,10 @@ function tab_controls(c::Connection, p::Project{<:Any})
     style!(runall_button, "font-size"  => 17pt, "color" => "darkgray")
     [add_button, switchpane_button, restartbutton, runall_button, closebutton]
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function tab_controls(c::Connection, p::Project{:include})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
@@ -784,7 +817,10 @@ function tab_controls(c::Connection, p::Project{:include})
     style!(runall_button, "font-size"  => 17pt, "color" => "white")
     [add_button, switchpane_button, runall_button, closebutton]
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function tab_controls(c::Connection, p::Project{:module})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
@@ -812,8 +848,10 @@ function tab_controls(c::Connection, p::Project{:module})
     style!(runall_button, "font-size"  => 17pt, "color" => "white")
     [add_button, switchpane_button, runall_button, closebutton]
 end
-
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
     e += 1
     script!(c, cm, "$(proj.data[:cells][e].id)eval", type = "Timeout") do cm2::ComponentModifier
@@ -824,12 +862,10 @@ function step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any
         step_evaluate(c, cm2, proj, e)
     end
 end
-
 #==output[code]
 UndefVarError: Cell not defined 
 ==#
 #==|||==#
-
 function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:Any})
     name = proj.id
     projs = c[:OliveCore].open[getname(c)].projects
@@ -860,8 +896,12 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     push!(c[:OliveCore].pool, proj.id)
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
+    Pkg.gc()
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     fname = p.id
     tabbody = div("tab$(fname)")
@@ -908,7 +948,10 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     end
     tabbody
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
     fname = p.id
     tabbody = div("tab$(fname)")
@@ -954,8 +997,10 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
     end
     tabbody::Component{:div}
 end
-
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     fname = p.id
     tabbody = div("tab$(fname)")
@@ -1001,13 +1046,10 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     end
     tabbody::Component{:div}
 end
-
-
 #==output[code]
 UndefVarError: ComponentModifier not defined
 ==#
 #==|||==#
-
 function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     save_split = split(p.name, ".")
     if ~(:path in keys(p.data))
@@ -1032,7 +1074,10 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
         olive_notify!(cm2, "file $(p.name) failed to save.", color = "red")
     end
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any})
     projpath = c[:OliveCore].open[getname(c)].pwd
     if :path in keys(p.data)
@@ -1083,7 +1128,10 @@ function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any}
     set_children!(cm, "fileeditbox", [namebox, selectorbox, cancelbutton, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function olive_loadicon()
     srcdir = @__DIR__
     iconb64 = read(srcdir * "/images/loadicon.png", String)
@@ -1095,7 +1143,6 @@ end
 olive_loadicon (generic function with 1 method)
 ==#
 #==|||==#
-
 function olive_cover()
     srcdir = @__DIR__
     iconb64 = read(srcdir * "/images/cover.png", String)
@@ -1105,15 +1152,7 @@ end
 olive_cover (generic function with 1 method)
 ==#
 #==|||==#
-
 include("Cells.jl")
 #==output[code]
 SystemError: opening file "/home/emmac/dev/toolips/Olive/Cells.jl": No such file or directory
 ==#
-#==|||==#
-
-
-#==output[code]
-
-==#
-#==|||==#

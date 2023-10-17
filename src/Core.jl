@@ -65,7 +65,6 @@ setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
 #==output[code]
 ==#
 #==|||==#
-
 function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
     mod = OliveModifier(c, cm)
     Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
@@ -79,7 +78,6 @@ function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
         Base.invokelatest(c[:OliveCore].olmod.build, c, mod, sig())
     end
 end
-
 """
 **Olive Core**
 ### build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any})
@@ -155,7 +153,10 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
     end for keybinding in c[:OliveCore].client_data[getname(c)]["keybindings"]]))
     append!(om, "settingsmenu", keybind_drop)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begin
     if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
         push!(c[:OliveCore].client_data[getname(c)],
@@ -218,7 +219,10 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
     push!(creatorkeysmen, newsection)
     append!(om, "settingsmenu", creatorkeysdropd)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = begin
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
         tm = ToolipsMarkdown.TextStyleModifier("")
@@ -281,7 +285,10 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
     "), updatebutton)
     append!(om, "settingsmenu", container)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function save_settings!(c::Connection; core::Bool = false)
     homedir = c[:OliveCore].data["home"]
     alltoml = read("$homedir/Project.toml", String)
@@ -305,11 +312,17 @@ function save_settings!(c::Connection; core::Bool = false)
         TOML.print(io, current_toml)
     end
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
     delete!(cd, "highlighters")
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 """
 ### Directory{S <: Any}
 - dirtype::String
@@ -431,7 +444,10 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
     push!(containerbody, cellcontainer)
     return(container)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 """
 ### Project{name <: Any}
 - name::String
@@ -460,9 +476,15 @@ mutable struct Project{name <: Any}
         new{T}(name, data, uuid)::Project{<:Any}
     end
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 getindex(p::Project{<:Any}, symb::Symbol) = p.data[symb]
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function create_project(homedir::String = homedir(), olivedir::String = "olive")
     try
         cd(homedir)
@@ -482,16 +504,18 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         
         Thank you for trying olive !
         \"""
-        #==|||==#
+        #==|""" * """||==#
         using Olive
         import Olive: build
         #==output[code]
-        ==#
-        """)
+        ==#""")
     end
     @info "olive files created! welcome to olive! "
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 getindex(p::Vector{Project{<:Any}}, s::String) = begin
     pos = findfirst(proj::Project{<:Any} -> proj.name == s, p)
     if isnothing(pos)
@@ -499,7 +523,10 @@ getindex(p::Vector{Project{<:Any}}, s::String) = begin
     end
     p[pos]
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 """
 **Interface**
 ```
@@ -524,7 +551,10 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     style!(proj_window, "overflow-y" => "scroll", "overflow-x" => "hidden", "padding" => 7px)
     proj_window::Component{:div}
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 mutable struct Environment
     name::String
     directories::Vector{Directory}
@@ -535,9 +565,15 @@ mutable struct Environment
         Vector{Project}(), "")::Environment
     end
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 getindex(e::Environment, proj::String) = e.projects[proj]::Project{<:Any}
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 getindex(e::Vector{Environment}, name::String) = begin
     pos = findfirst(env::Environment -> env.name == name, e)
     if isnothing(pos)
@@ -545,7 +581,10 @@ getindex(e::Vector{Environment}, name::String) = begin
     end
     e[pos]::Environment
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 mutable struct OliveCore <: ServerExtension
     olmod::Module
     type::Vector{Symbol}
@@ -566,9 +605,15 @@ mutable struct OliveCore <: ServerExtension
         client_data, open, pool, client_keys)
     end
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 getname(c::Connection) = c[:OliveCore].names[getip(c)]::String
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function source_module!(oc::OliveCore)
     homemod = """module olive
     using Olive
@@ -577,7 +622,10 @@ function source_module!(oc::OliveCore)
     olmod::Module = Main.evalin(pmod)
     oc.olmod = olmod
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function load_extensions!(oc::OliveCore)
     homedirec = oc.data["home"]
     olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
@@ -588,19 +636,28 @@ function load_extensions!(oc::OliveCore)
     olmod = oc.olmod
     olmod.evalin(Meta.parse(modstr))
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 OliveLogger() = Logger(Dict{Any, Crayon}(
     1 => Crayon(foreground = :blue),
     2 => Crayon(foreground = :magenta),
     3 => Crayon(foreground = :red),
          :time_crayon => Crayon(foreground = :blue),
         :message_crayon => Crayon(foreground = :light_magenta, bold = true)), writeat = 0, prefix = "🫒 olive> ")
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 mutable struct OliveDisplay <: AbstractDisplay
     io::IOBuffer
     OliveDisplay() = new(IOBuffer())::OliveDisplay
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
     T::Type = typeof(o)
     mymimes = [MIME"text/html", MIME"text/svg", MIME"image/png",
@@ -617,34 +674,61 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
         end
     end
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function display(d::OliveDisplay, m::MIME"text/html", o::Any)
     show(d.io, m, o)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function display(d::OliveDisplay, m::MIME"image/png", o::Any)
     show_img(d, o, "png")
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function display(d::OliveDisplay, m::MIME"image/jpeg", o::Any)
     show_img(d, o, "jpeg")
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function display(d::OliveDisplay, m::MIME"image/gif", o::Any)
     show_img(d, o, "gif")
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function show_img(d::OliveDisplay, o::Any, ftype::String)
     show(d.io, MIME"text/html"(), base64img("$(ToolipsSession.gen_ref())", o,
     ftype))
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
     show(d.io, m, o)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function display(d::OliveDisplay, m::MIME"text/markdown", o::Any)
     show(d.io, m, o)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#

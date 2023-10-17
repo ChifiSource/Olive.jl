@@ -99,7 +99,10 @@ function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     end
     focus!(cm, "cell$(cells[i - 1].id)")
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
@@ -109,7 +112,10 @@ function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     end
     focus!(cm, "cell$(cells[i + 1].id)")
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function bind!(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
 
 end
@@ -117,7 +123,6 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-
 """
 **Olive Cells**
 ```
@@ -213,7 +218,10 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
     push!(hiddencell, delbutton, movbutton, name, finfo)
     hiddencell
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 """
 **Olive Cells**
 ### build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}) -> ::Component{:div}
@@ -248,26 +256,37 @@ function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     push!(hiddencell, name)
     hiddencell
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function olive_read(cell::Cell{<:Any})
     src = read(cell.outputs, String)
     [begin 
         Cell(e, "txt", string(cellsource)) 
     end for (e, cellsource) in enumerate(split(src, "\n\n"))]
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function olive_read(cell::Cell{:jl})
     IPyCells.read_jl(cell.outputs)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function olive_read(cell::Cell{:ipynb})
     IPyCells.read_ipynb(cell.outputs)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function olive_read(cell::Cell{:toml})
     read_toml(cell.outputs)
 end
-
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -275,7 +294,10 @@ inputcell_style (generic function with 1 method)
 """
 """
 mutable struct ProjectExport{T <: Any} end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 """
 **Olive Cells**
 ### olive_save(cells::Vector{Cell}, sc::Cell{<:Any})
@@ -297,19 +319,28 @@ function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any},
     end
     nothing
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{:jl})
     IPyCells.save(cells, p.data[:path])
     nothing
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{:ipynb})
     IPyCells.save_ipynb(cells, p.data[:path])
     nothing
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
     pe::ProjectExport{:toml})
     joinedstr = join([toml_string(cell) for cell in cells])
@@ -324,7 +355,6 @@ function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any},
     end
     nothing
 end
-
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -576,7 +606,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         focus!(cm, "cell$(new_cell.id)")
     end
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
     proj::Project{<:Any})
     cells = proj[:cells]
@@ -592,7 +625,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
     end
     set_text!(cm, "cell$(cell.id)out", "<sep></sep>")
 end
-
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -778,17 +810,26 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     end for m in methods(on_code_build)]
     builtcell::Component{:div}
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any})
 
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any})
 
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any})
 
@@ -800,63 +841,9 @@ inputcell_style (generic function with 1 method)
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     windowname::String = proj.id
+    cells = proj[:cells]
     curr = cm["cell$(cell.id)"]["text"]
     curr_raw = cm["rawcell$(cell.id)"]["text"]
-    if curr_raw == "]"
-        remove!(cm, "cellcontainer$(cell.id)")
-        pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "pkgrepl", "")
-        deleteat!(cells, pos)
-        insert!(cells, pos, new_cell)
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
-         proj))
-         focus!(cm, "cell$(new_cell.id)")
-    elseif curr_raw == ";"
-        remove!(cm, "cellcontainer$(cell.id)")
-        pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "shellrepl", "")
-        deleteat!(cells, pos)
-        insert!(cells, pos, new_cell)
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
-         proj))
-         focus!(cm, "cell$(new_cell.id)")
-    elseif curr_raw == "?"
-        remove!(cm, "cellcontainer$(cell.id)")
-        pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "helprepl", "")
-        deleteat!(cells, pos)
-        insert!(cells, pos, new_cell)
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
-         proj))
-         focus!(cm, "cell$(new_cell.id)")
-    elseif curr_raw == "#=TODO"
-        remove!(cm, "cellcontainer$(cell.id)")
-        pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "TODO", "")
-        deleteat!(cells, pos)
-        insert!(cells, pos, new_cell)
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
-         proj))
-         focus!(cm, "cell$(new_cell.id)")
-    elseif curr_raw == "#=NOTE"
-        remove!(cm, "cellcontainer$(cell.id)")
-        pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "NOTE", "")
-        deleteat!(cells, pos)
-        insert!(cells, pos, new_cell)
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
-         proj))
-         focus!(cm, "cell$(new_cell.id)")
-    elseif curr_raw == "include(\""
-        remove!(cm, "cellcontainer$(cell.id)")
-        pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        new_cell = Cell(pos, "include", "")
-        deleteat!(cells, pos)
-        insert!(cells, pos, new_cell)
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, new_cell,
-         proj))
-         focus!(cm, "cell$(new_cell.id)")
-    end
     [begin
     xtname = m.sig.parameters[4]
     if xtname != OliveExtension{<:Any}
@@ -1105,7 +1092,10 @@ function mark_toml!(tm::ToolipsMarkdown.TextModifier)
     ToolipsMarkdown.mark_all!(tm, "=", :equals)
     [ToolipsMarkdown.mark_all!(tm, string(dig), :number) for dig in digits(1234567890)]
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function toml_block!(tm::ToolipsMarkdown.TextStyleModifier)
     mark_toml!(tm)
     toml_style!(tm)
@@ -1593,7 +1583,10 @@ function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl}
     set_text!(cm, "$(cell.id)cmds", replace(cell.source, "\n" => "<br>"))
     style!(cm, "cell$(cell.id)out", "height" => "auto", "opacity" => 100percent)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     cells = proj[:cells]
@@ -1614,7 +1607,10 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
     builtcell::Component{:div}
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include}, 
     proj::Project{<:Any})
     path = cm["cell$(cell.id)"]["text"]
@@ -1645,7 +1641,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
         end
     end
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     txt = cm["cell$(cell.id)"]["text"]
@@ -1654,7 +1653,10 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:inclu
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
     ToolipsMarkdown.clear!(tm)
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function string(cell::Cell{:include})
     if cell.source != ""
         return(*("include(\"$(cell.source)\")",
@@ -1662,7 +1664,10 @@ function string(cell::Cell{:include})
     end
     ""::String
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     proj::Project{<:Any})
     cells = proj[:cells]
@@ -1678,15 +1683,10 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
     builtcell::Component{:div}
 end
-
-# module sub-cell example
-#==
-
-cellsrc
-#==
-code/output
+#==output[code]
+inputcell_style (generic function with 1 method)
 ==#
-==#
+#==|||==#
 function read_module_cells(s::String)
     r = maximum(findfirst("module", s))
     st = findnext("\n", s, r)[1]
@@ -1705,7 +1705,10 @@ function read_module_cells(s::String)
             Cell(e, string(outsplit[1]), string(src), string(outsplit[2]))
         end for (e, cellc) in enumerate(modsrc)]
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function make_module_cells(proj::Project{:module}, cell::Cell{:module})
     src = join([begin
     """$(cell.source)\n#==\n$(cell.type)/$(cell.outputs)\n==#\n#--\n""" 
@@ -1714,7 +1717,10 @@ function make_module_cells(proj::Project{:module}, cell::Cell{:module})
     cell.source = """module $modname\n$src\nend"""
     cell.outputs = modname
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function string(cell::Cell{:module})
     if cell.source != ""
         return(*(cell.source,
@@ -1722,7 +1728,10 @@ function string(cell::Cell{:module})
     end
     ""::String
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
@@ -1750,7 +1759,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     set_text!(cm, "cell$(cell.id)out", modname)
     cell.outputs = modname
 end
-
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     proj::Project{<:Any})
     cell.source = cm["cell$(cell.id)"]["text"]

@@ -10,7 +10,6 @@ julia and for other languages and data editing. Crucially, olive is abstract
     in definition and allows for the creation of unique types for names.
 """
 module Olive
-
 import Base: write, display, getindex, setindex!, string, showerror
 using IPyCells
 using IPyCells: Cell
@@ -24,14 +23,18 @@ using ToolipsMarkdown
 using ToolipsBase64
 using TOML
 using Revise
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 global evalin(ex::Any) = begin
     Main.eval(ex)
 end
 export evalin
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 function version()
     srcdir = replace(@__DIR__, "\\" => "/")
     splits = split(srcdir, "/")
@@ -39,8 +42,10 @@ function version()
     projinfo = TOML.parse(read(oliveprojdir * "/Project.toml", String))
     projinfo["version"]
 end
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 function olive_module(modname::String, environment::String)
     """
     module $(modname)
@@ -52,8 +57,10 @@ function olive_module(modname::String, environment::String)
     end
 end"""
 end
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 function olive_motd()
     recent_str::String = """# olive editor
     ##### version $(version()) (pre-release)
@@ -97,14 +104,20 @@ function olive_motd()
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 include("Core.jl")
-#==nothing#=-=#code==#
-# --
+#==
+include/none
+==#
+#--
 include("UI.jl")
-#==nothing#=-=#code==#
-# --
+#==
+include/none
+==#
+#--
 """
 ### route ("/") (main)
 --------------------
@@ -253,11 +266,15 @@ function session(c::Connection; key::Bool = false)
     end
     write!(c, bod)
 end
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 main = route("/", session)
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 setup = route("/") do c::Connection
     write!(c, olivesheet())
     bod = body("mainbody")
@@ -378,13 +395,17 @@ setup = route("/") do c::Connection
     push!(bod, confirm_button)
     write!(c, bod)
 end
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 fourofour = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
 end
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 icons = route("/MaterialIcons.otf") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/fonts/MaterialIcons.otf"))
@@ -393,8 +414,10 @@ mainicon = route("/favicon.ico") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/images/favicon.ico"))
 end
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 """
 start(IP::String, PORT::Integer, extensions::Vector{Any}); devmode::Bool = false -> ::Toolips.WebServer
 --------------------
@@ -402,9 +425,10 @@ The start function comprises routes into a Vector{Route} and then constructs
     a ServerTemplate before starting and returning the WebServer.
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
-    devmode::Bool = false, path::String = homedir(), free::Bool = false)
+    devmode::Bool = false, path::String = homedir(), free::Bool = false, hostname::String = IP)
     homedirec::String = path
     srcdir::String = @__DIR__
+    ollogger = OliveLogger()
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if path == homedir() && ~(free) && isfile("$srcdir/home.txt")
         homedirec = read("$srcdir/home.txt", String)
@@ -414,6 +438,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         homedirec = replace(homedirec, "\\" => "/")
     end
     if free
+        ollogger.log(1, "starting olive in free mode.")
         modstr = """module olive
         using Olive
         end"""
@@ -423,12 +448,12 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         oc.data = Dict{String, Any}("root" => "root", "wd" => pwd())
         oc.client_data = Dict{String, Any}("root" => Dict{String, Any}())
         rs = routes(fourofour, main, icons, mainicon)
-        server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
+        server = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
         oc, Session(["/"])])
         server.start()
         key = ToolipsSession.gen_ref(16)
         push!(oc.client_keys, key => "root")
-        server[:Logger].log(2,
+        ollogger.log(2,
             "olive link: http://$(IP):$(PORT)/?key=$key")
         return
     elseif devmode
@@ -445,6 +470,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     elseif ~(isdir("$homedirec/olive"))
         oc.data["wd"] = pwd()
         rs = routes(setup, fourofour, icons, mainicon)
+        ollogger.log(2, "olive setup started at http://$IP:$PORT")
     else
         try
             config = TOML.parse(read("$homedirec/olive/Project.toml", String))
@@ -457,26 +483,26 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
             oc.data["wd"] = pwd()
         catch e
             throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
-            @info """If you are unsure why this is happening, the best choice is probably just to start 
-            with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)"""
+            ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
+            with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""")
         end
         try
             source_module!(oc)
         catch e
             throw(StartError(e, " module load", "Failed to source olive home module."))
-            @info """If you are unsure why this is happening, the best choice is probably just to start 
-            with a fresh olive.jl source file. Would you like to recreate your olive source file? (y or n)"""
+             ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
+            with a fresh olive.jl source file. Would you like to recreate your olive source file? (y or n)""")
         end
         rs = routes(fourofour, main, icons, mainicon)
         try
             load_extensions!(oc)
         catch e
-            @info "Olive extensions failed to load."
+            ollogger.log(3, "Olive extensions failed to load.")
             show(e)
         end
     end
-    server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
-    oc, Session(["/"])])
+    server = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
+    oc, Session(["/"])], hostname = hostname)
     server.start();
     if rootname != ""
         key = ToolipsSession.gen_ref(16)
@@ -486,7 +512,10 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     end
     server::Toolips.ToolipsServer
 end
-
+#==
+code/none
+==#
+#--
 struct StartError{E <: Exception} <: Exception
     on::String
     cause::E
@@ -495,17 +524,23 @@ struct StartError{E <: Exception} <: Exception
         new{typeof(cause)}(on, cause, message)
     end
 end
-
+#==
+code/none
+==#
+#--
 function showerror(io::IO, err::StartError{<:Any})
     println(io, """on $(err.on).\n$(err.message)\n$(showerror(io, err.cause))""")
 end
-
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 export OliveCore, build, Pkg, TOML
 export OliveExtension, OliveModifier, Cell
-#==nothing#=-=#code==#
-# --
+#==
+code/none
+==#
+#--
 end # - module
 #==output[module]
 Olive
