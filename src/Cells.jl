@@ -1,12 +1,13 @@
 """
 # welcome to Cells.jl
 This file creates the basis for Olive.jl cells then builds olive cell types
-    on  top of it. For extending Cells,
+ on  top of it. 
 - Cell controls
 - Directory cells
 - Session cells (markdown, code, TODO, NOTE, creator)
 - REPL Cells (pkgrepl, helprepl, shellrepl, oliverepl)
-- Environment cells (module cells)
+- Environment cells (module cells, include cells)
+- Filebrowsing
 """
 #==|||==#
 function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
@@ -124,7 +125,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-**Olive Cells**
+### Olive Cells
 ```
 build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
 explorer::Bool = false)
@@ -223,8 +224,10 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-**Olive Cells**
-### build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}) -> ::Component{:div}
+### Olive Cells
+````
+build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}) -> ::Component{:div}
+````
 ------------------
 The catchall/default `build` function for directory cells. This function is what
 creates the gray boxes for files that Olive cannot read inside of directories.
@@ -238,13 +241,11 @@ the file name into `cell.source`.
 #### example
 ```
 ```
-Here are some other **important** functions to look at for creating cells:
-- `cell_bind!`
+Here are some other **important** functions to look at for creating file cells:
 - `build_base_cell`
 - `evaluate`
-- `bind!`
-- `cell_highlight!`
 - `olive_save`
+- `olive_read`
 """
 function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     explorer::Bool = false)
@@ -299,12 +300,13 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-**Olive Cells**
-### olive_save(cells::Vector{Cell}, sc::Cell{<:Any})
+### Olive Cells
+```
+olive_save(cells::Vector{Cell}, p::Project{<:Any}, ProjectExport{<:Any}) -> ::Nothing
+````
 ------------------
-Saves the vector of cells into the output format of `sc`. For example, if we
-were saving a Julia file, we would write
-`olive_save(cells::Vector{Cell}, sc::Cell{:jl})`
+Saves the project to the `path` inside of its data. This function can be extended to export to 
+multiple new formats by providing a new `ProjectExport`
 #### example
 ```
 cells = IPyCells.read_jl("myfolder/myjl.jl")
@@ -494,8 +496,9 @@ function build(c::Connection, cell::Cell{:toml},
                 b = button("activate$(proj.id)", text = proj.name)
                 on(c, b, "click") do cm2::ComponentModifier
                     modname = proj.id
-                    proj.data[:mod] = eval(
+                    Main.evalin(
                     Meta.parse(olive_module(modname, cell.outputs)))
+                    proj.data[:mod] = getfield(Main, Symbol(modname))
                     olive_notify!(cm2, "environment $(cell.outputs) activated",
                     color = "blue")
                         [begin
@@ -509,9 +512,6 @@ function build(c::Connection, cell::Cell{:toml},
     end
     hiddencell
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
 
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -554,6 +554,11 @@ Also important for cells:
 - `bind!`
 - `cell_highlight!`
 - `olive_save`
+
+And code cells can be extended with
+- `on_code_evaluate`
+- `on_code_highlight`
+- `on_code_`
 """
 function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
@@ -577,7 +582,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-**Olive Cells**
+##### Olive Cells
 ```
 evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}) -> ::Nothing
@@ -586,10 +591,31 @@ proj::Project{<:Any}) -> ::Nothing
 This is the catchall/default function for the evaluation of any cell. Use this
 as a template to add evaluation to your cell using the `evaluate` method binding.
 If you were to, say bind your cell without using evaluate, the only problem would
-be it will not run with the `runall` window button.
+be it will not run with the `runall` window button. This function is usually accessed through the cell's 
+**sidebox** or the hot-key binding `Shift` + `Enter`. This means that the sidebox from 
+`build_base_cell` and the bindings from `cell_bind!` will facilitate this feature so long as 
+this method exists.
+
+The process of creating an evaluation extension is simple; get the text from the cell and then 
+evaluate it however, providing a return to the cell's outputs. The example below is the `evaluate` 
+function for a `txt` cell.
 #### example
 ```
-
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
+    proj::Project{<:Any})
+    cells = proj[:cells]
+    pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    cell.source = cm["cell\$(cell.id)"]["text"]
+    if pos != length(cells)
+        focus!(cm, "cell\$(cells[pos + 1].id)")
+    else
+        new_cell = Cell(length(cells) + 1, "txt", "")
+        push!(cells, new_cell)
+        ToolipsSession.append!(cm, proj.id, build(c, cm, new_cell, proj))
+        focus!(cm, "cell\$(new_cell.id)")
+    end
+    set_text!(cm, "cell\$(cell.id)out", "<sep></sep>")
+end
 ```
 """
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
@@ -630,7 +656,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-**Olive Cells**
+##### Olive Cells
 ```
 cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any})
@@ -638,10 +664,23 @@ proj::Project{<:Any})
 ------------------
 The catchall/default highlighting function for cells. Build a base cell using
 `build_base_cell`, setting the `highlight` key-word argument to `false`, then
-write this function for your cell and it should highlight properly.
+write this function for your cell and it should highlight properly. The example below 
+    is a `python` cell implementation from [OlivePy](https://github.com/ChifiSource/OlivePy.jl)
 #### example
 ```
+import Olive: cell_highlight!
+using Olive: Cell, Project
+using Olive.Toolips
+using Olive.ToolipsMarkdown
+using Olive.ToolipsSession
 
+function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:python}, proj::Project{<:Any})
+    curr = cm["cell\$(cell.id)"]["text"]
+    cell.source = curr
+    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    python_block!(tm)
+    set_text!(cm, "cellhighlight\$(cell.id)", string(tm))
+end
 ```
 """
 function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{<:Any},
@@ -653,7 +692,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-**Olive Cells**
+##### Olive Cells
 ```
 cell_bind!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}) -> ::ToolipsSession.KeyMap
@@ -674,7 +713,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
     end
     bind!(km, keybindings["saveas"], prevent_default = true) do cm::ComponentModifier
         style!(cm, "projectexplorer", "width" => "500px")
-        style!(cm, "olivemain", "margin-left" => "500px")
+        style!(cm, "olivemain", "margin-left" => "500px")ToolipsSession.KeyMap
         style!(cm, "explorerico", "color" => "lightblue")
         set_text!(cm, "explorerico", "folder_open")
         cm["olivemain"] = "ex" => "1"
@@ -707,6 +746,21 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+##### Olive Cells
+```
+build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+proj::Project{<:Any}; highlight::Bool = false) -> ::Component{:div}
+```
+------------------
+This function builds the base input box of a standard cell with or without highlighting. 
+    In most cases, a use-case would be better served by `build_base_cell`, which builds 
+    the rest the base `Cell` and calls this function to create the input box.
+#### example
+```
+
+```
+"""
 function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any}; highlight::Bool = false)
     windowname::String = proj.id
@@ -745,6 +799,20 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+##### Olive Cells
+```
+build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+proj::Project{<:Any}; highlight::Bool = false, sidebox::Bool = false) -> ::Component{:div}
+```
+------------------
+This function builds a base `Cell` which comes pre-binded using `cell_bind!`. This creates a quick `Cell` that easily 
+    fits into the other functions an `Olive` -- a nice starting point to create other cells from.
+#### example
+```
+
+```
+"""
 function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any}; highlight::Bool = false,
     sidebox::Bool = false)
@@ -814,6 +882,27 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+##### Olive Cells
+```
+on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any},
+cell::Cell{:code}, proj::Project{<:Any}) -> ::Nothing
+```
+------------------
+This is the stub function for `on_code_evaluate`. This method is only used to denote the existence of this function. 
+    Each time a `code` cell is evaluated, every method for this function is ran. This allows you to extend `code` cells 
+    by importing and explicitly extending them.
+#### example
+```
+using Olive
+import Olive: on_code_evaluate, on_code_highlight, on_code_build
+
+function on_code_evaluate(c::Olive.Toolips.Connection, cm::Olive.ToolipsSession.ComponentModifier, oe::Olive.OliveExtension{:myeval},
+ cell::Cell{:code}, proj::Olive.Project{<:Any})
+    Olive.olive_notify!(cm, "hello")
+end
+```
+"""
 function on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any})
 
@@ -822,6 +911,27 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+##### Olive Cells
+```
+on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any},
+cell::Cell{:code}, proj::Project{<:Any}) -> ::Nothing
+```
+------------------
+This is the stub function for `on_code_evaluate`. This method is only used to denote the existence of this function. 
+    Each time a `code` cell is typed into, every method for this function is ran. This allows you to extend `code` cells 
+    by importing and explicitly extending them.
+#### example
+```
+using Olive
+import Olive: on_code_evaluate, on_code_highlight, on_code_build
+
+function on_code_highlight(c::Olive.Toolips.Connection, cm::Olive.ToolipsSession.ComponentModifier, oe::Olive.OliveExtension{:myeval},
+ cell::Cell{:code}, proj::Olive.Project{<:Any})
+    Olive.olive_notify!(cm, "hello")
+end
+```
+"""
 function on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any})
 
@@ -830,6 +940,27 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+##### Olive Cells
+```
+on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any},
+cell::Cell{:code}, proj::Project{<:Any}) -> ::Nothing
+```
+------------------
+This is the stub function for `on_code_evaluate`. This method is only used to denote the existence of this function. 
+    Each time a `code` cell is created, every method for this function is ran. This allows you to extend `code` cells 
+    by importing and explicitly extending them.
+#### example
+```
+using Olive
+import Olive: on_code_evaluate, on_code_highlight, on_code_build
+
+function on_code_build(c::Olive.Toolips.Connection, cm::Olive.ToolipsSession.ComponentModifier, oe::Olive.OliveExtension{:myeval},
+ cell::Cell{:code}, proj::Olive.Project{<:Any})
+    Olive.olive_notify!(cm, "hello")
+end
+```
+"""
 function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any})
 

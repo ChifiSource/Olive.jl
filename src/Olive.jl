@@ -46,6 +46,18 @@ end
 code/none
 ==#
 #--
+"""
+### Olive 
+````
+olive_module(modname::String, environment::String) -> ::String
+````
+------------------
+Creates a simple, minimalist `Olive` module. This comes in the form of a `String`, which parsed and evaluated.
+#### example
+```
+mod = eval(Meta.parse(olive_module("mymod", "."))) 
+```
+"""
 function olive_module(modname::String, environment::String)
     """
     module $(modname)
@@ -120,18 +132,9 @@ include/none
 #--
 """
 ### route ("/") (main)
---------------------
+--- 
 This is the function/Route which runs olive's "session" page, the main editor
-    for olive. If you are providing this to a server directly with olive
-functionality. Note that by  simply providing any server with the `OliveCore`
-extension, this route, and also  ways to  populate directories...
-
-It's  pretty smart because with `create` you could  very easily build  a whole
-system out of this. I **am** putting this  in  the documentation so you may check
-it out. Endemic of future projects? **definitely**
-##### example
-```
-```
+    for olive.
 """
 function session(c::Connection; key::Bool = false)
     args = getargs(c)
@@ -419,10 +422,17 @@ code/none
 ==#
 #--
 """
-start(IP::String, PORT::Integer, extensions::Vector{Any}); devmode::Bool = false -> ::Toolips.WebServer
---------------------
-The start function comprises routes into a Vector{Route} and then constructs
-    a ServerTemplate before starting and returning the WebServer.
+### Olive 
+````
+start(IP::String = "127.0.0.1", PORT::Integer = 8000; devmode::Bool = false, 
+path::String = homedir(), free::Bool = false, hostname::String = IP) -> ::Toolips.WebServer
+````
+------------------
+
+#### example
+```
+
+```
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     devmode::Bool = false, path::String = homedir(), free::Bool = false, hostname::String = IP)
