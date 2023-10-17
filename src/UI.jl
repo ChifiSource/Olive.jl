@@ -247,6 +247,21 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+containersection(c::Connection, name::String, level::Int64 = 3; 
+text::String = name, fillto::Int64 = 80)
+````
+------------------
+This function creates a simple `Olive`-styled collapsible container. 
+    These are used in the **settings** menu and the **inspector** inside 
+    of `Olive`.
+#### example
+```
+
+```
+"""
 function containersection(c::Connection, name::String, level::Int64 = 3;
     text::String = name, fillto::Int64 = 60)
     arrow = topbar_icon("$name-expander", "expand_more")
@@ -281,6 +296,19 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+switch_work_dir!(c::Connection, cm::ComponentModifier, path::String) -> ::Nothing
+````
+------------------
+Switches the active working directory (`Environment.pwd`) to the provided path. 
+This will also decollapse the **inspector** and open the **project explorer**
+#### example
+```
+
+```
+"""
 function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
     c[:OliveCore].open[getname(c)].pwd = path
     style!(cm, "workmenu", "opacity" => 100percent, "height" => 60percent, 
@@ -299,10 +327,24 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; 
+directory::Bool = false) -> ::Nothing
+````
+------------------
+Initiates new file or directory creation. When the `confirm` or `save` button is pressed, 
+completes these operations and denotes the status using `olive_notify!`.
+#### example
+```
+
+```
+"""
 function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; directory::Bool = false)
     switch_work_dir!(c, cm, dir.uri)
     namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
-    style!(namebox, "width" => 25percent)
+    style!(namebox, "width" => 25percent, "border" => "1px solid")
     savebutton = button("confirm_new", text = "confirm")
     cancelbutton = button("cancel_new", text = "cancel")
     on(c, savebutton, "click") do cm2::ComponentModifier
@@ -327,13 +369,6 @@ function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}
     end
     set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function create_new_dir!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any})
-    create_new!(c, cm, dir, directory = true)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -417,6 +452,18 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
+````
+Creates a new project from a given template. Each method for this function will 
+create a new button inside of the **create** menu in the **inspector**.
+#### example
+```
+
+```
+"""
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
     projdata = Dict{Symbol, Any}(:cells => Vector{Cell}())
     newproj = Project{:olive}("new", projdata)
@@ -455,6 +502,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+work_preview(c::Connection, p::Project{<:Any}) -> ::Component{:div}
+````
+Creates the preview inside of the **work menu**.
+#### example
+```
+
+```
+"""
 function work_preview(c::Connection, p::Project{<:Any})
     name = p.id
     preview = div("preview$name")
@@ -480,6 +538,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+work_preview(c::Connection, d::Directory{<:Any}) -> ::Component{:div}
+````
+Creates the preview inside of the **work menu**.
+#### example
+```
+
+```
+"""
 function work_preview(c::Connection, d::Directory{<:Any})
     becell = replace(d.uri, "/" => "|")
     preview = div("preview$becell", text = d.uri)
@@ -493,6 +562,19 @@ end
 UndefVarError: Connection not defined
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+olive_notify!(cm::AbstractComponentModifier, message::String, 
+duration::Int64 = 2000, color::String = "pink")
+````
+Sends a notification to the top of the user's session. `duration` changes how 
+long the message is displayed and `color` changes the background color of the message.
+#### example
+```
+
+```
+"""
 function olive_notify!(cm::AbstractComponentModifier, message::String,
     duration::Int64 = 2000;  color::String = "pink")
     set_text!(cm, "olive-notifier", message)

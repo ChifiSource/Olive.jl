@@ -79,15 +79,45 @@ function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
     end
 end
 """
-**Olive Core**
-### build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any})
+### Olive Core
+````
+build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Nothing
+````
 ------------------
-This is the base `build` function. These functions are ran whenever an extension
-is loaded into your root project. This function is not meant to be called, but
-extended and written
+This is the base `Olive` extension function, used to create `load` extensions. These are 
+    extensions which do something on `Olive's` startup. 
+    For instance, the example method below loads the `DocBrowser` extension 
+    from `OliveDefaults`.
 #### example
 ```
+import Olive: build
+using Olive
+using Olive.Toolips
+using Olive.ToolipsSession
 
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
+    explorericon = topbar_icon("docico", "newspaper")
+    on(c, explorericon, "click") do cm::ComponentModifier
+        mods = [begin 
+            if :mod in keys(p.data)
+                p.data[:mod]
+            else
+                nothing
+            end
+        end for p in c[:OliveCore].open[getname(c)].projects]
+        filter!(x::Any -> ~(isnothing(x)), mods)
+        push!(mods, Olive, olive)
+        cells = Vector{Cell}([Cell(e, "docmodule", "", mod) for (e, mod) in enumerate(mods)])
+        home_direc = Directory(c[:OliveCore].data["home"])
+        projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
+        :path => home_direc.uri, :env => home_direc.uri)
+        myproj::Project{:doc} = Project{:doc}(home_direc.uri, projdict)
+        push!(c[:OliveCore].open[getname(c)].projects, myproj)
+        tab::Component{:div} = build_tab(c, "documentation")
+        open_project(c, om, proj, tab)
+    end
+    insert!(om, "rightmenu", 1, explorericon)
+end
 ```
 """
 build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
@@ -362,15 +392,22 @@ end
 ==#
 #==|||==#
 """
-**Interface**
-### build(c::Connection, dir::Directory{<:Any}, m::Module, exp::Bool = false) -> ::Component{:div}
+### Olive Core
+````
+build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Component{:section}
+````
 ------------------
-The catchall/default `build` function. If you want to add a custom directory,
-create an OliveaExtension and
+The base `Directory` build function. This function can be extended to add new directory types to `Olive`.
 #### example
 ```
 
 ```
+Here are some other **important** functions to look at for a `Directory`:
+- create_new!
+- work_preview
+
+The nature of file `Cell` functions can also be altered by changing 
+their `build` or `evaluate` dispatch using a directory type.
 """
 function build(c::Connection, dir::Directory{<:Any}, m::Module)
     becell = replace(dir.uri, "/" => "|")
@@ -429,7 +466,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
         switch_work_dir!(c, cm, dir.uri)
     end
     on(c, new_dirb, "click") do cm::ComponentModifier
-        create_new_dir!(c, cm, dir)
+        create_new!(c, cm, dir, directory = true)
     end
     on(c, new_fb, "click") do cm::ComponentModifier
         create_new!(c, cm, dir)
@@ -457,13 +494,13 @@ inputcell_style (generic function with 1 method)
 - open::Dict{String, Dict{String, Any}}
 The directory type holds Directory information and file cells on startup. It
 is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds
-cells and directories
+cells and directories.
 ##### example
 ```
 ```
 ------------------
 ##### constructors
-- Directory(uri::String, access::Pair{String, String} ...; dirtype::String = "olive")
+- Project{T}(name::String, data::Dict{Symbol, Any} = Dict{Symbol, Any})
 """
 mutable struct Project{name <: Any}
     name::String
@@ -528,17 +565,34 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-**Interface**
+### Olive Core
 ```
-build(c::Connection, cm::ComponentModifier, p::Project{<:Any})
+build(c::Connection, cm::ComponentModifier, p::Project{<:Any}) -> ::Component{:div}
 ```
 ------------------
-The catchall/default `build` function. If you want to add a custom directory,
-create an OliveaExtension and
+The catchall/default `build` function for `Olive` projects. Extend this function to add 
+new project capabilites.
 #### example
 ```
 
 ```
+Here are some other **important** functions to look at for a `Project`:
+- source_module!
+- check!
+- work_preview
+- open_project
+- close_project
+- save_project
+- save_project_as
+- olive_save
+- build_tab
+- style_tab_closed!
+- tab_controls
+- switch_pane!
+- step_evaluate
+
+Notably, all of the `Cell` functions are also dispatched to projects, so we can also 
+use these methods to change what different projects do with different cell types.
 """
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]

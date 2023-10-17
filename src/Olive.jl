@@ -428,7 +428,10 @@ start(IP::String = "127.0.0.1", PORT::Integer = 8000; devmode::Bool = false,
 path::String = homedir(), free::Bool = false, hostname::String = IP) -> ::Toolips.WebServer
 ````
 ------------------
-
+Starts your `Olive` server! This function puts together your `Olive` server and sources your `olive` home. 
+Providing `devmode` will launch olive in experimental mode. This is not recommended, especially not for this 
+version of `Olive`. Providing `path` will start `Olive` at the provided path. Starting in `free` mode 
+will present a headless `Olive` with no `olive` home module.
 #### example
 ```
 
