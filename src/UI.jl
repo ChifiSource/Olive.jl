@@ -674,6 +674,19 @@ end
 olive_main (generic function with 2 methods)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+source_module!(c::Connection, p::Project{<:Any}, name::String)
+````
+Sources the project's module. Note that the modules are parsed in `Olive` 
+but evaluated in `Main`. This is an important note because without this `Olive` cannot
+use external dependencies.
+#### example
+```
+
+```
+"""
 function source_module!(c::Connection, p::Project{<:Any}, name::String)
     openmods = c[:OliveCore].pool
     if length(openmods) > 0
@@ -692,6 +705,19 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+check!(p::Project{<:Any}) -> ::Nothing
+````
+`check!` is an open-ended function that is called whenever a 
+`Project` is loaded. For this base `Project`, this does absolutely nothing, 
+but could be useful for extensions.
+#### example
+```
+
+```
+"""
 function check!(p::Project{<:Any})
 
 end
@@ -699,6 +725,20 @@ end
 UndefVarError: Cell not defined 
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell}, 
+cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any})
+````
+This is the function `Olive` uses to load files into projects. This function 
+    will find your project's environment, source its module, then add it to the 
+    client's page.
+#### example
+```
+
+```
+"""
 function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
@@ -736,6 +776,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab)
+````
+This is the function `Olive` uses to load a project into its UI.
+#### example
+```
+
+```
+"""
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
     projects = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projects)
@@ -779,6 +830,18 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+style_tab_closed!(cm::ComponentModifier, proj::Project{<:Any}) -> ::Nothing
+````
+This function is called on a project whenever its tab is minimized.
+    All that happens here for most projects is that the tab changes style.
+#### example
+```
+
+```
+"""
 function style_tab_closed!(cm::ComponentModifier, proj::Project{<:Any})
     style!(cm, """tab$(proj.id)""", "background-color" => "lightgray")
 end
@@ -800,6 +863,18 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any}) -> ::Nothing
+````
+This function is called on a project whenever its tab is minimized.
+    All that happens here for most projects is that the tab changes style.
+#### example
+```
+
+```
+"""
 function switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
     name = proj.id
@@ -833,6 +908,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+tab_controls(c::Connection, p::Project{<:Any}) -> ::Component{:div}
+````
+Returns the default set of tab controls for a `Project`.
+#### example
+```
+
+```
+"""
 function tab_controls(c::Connection, p::Project{<:Any})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
@@ -934,6 +1020,18 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
+````
+Step evaluate evaluates each cell in descending order, typical to that of notebook
+convention. `e` in this case is the specific number of cells to evaluate.
+#### example
+```
+
+```
+"""
 function step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
     e += 1
     script!(c, cm, "$(proj.data[:cells][e].id)eval", type = "Timeout") do cm2::ComponentModifier
@@ -948,6 +1046,17 @@ end
 UndefVarError: Cell not defined 
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+close_project(c::Connection, cm::ComponentModifier, proj::Project{<:Any})
+````
+This is the function `Olive` uses to close the project in the UI.
+#### example
+```
+
+```
+"""
 function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:Any})
     name = proj.id
     projs = c[:OliveCore].open[getname(c)].projects
@@ -984,6 +1093,18 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false) -> ::Component{:div}
+````
+Creates a tab for the project, including its controls. These tabs are then provided 
+    to `open_project`.
+#### example
+```
+
+```
+"""
 function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     fname = p.id
     tabbody = div("tab$(fname)")
@@ -1132,6 +1253,17 @@ end
 UndefVarError: ComponentModifier not defined
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any}) -> ::Nothing
+````
+Saves a project to the URI contained within the :path key of its `data` field.
+#### example
+```
+
+```
+"""
 function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     save_split = split(p.name, ".")
     if ~(:path in keys(p.data))
@@ -1160,6 +1292,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any}) -> ::Nothing
+````
+Saves a project to a new path.
+#### example
+```
+
+```
+"""
 function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any})
     projpath = c[:OliveCore].open[getname(c)].pwd
     if :path in keys(p.data)
