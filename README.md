@@ -42,7 +42,6 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
      - [keybindings](#keybindings)
      - [settings](#settings)
    - [methodology](#parametric-methodology)
-   - [using olive](#using-olive)
 - [extensions](#extensions)
    - [installing extensions](#installing-extensions)
    - [common extensions](#common-extensions)
@@ -75,6 +74,10 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
    - [tech stack](#tech-stack)
 ---
 ### get started
+<div align="center">
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/sessionui.png"></img>
+</div>
+
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**.
 ```julia
 julia> using Pkg; Pkg.add("Olive")
@@ -136,12 +139,15 @@ With the upcoming release of `0.1.0`, [chifi](https://github.com/ChifiSource) wi
 
   I would recommend the latter. For the most part, this documentation is only needed if you are writing extensions for `Olive`. I could see knowledge of how the thing works being beneficial in these early pre-releases, however. In other instances, this `README` should suffice.
 #### user interface
-Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`. A `Project` in `Olive` is represented by a tab and the project's cells. This consumes the majority of the UI. These projects are contained within two separate panes, the **left pane** and the **right pane** respectively. The left pane **can** be open without the right pane, but the right pane **cannot** be open without the left pane. The project can be switched using the pane switcher button on the top of the project. At the top of the window will be the topbar. The topbar has two buttons on it, on the left this is a folder with an arrow. Clicking this button will open the **project explorer**. This is the menu to the left of your `Olive` session.  At the top of this menu, there is the **inspector**, and below this is where every `Directory` is placed. When a `Project` is added to the session, it will also add a preview into the inspector. In the top right there is a cog, this button will reveal the **settings menu**. All settings in `Olive` are added via extensions, so these will be your extension settings, such as key-bindings and syntax highlighting. Adding more extensions will often add new settings to this menu.
+Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`. A `Project` in `Olive` is represented by a tab and the project's cells. This consumes the majority of the UI. These projects are contained within two separate panes, the **left pane** and the **right pane** respectively. The left pane **can** be open without the right pane, but the right pane **cannot** be open without the left pane. The project can be switched using the pane switcher button on the top of the project. At the top of the window will be the **topbar**. The **topbar** has two buttons on it, on the left this is a folder with an arrow. Clicking this button will open the **project explorer**. This is the menu to the left of your `Olive` session.  At the top of this menu, there is the **inspector**, and below this is where every `Directory` is placed. When a `Project` is added to the session, it will also add a preview into the inspector. In the top right there is a cog, this button will reveal the **settings menu**. All settings in `Olive` are added via extensions, so these will be your extension settings, such as key-bindings and syntax highlighting. Adding more extensions will often add new settings to this menu.
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/uiui.png"></img>
+
+The main window is called **session**. This contains two panes which will be filled with your projects. Projects are denoted by a tab and a window and contain cells.
 ##### topbar
-The **top bar** is responsible for holding extension controls, settings, and the **project explorer**. Inside of the **settings** there will be an editable configuration for all of the loaded `Olive` extensions. Inside of the **project explorer** is access to file operations and the **inspector**. The top bar is composed of three main sections: `leftmenu`, `rightmenu` and `centermenu`. These sections are where some types of extensions may appear. With this, the **topbar** becomes the main control for `Olive`. From here we access both files to edit and our `Olive` settings.
+The **top bar** is responsible for holding extension controls, settings, and the **project explorer**. Inside of the **settings** there will be an editable configuration for all of the loaded `Olive` extensions. Inside of the **project explorer** is access to file operations and the **inspector**. The top bar is composed of three main sections: `leftmenu`, `rightmenu` and `centermenu`. These sections are where some types of extensions may appear. With this, the **topbar** becomes the main control for `Olive`. From here we access both files to edit and our `Olive` settings. The primary usage of this `Component` is opening different menus within `Olive`.
 ##### session
-**Session** is the colloquial name for the main editor which comprises `Olive` -- this being the `Project` and `Cell` combination. Inside of **session** there are two panes, `pane_one` and `pane_two` respectively. These panes houses projects, their tabs being contained within a tab container above them. Clicking these tabs will yield project focus. Double clicking will add the tab's controls to the tab. These are, from left to right, `decollapse controls`, `new cell`, `switch pane`, `re-source`,`step evaluate`, and `close project`. Other than this, the hotkeys in [keybindings](https://github.com/ChifiSource/Olive.jl#keybindings) are the primary method `Olive` uses for input. Files are open from the **project explorer** and then edited inside of this session, before being saved via `ctrl` + `S` or the **inspector**.
+**Session** is the colloquial name for the main editor which comprises `Olive` -- this being the `Project` and `Cell` combination. Inside of **session** there are two panes, `pane_one` and `pane_two` respectively. These panes houses projects, their tabs being contained within a tab container above them. Clicking these tabs will yield project focus. Double clicking will add the tab's controls to the tab. These are, from left to right, `decollapse controls`, `new cell`, `switch pane`, `re-source`,`step evaluate`, and `close project`. Other than this, the hotkeys in [keybindings](https://github.com/ChifiSource/Olive.jl#keybindings) are the primary method `Olive` uses for input. Files are open from the **project explorer** and then edited inside of this session, before being saved via `ctrl` + `S` or the **inspector**. 
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/sessionui.png"></img>
 ##### project explorer
 <div align="center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
@@ -153,8 +159,14 @@ The **project explorer** is a crucial component to your `Olive` session because 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/inspectorui.png" width="300"></img>
 </div>
 
-This will also be where other file operations take place, such as `save as` and `create file`. Below this will be your directories with **file cells** inside. On the top, there is a button to update the `Directory` and a button to `cd` to the directory. If this directory is your `olive` home root, this is added if the client is root, then there will also be a red run button, this button sources your `olive` home module. Whenever a new file is created, our directory will not be updated until we hit the refresh button. All file creation happens through the **inspector** inside of the **project explorer**. After creating the file in an added `Directory`, refresh the `Directory` to open the file in `Olive`.
+This will also be where other file operations take place, such as `save as` and `create file`. Below this will be your directories with **file cells** inside. On the top, there is a button to update the `Directory` and a button to `cd` to the directory. If this directory is your `olive` home root, this is added if the client is root, then there will also be a red run button, this button sources your `olive` home module. Whenever a new file is created, our directory will not be updated until we hit the refresh button. All file creation happens through the **inspector** inside of the **project explorer**. After creating the file in an added `Directory`, refresh the `Directory` to open the file in `Olive`. The **file cells** inside of your **directories** are the main way `Olive` interacts with files aside from the file browser in the **inspector**. In order to update our directory with new file changes, we will need to hit its refresh button.
+
+<div align="center">
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/scdirs.png" width="300"></img>
+</div>
+
 ###### keybindings
+<img 
 Using cells is simple. By default, olive bindings use `ctrl` alone for window features, `ctrl` + `shift` to do things inside of `Cell`, and `shift` to work with the `Project`. Here is the keymap reflecting this:
 - **window bindings**
   - `ctrl` + `C` **copy**
@@ -191,23 +203,6 @@ Olive uses **parameters** and **multiple dispatch** to load new features with th
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creatorcell.png"></img>
 
 This is the defining characteristic of `Olive`, and also how the base `Olive` features are built. This is why `Olive` is a **multiple dispatch notebook**, not just that but a **parametric** multiple dispatch notebook. As a result, a lot of what `Projects`, `Cells`, and `Directories` do is pretty open-ended -- anything is possible. This is also how extensions for `Olive` work. While this might not be that important to know if you are not extending `Olive` on your own, it is helpful to know this going into `Olive` and the rest of this `README`.
-
-#### using olive
-Cells are components that compose a given `Olive` project's source file. To elaborate, cells are parametric and read in from files using parametric file readers, `Olive`'s core Julia coding functionality is **built atop** the `Olive` editor, **as an extension**. while in base `Olive` this includes a limited scope of cells for Julia-bourne Data Science and Software Development, `Olive` extensions could easily change this. Cells are rendered inside of `Project` windows, which go into **pane one** or **pane two** and have a tab to represent them. Clicking this tab focuses the project, double-clicking brings up different options (save, save as, re-source module, etc.).
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2007-20-26.png"></img>
-
-There is no one cell, as the capabilities of a cell change with the type of that cell. In the screenshot above, we see several different types of cells. Cells are created using the `creator` cell, which is created by pressing `ctrl` + `Shift` + `Enter` in a cell. This will create a new creator cell, which uses **creator keys** to select a cell type. These keys may be edited inside of the **settings** menu.
-
-<div align="center">
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creator2.png"></img>
-</div>
-
-The `Olive` process typically consists of selecting a directory from the **inspector**, opening a file from within that directory, and then editing and saving. Most controls are done through the [hotkeys](#keybindings). Using `Olive` is simple other than this aspect. Fortunately, the end-user does not need to interact with the parametric part of `Olive` -- only enjoy the benefits. For end-users, adding features that entirely change `Olive` is as easy as installing a package with `Pkg` and using `using`.
-
-<div align="center">
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creatorkeysc.png"></img>
-</div>
-
 ### extensions
 `Olive` is not `Olive` without extensions. While the base `Olive` features are pretty cool, `Olive`'s base is intentionally built with a minimalist mindset. The idea is that **nothing is everyone's cup of tea**, so why use someone else's computer to load things for people who do not even want those things to begin with? With the `Olive` (and frankly, **Julia**) approach new features are added by adding new methods to existing `Olive` functions. With this, `Olive` becomes a notebook centralized on multiple dispatch! Olive extensions work off of `Olive`'s [parametric multiple dispatch methodology](#parametric-methodology) for loading extensions. A parameter is used to denote the existence of a new function, and each method of a given function becomes representative of that cell's action. 
 #### installing extensions
@@ -350,8 +345,12 @@ Now everytime a cell is evaluated, we will receive a " hello" message. The inlet
 ##### directory extensions
 The next type of extension is the `Directory` extension. Directories are one of the few extension types that `Olive` does not use in its `Base`. The only real bindings for the `Directory` on this front are `build`.
 ```julia
+build(c::Connection, dir::Directory{<:Any}, m::Module)
 ```
-To create a directory, the main thing we are going to need to provide is the `Cell` representation of files. Other than this, things are pretty open-ended and controls can be laid essentially however one might want them to be.
+To create a directory, the main thing we are going to need to provide is the `Cell` representation of files. Other than this, things are pretty open-ended and controls can be laid essentially however one might want them to be. The only other important dispatch for directories is `work_preview`.
+```julia
+work_preview(d::Directory{<:Any})
+```
 ##### cell extensions
 Cell extensions are probably the most complicated type of `Olive` extension -- aside from taking `Olive` apart and putting it back together again.
 ##### project extensions
@@ -360,30 +359,69 @@ Cell extensions are probably the most complicated type of `Olive` extension -- a
 
 #### function reference
 
-###### Cell functions
-###### Project functions
+###### session cell reference
+- `on_code_evaluate`
+- `on_code_highlight`
+- `on_code_build`
+- `cell_bind!`
+- `build_base_cell`
+- `evaluate`
+- `bind!`
+- `cell_highlight!`
+- `olive_save`
+- `string`
+###### file cell reference
+- `build_base_cell`
+- `evaluate`
+- `olive_save`
+- `olive_read`
+###### project reference
+- `source_module!`
+- `check!`
+- `work_preview`
+- `open_project`
+- `close_project`
+- `save_project`
+- `save_project_as`
+- `olive_save`
+- `build_tab`
+- `style_tab_closed!`
+- `tab_controls`
+- `switch_pane!`
+- `step_evaluate`
 ###### Directory functions
+- `work_preview(d::Directory{<:Any})`
+- `build(c::Connection, dir::Directory{<:Any}, m::Module)`
 ###### OliveExtension functions
 - `build`
-- `evaluate`
-- `build_base_cell`
-- `cell_bind!`
-- `olive_save`
-- `cell_highlight!`
+- `create_new`
+###### ProjectExport functions
+- `olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, pe::ProjectExport{<:Any})`
 ###### important functions
+- `containersection` builds a container with an expander.
+- `switch_work_dir!` changes the workind directory of an environment.
+- `olive_notify!` sends an `Olive` notification.
 #### UI reference
+Olive is changed primarily by using `ComponentModifiers` to make changes to the Olive UI. For this, the pre-requisite knowledge is to know the IDs of different things you are working with. That being said, in order to work with all portions of Olive we will want to know how the UI is composed together.
 ###### session reference
 ###### topbar reference
 ###### explorer reference
 ###### cell reference
 ###### project reference
+
 ###### directory reference
+- create_new!
+- work_preview
 #### Server reference
-######
+The thing about `Olive` is that the concept is very open. With Olive, we could effectively completely rebuild the main session ourselves in order to customize our `Olive`. This would be done by creating a new `route` with `Toolips` and 
 #### examples
+With so much information in the development of `Olive` extensions, it might be helpful to look at code from some examples. The most basic of these examples that might give a pretty idea of how extensions are built is OlivePy. This project provides `Olive` with `Python` cells and the ability to read `.py` files. This includes a **file cell** extension, a **load extension**, a **session cell** extension, and an **olive_save** extension.
+
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/rthtrhrtjrjy.png?raw=true"></img>
 
-[Here](https://chifi.dev/adding-python-cells-to-olive-3d564633dc04?source=your_stories_page-------------------------------------) is an article where I go about creating a Python extension for Olive, and [here](https://github.com/ChifiSource/OlivePy.jl) is a link to that project so you may see it for yourself
+Here is a link to several extensions. which are helpful for demonstrating writing them:
+- [OlivePy](https://github.com/ChifiSource/OlivePy.jl) `load` `session cell`, `olive_save`, `file cell`
+- [OliveSession](https://github.com/ChifiSource/OliveSession.jl) `load` `Project`, `olive_save`, `session cell`, `Directory`
 ### deploying olive
 Olive has a goal to be very deployable, but it is recommended to wait for `0.1.0` to deploy `Olive`. It is also recommended to add `OliveSession`; this provides a number of great features for multiple users, including better directory management, login screens, and sharable sessions.
    - [`0.0.9`deployment status](#status)
