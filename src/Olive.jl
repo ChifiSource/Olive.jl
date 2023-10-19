@@ -325,8 +325,8 @@ setup = route("/") do c::Connection
                  username::String = replace(cm3[namebox]["text"],
                  " " => "_")
                  if ~(isdir(cm["selector"]["text"] * "/olive"))
-                     if cm["selector"]["text"] != homedir()
-                         srcdir = @__DIR__
+                     if cm["selector"]["text"] != homedir() && ~("path" in keys(c[:OliveCore].data))
+                         srcdir = homedir()
                          touch("$srcdir/home.txt")
                          open("$srcdir/home.txt", "w") do o
                              write(o, cm["selector"]["text"])
@@ -440,10 +440,10 @@ will present a headless `Olive` with no `olive` home module.
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     devmode::Bool = false, path::String = homedir(), free::Bool = false, hostname::String = IP)
     homedirec::String = path
-    srcdir::String = @__DIR__
     ollogger = OliveLogger()
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     if path == homedir() && ~(free) && isfile("$srcdir/home.txt")
+        srcdir = homedir()
         homedirec = read("$srcdir/home.txt", String)
     end
     oc::OliveCore = OliveCore("olive")
@@ -483,6 +483,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         rs = routes(fourofour, nokeyr, icons, mainicon)
     elseif ~(isdir("$homedirec/olive"))
         oc.data["wd"] = pwd()
+        oc.data["path"] = true
         rs = routes(setup, fourofour, icons, mainicon)
         ollogger.log(2, "olive setup started at http://$IP:$PORT")
     else
