@@ -190,7 +190,9 @@ inputcell_style (generic function with 1 method)
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begin
     if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
         push!(c[:OliveCore].client_data[getname(c)],
-        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown"))
+        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
+        "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
+        "m" => "module"))
     end
     if om.data["selected"] == "files"
         return

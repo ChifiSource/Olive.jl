@@ -1608,18 +1608,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     interior = div("cellinterior$(cell.id)")
     style!(interior, "display" => "flex")
     inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.outputs)
-    bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
-        if cm2["rawcell$(cell.id)"]["text"] == ""
-            pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            new_cell = Cell(pos, "code", "")
-            cells[pos] = new_cell
-            cell = new_cell
-            remove!(cm2, outside)
-            built = build(c, cm2, new_cell, proj)
-            ToolipsSession.insert!(cm2, windowname, pos, built)
-            focus!(cm2, "cell$(cell.id)")
-        end
-    end
     bind!(km, "Enter") do cm2::ComponentModifier
         realevaluate(c, cm2, cell, proj)
     end
@@ -1652,19 +1640,23 @@ function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl}
     mod = proj[:mod]
     rt = cm["cell$(cell.id)"]["text"]
     args = split(rt, " ")
+    if args[1] == "clear"
+        cell.source = ""
+        set_text!(cm, "cell$(cell.id)out", "")
+        set_text!(cm, "$(cell.id)cmds", "")
+    elseif args[1] == "dev"
+        args[1] = "develop"
+    elseif args[1] == "rm"
+        args[1] = "remove"
+    end
     evalstr = "Pkg.$(args[1])("
     if length(args) != 1
         for command in args[2:length(args)]
-            if command[1] == "clear"
-                cell.source = ""
-                set_text!(cm, "cell$(cell.id)out", "")
-                set_text!(cm, "$(cell.id)cmds", "")
+            if command == "" || command == " "
+                continue
             end
             if contains(command, "http")
                 evalstr = evalstr * "url = \"$(command)\", "
-                continue
-            end
-            if command == "" || command == " "
                 continue
             end
             if contains(command, "#")
@@ -1679,10 +1671,15 @@ function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl}
                 evalstr = evalstr * "version = \"$(version)\", "
                 continue
             end
+            if contains(command, "/")
+                evalstr = evalstr * "path = \"$(command)\""
+                continue
+            end
             evalstr = evalstr * "\"$command\", "
         end
     end
     evalstr = evalstr * ")"
+    println(evalstr)
     p = Pipe()
     err = Pipe()
     standard_out::String = ""
