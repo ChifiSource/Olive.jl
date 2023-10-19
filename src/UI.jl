@@ -515,6 +515,7 @@ create a new button inside of the **create** menu in the **inspector**.
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
     projdata = Dict{Symbol, Any}(:cells => Vector{Cell}())
     newproj = Project{:olive}("new", projdata)
+    source_module!(c, newproj, "new")
     projtab = build_tab(c, newproj)
     open_project(c, cm, newproj, projtab)
 end
