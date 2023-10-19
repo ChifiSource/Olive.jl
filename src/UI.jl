@@ -193,12 +193,19 @@ function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
     on(c, explorericon, "click") do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
+            cm["settingsmenu"] =  "open" => "0"
+            style!(cm, "settingicon", "transform" => "rotate(0deg)",
+            "color" => "black")
+            style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
+            save_settings!(c)
+            olive_notify!(cm, "settings saved", color = "green")
             style!(cm, "projectexplorer", "width" => "500px", 
             "overflow-y" => "scroll")
             style!(cm, "olivemain", "margin-left" => "500px")
             style!(cm, explorericon, "color" => "lightblue")
             set_text!(cm, explorericon, "folder_open")
             cm["olivemain"] = "ex" => "1"
+            return
         else
             style!(cm, "projectexplorer", "width" => "0px", 
             "overflow-y" => "hidden")
@@ -648,6 +655,12 @@ olive_notific (generic function with 1 method)
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
     on(c, settingicon, "click", ["settingsmenu"]) do cm::ComponentModifier
+        style!(cm, "projectexplorer", "width" => "0px", 
+        "overflow-y" => "hidden")
+        style!(cm, "olivemain", "margin-left" => "0px")
+        set_text!(cm, "explorerico", "drive_file_move_rtl")
+        style!(cm, "explorerico", "color" => "black")
+        cm["olivemain"] = "ex" => "0"
         if cm["settingsmenu"]["open"] == "0"
             style!(cm, settingicon, "transform" => "rotate(-180deg)",
             "color" => "lightblue")
