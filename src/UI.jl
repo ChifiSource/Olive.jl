@@ -1333,7 +1333,7 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     end
     cells = p[:cells]
     if :export in keys(p.data)
-        pe::ProjectExport{<:Any} = ProjectExport{p[:export]}()
+        pe::ProjectExport{<:Any} = ProjectExport{Symbol(p[:export])}()
     else
         pe = ProjectExport{Symbol(save_type)}()
     end
