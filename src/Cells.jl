@@ -1679,7 +1679,6 @@ function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl}
         end
     end
     evalstr = evalstr * ")"
-    println(evalstr)
     p = Pipe()
     err = Pipe()
     standard_out::String = ""
