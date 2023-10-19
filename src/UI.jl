@@ -819,7 +819,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
         end
     end
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :env => environment, projpairs ...)
+    :env => environment, :path => fpath, projpairs ...)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, source)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
