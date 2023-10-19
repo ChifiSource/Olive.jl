@@ -466,6 +466,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         server.start()
         key = ToolipsSession.gen_ref(16)
         push!(oc.client_keys, key => "root")
+        ollogger.log(3,"olive started in free mode: note this is a testing-feature and might not be stable.")
         ollogger.log(2,
             "olive link: http://$(IP):$(PORT)/?key=$key")
         return

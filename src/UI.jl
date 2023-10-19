@@ -757,13 +757,15 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
-        environment = c[:OliveCore].data["home"]
+        if "home" in keys(c[:OliveCore].data["home"])
+            environment = c[:OliveCore].data["home"]
+            if fpath != c[:OliveCore].data["home"]
+                push!(projdict, :path => fpath)
+            end
+        end
     end
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
     :env => environment, projpairs ...)
-    if fpath != c[:OliveCore].data["home"]
-        push!(projdict, :path => fpath)
-    end
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, source)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
