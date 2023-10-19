@@ -374,6 +374,49 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive UI
+````
+create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; 
+directory::Bool = false) -> ::Nothing
+````
+------------------
+Initiates new file or directory creation. When the `confirm` or `save` button is pressed, 
+completes these operations and denotes the status using `olive_notify!`.
+#### example
+```
+
+```
+"""
+function copy_file!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}, file::String)
+    switch_work_dir!(c, cm, file)
+    namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
+    style!(namebox, "width" => 80percent, "border" => "1px solid")
+    savebutton = button("confirm_new", text = "confirm")
+    cancelbutton = button("cancel_new", text = "cancel")
+    on(c, savebutton, "click") do cm2::ComponentModifier
+        finalname = cm2[namebox]["text"]
+        path = cm2["selector"]["text"]
+        try
+            cp(file, path * "/" * finalname)
+            olive_notify!(cm2, "successfully created $finalname !", color = "green")
+            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
+            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+        catch e
+            olive_notify!(cm2, "failed to create $finalname !", color = "red")
+        end
+    end
+    on(c, cancelbutton, "click") do cm2::ComponentModifier
+        set_children!(cm2, "fileeditbox", Vector{Servable}())
+        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+    end
+    set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
+    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 function work_filemenu(c::Connection, path::String)
     selector_indicator = h("selector", 4, text = path)
     selector_box = div("selectorbox")

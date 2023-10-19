@@ -181,10 +181,14 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
     finfo = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
     style!(finfo, "color" => "white", "float" => "right", "font-weight" => "bold")
     delbutton = topbar_icon("$(cell.id)expand", "cancel")
+    copyb = topbar_icon("copb$(cell.id)", "copy")
     on(c, delbutton, "click") do cm::ComponentModifier
         rm(cell.outputs)
         olive_notify!(cm, "file deleted", color = "red")
         remove!(cm, hiddencell)
+    end
+    on(c, copyb, "click") do cm::ComponentModifier
+        copy_file!(c, cm, d, cell.outputs)
     end
     movbutton = topbar_icon("$(cell.id)move", "drive_file_move")
     on(c, movbutton, "click") do cm::ComponentModifier
@@ -214,9 +218,10 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
     end
     style!(delbutton, "color" => "white", "font-size" => 17pt)
     style!(movbutton, "color" => "white", "font-size" => 17pt)
+    style!(copyb, "color" => "white", "font-size" => 17pt)
     style!(name, "color" => "white", "font-weight" => "bold",
     "font-size" => 14pt, "margin-left" => 5px)
-    push!(hiddencell, delbutton, movbutton, name, finfo)
+    push!(hiddencell, delbutton, movbutton, copyb, name, finfo)
     hiddencell
 end
 #==output[code]
