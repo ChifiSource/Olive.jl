@@ -1,7 +1,7 @@
 name = "Olive"
 uuid = "724ecaf6-c7a0-4c22-b37e-0bb7b4193da8"
 authors = ["emmac <emmettgb@gmail.com>"]
-version = "0.0.8"
+version = "0.0.9"
 
 [deps]
 IPyCells = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
@@ -15,11 +15,5 @@ ToolipsMarkdown = "33f7ff50-f2f2-41f0-8a96-482dce5c1514"
 ToolipsSession = "2fe55384-55bc-4df3-9d59-c817d405cd05"
 
 [compat]
-julia = "1.5"
 Revise = "3.5"
-Toolips = "0.2.3"
-ToolipsSession = "0.3.2"
-ToolipsBase64 = "0.1.2"
-ToolipsDefaults = "0.1.1"
-ToolipsMarkdown = "0.1.2"
-IPyCells = "0.1.0"
+julia = "1.5"
