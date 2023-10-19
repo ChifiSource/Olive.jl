@@ -513,7 +513,8 @@ create a new button inside of the **create** menu in the **inspector**.
 ```
 """
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
-    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}())
+    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}(), 
+    :env => c[:OliveCore].data["home"])
     newproj = Project{:olive}("new", projdata)
     source_module!(c, newproj, "new")
     projtab = build_tab(c, newproj)
@@ -533,10 +534,29 @@ function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{:mo
         path = cm2["selector"]["text"]
         try
             Pkg.generate(path * "/" * finalname)
+            open(path * "/" * finalname * "/src/$finalname.jl", "w") do o
+                write(o, """
+                module $finalname
+                function greet()
+                    println("hello world")
+                end
+                end
+                #==
+                code/hello world!
+                ==#
+                #--
+                #==output[module]
+                $finalname
+                ==#
+                #==|||==#""")
+            end
             olive_notify!(cm2, "successfully created $finalname !", color = "green")
             set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
             style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+            cells = IPyCells.read_jl(path * "/$finalname/src/$finalname.jl")
+            add_to_session(c, cells, cm2, "$finalname.jl", path * "/$finalname/src/")
         catch e
+            print(e)
             olive_notify!(cm2, "failed to create $finalname !", color = "red")
         end
     end
