@@ -442,8 +442,8 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     homedirec::String = path
     ollogger = OliveLogger()
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
+    srcdir = homedir()
     if path == homedir() && ~(free) && isfile("$srcdir/home.txt")
-        srcdir = homedir()
         homedirec = read("$srcdir/home.txt", String)
     end
     oc::OliveCore = OliveCore("olive")
