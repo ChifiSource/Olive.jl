@@ -197,8 +197,6 @@ function explorer_icon(c::Connection)
             style!(cm, "settingicon", "transform" => "rotate(0deg)",
             "color" => "black")
             style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
-            save_settings!(c)
-            olive_notify!(cm, "settings saved", color = "green")
             style!(cm, "projectexplorer", "width" => "500px", 
             "overflow-y" => "scroll")
             style!(cm, "olivemain", "margin-left" => "500px")
@@ -515,8 +513,10 @@ create a new button inside of the **create** menu in the **inspector**.
 ```
 """
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
-    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}())
+    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}(), 
+    :env => c[:OliveCore].data["home"])
     newproj = Project{:olive}("new", projdata)
+    source_module!(c, newproj, "new")
     projtab = build_tab(c, newproj)
     open_project(c, cm, newproj, projtab)
 end
@@ -534,10 +534,29 @@ function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{:mo
         path = cm2["selector"]["text"]
         try
             Pkg.generate(path * "/" * finalname)
+            open(path * "/" * finalname * "/src/$finalname.jl", "w") do o
+                write(o, """
+                module $finalname
+                function greet()
+                    println("hello world")
+                end
+                end
+                #==
+                code/hello world!
+                ==#
+                #--
+                #==output[module]
+                $finalname
+                ==#
+                #==|||==#""")
+            end
             olive_notify!(cm2, "successfully created $finalname !", color = "green")
             set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
             style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+            cells = IPyCells.read_jl(path * "/$finalname/src/$finalname.jl")
+            add_to_session(c, cells, cm2, "$finalname.jl", path * "/$finalname/src/")
         catch e
+            print(e)
             olive_notify!(cm2, "failed to create $finalname !", color = "red")
         end
     end
@@ -810,6 +829,8 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     fsplit::Vector{SubString} = split(fpath, "/")
     uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
     environment::String = ""
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+    :env => environment, :path => fpath, projpairs ...)
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
@@ -820,8 +841,6 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
             end
         end
     end
-    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :env => environment, projpairs ...)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, source)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
@@ -1335,7 +1354,7 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     end
     cells = p[:cells]
     if :export in keys(p.data)
-        pe::ProjectExport{<:Any} = ProjectExport{p[:export]}()
+        pe::ProjectExport{<:Any} = ProjectExport{Symbol(p[:export])}()
     else
         pe = ProjectExport{Symbol(save_type)}()
     end
