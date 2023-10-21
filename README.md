@@ -352,13 +352,92 @@ To create a directory, the main thing we are going to need to provide is the `Ce
 work_preview(d::Directory{<:Any})
 ```
 ##### cell extensions
-Cell extensions are probably the most complicated type of `Olive` extension -- aside from taking `Olive` apart and putting it back together again.
+Cell extensions are probably the most complicated type of `Olive` extension -- aside from taking `Olive` apart and putting it back together again. There are two main types of `Cell` in `Olive`, these are **file cells** and **session cells**. The most essential of the functions to extend for cells is, as usual, `build`. A `session` Cell's dispatch takes a `Connection`, `ComponentModifier`, the `Cell`, and the `Project`. 
+```julia
+build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, proj::Project{<:Any})
+```
+In these **session cell** dispatches, we have the ability to create a new method based on both the `Project` and the `Cell`. Here is an example from [OlivePy](https://github.com/ChifiSource/OlivePy.jl), the `python` `Cell`. This `build` function is a great example because it builds a standard type of cell for code, with highlighting.
+```julia
+using Olive
+using Olive.Toolips
+using Olive.ToolipsSession
+using Olive.ToolipsDefaults
+using Olive.ToolipsMarkdown
+using Olive.IPyCells
+using PyCall
+import Olive: build, evaluate, cell_highlight!, getname, olive_save, ProjectExport
+import Base: string
+using Olive: Project, Directory
+
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:python}, proj::Project{<:Any})
+    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["python"]
+    ToolipsMarkdown.clear!(tm)
+    mark_python!(tm)
+    builtcell::Component{:div} = Olive.build_base_cell(c, cm, cell,
+    proj, sidebox = true, highlight = true)
+    km = Olive.cell_bind!(c, cell, proj)
+    interior = builtcell[:children]["cellinterior$(cell.id)"]
+    sideb = interior[:children]["cellside$(cell.id)"]
+    style!(sideb, "background-color" => "green")
+    inp = interior[:children]["cellinput$(cell.id)"]
+    inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    builtcell::Component{:div}
+end
+```
+Here I also use `build_base_cell` and `cell_bind!` to assist with building the cell. These give nice `Olive` base templates that are incredibly easy to work from. In addition to `build`, there are several other functions that can also be extended to change the functionality of the `Cell`. A full list of these is in the [function reference](#session-cell-reference). The main others we should worry about are `evaluate`, `string`, and `cell_highlight`. However, there are certainly some examples where `cell_bind!` has come in handy, such as this example from the `Collaborators` extension in [OliveSession](https://github.com/ChifiSource/OliveSession.jl):
+```julia
+function cell_bind!(c::Connection, cell::Cell{<:Any}, 
+    cells::Vector{Cell}, proj::Project{:rpc})
+    keybindings = c[:OliveCore].client_data[Olive.getname(c)]["keybindings"]
+    km = ToolipsSession.KeyMap()
+    bind!(km, keybindings["save"], prevent_default = true) do cm::ComponentModifier
+        Olive.save_project(c, cm, proj)
+        rpc!(c, cm)
+    end
+    bind!(km, keybindings["up"]) do cm2::ComponentModifier
+        Olive.cell_up!(c, cm2, cell, cells, proj)
+        rpc!(c, cm2)
+    end
+    bind!(km, keybindings["down"]) do cm2::ComponentModifier
+        Olive.cell_down!(c, cm2, cell, cells, proj)
+        rpc!(c, cm2)
+    end
+    bind!(km, keybindings["delete"]) do cm2::ComponentModifier
+        Olive.cell_delete!(c, cm2, cell, cells)
+        rpc!(c, cm2)
+    end
+    bind!(km, keybindings["evaluate"]) do cm2::ComponentModifier
+        Olive.evaluate(c, cm2, cell, cells, proj)
+        rpc!(c, cm2)
+    end
+    bind!(km, keybindings["new"]) do cm2::ComponentModifier
+        Olive.cell_new!(c, cm2, cell, cells, proj)
+    end
+    bind!(km, keybindings["focusup"]) do cm::ComponentModifier
+        Olive.focus_up!(c, cm, cell, cells, proj)
+    end
+    bind!(km, keybindings["focusdown"]) do cm::ComponentModifier
+        Olive.focus_down!(c, cm, cell, cells, proj)
+    end
+    km::KeyMap
+end
+```
+In this case, I rewrote the default cell bind to work with `rpc!`, and this is as easy as writing one method -- also of note is that the `Project` dispatch is used to facilitate this. This means that this will change for every cell under that `Project`. The `evaluate` function does precisely that -- evaluates the cell. These are usually the most complicated functions in an extension. 
 ##### project extensions
 
 ##### format extensions
-
+One thing we are probably going to want for our project is the ability to read and write files. In some cases with `Olive`, this might an entirely new file type being read in an entirely new way. Adding new formats in `Olive` revolves primarily around the `olive_save` and `olive_read` functions. The first of these is `olive_read`, which takes only a **file cell** and returns a `Vector{IPyCells.Cell}`. `olive_save`, on the other hand, utilizes the `ProjectExport{<:Any}`. For example, here is the `olive_save` function in base `Olive` which denotes the standard Julia `IPyCells` `Cell` export:
+```julia
+function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
+    pe::ProjectExport{:jl})
+    IPyCells.save(cells, p.data[:path])
+    nothing
+end
+```
+Note that, like in the case of **session cells** this may also be done with both the `Project` and the `ProjectExport`, so we could have a different type of project export completely differently in this way.
 #### function reference
-
+A crucial component to the
 ###### session cell reference
 - `on_code_evaluate`
 - `on_code_highlight`
