@@ -68,10 +68,11 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
      - [project export reference](#projectexport-reference)
      - [important functions](#important-functions)
   - [UI reference](#ui-reference)
-     - [project UI]()
-     - [cell UI]()
-     - [explorer UI]()
-     - [topbar UI]()
+     - [topbar UI](#topbar-ui)
+     - [session UI](#session-ui)
+     - [project UI](#project-ui)
+     - [cell UI](#cell-ui)
+     - [explorer UI](#explorer-ui)
   - [extension examples](#examples)
 - [deploying olive](#deploying-olive)
    - [`0.0.9`deployment status](#status)
@@ -293,8 +294,7 @@ The most essential package to understand in order to work with `Olive` is [tooli
 - [Toolips tutorial videos](https://www.youtube.com/watch?v=_VqSM-mHBes&list=PLCXbkShHt01s3kd2ZA62KoKhWBFfKXNTd)
 - [toolips notebooks](https://github.com/ChifiSource/OliveNotebooks.jl/tree/main/toolips)
 
-##### components
-`Toolips` is really easy to get started with from an `Olive` perspective because the only goal is composing `Toolips.Components`. For the purposes of developing an `Olive` extension, 
+`Toolips` is really easy to get started with from an `Olive` perspective because the only goal is composing `Toolips.Components`. For the purposes of developing an `Olive` extension, we are also able to use `Toolips` straight from `Olive`.
 ```julia
 using Olive
 using Olive.Toolips
@@ -302,6 +302,7 @@ using Olive.ToolipsSession
 using Olive.ToolipsMarkdown
 using Olive.ToolipsDefaults
 ```
+##### components
 ##### callbacks
 
 ###### routing and servers
@@ -522,11 +523,14 @@ A crucial component to `Olive`'s parametric system for loading new features is `
 - `olive_notify!` sends an `Olive` notification.
 #### UI reference
 Olive is changed primarily by using `ComponentModifiers` to make changes to the Olive UI. For this, the pre-requisite knowledge is to know the IDs of different things you are working with. That being said, in order to work with all portions of Olive we will want to know how the UI is composed together.
-###### session reference
-###### topbar reference
-###### explorer reference
+###### topbar UI
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/uitopbarkey.png" /img>
+###### session UI
+
+###### explorer UI
 ###### cell UI
 ###### project UI
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/uitopbarkey.png" /img>
 ###### directory UI
 
 #### Server reference
