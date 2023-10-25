@@ -524,13 +524,20 @@ A crucial component to `Olive`'s parametric system for loading new features is `
 #### UI reference
 Olive is changed primarily by using `ComponentModifiers` to make changes to the Olive UI. For this, the pre-requisite knowledge is to know the IDs of different things you are working with. That being said, in order to work with all portions of Olive we will want to know how the UI is composed together.
 ###### topbar UI
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/uitopbarkey.png" /img>
+
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/uitopbarkey.png"></img>
+
 ###### session UI
 
 ###### explorer UI
 ###### cell UI
+
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/uicellkey.png"></img>
+
 ###### project UI
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/uitopbarkey.png" /img>
+
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/olsc/uitopbarkey.png"></img>
+
 ###### directory UI
 
 #### Server reference
