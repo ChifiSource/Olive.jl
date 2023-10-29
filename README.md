@@ -20,7 +20,7 @@ Welcome to olive! Olive is a **pure julia** notebook editor built on the back of
 - a **two-pane** design
 - **loadable** directories as **profiles**
 - **flexible** and modern design
-- edit **any** file
+- the ability to edit **any** file
 <div align="center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-15%2006-44-12.png" width = "300"></img><img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/Screenshot%20from%202023-08-11%2015-45-25.png" width = "300"></img>
 </div>
