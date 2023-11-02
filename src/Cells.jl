@@ -368,22 +368,27 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
     files = readdir(dir)
-    return([build_file_cell(e, path, dir) for (e, path) in enumerate(files)]::AbstractVector)
+    return(filter!(e -> ~(isnothing(e)), [build_file_cell(e, path, dir) for (e, path) in enumerate(files)]::AbstractVector))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function build_file_cell(e::Int64, path::String, dir::String)
-    if ~(isdir(dir * "/" * path))
-        splitdir::Vector{SubString} = split(path, "/")
-        fname::String = string(splitdir[length(splitdir)])
-        fsplit = split(fname, ".")
-        fending::String = ""
-        if length(fsplit) > 1
-            fending = string(fsplit[2])
+    fpath = dir * "/" * path
+    if ~(isdir(fpath))
+        if isfile(fpath)
+            splitdir::Vector{SubString} = split(path, "/")
+            fname::String = string(splitdir[length(splitdir)])
+            fsplit = split(fname, ".")
+            fending::String = ""
+            if length(fsplit) > 1
+                fending = string(fsplit[2])
+            end
+            Cell(e, fending, fname, replace(dir * "/" * path, "\\" => "/"))
+        else
+            return
         end
-        Cell(e, fending, fname, replace(dir * "/" * path, "\\" => "/"))
     else
         Cell(e, "dir", path, dir)
     end
@@ -403,16 +408,17 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     "border-color" => "darkblue", "height" => 0percent, 
     "border-width" => 0px, "transition" => 1seconds, "padding" => 0px)
     style!(filecell, "background-color" => "#FFFF88")
-    childbox[:children] = Vector{Servable}([begin
-    build(c, mcell, d)
-    end
-    for mcell in directory_cells(cell.outputs * "/" * cell.source)])
     on(c, filecell, "click") do cm::ComponentModifier
+        childs = Vector{Servable}([begin
+        build(c, mcell, d)
+        end
+        for mcell in directory_cells(cell.outputs * "/" * cell.source)])
         if cm[filecell]["ex"] == "0"
             style!(cm, childbox, "height" => "auto", "opacity" => 100percent)
             cm[filecell] = "ex" => "1"
             return
         end
+        set_children!(cm, childbox, childs)
         style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
         cm[filecell] = "ex" => "0"
     end
