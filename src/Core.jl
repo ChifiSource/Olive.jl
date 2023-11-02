@@ -444,6 +444,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
                 olive_notify!(cm,
                 "failed to source olive module",
                 color = "red")
+                print(e)
             end
         end
         style!(srcbutton,"font-size" => 20pt, "color" => "red",

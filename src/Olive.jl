@@ -148,7 +148,7 @@ function session(c::Connection; key::Bool = false)
             if y == "y"
                 c[:Logger].log(" okay, logging in as root.")
                 key = ToolipsSession.gen_ref(16)
-                push!(c[:OliveCore].client_keys[key] => c[:OliveCore].data["root"])
+                push!(c[:OliveCore].client_keys, [key] => c[:OliveCore].data["root"])
                 redirect!(cm, "/?key=$(key)")
             end
         end
@@ -249,7 +249,7 @@ function session(c::Connection; key::Bool = false)
     bod = body("mainbody")
     style!(bod, "overflow" => "hidden")
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
-    script!(c, "load", ["olivemain"], type = "Timeout") do cm::ComponentModifier
+    script!(c, "load", ["olivemain"], type = "Timeout", time = 500) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
         ToolipsSession.insert!(cm, "projectexplorer", 1, work_menu(c))
