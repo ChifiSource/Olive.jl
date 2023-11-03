@@ -10,52 +10,14 @@ function inputcell_style()
     "line-height" => 24px)
     st::Style
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function outputcell_style()
-    st = Style("div.output_cell", border = "0px", padding = "10px",
-    "margin-top" => 20px, "margin-right" => 200px, "border-radius" => 30px,
-    "font-size" => 14pt)
+
+function cellside_style()
+    st = Style("div.cellside", "display" => "inline-block", "background-color" => "pink",
+    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
+    "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
     st::Style
 end
-#==output[code]
-outputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function ipy_style()
-    s::Style = Style("div.cell-ipynb",
-    "background-color" => "orange",
-     "width" => 75percent, "overflow-x" => "hidden", "border-color" => "gray",
-     "border-width" => 2px, "cursor" => "pointer",
-    "padding" => 4px, "border-style" => "solid", "transition" => "0.5s")
-    s:"hover":["scale" => "1.01"]
-    s::Style
-end
-#==output[code]
-ipy_style (generic function with 1 method)
-==#
-#==|||==#
-function toml_style()
-    s = Style("div.cell-toml", "background-color" => "blue", "text-color" => "white",
-    "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
-    "transition" => "0.5s",
-    "border-style" => "solid", "width" => 75percent)
-    s:"hover":["scale" => "1.01"]
-    s::Style
-end
-#==output[code]
-toml_style (generic function with 1 method)
-==#
-#==|||==#
-function jl_style()
-    s = Style("div.cell-jl", "background-color" => "#F55887", "text-color" => "white",
-    "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
-    "border-style" => "solid", "width" => 75percent, "transition" => "0.5s")
-    s:"hover":["scale" => "1.01"]
-    s::Style
-end
+
 #==output[code]
 jl_style (generic function with 1 method)
 ==#
@@ -73,15 +35,6 @@ function load_spinner()
     mys = Style("img.loadicon", "transition" => ".5s")
     animate!(mys, spin_forever())
     mys::Style
-end
-#==output[code]
-load_spinner (generic function with 1 method)
-==#
-#==|||==#
-function usingcell_style()
-    st::Style = Style("div.usingcell", border = "0px solid gray", padding = "40px",
-    "border-radius" => 5px, "background-color" => "#CCCCFF")
-    st::Style
 end
 #==output[code]
 usingcell_style (generic function with 1 method)
@@ -128,36 +81,14 @@ end
 iconstyle (generic function with 1 method)
 ==#
 #==|||==#
-function hidden_style()
-    Style("div.cell-hidden",
+function filec_style()
+    Style("div.file-cell",
     "background-color" => "gray",
      "width" => 75percent, "overflow-x" => "hidden",
     "padding" => 4px, "transition" => "0.5s")::Style
 end
 #==output[code]
 hidden_style (generic function with 1 method)
-==#
-#==|||==#
-function julia_style()
-    defset = ("padding" => 0px, "font-size" => 16pt, "margin-top" => 0px,
-    "margin-bottom" => 0px, "margin" => 0px, "letter-spacing" => 1px,
-    "line-height" => 15px,
-    "font-family" => """"Lucida Console", "Courier New", monospace;""")
-    hljl_pre::Style = Style("pre.hljl", defset ...)
-    hljl_nf::Style = Style("span.hljl-nf", "color" => "#2B80FA", defset ...)
-    hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", defset ...)
-    hljl_n::Style = Style("span.hljl-n", defset ...)
-    hljl_ts::Style = Style("span.hljl-ts", "color" => "orange", defset ...)
-    hljl_cs::Style = Style("span.hljl-cs", "color" => "gray", defset ...)
-    hljl_k::Style = Style("span.hljl-k", "color" => "#E45E9D", defset ...)
-    hljl_s::Style = Style("span.hljl-s", "color" => "#3FBA41", defset ...)
-    styles::Component{:sheet} = Component("codestyles", "sheet")
-    push!(styles, hljl_k, hljl_nf, hljl_oB, hljl_n, hljl_cs, hljl_s,
-    hljl_ts)
-    styles::Component{:sheet}
-end
-#==output[code]
-julia_style (generic function with 1 method)
 ==#
 #==|||==#
 function olivesheet()
@@ -168,7 +99,7 @@ function olivesheet()
     iconstyle(), hdeps_style(), Toolips.link("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
     usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
-    hidden_style(), jl_style(), toml_style(), julia_style(), pr,
+    filec_style(), pr,
     Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("progress::-webkit-progress-bar", "background-color" => "whitesmoke"))
     st

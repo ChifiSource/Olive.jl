@@ -139,7 +139,7 @@ This is a callable build function that can be used to create a base file cell.
 """
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
     hiddencell = div("cell$(cell.id)")
-    hiddencell["class"] = "cell-hidden"
+    hiddencell["class"] = "file-cell"
     name = a("cell$(cell.id)label", text = cell.source, contenteditable = true)
     on(c, name, "click") do cm
         km = ToolipsSession.KeyMap()
@@ -842,13 +842,9 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
         on(c, cell_run, "click") do cm2::ComponentModifier
             evaluate(c, cm2, cell, proj)
         end
-        # TODO move these styles to stylesheet
-        style!(sidebox, "display" => "inline-block", "background-color" => "pink",
-        "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-        "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
+        sidebox[:class] = "cellside"
         style!(cell_drag, "color" => "white", "font-size" => 17pt)
         style!(cell_run, "color" => "white", "font-size" => 17pt)
-        # TODO move these styles to stylesheet
         push!(sidebox, cell_drag, br(), cell_run)
         push!(interiorbox, sidebox, inputbox)
     else
