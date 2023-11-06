@@ -74,7 +74,7 @@ function iconstyle()
     "font-size" => "100pt", "transition" => ".4s", "line-height" => "1",
     "text-transform" => "none", "letter-spacing" => "normal",
     "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
-    s:"hover":["color" => "orange", "transform" => "scale(1.1)"]
+    s:"hover":["color" => "orange", "transform" => "scale(1.06)"]
     s
 end
 #==output[code]
@@ -82,10 +82,12 @@ iconstyle (generic function with 1 method)
 ==#
 #==|||==#
 function filec_style()
-    Style("div.file-cell",
+    s = Style("div.file-cell",
     "background-color" => "gray",
      "width" => 80percent, "overflow" => "show",
-    "padding" => 4px, "transition" => "0.5s")::Style
+    "padding" => 4px, "transition" => "0.5s")
+    s:"hover":["border" => "1px solid orange", "transform" => "scale(1.02)"]
+    s::Style
 end
 #==output[code]
 hidden_style (generic function with 1 method)
@@ -112,7 +114,8 @@ function projectexplorer()
     style!(pexplore, "background" => "transparent", "position" => "absolute",
     "z-index" => "1", "top" => "0", "overflow-x" => "hidden",
      "padding-top" => 75px, "width" => "0", "height" => "90%", "left" => "0",
-     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%")
+     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%", 
+     "opacity" => 0percent)
     pexplore
 end
 #==output[code]
@@ -121,14 +124,14 @@ projectexplorer (generic function with 1 method)
 #==|||==#
 function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
-    on(c, explorericon, "click") do cm::ComponentModifier
+    on(c, explorericon, "click", ["olivemain"]) do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
             cm["settingsmenu"] =  "open" => "0"
             style!(cm, "settingicon", "transform" => "rotate(0deg)",
             "color" => "black")
             style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
             style!(cm, "projectexplorer", "width" => "500px", 
-            "overflow-y" => "scroll")
+            "overflow-y" => "scroll", "opacity" => 100percent)
             style!(cm, "olivemain", "margin-left" => "500px")
             style!(cm, explorericon, "color" => "lightblue")
             set_text!(cm, explorericon, "folder_open")
@@ -136,7 +139,7 @@ function explorer_icon(c::Connection)
             return
         else
             style!(cm, "projectexplorer", "width" => "0px", 
-            "overflow-y" => "hidden")
+            "overflow-y" => "hidden", "opacity" => 0percent)
             style!(cm, "olivemain", "margin-left" => "0px")
             set_text!(cm, explorericon, "drive_file_move_rtl")
             style!(cm, explorericon, "color" => "black")
@@ -211,7 +214,7 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
     innersection = div("$name")
     style!(innersection, "opacity" => 0percent, "height" => 0percent, 
     "padding" => 0px, "transition" => 1seconds, "pointer-events" => "none")
-    on(c, arrow, "click") do cm::ComponentModifier
+    on(c, arrow, "click", [outersection.name]) do cm::ComponentModifier
         if cm[outersection]["ex"] == "0"
             style!(cm, innersection, "opacity" => 100percent, "height" => "$fillto%", 
             "pointer-events" => "auto")
@@ -282,7 +285,7 @@ function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}
     style!(namebox, "width" => 25percent, "border" => "1px solid")
     savebutton = button("confirm_new", text = "confirm")
     cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click") do cm2::ComponentModifier
+    on(c, savebutton, "click", ["new_namebox", "selector"]) do cm2::ComponentModifier
         finalname = cm2[namebox]["text"]
         path = cm2["selector"]["text"]
         try
@@ -298,7 +301,7 @@ function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}
             olive_notify!(cm2, "failed to create $finalname !", color = "red")
         end
     end
-    on(c, cancelbutton, "click") do cm2::ComponentModifier
+    on(c, cancelbutton, "click", ["none"]) do cm2::ComponentModifier
         set_children!(cm2, "fileeditbox", Vector{Servable}())
         style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
     end

@@ -130,17 +130,11 @@ include("UI.jl")
 include/none
 ==#
 #--
-"""
-### route ("/") (main)
---- 
-This is the function/Route which runs olive's "session" page, the main editor
-    for olive.
-"""
-function session(c::Connection; key::Bool = false)
+function verify_client!(c::Connection)
     args = getargs(c)
     if ~(:key in keys(args))
         coverimg::Component{:img} = olive_cover()
-        olivecover = div("topdiv", align = "center")
+        olivecover::Component{:div} = div("topdiv", align = "center")
         logbutt = button("requestaccess", text = "request access")
         on(c, logbutt, "click") do cm::ComponentModifier
             c[:Logger].log(" someone is trying to login to olive! is this you?")
@@ -165,38 +159,45 @@ function session(c::Connection; key::Bool = false)
     if ~(getip(c) in keys(c[:OliveCore].names))
         push!(c[:OliveCore].names, getip(c) => uname)
     end
-    c[:OliveCore].names[getip(c)] = uname
-    # check for environment, if none load.
-    envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
-    if isnothing(envsearch)
-        cells = Vector{Cell}([Cell(1, "versioninfo", "")])
-        env::Environment = Environment(getname(c))
-        env.pwd = c[:OliveCore].data["wd"]
-        pwd_direc = Directory(env.pwd)
-        projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
-        :pane => "one", :env => " ")
-        sourced_path = " "
-        if "home" in keys(c[:OliveCore].data)
-            push!(projdict, :env => c[:OliveCore].data["home"])
-            sourced_path = c[:OliveCore].data["home"]
-        end
-        myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
-        Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, 
-        sourced_path)
-        Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
-        push!(env.directories, pwd_direc)
-        if c[:OliveCore].data["root"] == getname(c)
-            if "home" in keys(c[:OliveCore].data)
-                home_direc = Directory(c[:OliveCore].data["home"])
-                push!(env.directories, home_direc)
-            end
-        end
-        push!(env.projects, myproj)
-        push!(c[:OliveCore].open, env)
-    else
-        env = c[:OliveCore].open[getname(c)]
+    uname::String
+end
+#==
+code/none
+==#
+#--
+function load_default_project!(c::Connection)
+    cells = Vector{Cell}([Cell(1, "versioninfo", "")])
+    env::Environment = Environment(getname(c))
+    env.pwd = c[:OliveCore].data["wd"]
+    pwd_direc = Directory(env.pwd)
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
+    :pane => "one", :env => " ")
+    sourced_path = " "
+    if "home" in keys(c[:OliveCore].data)
+        push!(projdict, :env => c[:OliveCore].data["home"])
+        sourced_path = c[:OliveCore].data["home"]
     end
-     # setup base UI
+    myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, 
+    sourced_path)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    push!(env.directories, pwd_direc)
+    if c[:OliveCore].data["root"] == getname(c)
+        if "home" in keys(c[:OliveCore].data)
+            home_direc = Directory(c[:OliveCore].data["home"])
+            push!(env.directories, home_direc)
+        end
+    end
+    push!(env.projects, myproj)
+    push!(c[:OliveCore].open, env)
+    env::Environment
+end
+#==
+code/none
+==#
+#--
+
+function build(c::Connection, env::Environment)
     write!(c, olivesheet())
     c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
@@ -211,7 +212,7 @@ function session(c::Connection; key::Bool = false)
     Base.invokelatest(olmod.build, c, d, olmod)
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
-    olivemain["pane"] = "2"
+    olivemain["pane"] = "1"
     pane_one::Component{:section} = section("pane_one")
     pane_one_tabs::Component{:div} = div("pane_one_tabs")
     style!(pane_one_tabs, "display" => "inline", "padding" => 0px, "width" => 50percent)
@@ -249,15 +250,45 @@ function session(c::Connection; key::Bool = false)
     bod = body("mainbody")
     style!(bod, "overflow" => "hidden")
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
+    return(bod, loadicondiv, olmod)
+end
+
+#==
+code/none
+==#
+#--
+"""
+### route ("/") (main)
+--- 
+This is the function/Route which runs olive's "session" page, the main editor
+    for olive.
+"""
+function session(c::Connection; key::Bool = true)
+    uname::String = c[:OliveCore].data["root"]
+    if key
+        uname = verify_client!(c)
+    end
+    # check for environment, if none load.
+    envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
+    if isnothing(envsearch)
+        env::Environment = load_default_project!(c)
+    else
+        env = c[:OliveCore].open[getname(c)]
+    end
+     # setup base UI
+    bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env)
     script!(c, "load", ["olivemain"], type = "Timeout", time = 500) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
         ToolipsSession.insert!(cm, "projectexplorer", 1, work_menu(c))
         next!(c, loadicondiv, cm, ["olivemain"]) do cm2::ComponentModifier
             remove!(cm2, "loaddiv")
-            switch_work_dir!(c, cm, env.pwd)
+            switch_work_dir!(c, cm2, env.pwd)
             [begin
                 append!(cm2, "pane_$(env.projects[1].data[:pane])_tabs", build_tab(c, proj))
+                if proj.id != env.projects[1].id
+                    style_tab_closed!(cm2, proj)
+                end
             end for proj in env.projects]
             window::Component{:div} = Base.invokelatest(olmod.build, c,
             cm2, env.projects[1])

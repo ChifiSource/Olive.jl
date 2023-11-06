@@ -449,7 +449,7 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cell::Cell{:jl},
     d::Directory{<:Any})
     hiddencell = build_base_cell(c, cell, d)
-    style!(hiddencell, "background-color" => "#e76480")
+    style!(hiddencell, "background-color" => "#AA104F")
     style!(hiddencell, "cursor" => "pointer")
     hiddencell
 end
@@ -493,11 +493,7 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cell::Cell{:toml},
     d::Directory)
     hiddencell = build_base_cell(c, cell, d)
-    hiddencell["class"] = "cell-toml"
-    on(c, hiddencell, "dblclick") do cm::ComponentModifier
-        cs::Vector{Cell{<:Any}} = read_toml(cell.outputs)
-        add_to_session(c, cs, cm, cell.source, cell.outputs)
-    end
+    style!(hiddencell, "background-color" => "#000080")
     if cell.source == "Project.toml"
         activatebutton = topbar_icon("$(cell.id)act", "bolt")
         style!(activatebutton, "font-size" => 20pt, "color" => "white")
