@@ -98,7 +98,7 @@ function olivesheet()
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Toolips.link("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
-    usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
+    inputcell_style(), bdy,
     filec_style(), pr,
     Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("progress::-webkit-progress-bar", "background-color" => "whitesmoke"))
@@ -800,38 +800,38 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
     n_projects::Int64 = length(projects)
     append!(cm, "pinfoworkmenu", work_preview(c, proj))
     projbuild = build(c, cm, proj)
-    if(n_projects == 2)
-        style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
-        proj.data[:pane] = "two"
-        append!(cm, "pane_two", projbuild)
-        append!(cm, "pane_two_tabs", tab)
-        return
-    elseif(n_projects == 1)
+    proj.data[:pane] = "one"
+    inpane2 = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
+    if length(inpane2) == 0
         proj.data[:pane] = "one"
         append!(cm, "pane_one", projbuild)
         append!(cm, "pane_one_tabs", tab)
+        [begin
+        if pro.id != proj.id
+            style_tab_closed!(cm, pro)
+        end
+        end  for pro in projects]
         return
     end
     if(cm["olivemain"]["pane"] == "1")
-        proj.data[:pane] = "one"
         inpane = findall(p::Project{<:Any} -> p[:pane] == "one", projects)
-        [begin
-            if projects[p].id != proj.id
-                style_tab_closed!(cm, projects[p])
-            end
-        end  for p in inpane]
+        proj.data[:pane] = "one"
+        append!(cm, "pane_one", projbuild)
         append!(cm, "pane_one_tabs", tab)
-        set_children!(cm, "pane_one", [projbuild])
+        [begin
+        if projects[p].id != proj.id
+            style_tab_closed!(cm, projects[p])
+        end
+        end  for p in inpane]
     else
         proj.data[:pane] = "two"
-        inpane = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
-        [begin
-            if projects[p].id != proj.id 
-                style_tab_closed!(cm, projects[p])
-            end
-        end  for p in inpane]
+        append!(cm, "pane_two", projbuild)
         append!(cm, "pane_two_tabs", tab)
-        set_children!(cm, "pane_two", [projbuild])
+        [begin
+        if projects[p].id != proj.id
+            style_tab_closed!(cm, projects[p])
+        end
+        end  for p in inpane2]
     end
 end
 #==output[code]

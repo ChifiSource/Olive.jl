@@ -257,11 +257,11 @@ function session(c::Connection; key::Bool = false)
             remove!(cm2, "loaddiv")
             switch_work_dir!(c, cm, env.pwd)
             [begin
-                window::Component{:div} = Base.invokelatest(olmod.build, c,
-                cm2, proj)
-                append!(cm2, "pane_$(proj.data[:pane])", window)
-                append!(cm2, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj))
+                append!(cm2, "pane_$(env.projects[1].data[:pane])_tabs", build_tab(c, proj))
             end for proj in env.projects]
+            window::Component{:div} = Base.invokelatest(olmod.build, c,
+            cm2, env.projects[1])
+            append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
             if length(findall(proj -> proj[:pane] == "two", env.projects)) > 0
                 style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
             end
