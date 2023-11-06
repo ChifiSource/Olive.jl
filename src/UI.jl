@@ -84,7 +84,7 @@ iconstyle (generic function with 1 method)
 function filec_style()
     Style("div.file-cell",
     "background-color" => "gray",
-     "width" => 75percent, "overflow-x" => "hidden",
+     "width" => 80percent, "overflow" => "show",
     "padding" => 4px, "transition" => "0.5s")::Style
 end
 #==output[code]
@@ -98,8 +98,7 @@ function olivesheet()
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Toolips.link("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
-    inputcell_style(), bdy,
-    filec_style(), pr,
+    inputcell_style(), bdy, cellside_style(), filec_style(), pr,
     Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("progress::-webkit-progress-bar", "background-color" => "whitesmoke"))
     st
@@ -804,7 +803,7 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
     inpane2 = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
     if length(inpane2) == 0
         proj.data[:pane] = "one"
-        append!(cm, "pane_one", projbuild)
+        set_children!(cm, "pane_one", [projbuild])
         append!(cm, "pane_one_tabs", tab)
         [begin
         if pro.id != proj.id

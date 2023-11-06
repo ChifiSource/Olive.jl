@@ -50,7 +50,7 @@ end
 - OliveExtension{}
 """
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
-    rootc::Dict{String, AbstractComponent}
+    rootc::Vector{Servable}
     changes::Vector{String}
     data::Dict{String, Any}
     function OliveModifier(c::Connection, cm::ComponentModifier)

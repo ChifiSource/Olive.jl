@@ -255,7 +255,6 @@ Here are some other **important** functions to look at for creating file cells:
 function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     explorer::Bool = false)
     hiddencell = build_base_cell(c, cell, d)
-    hiddencell["class"] = "cell-jl"
     style!(hiddencell, "background-color" => "white")
     name = a("cell$(cell.id)label", text = cell.source)
     style!(name, "color" => "black")
@@ -399,7 +398,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     container = div("cellcontainer$(cell.id)")
-    filecell = div("cell$(cell.id)", class = "cell-ipynb", ex = 0)
+    filecell = div("cell$(cell.id)", class = "file-cell", ex = 0)
     childbox = div("child$(cell.id)")
     style!(container, "padding" => 0px, "margin-bottom" => 0px)
     expandarrow = topbar_icon("$(cell.id)expand", "expand_more")
@@ -408,7 +407,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     "border-color" => "darkblue", "height" => 0percent, 
     "border-width" => 0px, "transition" => 1seconds, "padding" => 0px)
     style!(filecell, "background-color" => "#FFFF88")
-    on(c, filecell, "click") do cm::ComponentModifier
+    on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin
         build(c, mcell, d)
         end
@@ -450,7 +449,7 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cell::Cell{:jl},
     d::Directory{<:Any})
     hiddencell = build_base_cell(c, cell, d)
-    hiddencell["class"] = "cell-jl"
+    style!(hiddencell, "background-color" => "#e76480")
     style!(hiddencell, "cursor" => "pointer")
     hiddencell
 end
@@ -836,7 +835,7 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     highlight = highlight)
     output::Component{:div} = divider("cell$(cell.id)out", class = "output_cell", text = cell.outputs)
     if sidebox
-        sidebox::Component{:div} = div("cellside$(cell.id)")
+        sidebox::Component{:div} = div("cellside$(cell.id)", class = "cellside")
         cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
         cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
         on(c, cell_run, "click") do cm2::ComponentModifier
