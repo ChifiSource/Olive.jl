@@ -50,7 +50,7 @@ end
 - OliveExtension{}
 """
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
-    rootc::Dict{String, AbstractComponent}
+    rootc::Vector{Servable}
     changes::Vector{String}
     data::Dict{String, Any}
     function OliveModifier(c::Connection, cm::ComponentModifier)
@@ -444,6 +444,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
                 olive_notify!(cm,
                 "failed to source olive module",
                 color = "red")
+                print(e)
             end
         end
         style!(srcbutton,"font-size" => 20pt, "color" => "red",
