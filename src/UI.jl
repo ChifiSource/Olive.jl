@@ -7,55 +7,17 @@ function inputcell_style()
     "min-height" => 50px, "position" => "relative", "margin-top" => 0px,
     "display" => "inline-block", "border-left-top-radius" => "0px !important",
     "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray",
-    "line-height" => 24px)
+    "max-width" => 90percent, "overflow-wrap" => "break-word")
     st::Style
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function outputcell_style()
-    st = Style("div.output_cell", border = "0px", padding = "10px",
-    "margin-top" => 20px, "margin-right" => 200px, "border-radius" => 30px,
-    "font-size" => 14pt)
+
+function cellside_style()
+    st = Style("div.cellside", "display" => "inline-block", "background-color" => "pink",
+    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
+    "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
     st::Style
 end
-#==output[code]
-outputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function ipy_style()
-    s::Style = Style("div.cell-ipynb",
-    "background-color" => "orange",
-     "width" => 75percent, "overflow-x" => "hidden", "border-color" => "gray",
-     "border-width" => 2px, "cursor" => "pointer",
-    "padding" => 4px, "border-style" => "solid", "transition" => "0.5s")
-    s:"hover":["scale" => "1.01"]
-    s::Style
-end
-#==output[code]
-ipy_style (generic function with 1 method)
-==#
-#==|||==#
-function toml_style()
-    s = Style("div.cell-toml", "background-color" => "blue", "text-color" => "white",
-    "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
-    "transition" => "0.5s",
-    "border-style" => "solid", "width" => 75percent)
-    s:"hover":["scale" => "1.01"]
-    s::Style
-end
-#==output[code]
-toml_style (generic function with 1 method)
-==#
-#==|||==#
-function jl_style()
-    s = Style("div.cell-jl", "background-color" => "#F55887", "text-color" => "white",
-    "border-width" => 2px, "overflow-x" => "hidden", "padding" => 4px,
-    "border-style" => "solid", "width" => 75percent, "transition" => "0.5s")
-    s:"hover":["scale" => "1.01"]
-    s::Style
-end
+
 #==output[code]
 jl_style (generic function with 1 method)
 ==#
@@ -73,15 +35,6 @@ function load_spinner()
     mys = Style("img.loadicon", "transition" => ".5s")
     animate!(mys, spin_forever())
     mys::Style
-end
-#==output[code]
-load_spinner (generic function with 1 method)
-==#
-#==|||==#
-function usingcell_style()
-    st::Style = Style("div.usingcell", border = "0px solid gray", padding = "40px",
-    "border-radius" => 5px, "background-color" => "#CCCCFF")
-    st::Style
 end
 #==output[code]
 usingcell_style (generic function with 1 method)
@@ -121,43 +74,23 @@ function iconstyle()
     "font-size" => "100pt", "transition" => ".4s", "line-height" => "1",
     "text-transform" => "none", "letter-spacing" => "normal",
     "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
-    s:"hover":["color" => "orange", "transform" => "scale(1.1)"]
+    s:"hover":["color" => "orange", "transform" => "scale(1.06)"]
     s
 end
 #==output[code]
 iconstyle (generic function with 1 method)
 ==#
 #==|||==#
-function hidden_style()
-    Style("div.cell-hidden",
+function filec_style()
+    s = Style("div.file-cell",
     "background-color" => "gray",
-     "width" => 75percent, "overflow-x" => "hidden",
-    "padding" => 4px, "transition" => "0.5s")::Style
+     "width" => 80percent, "overflow" => "show",
+    "padding" => 4px, "transition" => "0.5s")
+    s:"hover":["border" => "1px solid orange", "transform" => "scale(1.02)"]
+    s::Style
 end
 #==output[code]
 hidden_style (generic function with 1 method)
-==#
-#==|||==#
-function julia_style()
-    defset = ("padding" => 0px, "font-size" => 16pt, "margin-top" => 0px,
-    "margin-bottom" => 0px, "margin" => 0px, "letter-spacing" => 1px,
-    "line-height" => 15px,
-    "font-family" => """"Lucida Console", "Courier New", monospace;""")
-    hljl_pre::Style = Style("pre.hljl", defset ...)
-    hljl_nf::Style = Style("span.hljl-nf", "color" => "#2B80FA", defset ...)
-    hljl_oB::Style = Style("span.hljl-oB", "color" => "purple", defset ...)
-    hljl_n::Style = Style("span.hljl-n", defset ...)
-    hljl_ts::Style = Style("span.hljl-ts", "color" => "orange", defset ...)
-    hljl_cs::Style = Style("span.hljl-cs", "color" => "gray", defset ...)
-    hljl_k::Style = Style("span.hljl-k", "color" => "#E45E9D", defset ...)
-    hljl_s::Style = Style("span.hljl-s", "color" => "#3FBA41", defset ...)
-    styles::Component{:sheet} = Component("codestyles", "sheet")
-    push!(styles, hljl_k, hljl_nf, hljl_oB, hljl_n, hljl_cs, hljl_s,
-    hljl_ts)
-    styles::Component{:sheet}
-end
-#==output[code]
-julia_style (generic function with 1 method)
 ==#
 #==|||==#
 function olivesheet()
@@ -167,8 +100,7 @@ function olivesheet()
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Toolips.link("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
-    usingcell_style(), outputcell_style(), inputcell_style(), bdy, ipy_style(),
-    hidden_style(), jl_style(), toml_style(), julia_style(), pr,
+    inputcell_style(), bdy, cellside_style(), filec_style(), pr,
     Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("progress::-webkit-progress-bar", "background-color" => "whitesmoke"))
     st
@@ -182,7 +114,8 @@ function projectexplorer()
     style!(pexplore, "background" => "transparent", "position" => "absolute",
     "z-index" => "1", "top" => "0", "overflow-x" => "hidden",
      "padding-top" => 75px, "width" => "0", "height" => "90%", "left" => "0",
-     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%")
+     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%", 
+     "opacity" => 0percent)
     pexplore
 end
 #==output[code]
@@ -191,14 +124,14 @@ projectexplorer (generic function with 1 method)
 #==|||==#
 function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
-    on(c, explorericon, "click") do cm::ComponentModifier
+    on(c, explorericon, "click", ["olivemain"]) do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
             cm["settingsmenu"] =  "open" => "0"
             style!(cm, "settingicon", "transform" => "rotate(0deg)",
             "color" => "black")
             style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
             style!(cm, "projectexplorer", "width" => "500px", 
-            "overflow-y" => "scroll")
+            "overflow-y" => "scroll", "opacity" => 100percent)
             style!(cm, "olivemain", "margin-left" => "500px")
             style!(cm, explorericon, "color" => "lightblue")
             set_text!(cm, explorericon, "folder_open")
@@ -206,7 +139,7 @@ function explorer_icon(c::Connection)
             return
         else
             style!(cm, "projectexplorer", "width" => "0px", 
-            "overflow-y" => "hidden")
+            "overflow-y" => "hidden", "opacity" => 0percent)
             style!(cm, "olivemain", "margin-left" => "0px")
             set_text!(cm, explorericon, "drive_file_move_rtl")
             style!(cm, explorericon, "color" => "black")
@@ -281,7 +214,7 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
     innersection = div("$name")
     style!(innersection, "opacity" => 0percent, "height" => 0percent, 
     "padding" => 0px, "transition" => 1seconds, "pointer-events" => "none")
-    on(c, arrow, "click") do cm::ComponentModifier
+    on(c, arrow, "click", [outersection.name]) do cm::ComponentModifier
         if cm[outersection]["ex"] == "0"
             style!(cm, innersection, "opacity" => 100percent, "height" => "$fillto%", 
             "pointer-events" => "auto")
@@ -352,7 +285,7 @@ function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}
     style!(namebox, "width" => 25percent, "border" => "1px solid")
     savebutton = button("confirm_new", text = "confirm")
     cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click") do cm2::ComponentModifier
+    on(c, savebutton, "click", ["new_namebox", "selector"]) do cm2::ComponentModifier
         finalname = cm2[namebox]["text"]
         path = cm2["selector"]["text"]
         try
@@ -368,7 +301,7 @@ function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}
             olive_notify!(cm2, "failed to create $finalname !", color = "red")
         end
     end
-    on(c, cancelbutton, "click") do cm2::ComponentModifier
+    on(c, cancelbutton, "click", ["none"]) do cm2::ComponentModifier
         set_children!(cm2, "fileeditbox", Vector{Servable}())
         style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
     end
@@ -869,38 +802,38 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
     n_projects::Int64 = length(projects)
     append!(cm, "pinfoworkmenu", work_preview(c, proj))
     projbuild = build(c, cm, proj)
-    if(n_projects == 2)
-        style!(cm, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
-        proj.data[:pane] = "two"
-        append!(cm, "pane_two", projbuild)
-        append!(cm, "pane_two_tabs", tab)
-        return
-    elseif(n_projects == 1)
+    proj.data[:pane] = "one"
+    inpane2 = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
+    if length(inpane2) == 0
         proj.data[:pane] = "one"
-        append!(cm, "pane_one", projbuild)
+        set_children!(cm, "pane_one", [projbuild])
         append!(cm, "pane_one_tabs", tab)
+        [begin
+        if pro.id != proj.id
+            style_tab_closed!(cm, pro)
+        end
+        end  for pro in projects]
         return
     end
     if(cm["olivemain"]["pane"] == "1")
-        proj.data[:pane] = "one"
         inpane = findall(p::Project{<:Any} -> p[:pane] == "one", projects)
-        [begin
-            if projects[p].id != proj.id
-                style_tab_closed!(cm, projects[p])
-            end
-        end  for p in inpane]
+        proj.data[:pane] = "one"
+        append!(cm, "pane_one", projbuild)
         append!(cm, "pane_one_tabs", tab)
-        set_children!(cm, "pane_one", [projbuild])
+        [begin
+        if projects[p].id != proj.id
+            style_tab_closed!(cm, projects[p])
+        end
+        end  for p in inpane]
     else
         proj.data[:pane] = "two"
-        inpane = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
-        [begin
-            if projects[p].id != proj.id 
-                style_tab_closed!(cm, projects[p])
-            end
-        end  for p in inpane]
+        append!(cm, "pane_two", projbuild)
         append!(cm, "pane_two_tabs", tab)
-        set_children!(cm, "pane_two", [projbuild])
+        [begin
+        if projects[p].id != proj.id
+            style_tab_closed!(cm, projects[p])
+        end
+        end  for p in inpane2]
     end
 end
 #==output[code]

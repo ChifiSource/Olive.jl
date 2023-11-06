@@ -139,7 +139,7 @@ This is a callable build function that can be used to create a base file cell.
 """
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
     hiddencell = div("cell$(cell.id)")
-    hiddencell["class"] = "cell-hidden"
+    hiddencell["class"] = "file-cell"
     name = a("cell$(cell.id)label", text = cell.source, contenteditable = true)
     on(c, name, "click") do cm
         km = ToolipsSession.KeyMap()
@@ -255,7 +255,6 @@ Here are some other **important** functions to look at for creating file cells:
 function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     explorer::Bool = false)
     hiddencell = build_base_cell(c, cell, d)
-    hiddencell["class"] = "cell-jl"
     style!(hiddencell, "background-color" => "white")
     name = a("cell$(cell.id)label", text = cell.source)
     style!(name, "color" => "black")
@@ -399,7 +398,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     container = div("cellcontainer$(cell.id)")
-    filecell = div("cell$(cell.id)", class = "cell-ipynb", ex = 0)
+    filecell = div("cell$(cell.id)", class = "file-cell", ex = 0)
     childbox = div("child$(cell.id)")
     style!(container, "padding" => 0px, "margin-bottom" => 0px)
     expandarrow = topbar_icon("$(cell.id)expand", "expand_more")
@@ -408,7 +407,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     "border-color" => "darkblue", "height" => 0percent, 
     "border-width" => 0px, "transition" => 1seconds, "padding" => 0px)
     style!(filecell, "background-color" => "#FFFF88")
-    on(c, filecell, "click") do cm::ComponentModifier
+    on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin
         build(c, mcell, d)
         end
@@ -450,7 +449,7 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cell::Cell{:jl},
     d::Directory{<:Any})
     hiddencell = build_base_cell(c, cell, d)
-    hiddencell["class"] = "cell-jl"
+    style!(hiddencell, "background-color" => "#AA104F")
     style!(hiddencell, "cursor" => "pointer")
     hiddencell
 end
@@ -494,11 +493,7 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cell::Cell{:toml},
     d::Directory)
     hiddencell = build_base_cell(c, cell, d)
-    hiddencell["class"] = "cell-toml"
-    on(c, hiddencell, "dblclick") do cm::ComponentModifier
-        cs::Vector{Cell{<:Any}} = read_toml(cell.outputs)
-        add_to_session(c, cs, cm, cell.source, cell.outputs)
-    end
+    style!(hiddencell, "background-color" => "#000080")
     if cell.source == "Project.toml"
         activatebutton = topbar_icon("$(cell.id)act", "bolt")
         style!(activatebutton, "font-size" => 20pt, "color" => "white")
@@ -783,14 +778,13 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
     style!(inside, "border-top-left-radius" => 0px)
     if highlight
         highlight_box::Component{:div} = div("cellhighlight$(cell.id)",
-        text = "hl")
-        style!(highlight_box, "position" => "absolute",
+        text = "", class = "input_cell")
+        style!(highlight_box, "position" => "absolute !important",
         "background" => "transparent", "z-index" => "5", "padding" => 20px,
         "border-top-left-radius" => "0px !important",
-        "border-radius" => "0px !important", "line-height" => 15px, "overflow" => "hidden",
-        "max-width" => 100percent, "border-width" =>  0px,  "pointer-events" => "none",
-        "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
-        "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
+        "border-radius" => "0px !important",
+        "border-width" =>  0px,  "pointer-events" => "none", "color" => "#4C4646 !important",
+        "border-radius" => 0px, "max-width" => 90percent)
         on(c, inputbox, "keyup", ["cell$(cell.id)", "rawcell$(cell.id)"]) do cm2::ComponentModifier
             cell_highlight!(c, cm2, cell, proj)
         end
@@ -836,19 +830,15 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     highlight = highlight)
     output::Component{:div} = divider("cell$(cell.id)out", class = "output_cell", text = cell.outputs)
     if sidebox
-        sidebox::Component{:div} = div("cellside$(cell.id)")
+        sidebox::Component{:div} = div("cellside$(cell.id)", class = "cellside")
         cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
         cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
         on(c, cell_run, "click") do cm2::ComponentModifier
             evaluate(c, cm2, cell, proj)
         end
-        # TODO move these styles to stylesheet
-        style!(sidebox, "display" => "inline-block", "background-color" => "pink",
-        "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-        "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
+        sidebox[:class] = "cellside"
         style!(cell_drag, "color" => "white", "font-size" => 17pt)
         style!(cell_run, "color" => "white", "font-size" => 17pt)
-        # TODO move these styles to stylesheet
         push!(sidebox, cell_drag, br(), cell_run)
         push!(interiorbox, sidebox, inputbox)
     else
