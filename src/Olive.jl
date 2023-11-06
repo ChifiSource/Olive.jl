@@ -285,7 +285,7 @@ function session(c::Connection; key::Bool = true)
             remove!(cm2, "loaddiv")
             switch_work_dir!(c, cm2, env.pwd)
             [begin
-                append!(cm2, "pane_$(env.projects[1].data[:pane])_tabs", build_tab(c, proj))
+                append!(cm2, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj))
                 if proj.id != env.projects[1].id
                     style_tab_closed!(cm2, proj)
                 end

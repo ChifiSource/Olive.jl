@@ -7,7 +7,7 @@ function inputcell_style()
     "min-height" => 50px, "position" => "relative", "margin-top" => 0px,
     "display" => "inline-block", "border-left-top-radius" => "0px !important",
     "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray",
-    "line-height" => 24px)
+    "max-width" => 90percent, "overflow-wrap" => "break-word")
     st::Style
 end
 

@@ -778,14 +778,13 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
     style!(inside, "border-top-left-radius" => 0px)
     if highlight
         highlight_box::Component{:div} = div("cellhighlight$(cell.id)",
-        text = "hl")
-        style!(highlight_box, "position" => "absolute",
+        text = "", class = "input_cell")
+        style!(highlight_box, "position" => "absolute !important",
         "background" => "transparent", "z-index" => "5", "padding" => 20px,
         "border-top-left-radius" => "0px !important",
-        "border-radius" => "0px !important", "line-height" => 15px, "overflow" => "hidden",
-        "max-width" => 100percent, "border-width" =>  0px,  "pointer-events" => "none",
-        "color" => "#4C4646 !important", "border-radius" => 0px, "font-size" => 13pt, "letter-spacing" => 1px,
-        "font-family" => """"Lucida Console", "Courier New", monospace;""", "line-height" => 24px)
+        "border-radius" => "0px !important",
+        "border-width" =>  0px,  "pointer-events" => "none", "color" => "#4C4646 !important",
+        "border-radius" => 0px, "max-width" => 90percent)
         on(c, inputbox, "keyup", ["cell$(cell.id)", "rawcell$(cell.id)"]) do cm2::ComponentModifier
             cell_highlight!(c, cm2, cell, proj)
         end
