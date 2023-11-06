@@ -82,11 +82,11 @@ iconstyle (generic function with 1 method)
 ==#
 #==|||==#
 function filec_style()
-    s = Style("div.file-cell",
+    s = Style("div.file-cell", "height" => 30px, "padding" => 10px,
     "background-color" => "gray",
-     "width" => 80percent, "overflow" => "show",
+     "width" => 80percent, "overflow" => "show", "cursor" => "pointer",
     "padding" => 4px, "transition" => "0.5s")
-    s:"hover":["border" => "1px solid orange", "transform" => "scale(1.02)"]
+    s:"hover":["border" => "1px solid magenta", "transform" => "scale(1.02)"]
     s::Style
 end
 #==output[code]

@@ -398,32 +398,34 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     container = div("cellcontainer$(cell.id)")
-    filecell = div("cell$(cell.id)", class = "file-cell", ex = 0)
+    filecell = build_base_cell(c, cell, d)
+    filecell[:ex] = "0"
     childbox = div("child$(cell.id)")
     style!(container, "padding" => 0px, "margin-bottom" => 0px)
-    expandarrow = topbar_icon("$(cell.id)expand", "expand_more")
-    style!(expandarrow, "color" => "gray", "font-size" => 17pt)
-    style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-width-left" => 1px, 
+    style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-left-width" => 1px, 
+    "border-bottom-width" => 1px,
     "border-color" => "darkblue", "height" => 0percent, 
-    "border-width" => 0px, "transition" => 1seconds, "padding" => 0px)
-    style!(filecell, "background-color" => "#FFFF88")
+    "border-width" => 0px, "transition" => "600ms", "padding" => 0px)
+    style!(filecell, "background-color" => "#18191A")
     on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin
         build(c, mcell, d)
         end
         for mcell in directory_cells(cell.outputs * "/" * cell.source)])
         if cm[filecell]["ex"] == "0"
-            style!(cm, childbox, "height" => "auto", "opacity" => 100percent)
+            adjust = 40 * length(childs)
+            if adjust == 0
+                adjust = 40
+            end
+            adjust += 60
+            style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
+            set_children!(cm, childbox, childs)
             cm[filecell] = "ex" => "1"
             return
         end
-        set_children!(cm, childbox, childs)
         style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
         cm[filecell] = "ex" => "0"
     end
-    fname = a("$(cell.source)", text = cell.source)
-    style!(fname, "color" => "gray", "font-size" => 15pt)
-    push!(filecell, expandarrow, fname)
     push!(container, filecell, childbox)
     container
 end
