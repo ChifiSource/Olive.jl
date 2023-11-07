@@ -741,7 +741,14 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
         cell_delete!(c, cm2, cell, cells)
     end
     bind!(km, keybindings["evaluate"]) do cm2::ComponentModifier
-        evaluate(c, cm2, cell, proj)
+        icon = olive_loadicon()
+        icon.name = "load$(cell.id)"
+        icon["width"] = "20"
+        append!(cm2, "cellside$(cell.id)", icon)
+        script!(c, cm2, "$(cell.id)eval", type = "Timeout") do cm::ComponentModifier
+            evaluate(c, cm, cell, proj)
+            remove!(cm, "load$(cell.id)")
+        end
     end
     bind!(km, keybindings["new"]) do cm2::ComponentModifier
         cell_new!(c, cm2, cell, proj)
@@ -999,76 +1006,60 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm2::ComponentModifier, cell::Cell{:code},
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     window = proj.id
-    # set load icon
-    icon = olive_loadicon()
-    cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
-    cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
-    style!(cell_drag, "color" => "white", "font-size" => 17pt)
-    style!(cell_run, "color" => "white", "font-size" => 17pt)
-    on(c, cell_run, "click") do cm2::ComponentModifier
-        evaluate(c, cm2, cell, proj)
-    end
-    icon.name = "load$(cell.id)"
-    icon["width"] = "20"
-    remove!(cm2, cell_run)
-    set_children!(cm2, "cellside$(cell.id)", [icon])
-    script!(c, cm2, "$(cell.id)eval", type = "Timeout") do cm::ComponentModifier
-        cells = proj[:cells]
-        # get code
-        rawcode::String = cm["cell$(cell.id)"]["text"]
-        execcode::String = *("begin\n", rawcode, "\nend\n")
-        ret::Any = ""
-        p = Pipe()
-        err = Pipe()
-        standard_out::String = ""
-        redirect_stdio(stdout = p, stderr = err) do
-            try
-                ret = proj[:mod].evalin(Meta.parse(execcode))
-            catch e
-                ret = e
-            end
+    cells = proj[:cells]
+    # get code
+    rawcode::String = cm["cell$(cell.id)"]["text"]
+    execcode::String = *("begin\n", rawcode, "\nend\n")
+    ret::Any = ""
+    p = Pipe()
+    err = Pipe()
+    standard_out::String = ""
+    redirect_stdio(stdout = p, stderr = err) do
+        try
+            ret = proj[:mod].evalin(Meta.parse(execcode))
+        catch e
+            ret = e
         end
-        close(err)
-        close(Base.pipe_writer(p))
-        standard_out = replace(read(p, String), "\n" => "<br>")
-        # output
-        outp::String = ""
-        od = OliveDisplay()
-        [begin
+    end
+    close(err)
+    close(Base.pipe_writer(p))
+    standard_out = replace(read(p, String), "\n" => "<br>")
+    # output
+    outp::String = ""
+    od = OliveDisplay()
+    [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
             ext = xtname()
             on_code_evaluate(c, cm, ext, cell, proj)
         end
     end for m in methods(on_code_evaluate)]
-        if typeof(ret) <: Exception
-            Base.showerror(od.io, ret)
-            outp = replace(String(od.io.data), "\n" => "</br>")
-        elseif ~(isnothing(ret)) && length(standard_out) > 0
-            display(od, MIME"olive"(), ret)
-            outp = standard_out * "</br>" * String(od.io.data)
-        elseif ~(isnothing(ret)) && length(standard_out) == 0
-            display(od, MIME"olive"(), ret)
-            outp = String(od.io.data)
-        else
-            outp = standard_out
-        end
-        set_children!(cm, "cellside$(cell.id)", [cell_drag, br(), cell_run])
-        set_text!(cm, "cell$(cell.id)out", outp)
-        cell.outputs = outp
-        pos = findfirst(lcell -> lcell.id == cell.id, cells)
-        if pos == length(cells)
-            new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
-            push!(cells, new_cell)
-            append!(cm, window, build(c, cm, new_cell, proj))
-            focus!(cm, "cell$(new_cell.id)")
-            return
-        else
-            new_cell = cells[pos + 1]
-        end
+    if typeof(ret) <: Exception
+        Base.showerror(od.io, ret)
+        outp = replace(String(od.io.data), "\n" => "</br>")
+    elseif ~(isnothing(ret)) && length(standard_out) > 0
+        display(od, MIME"olive"(), ret)
+        outp = standard_out * "</br>" * String(od.io.data)
+    elseif ~(isnothing(ret)) && length(standard_out) == 0
+        display(od, MIME"olive"(), ret)
+        outp = String(od.io.data)
+    else
+        outp = standard_out
+    end
+    set_text!(cm, "cell$(cell.id)out", outp)
+    cell.outputs = outp
+    pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    if pos == length(cells)
+        new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
+        push!(cells, new_cell)
+        append!(cm, window, build(c, cm, new_cell, proj))
+        focus!(cm, "cell$(new_cell.id)")
+        return
+    else
+        new_cell = cells[pos + 1]
     end
 end
 #==output[code]
