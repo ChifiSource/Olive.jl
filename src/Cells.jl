@@ -871,8 +871,10 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
+    sideb = interior[:children]["cellside$(cell.id)"]
+    style!(sideb, "background-color" => "pink")
     ToolipsMarkdown.clear!(tm)
-    bind!(c, cm, inp[:children]["cell$(cell.id)"], km, ["cell$(cell.id)", "cellinput$(cell.id)", "cellsidebox$(cell.id)", "cellhightlight$(cell.id)"], on = :down)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km, ["cell$(cell.id)", "cellinput$(cell.id)", "cellside$(cell.id)", "cellhightlight$(cell.id)"], on = :down)
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
@@ -1076,20 +1078,24 @@ Session cells
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
-    newcell = build_base_cell(c, cm, cell. proj, highlight = true, sidebox = true)
-    on(c, cm, tlcell, "dblclick") do cm::ComponentModifier
-        set_text!(cm, tlcell, replace(cell.source, "\n" => "</br>"))
-        cm["olivemain"] = "cell" => string(cell.n)
-        cm[tlcell] = "contenteditable" => "true"
-    end
-    on(c, cm, tlcell, "click") do cm::ComponentModifier
-        focus!(cm, tlcell)
+    newcell = build_base_cell(c, cm, cell, proj, highlight = true, sidebox = true)
+    windowname::String = proj.id
+   # tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
+    #tm.raw = cell.source
+    #ToolipsMarkdown.mark_julia!(tm)
+    km = cell_bind!(c, cell, proj)
+    interior = newcell[:children]["cellinterior$(cell.id)"]
+    inp = interior[:children]["cellinput$(cell.id)"]
+    sideb = interior[:children]["cellside$(cell.id)"]
+    style!(sideb, "background-color" => "#88807B")
+    inp[:contenteditable] = false
+    on(c, cm, inp, "dblclick", ["none"]) do cm::ComponentModifier
+        set_text!(cm, inp, replace(cell.source, "\n" => "<br>"))
+        cm[inp] = "contenteditable" => "true"
     end
     km = cell_bind!(c, cell, proj)
-    bind!(c, cm, tlcell, km)
-    tlcell[:children] = [innercell]
-    push!(conta, tlcell)
-    conta
+    bind!(c, cm, inp, km)
+    newcell::Component{:div}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1097,13 +1103,11 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
-    if cm["cell$(cell.id)"]["contenteditable"] == "true"
-        activemd = replace(cm["cell$(cell.id)"]["text"], """<div style="background-color: rgb(255, 255, 255);">""" => "")
-        cell.source = activemd * "\n"
-        newtmd = tmd("cell$(cell.id)tmd", cell.source)
-        set_children!(cm, "cell$(cell.id)", [newtmd])
-        cm["cell$(cell.id)"] = "contenteditable" => "false"
-    end
+    activemd = cm["cell$(cell.id)"]["text"]
+    cell.source = activemd
+    newtmd = tmd("cell$(cell.id)tmd", cell.source)
+    set_children!(cm, "cell$(cell.id)", [newtmd])
+    cm["cell$(cell.id)"] = "contenteditable" => "false"
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
