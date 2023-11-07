@@ -141,9 +141,9 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
     hiddencell = div("cell$(cell.id)")
     hiddencell["class"] = "file-cell"
     name = a("cell$(cell.id)label", text = cell.source, contenteditable = true)
-    on(c, name, "click") do cm
+    on(c, name, "dblclick", ["none"]) do cm
         km = ToolipsSession.KeyMap()
-        bind!(km, "Enter") do cm2
+        bind!(km, "Enter", [name.name]) do cm2
             fname = replace(cm2[name]["text"], "\n" => "")
             ps = split(cell.outputs, "/")
             nps = ps[1:length(ps) - 1]
@@ -174,7 +174,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
         outputfmt = "kb"
         fs = round(fs / 1000)
     end
-    on(c, hiddencell, "dblclick") do cm::ComponentModifier
+    on(c, hiddencell, "dblclick", ["none"]) do cm::ComponentModifier
         cs::Vector{Cell{<:Any}} = olive_read(cell)
         add_to_session(c, cs, cm, cell.source, cell.outputs)
     end
@@ -182,12 +182,12 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
     style!(finfo, "color" => "white", "float" => "right", "font-weight" => "bold")
     delbutton = topbar_icon("$(cell.id)expand", "cancel")
     copyb = topbar_icon("copb$(cell.id)", "copy")
-    on(c, delbutton, "click") do cm::ComponentModifier
+    on(c, delbutton, "click", ["none"]) do cm::ComponentModifier
         rm(cell.outputs)
         olive_notify!(cm, "file deleted", color = "red")
         remove!(cm, hiddencell)
     end
-    on(c, copyb, "click") do cm::ComponentModifier
+    on(c, copyb, "click", ["none"]) do cm::ComponentModifier
         copy_file!(c, cm, d, cell.outputs)
     end
     movbutton = topbar_icon("$(cell.id)move", "drive_file_move")
@@ -728,6 +728,9 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
         cm["olivemain"] = "ex" => "1"
         save_project_as(c, cm, proj)
     end
+    bind!(km, keybindings["focusup"]) do cm::ComponentModifier
+        focus_up!(c, cm, cell, proj)
+    end
     bind!(km, keybindings["up"]) do cm2::ComponentModifier
         cell_up!(c, cm2, cell, proj)
     end
@@ -742,9 +745,6 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
     end
     bind!(km, keybindings["new"]) do cm2::ComponentModifier
         cell_new!(c, cm2, cell, proj)
-    end
-    bind!(km, keybindings["focusup"]) do cm::ComponentModifier
-        focus_up!(c, cm, cell, proj)
     end
     bind!(km, keybindings["focusdown"]) do cm::ComponentModifier
         focus_down!(c, cm, cell, proj)
@@ -872,7 +872,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     ToolipsMarkdown.clear!(tm)
-    bind!(c, cm, inp[:children]["cell$(cell.id)"], km, on = :down)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km, ["cell$(cell.id)", "cellinput$(cell.id)", "cellsidebox$(cell.id)", "cellhightlight$(cell.id)"], on = :down)
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}

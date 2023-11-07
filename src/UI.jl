@@ -332,7 +332,7 @@ function copy_file!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any},
     style!(namebox, "width" => 80percent, "border" => "1px solid")
     savebutton = button("confirm_new", text = "confirm")
     cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click") do cm2::ComponentModifier
+    on(c, savebutton, "click", [namebox.name, "selector"]) do cm2::ComponentModifier
         finalname = cm2[namebox]["text"]
         path = cm2["selector"]["text"]
         try
@@ -344,7 +344,7 @@ function copy_file!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any},
             olive_notify!(cm2, "failed to create $finalname !", color = "red")
         end
     end
-    on(c, cancelbutton, "click") do cm2::ComponentModifier
+    on(c, cancelbutton, "click", ["none"]) do cm2::ComponentModifier
         set_children!(cm2, "fileeditbox", Vector{Servable}())
         style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
     end
@@ -1097,6 +1097,7 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     push!(c[:OliveCore].pool, proj.id)
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
+    [proj[:mod].feld = nothing for feld in names(proj[:mod])]
     Pkg.gc()
 end
 #==output[code]

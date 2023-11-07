@@ -372,14 +372,10 @@ cells and directories
 - Directory(uri::String, access::Pair{String, String} ...; dirtype::String = "olive")
 """
 mutable struct Directory{S <: Any}
-    dirtype::String
     uri::String
-    access::Dict{String, String}
-    cells::Vector{Cell}
     function Directory(uri::String, access::Pair{String, String} ...;
         dirtype::String = "olive")
-        file_cells = directory_cells(uri, access ...)
-        new{Symbol(dirtype)}(dirtype, uri, Dict(access ...), file_cells)
+        new{Symbol(dirtype)}(uri)
     end
 end
 
@@ -453,7 +449,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
     end
     cells::Vector{Servable} = Vector{Servable}([begin
         Base.invokelatest(m.build, c, cell, dir)
-    end for cell in dir.cells])
+    end for cell in directory_cells(dir.uri)])
     cellcontainer = section("$(becell)cells")
     cellcontainer[:children] = cells
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")

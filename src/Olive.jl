@@ -35,17 +35,6 @@ export evalin
 code/none
 ==#
 #--
-function version()
-    srcdir = replace(@__DIR__, "\\" => "/")
-    splits = split(srcdir, "/")
-    oliveprojdir = join(splits[1:length(splits) - 1], "/")
-    projinfo = TOML.parse(read(oliveprojdir * "/Project.toml", String))
-    projinfo["version"]
-end
-#==
-code/none
-==#
-#--
 """
 ### Olive 
 ````
@@ -75,44 +64,7 @@ code/none
 #--
 function olive_motd()
     recent_str::String = """# olive editor
-    ##### version $(version()) (pre-release)
-    - Fixed Windows (the OS) directories (replaced backslashes with slashes).
-    - Added new `Environment` to encompass projects.
-    - Added parametric `Project` methods `source_module!` + `check!`.
-    - Fixed event reference loss in linker.
-    - **include** cells.
-    - Changed REPL cells -- `Enter` to run, `Shift` + `Enter` runs to next cell.
-    **note** that this requires `ToolipsSession` **0.3.4+**.
-     If using an earlier version, both `Shift` + `Enter` and `Enter` will do
-     the same thing -- run the cell.
-    - Substantial improvements to **helprepl** and **pkgrepl** cells.
-    - Fixed checkbox binding population in settings menu.
-    - Updated **creator** cells to focus on new cell.
-    - Save as binding in file menu.
-    - Added drag indicator to file cells (no drag yet).
-    - Removed last evaluation key from cell.
-    - Updated directory styles.
-    - Changed windowing from in-line to pane view
-    - prevented defaults
-    - added window key-bindings, shift focus (`shift + ArrowUp`)
-    - Added syntax highlighting colors to settings panel.
-    - Added workspace manager, directory additions.
-    - Added pane-based window management
-    - Revised highlighting
-    - Changed extension dispatches
-    - Changed cell dispatches to include projects
-    - olive now opens any file
-    This version was mainly focused on fixing the issues associated with
-    the initial `0.0.8` release. There have also been substantial revisions 
-    to windowing. There is now a new work-space manager with a split-pane view.
-    There were also some slight tweaks made to the data structure within Olive. 
-    Some cells have received updates, along with the addition of **include** cells, 
-    **module** cells, and sub-projects.
-    #### moving forward
-    With the step from `0.0.9` to `0.1.0`, Olive is going to focus primarily on 
-    memory management and performance, with a secondary focus on 
-    making the features that olive already has better. This feature will 
-    mostly seek to wrap up all that is incomplete in this release.
+    ##### $(pkgversion(Olive)) (pre-release) (Unstable)
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
