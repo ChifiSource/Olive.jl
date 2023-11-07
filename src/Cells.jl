@@ -966,7 +966,7 @@ end
 ```
 """
 function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
-    cell::Cell{:code}, proj::Project{<:Any})
+    cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div})
 
 end
 #==output[code]
@@ -1076,15 +1076,7 @@ Session cells
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
-    tlcell = ToolipsDefaults.textdiv("cell$(cell.id)",
-    "class" => "cell")
-    tlcell[:text] = ""
-    tlcell[:contenteditable] = false
-    conta = div("cellcontainer$(cell.id)")
-    style!(tlcell, "border-width" => 2px, "border-style" => "solid",
-    "min-height" => 2percent)
-    innercell = tmd("celltmd$(cell.id)", cell.source)
-    style!(innercell, "min-hight" => 2percent)
+    newcell = build_base_cell(c, cm, cell. proj, highlight = true, sidebox = true)
     on(c, cm, tlcell, "dblclick") do cm::ComponentModifier
         set_text!(cm, tlcell, replace(cell.source, "\n" => "</br>"))
         cm["olivemain"] = "cell" => string(cell.n)
@@ -1112,6 +1104,11 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
         set_children!(cm, "cell$(cell.id)", [newtmd])
         cm["cell$(cell.id)"] = "contenteditable" => "false"
     end
+end
+
+function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
+    proj::Project{<:Any})
+    
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
