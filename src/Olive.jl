@@ -35,17 +35,6 @@ export evalin
 code/none
 ==#
 #--
-function version()
-    srcdir = replace(@__DIR__, "\\" => "/")
-    splits = split(srcdir, "/")
-    oliveprojdir = join(splits[1:length(splits) - 1], "/")
-    projinfo = TOML.parse(read(oliveprojdir * "/Project.toml", String))
-    projinfo["version"]
-end
-#==
-code/none
-==#
-#--
 """
 ### Olive 
 ````
@@ -60,14 +49,16 @@ mod = eval(Meta.parse(olive_module("mymod", ".")))
 """
 function olive_module(modname::String, environment::String)
     """
-    module $(modname)
+    baremodule $(modname)
     using Pkg
-
+    using Base
+    eval(e::Any) = Core.eval($(modname), e)
     function evalin(ex::Any)
             Pkg.activate("$environment")
             ret = eval(ex)
     end
-end"""
+    end
+    """
 end
 #==
 code/none
@@ -75,44 +66,10 @@ code/none
 #--
 function olive_motd()
     recent_str::String = """# olive editor
-    ##### version $(version()) (pre-release)
-    - Fixed Windows (the OS) directories (replaced backslashes with slashes).
-    - Added new `Environment` to encompass projects.
-    - Added parametric `Project` methods `source_module!` + `check!`.
-    - Fixed event reference loss in linker.
-    - **include** cells.
-    - Changed REPL cells -- `Enter` to run, `Shift` + `Enter` runs to next cell.
-    **note** that this requires `ToolipsSession` **0.3.4+**.
-     If using an earlier version, both `Shift` + `Enter` and `Enter` will do
-     the same thing -- run the cell.
-    - Substantial improvements to **helprepl** and **pkgrepl** cells.
-    - Fixed checkbox binding population in settings menu.
-    - Updated **creator** cells to focus on new cell.
-    - Save as binding in file menu.
-    - Added drag indicator to file cells (no drag yet).
-    - Removed last evaluation key from cell.
-    - Updated directory styles.
-    - Changed windowing from in-line to pane view
-    - prevented defaults
-    - added window key-bindings, shift focus (`shift + ArrowUp`)
-    - Added syntax highlighting colors to settings panel.
-    - Added workspace manager, directory additions.
-    - Added pane-based window management
-    - Revised highlighting
-    - Changed extension dispatches
-    - Changed cell dispatches to include projects
-    - olive now opens any file
-    This version was mainly focused on fixing the issues associated with
-    the initial `0.0.8` release. There have also been substantial revisions 
-    to windowing. There is now a new work-space manager with a split-pane view.
-    There were also some slight tweaks made to the data structure within Olive. 
-    Some cells have received updates, along with the addition of **include** cells, 
-    **module** cells, and sub-projects.
-    #### moving forward
-    With the step from `0.0.9` to `0.1.0`, Olive is going to focus primarily on 
-    memory management and performance, with a secondary focus on 
-    making the features that olive already has better. This feature will 
-    mostly seek to wrap up all that is incomplete in this release.
+    ##### $(pkgversion(Olive)) (pre-release) (Unstable)
+    - **thank you for trying olive !**
+    - [github](https://github.com/ChifiSource/Olive.jl)
+    - [issues](https://github.com/ChifiSource/Olive.jl/issues)
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
@@ -130,17 +87,11 @@ include("UI.jl")
 include/none
 ==#
 #--
-"""
-### route ("/") (main)
---- 
-This is the function/Route which runs olive's "session" page, the main editor
-    for olive.
-"""
-function session(c::Connection; key::Bool = false)
+function verify_client!(c::Connection)
     args = getargs(c)
     if ~(:key in keys(args))
         coverimg::Component{:img} = olive_cover()
-        olivecover = div("topdiv", align = "center")
+        olivecover::Component{:div} = div("topdiv", align = "center")
         logbutt = button("requestaccess", text = "request access")
         on(c, logbutt, "click") do cm::ComponentModifier
             c[:Logger].log(" someone is trying to login to olive! is this you?")
@@ -148,7 +99,7 @@ function session(c::Connection; key::Bool = false)
             if y == "y"
                 c[:Logger].log(" okay, logging in as root.")
                 key = ToolipsSession.gen_ref(16)
-                push!(c[:OliveCore].client_keys[key] => c[:OliveCore].data["root"])
+                push!(c[:OliveCore].client_keys, [key] => c[:OliveCore].data["root"])
                 redirect!(cm, "/?key=$(key)")
             end
         end
@@ -165,38 +116,45 @@ function session(c::Connection; key::Bool = false)
     if ~(getip(c) in keys(c[:OliveCore].names))
         push!(c[:OliveCore].names, getip(c) => uname)
     end
-    c[:OliveCore].names[getip(c)] = uname
-    # check for environment, if none load.
-    envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
-    if isnothing(envsearch)
-        cells = Vector{Cell}([Cell(1, "versioninfo", "")])
-        env::Environment = Environment(getname(c))
-        env.pwd = c[:OliveCore].data["wd"]
-        pwd_direc = Directory(env.pwd)
-        projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
-        :pane => "one", :env => " ")
-        sourced_path = " "
-        if "home" in keys(c[:OliveCore].data)
-            push!(projdict, :env => c[:OliveCore].data["home"])
-            sourced_path = c[:OliveCore].data["home"]
-        end
-        myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
-        Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, 
-        sourced_path)
-        Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
-        push!(env.directories, pwd_direc)
-        if c[:OliveCore].data["root"] == getname(c)
-            if "home" in keys(c[:OliveCore].data)
-                home_direc = Directory(c[:OliveCore].data["home"])
-                push!(env.directories, home_direc)
-            end
-        end
-        push!(env.projects, myproj)
-        push!(c[:OliveCore].open, env)
-    else
-        env = c[:OliveCore].open[getname(c)]
+    uname::String
+end
+#==
+code/none
+==#
+#--
+function load_default_project!(c::Connection)
+    cells = Vector{Cell}([Cell(1, "getstarted", "")])
+    env::Environment = Environment(getname(c))
+    env.pwd = c[:OliveCore].data["wd"]
+    pwd_direc = Directory(env.pwd)
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
+    :pane => "one", :env => " ")
+    sourced_path = " "
+    if "home" in keys(c[:OliveCore].data)
+        push!(projdict, :env => c[:OliveCore].data["home"])
+        sourced_path = c[:OliveCore].data["home"]
     end
-     # setup base UI
+    myproj::Project{<:Any} = Project{:olive}("get started", projdict)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, 
+    sourced_path)
+    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    push!(env.directories, pwd_direc)
+    if c[:OliveCore].data["root"] == getname(c)
+        if "home" in keys(c[:OliveCore].data)
+            home_direc = Directory(c[:OliveCore].data["home"])
+            push!(env.directories, home_direc)
+        end
+    end
+    push!(env.projects, myproj)
+    push!(c[:OliveCore].open, env)
+    env::Environment
+end
+#==
+code/none
+==#
+#--
+
+function build(c::Connection, env::Environment)
     write!(c, olivesheet())
     c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
@@ -211,7 +169,7 @@ function session(c::Connection; key::Bool = false)
     Base.invokelatest(olmod.build, c, d, olmod)
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
-    olivemain["pane"] = "2"
+    olivemain["pane"] = "1"
     pane_one::Component{:section} = section("pane_one")
     pane_one_tabs::Component{:div} = div("pane_one_tabs")
     style!(pane_one_tabs, "display" => "inline", "padding" => 0px, "width" => 50percent)
@@ -249,21 +207,56 @@ function session(c::Connection; key::Bool = false)
     bod = body("mainbody")
     style!(bod, "overflow" => "hidden")
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
-    script!(c, "load", ["olivemain"], type = "Timeout") do cm::ComponentModifier
+    return(bod, loadicondiv, olmod)
+end
+
+#==
+code/none
+==#
+#--
+"""
+### route ("/") (main)
+--- 
+This is the function/Route which runs olive's "session" page, the main editor
+    for olive.
+"""
+function session(c::Connection; key::Bool = true)
+    uname::String = c[:OliveCore].data["root"]
+    if key
+        uname = verify_client!(c)
+    end
+    # check for environment, if none load.
+    envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
+    if isnothing(envsearch)
+        env::Environment = load_default_project!(c)
+    else
+        env = c[:OliveCore].open[getname(c)]
+    end
+     # setup base UI
+    bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env)
+    script!(c, "load", ["olivemain"], type = "Timeout", time = 350) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
         ToolipsSession.insert!(cm, "projectexplorer", 1, work_menu(c))
         next!(c, loadicondiv, cm, ["olivemain"]) do cm2::ComponentModifier
             remove!(cm2, "loaddiv")
-            switch_work_dir!(c, cm, env.pwd)
+            switch_work_dir!(c, cm2, env.pwd)
             [begin
-                window::Component{:div} = Base.invokelatest(olmod.build, c,
-                cm2, proj)
-                append!(cm2, "pane_$(proj.data[:pane])", window)
                 append!(cm2, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj))
+                if proj.id != env.projects[1].id
+                    style_tab_closed!(cm2, proj)
+                end
             end for proj in env.projects]
-            if length(findall(proj -> proj[:pane] == "two", env.projects)) > 0
-                style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+            if length(env.projects) > 0
+                window::Component{:div} = Base.invokelatest(olmod.build, c,
+                cm2, env.projects[1])
+                append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
+                p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
+                if ~(isnothing(p2i))
+                    style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+                    append!(cm2,"pane_two", Base.invokelatest(olmod.build, c,
+                    cm2, env.projects[1]))
+                end
             end
         end
     end
@@ -393,7 +386,6 @@ setup = route("/") do c::Connection
             [remove!(cm2, b_cell) for b_cell in built_cells]
             style!(cm2, questions, "transform" => "translateY(0%)", "opacity" => 100percent)
         end
-        #
     end
     push!(bod, confirm_button)
     write!(c, bod)

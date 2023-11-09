@@ -50,7 +50,7 @@ end
 - OliveExtension{}
 """
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
-    rootc::Dict{String, AbstractComponent}
+    rootc::Vector{Servable}
     changes::Vector{String}
     data::Dict{String, Any}
     function OliveModifier(c::Connection, cm::ComponentModifier)
@@ -142,7 +142,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         "save" => ["s", "ctrl"],
         "saveas" => ["S", "ctrl", "shift"],
         "open" => ["O", "ctrl"],
-        "find" => ["F", "ctrl"]
+        "find" => ["F", "ctrl"], 
+        "explorer" => ["E", "ctrl"]
         ))
     end
     keybind_drop = containersection(c, "keybindings", fillto = 90)
@@ -261,26 +262,38 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
         ToolipsMarkdown.highlight_julia!(tm)
         tomltm = ToolipsMarkdown.TextStyleModifier("")
         toml_style!(tomltm)
+        mdtm = ToolipsMarkdown.TextStyleModifier("")
+        markdown_style!(mdtm)
         dic = Dict{String, Dict{<:Any, <:Any}}()
         push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
-        push!(dic, "julia" => Dict{String, String}(
-            [string(k) => string(v[1][2]) for (k, v) in tm.styles]))
-        push!(dic, "toml" => Dict{String, String}(
-            [string(k) => string(v[1][2]) for (k, v) in tomltm.styles]))
+        push!(dic, "julia" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tm.styles),
+            "toml" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tomltm.styles),
+            "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
+    end
+    # TODO Exception for markdown highlighter missing will be removed `0.1.0`
+    if ~("markdown" in keys(c[:OliveCore].client_data[getname(c)]["highlighting"]))
+        mdtm = ToolipsMarkdown.TextStyleModifier("")
+        markdown_style!(mdtm)
+        push!(c[:OliveCore].client_data[getname(c)]["highlighting"], 
+        "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
     end
     if ~("highlighters" in keys(c[:OliveCore].client_data[getname(c)]))
         highlighting = c[:OliveCore].client_data[getname(c)]["highlighting"]
         julia_highlighter = ToolipsMarkdown.TextStyleModifier("")
         toml_highlighter = ToolipsMarkdown.TextStyleModifier("")
-        julia_highlighter.styles = Dict([begin
+        md_highlighter = ToolipsMarkdown.TextStyleModifier("")
+        julia_highlighter.styles = Dict(begin
             Symbol(k[1]) => ["color" => k[2]]
-        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["julia"]])
-        toml_highlighter.styles = Dict([begin
+        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["julia"])
+        toml_highlighter.styles = Dict(begin
             Symbol(k[1]) => ["color" => k[2]]
-        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["toml"]])
+        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["toml"])
+        md_highlighter.styles = Dict(begin
+            Symbol(k[1]) => ["color" => k[2]]
+        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["markdown"])
         push!(c[:OliveCore].client_data[getname(c)], 
         "highlighters" => Dict{String, ToolipsMarkdown.TextStyleModifier}(
-            "julia" => julia_highlighter, "toml" => toml_highlighter
+            "julia" => julia_highlighter, "toml" => toml_highlighter, "markdown" => md_highlighter
         ))
     end
     dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
@@ -372,14 +385,10 @@ cells and directories
 - Directory(uri::String, access::Pair{String, String} ...; dirtype::String = "olive")
 """
 mutable struct Directory{S <: Any}
-    dirtype::String
     uri::String
-    access::Dict{String, String}
-    cells::Vector{Cell}
     function Directory(uri::String, access::Pair{String, String} ...;
         dirtype::String = "olive")
-        file_cells = directory_cells(uri, access ...)
-        new{Symbol(dirtype)}(dirtype, uri, Dict(access ...), file_cells)
+        new{Symbol(dirtype)}(uri)
     end
 end
 
@@ -444,6 +453,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
                 olive_notify!(cm,
                 "failed to source olive module",
                 color = "red")
+                print(e)
             end
         end
         style!(srcbutton,"font-size" => 20pt, "color" => "red",
@@ -452,7 +462,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
     end
     cells::Vector{Servable} = Vector{Servable}([begin
         Base.invokelatest(m.build, c, cell, dir)
-    end for cell in dir.cells])
+    end for cell in directory_cells(dir.uri)])
     cellcontainer = section("$(becell)cells")
     cellcontainer[:children] = cells
     new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
@@ -477,7 +487,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
         dir.cells = directory_cells(dir.uri)
         cells = Vector{Servable}([begin
         Base.invokelatest(m.build, c, cell, dir)
-    end for cell in dir.cells])
+        end for cell in directory_cells(dir.uri)])
         set_children!(cm, cellcontainer, cells)
     end
     push!(containerbody, cellcontainer)
@@ -671,7 +681,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function source_module!(oc::OliveCore)
-    homemod = """module olive
+    homemod = """baremodule olive
     using Olive
     end"""
     pmod = Meta.parse(homemod)

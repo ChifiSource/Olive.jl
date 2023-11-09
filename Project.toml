@@ -1,7 +1,7 @@
 name = "Olive"
 uuid = "724ecaf6-c7a0-4c22-b37e-0bb7b4193da8"
 authors = ["emmac <emmettgb@gmail.com>"]
-version = "0.0.9"
+version = "0.0.91"
 
 [deps]
 IPyCells = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
@@ -21,6 +21,6 @@ Toolips = "0.2.0"
 IPyCells = "0.1.0"
 ToolipsBase64 = "0.1.0"
 ToolipsMarkdown = "0.1.0"
-ToolipsSession = "0.3.4"
+ToolipsSession = "0.3.5"
 TOML = "1.0"
 Pkg = "1.0"
