@@ -1,6 +1,6 @@
 function inputcell_style()
     st = Style("div.input_cell", border = "2px solid gray", padding = "20px",
-    "border-radius" => 30px, "margin-top" => 30px, "transition" => 1seconds,
+    "border-radius" => 8px, "margin-top" => 30px, "transition" => 1seconds,
     "font-size" => 13pt, "letter-spacing" => 1px,
     "font-family" => """"Lucida Console", "Courier New", monospace;""",
     "line-height" => 15px, "width" => 90percent, "border-bottom-left-radius" => 0px,
@@ -949,6 +949,7 @@ function tab_controls(c::Connection, p::Project{<:Any})
         new_cell = Cell(length(cells) + 1, "creator", "")
         push!(cells, new_cell)
         append!(cm2, fname, build(c, cm2, new_cell, p))
+        focus!(cm2, "cell$(new_cell.id)")
     end
     runall_button = topbar_icon("$(fname)run", "start")
     on(c, runall_button, "click") do cm2::ComponentModifier
