@@ -1,6 +1,6 @@
 function inputcell_style()
     st = Style("div.input_cell", border = "2px solid gray", padding = "20px",
-    "border-radius" => 30px, "margin-top" => 30px, "transition" => 1seconds,
+    "border-radius" => 8px, "margin-top" => 30px, "transition" => 1seconds,
     "font-size" => 13pt, "letter-spacing" => 1px,
     "font-family" => """"Lucida Console", "Courier New", monospace;""",
     "line-height" => 15px, "width" => 90percent, "border-bottom-left-radius" => 0px,
@@ -446,7 +446,7 @@ create a new button inside of the **create** menu in the **inspector**.
 ```
 """
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
-    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}(), 
+    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}(Cell(1, "code", "")), 
     :env => c[:OliveCore].data["home"])
     newproj = Project{:olive}("new", projdata)
     source_module!(c, newproj, "new")
@@ -705,8 +705,9 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String)
     [string(dig) => "" for dig in digits(1234567890)] ...)
     end
     modstr = olive_module(name, p[:env])
-    Main.evalin(Meta.parse(modstr))
-    mod::Module = getfield(Main, Symbol(name))
+ #   Main.evalin(Meta.parse(modstr))
+  #  mod::Module = getfield(Main, Symbol(name))
+    mod::Module = eval(Meta.parse(modstr))
     push!(p.data, :mod => mod)
 end
 #==output[code]
@@ -948,6 +949,7 @@ function tab_controls(c::Connection, p::Project{<:Any})
         new_cell = Cell(length(cells) + 1, "creator", "")
         push!(cells, new_cell)
         append!(cm2, fname, build(c, cm2, new_cell, p))
+        focus!(cm2, "cell$(new_cell.id)")
     end
     runall_button = topbar_icon("$(fname)run", "start")
     on(c, runall_button, "click") do cm2::ComponentModifier
