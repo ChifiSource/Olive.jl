@@ -542,6 +542,13 @@ end
 code/none
 ==#
 #--
+function rebuild_settings!()
+
+end
+#==
+code/none
+==#
+#--
 export OliveCore, build, Pkg, TOML
 export OliveExtension, OliveModifier, Cell
 #==

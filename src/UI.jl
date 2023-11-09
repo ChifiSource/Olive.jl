@@ -705,9 +705,8 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String)
     [string(dig) => "" for dig in digits(1234567890)] ...)
     end
     modstr = olive_module(name, p[:env])
- #   Main.evalin(Meta.parse(modstr))
-  #  mod::Module = getfield(Main, Symbol(name))
-    mod::Module = eval(Meta.parse(modstr))
+    Main.evalin(Meta.parse(modstr))
+    mod::Module = getfield(Main, Symbol(name))
     push!(p.data, :mod => mod)
 end
 #==output[code]
