@@ -722,7 +722,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
     end
     bind!(km, keybindings["saveas"], prevent_default = true) do cm::ComponentModifier
         style!(cm, "projectexplorer", "width" => "500px")
-        style!(cm, "olivemain", "margin-left" => "500px")ToolipsSession.KeyMap
+        style!(cm, "olivemain", "margin-left" => "500px")
         style!(cm, "explorerico", "color" => "lightblue")
         set_text!(cm, "explorerico", "folder_open")
         cm["olivemain"] = "ex" => "1"
@@ -783,7 +783,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
     inputbox::Component{:div} = div("cellinput$(cell.id)")
     inside::Component{:div} = ToolipsDefaults.textdiv("cell$(cell.id)",
     text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"),
-    "class" => "input_cell")
+    "class" => "input_cell", "spellcheck" => false)
     style!(inside, "border-top-left-radius" => 0px)
     if highlight
         highlight_box::Component{:div} = div("cellhighlight$(cell.id)",
@@ -1082,6 +1082,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     push!(maincell, newtmd)
     on(c, cm, maincell, "dblclick", ["none"]) do cm::ComponentModifier
         cm["cell$(cell.id)"] = "contenteditable" => "true"
+        set_children!(cm, "cell$(cell.id)", Vector{Servable}())
         set_text!(cm, "cell$(cell.id)", replace(cell.source, "\n" => "<br>"))
         tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
         tm.raw = cell.source
@@ -1110,7 +1111,7 @@ end
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
-    cell.source = curr
+    cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
     tm.raw = cell.source
     mark_markdown!(tm)
@@ -1198,17 +1199,36 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:versioninfo},
+function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     proj::Project{<:Any})
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = false, highlight = false)
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
+    getstarted = div("getstarted$(cell.id)", contenteditable = false)
+    style!(getstarted, "padding" => 8px, "margin-top" => 0px)
+    use_this = button("new$(cell.id)", text = "start now")
+    push!(getstarted, h("gshead$(cell.id)", 4, text = ""), 
+    use_this)
+    on(c, use_this, "click", ["none"]) do cm::ComponentModifier
+        proj.data[:cells] = Vector{IPyCells.Cell{<:Any}}()
+        new_cell = Cell(1, "code", "")
+        push!(proj[:cells], new_cell)
+        append!(cm, proj.id, build(c, cm, new_cell, proj))
+        olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
+        remove!(cm, builtcell)
+        focus!(cm, "cell$(new_cell.id)")
+    end
+    if "recent" in keys(c[:OliveCore].client_data[getname(c)])
+        recent_projects = [begin
+        end]
+    end
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
-    style!(inp[:children]["cell$(cell.id)"], "color" => "black")
+    style!(inp[:children]["cell$(cell.id)"], "color" => "black", "border-left" => "6px solid pink", 
+    "border-top-left-radius" => 8px, "border-bottom-left-radius" => 8px, "margin-bottom" => 0px)
     inp[:children]["cell$(cell.id)"][:text] = ""
-    inp[:children]["cell$(cell.id)"][:children] = [olive_motd()]
+    inp[:children]["cell$(cell.id)"][:children] = [olive_motd(), getstarted]
     builtcell::Component{:div}
 end
 #==output[code]
@@ -1218,7 +1238,7 @@ inputcell_style (generic function with 1 method)
 function toml_style!(tm::ToolipsMarkdown.TextStyleModifier)
     style!(tm, :keys, ["color" => "#D67229"])
     style!(tm, :equals, ["color" => "purple"])
-    style!(tm, :string, ["color" => "darkgreen"])
+    style!(tm, :string, ["color" => "#007958"])
     style!(tm, :default, ["color" => "darkblue"])
     style!(tm, :number, ["color" => "#8b0000"])
 end
@@ -1232,6 +1252,7 @@ function markdown_style!(tm::ToolipsMarkdown.TextStyleModifier)
     style!(tm, :point, ["color" => "darkgreen"])
     style!(tm, :bold, ["color" => "darkblue"])
     style!(tm, :italic, ["color" => "#8b0000"])
+    style!(tm, :keys, ["color" => "#ffc00"])
     style!(tm, :code, ["color" => "#8b0000"])
     style!(tm, :default, ["color" => "brown"])
     style!(tm, :link, ["color" => "#8b0000"])
@@ -1250,6 +1271,7 @@ inputcell_style (generic function with 1 method)
 ==#
 function mark_markdown!(tm::ToolipsMarkdown.TextModifier)
     ToolipsMarkdown.mark_after!(tm, "# ", until = ["\n"], :heading)
+    ToolipsMarkdown.mark_between!(tm, "[", "]", :keys)
     ToolipsMarkdown.mark_between!(tm, "(", ")", :link)
     ToolipsMarkdown.mark_between!(tm, "*", "*", :italic)
     ToolipsMarkdown.mark_between!(tm, "**", "**", :bold)
@@ -1368,7 +1390,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
     cbox = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
     style!(cbox, "outline" => "transparent", "color" => "white")
-    on(c, cbox, "input") do cm2::ComponentModifier
+    on(c, cbox, "input", [cbox.name]) do cm2::ComponentModifier
         txt = cm2[cbox]["text"]
         if txt in keys(creatorkeys)
             cellt = creatorkeys[txt]

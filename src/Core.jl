@@ -487,7 +487,7 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
         dir.cells = directory_cells(dir.uri)
         cells = Vector{Servable}([begin
         Base.invokelatest(m.build, c, cell, dir)
-    end for cell in dir.cells])
+        end for cell in directory_cells(dir.uri)])
         set_children!(cm, cellcontainer, cells)
     end
     push!(containerbody, cellcontainer)
@@ -681,7 +681,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function source_module!(oc::OliveCore)
-    homemod = """module olive
+    homemod = """baremodule olive
     using Olive
     end"""
     pmod = Meta.parse(homemod)

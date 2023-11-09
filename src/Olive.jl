@@ -49,14 +49,16 @@ mod = eval(Meta.parse(olive_module("mymod", ".")))
 """
 function olive_module(modname::String, environment::String)
     """
-    module $(modname)
+    baremodule $(modname)
     using Pkg
-
+    using Base
+    eval(e::Any) = Core.eval($(modname), e)
     function evalin(ex::Any)
             Pkg.activate("$environment")
             ret = eval(ex)
     end
-end"""
+    end
+    """
 end
 #==
 code/none
@@ -65,6 +67,9 @@ code/none
 function olive_motd()
     recent_str::String = """# olive editor
     ##### $(pkgversion(Olive)) (pre-release) (Unstable)
+    - **thank you for trying olive !**
+    - [github](https://github.com/ChifiSource/Olive.jl)
+    - [issues](https://github.com/ChifiSource/Olive.jl/issues)
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
@@ -118,7 +123,7 @@ code/none
 ==#
 #--
 function load_default_project!(c::Connection)
-    cells = Vector{Cell}([Cell(1, "versioninfo", "")])
+    cells = Vector{Cell}([Cell(1, "getstarted", "")])
     env::Environment = Environment(getname(c))
     env.pwd = c[:OliveCore].data["wd"]
     pwd_direc = Directory(env.pwd)
@@ -229,7 +234,7 @@ function session(c::Connection; key::Bool = true)
     end
      # setup base UI
     bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env)
-    script!(c, "load", ["olivemain"], type = "Timeout", time = 250) do cm::ComponentModifier
+    script!(c, "load", ["olivemain"], type = "Timeout", time = 350) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
         ToolipsSession.insert!(cm, "projectexplorer", 1, work_menu(c))
@@ -242,14 +247,16 @@ function session(c::Connection; key::Bool = true)
                     style_tab_closed!(cm2, proj)
                 end
             end for proj in env.projects]
-            window::Component{:div} = Base.invokelatest(olmod.build, c,
-            cm2, env.projects[1])
-            append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
-            p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
-            if ~(isnothing(p2i))
-                style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
-                append!(cm2,"pane_two", Base.invokelatest(olmod.build, c,
-                cm2, env.projects[1]))
+            if length(env.projects) > 0
+                window::Component{:div} = Base.invokelatest(olmod.build, c,
+                cm2, env.projects[1])
+                append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
+                p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
+                if ~(isnothing(p2i))
+                    style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+                    append!(cm2,"pane_two", Base.invokelatest(olmod.build, c,
+                    cm2, env.projects[1]))
+                end
             end
         end
     end
@@ -379,7 +386,6 @@ setup = route("/") do c::Connection
             [remove!(cm2, b_cell) for b_cell in built_cells]
             style!(cm2, questions, "transform" => "translateY(0%)", "opacity" => 100percent)
         end
-        #
     end
     push!(bod, confirm_button)
     write!(c, bod)
