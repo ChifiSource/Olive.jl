@@ -12,7 +12,7 @@ function inputcell_style()
 end
 
 function cellside_style()
-    st = Style("div.cellside", "display" => "inline-block", "background-color" => "pink",
+    st = Style("div.cellside", "display" => "inline-block",
     "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
     "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
     st::Style
@@ -82,11 +82,11 @@ iconstyle (generic function with 1 method)
 ==#
 #==|||==#
 function filec_style()
-    s = Style("div.file-cell",
+    s = Style("div.file-cell", "height" => 30px, "padding" => 10px,
     "background-color" => "gray",
-     "width" => 80percent, "overflow" => "show",
+     "width" => 80percent, "overflow" => "show", "cursor" => "pointer",
     "padding" => 4px, "transition" => "0.5s")
-    s:"hover":["border" => "1px solid orange", "transform" => "scale(1.02)"]
+    s:"hover":["border" => "1px solid magenta", "transform" => "scale(1.02)"]
     s::Style
 end
 #==output[code]
@@ -332,7 +332,7 @@ function copy_file!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any},
     style!(namebox, "width" => 80percent, "border" => "1px solid")
     savebutton = button("confirm_new", text = "confirm")
     cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click") do cm2::ComponentModifier
+    on(c, savebutton, "click", [namebox.name, "selector"]) do cm2::ComponentModifier
         finalname = cm2[namebox]["text"]
         path = cm2["selector"]["text"]
         try
@@ -344,7 +344,7 @@ function copy_file!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any},
             olive_notify!(cm2, "failed to create $finalname !", color = "red")
         end
     end
-    on(c, cancelbutton, "click") do cm2::ComponentModifier
+    on(c, cancelbutton, "click", ["none"]) do cm2::ComponentModifier
         set_children!(cm2, "fileeditbox", Vector{Servable}())
         style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
     end
@@ -1097,6 +1097,7 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     push!(c[:OliveCore].pool, proj.id)
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
+    [proj[:mod].feld = nothing for feld in names(proj[:mod])]
     Pkg.gc()
 end
 #==output[code]
