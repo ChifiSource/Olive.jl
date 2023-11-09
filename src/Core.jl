@@ -681,7 +681,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function source_module!(oc::OliveCore)
-    homemod = """module olive
+    homemod = """baremodule olive
     using Olive
     end"""
     pmod = Meta.parse(homemod)

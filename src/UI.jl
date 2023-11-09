@@ -446,7 +446,7 @@ create a new button inside of the **create** menu in the **inspector**.
 ```
 """
 function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
-    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}(), 
+    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}(Cell(1, "code", "")), 
     :env => c[:OliveCore].data["home"])
     newproj = Project{:olive}("new", projdata)
     source_module!(c, newproj, "new")
@@ -705,8 +705,9 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String)
     [string(dig) => "" for dig in digits(1234567890)] ...)
     end
     modstr = olive_module(name, p[:env])
-    Main.evalin(Meta.parse(modstr))
-    mod::Module = getfield(Main, Symbol(name))
+ #   Main.evalin(Meta.parse(modstr))
+  #  mod::Module = getfield(Main, Symbol(name))
+    mod::Module = eval(Meta.parse(modstr))
     push!(p.data, :mod => mod)
 end
 #==output[code]

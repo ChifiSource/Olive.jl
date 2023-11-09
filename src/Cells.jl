@@ -783,7 +783,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
     inputbox::Component{:div} = div("cellinput$(cell.id)")
     inside::Component{:div} = ToolipsDefaults.textdiv("cell$(cell.id)",
     text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"),
-    "class" => "input_cell")
+    "class" => "input_cell", "spellcheck" => false)
     style!(inside, "border-top-left-radius" => 0px)
     if highlight
         highlight_box::Component{:div} = div("cellhighlight$(cell.id)",
@@ -1111,7 +1111,7 @@ end
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
-    cell.source = curr
+    cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
     tm.raw = cell.source
     mark_markdown!(tm)
@@ -1251,6 +1251,7 @@ inputcell_style (generic function with 1 method)
 ==#
 function mark_markdown!(tm::ToolipsMarkdown.TextModifier)
     ToolipsMarkdown.mark_after!(tm, "# ", until = ["\n"], :heading)
+    ToolipsMarkdown.mark_between!(tm, "[", "]", :keys)
     ToolipsMarkdown.mark_between!(tm, "(", ")", :link)
     ToolipsMarkdown.mark_between!(tm, "*", "*", :italic)
     ToolipsMarkdown.mark_between!(tm, "**", "**", :bold)
@@ -1369,7 +1370,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
     cbox = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
     style!(cbox, "outline" => "transparent", "color" => "white")
-    on(c, cbox, "input") do cm2::ComponentModifier
+    on(c, cbox, "input", [cbox.name]) do cm2::ComponentModifier
         txt = cm2[cbox]["text"]
         if txt in keys(creatorkeys)
             cellt = creatorkeys[txt]
