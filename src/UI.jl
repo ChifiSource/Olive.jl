@@ -12,7 +12,7 @@ function inputcell_style()
 end
 
 function cellside_style()
-    st = Style("div.cellside", "display" => "inline-block", "background-color" => "pink",
+    st = Style("div.cellside", "display" => "inline-block",
     "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
     "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
     st::Style

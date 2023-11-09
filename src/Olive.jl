@@ -129,7 +129,7 @@ function load_default_project!(c::Connection)
         push!(projdict, :env => c[:OliveCore].data["home"])
         sourced_path = c[:OliveCore].data["home"]
     end
-    myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
+    myproj::Project{<:Any} = Project{:olive}("get started", projdict)
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, 
     sourced_path)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
@@ -229,7 +229,7 @@ function session(c::Connection; key::Bool = true)
     end
      # setup base UI
     bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env)
-    script!(c, "load", ["olivemain"], type = "Timeout", time = 500) do cm::ComponentModifier
+    script!(c, "load", ["olivemain"], type = "Timeout", time = 250) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
         ToolipsSession.insert!(cm, "projectexplorer", 1, work_menu(c))
@@ -245,8 +245,11 @@ function session(c::Connection; key::Bool = true)
             window::Component{:div} = Base.invokelatest(olmod.build, c,
             cm2, env.projects[1])
             append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
-            if length(findall(proj -> proj[:pane] == "two", env.projects)) > 0
+            p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
+            if ~(isnothing(p2i))
                 style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+                append!(cm2,"pane_two", Base.invokelatest(olmod.build, c,
+                cm2, env.projects[1]))
             end
         end
     end
