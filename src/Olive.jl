@@ -129,7 +129,7 @@ function load_default_project!(c::Connection)
         push!(projdict, :env => c[:OliveCore].data["home"])
         sourced_path = c[:OliveCore].data["home"]
     end
-    myproj::Project{<:Any} = Project{:olive}("release notes", projdict)
+    myproj::Project{<:Any} = Project{:olive}("get started", projdict)
     Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, 
     sourced_path)
     Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)

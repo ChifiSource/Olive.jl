@@ -984,10 +984,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
-    windowname::String = proj.id
-    cells = proj[:cells]
     curr = cm["cell$(cell.id)"]["text"]
-    curr_raw = cm["rawcell$(cell.id)"]["text"]
     [begin
     xtname = m.sig.parameters[4]
     if xtname != OliveExtension{<:Any}
@@ -1071,19 +1068,26 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     newcell = build_base_cell(c, cm, cell, proj, highlight = true, sidebox = true)
     windowname::String = proj.id
-   # tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
-    #tm.raw = cell.source
-    #ToolipsMarkdown.mark_julia!(tm)
     km = cell_bind!(c, cell, proj)
     interior = newcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     sideb = interior[:children]["cellside$(cell.id)"]
     style!(sideb, "background-color" => "#88807B")
+    sideb[:children] = [sideb[:children][1:2]]
+   # cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
+    #style!(cell_edit, "color" => "white", "font-size" => 17pt)
     maincell = inp[:children]["cell$(cell.id)"]
     maincell[:contenteditable] = false
+    newtmd = tmd("cell$(cell.id)tmd", cell.source)
+    push!(maincell, newtmd)
     on(c, cm, maincell, "dblclick", ["none"]) do cm::ComponentModifier
         cm["cell$(cell.id)"] = "contenteditable" => "true"
-        set_text!(cm, "cell$(cell.id)", replace(cell.source, "<br>" => "\n"))
+        set_text!(cm, "cell$(cell.id)", replace(cell.source, "\n" => "<br>"))
+        tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
+        tm.raw = cell.source
+        mark_markdown!(tm)
+        set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+        ToolipsMarkdown.clear!(tm)
     end
     km = cell_bind!(c, cell, proj)
     bind!(c, cm, maincell, km)
@@ -1100,11 +1104,18 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     newtmd = tmd("cell$(cell.id)tmd", cell.source)
     set_children!(cm, "cell$(cell.id)", [newtmd])
     cm["cell$(cell.id)"] = "contenteditable" => "false"
+    set_text!(cm, "cellhighlight$(cell.id)", "")
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
-    
+    curr = cm["cell$(cell.id)"]["text"]
+    cell.source = curr
+    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
+    tm.raw = cell.source
+    mark_markdown!(tm)
+    set_text!(cm, "cellhighlight$(cell.id)", string(tm))
+    ToolipsMarkdown.clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1214,11 +1225,35 @@ end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
+#==|||==#
+function markdown_style!(tm::ToolipsMarkdown.TextStyleModifier)
+    style!(tm, :link, ["color" => "#D67229"])
+    style!(tm, :heading, ["color" => "purple"])
+    style!(tm, :point, ["color" => "darkgreen"])
+    style!(tm, :bold, ["color" => "darkblue"])
+    style!(tm, :italic, ["color" => "#8b0000"])
+    style!(tm, :code, ["color" => "#8b0000"])
+    style!(tm, :default, ["color" => "brown"])
+    style!(tm, :link, ["color" => "#8b0000"])
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
 function mark_toml!(tm::ToolipsMarkdown.TextModifier)
     ToolipsMarkdown.mark_between!(tm, "[", "]", :keys)
     ToolipsMarkdown.mark_between!(tm, "\"", :string)
     ToolipsMarkdown.mark_all!(tm, "=", :equals)
     [ToolipsMarkdown.mark_all!(tm, string(dig), :number) for dig in digits(1234567890)]
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+function mark_markdown!(tm::ToolipsMarkdown.TextModifier)
+    ToolipsMarkdown.mark_after!(tm, "# ", until = ["\n"], :heading)
+    ToolipsMarkdown.mark_between!(tm, "(", ")", :link)
+    ToolipsMarkdown.mark_between!(tm, "*", "*", :italic)
+    ToolipsMarkdown.mark_between!(tm, "**", "**", :bold)
+    ToolipsMarkdown.mark_between!(tm, "``", "``", :code)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
