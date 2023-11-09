@@ -886,7 +886,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
             ext = xtname()
-            on_code_build(c, cm, ext, cell, proj)
+            on_code_build(c, cm, ext, cell, proj, builtcell)
         end
     end for m in methods(on_code_build)]
     builtcell::Component{:div}
