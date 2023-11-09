@@ -722,7 +722,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
     end
     bind!(km, keybindings["saveas"], prevent_default = true) do cm::ComponentModifier
         style!(cm, "projectexplorer", "width" => "500px")
-        style!(cm, "olivemain", "margin-left" => "500px")ToolipsSession.KeyMap
+        style!(cm, "olivemain", "margin-left" => "500px")
         style!(cm, "explorerico", "color" => "lightblue")
         set_text!(cm, "explorerico", "folder_open")
         cm["olivemain"] = "ex" => "1"
@@ -1082,6 +1082,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     push!(maincell, newtmd)
     on(c, cm, maincell, "dblclick", ["none"]) do cm::ComponentModifier
         cm["cell$(cell.id)"] = "contenteditable" => "true"
+        set_children!(cm, "cell$(cell.id)", Vector{Servable}())
         set_text!(cm, "cell$(cell.id)", replace(cell.source, "\n" => "<br>"))
         tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
         tm.raw = cell.source

@@ -49,9 +49,9 @@ mod = eval(Meta.parse(olive_module("mymod", ".")))
 """
 function olive_module(modname::String, environment::String)
     """
-    module $(modname)
+    baremodule $(modname)
+    import Base: eval, print, println
     using Pkg
-
     function evalin(ex::Any)
             Pkg.activate("$environment")
             ret = eval(ex)

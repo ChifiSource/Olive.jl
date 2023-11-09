@@ -1351,11 +1351,13 @@ function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any}
         ret = olive_save(cells, p, pe)
         if isnothing(ret)
             olive_notify!(cm2, "file $(p[:path]) saved", color = "green")
+            p.name = finalname
+            set_text!(cm2, "tablabel$(p.id)", finalname)
         else
             olive_notify!(cm2, "file $(p[:path]) saved", color = "$ret")
         end
         set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
     end
     on(c, cancelbutton, "click") do cm2::ComponentModifier
         set_children!(cm2, "fileeditbox", Vector{Servable}())
