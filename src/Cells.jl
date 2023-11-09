@@ -855,8 +855,8 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     end
     # TODO move these styles to stylesheet
     style!(inputbox, "padding" => 0px, "width" => 100percent, "overflow-x" => "hidden",
-    "overflow" => "hidden", "border-top-left-radius" => "0px !important",
-    "border-bottom-left-radius" => 0px, "border-radius" => "0px !important",
+    "overflow" => "hidden", "border-top-left-radius" => "0px",
+    "border-bottom-left-radius" => 0px, "border-radius" => "0px",
     "position" => "relative", "height" => "auto")
     style!(interiorbox, "display" => "flex", "width" => "auto", "overflow" => "hidden")
     push!(outside, interiorbox, output)
@@ -1079,13 +1079,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     inp = interior[:children]["cellinput$(cell.id)"]
     sideb = interior[:children]["cellside$(cell.id)"]
     style!(sideb, "background-color" => "#88807B")
-    inp[:contenteditable] = false
-    on(c, cm, inp, "dblclick", ["none"]) do cm::ComponentModifier
-        set_text!(cm, inp, replace(cell.source, "\n" => "<br>"))
-        cm[inp] = "contenteditable" => "true"
+    maincell = inp[:children]["cell$(cell.id)"]
+    maincell[:contenteditable] = false
+    on(c, cm, maincell, "dblclick", ["none"]) do cm::ComponentModifier
+        cm["cell$(cell.id)"] = "contenteditable" => "true"
+        set_text!(cm, "cell$(cell.id)", replace(cell.source, "<br>" => "\n"))
     end
     km = cell_bind!(c, cell, proj)
-    bind!(c, cm, inp, km)
+    bind!(c, cm, maincell, km)
     newcell::Component{:div}
 end
 #==output[code]
@@ -1095,7 +1096,7 @@ inputcell_style (generic function with 1 method)
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     activemd = cm["cell$(cell.id)"]["text"]
-    cell.source = activemd
+    cell.source = replace(activemd, "<br>" => "\n", "<div>" => "")
     newtmd = tmd("cell$(cell.id)tmd", cell.source)
     set_children!(cm, "cell$(cell.id)", [newtmd])
     cm["cell$(cell.id)"] = "contenteditable" => "false"
