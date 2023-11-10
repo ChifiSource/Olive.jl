@@ -251,6 +251,7 @@ function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
     c[:OliveCore].open[getname(c)].pwd = path
     style!(cm, "workmenu", "opacity" => 100percent, "height" => 60percent, 
     "pointer-events" => "auto")
+    style!(cm, "projectexplorer", "opacity" => 100percent)
     style!(cm, "workmenu-expander", "color" => "darkpink")
     cm["outerworkmenu"] = "ex" => "1"
     if isfile(path)

@@ -545,7 +545,7 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         write(o,
         """\"""
         ## welcome to olive!
-        Welcome to the `0.0.9` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
+        Welcome to the `0.0.92` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
         are added.
         - [getting started with olive]()
         - [installing extensions]()
