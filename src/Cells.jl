@@ -10,7 +10,7 @@ This file creates the basis for Olive.jl cells then builds olive cell types
 - Filebrowsing
 """
 #==|||==#
-function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
+function cell_up!(c::Connection, cm2::AbstractComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells = proj[:cells]
     windowname::String = proj.id
@@ -33,7 +33,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+function cell_down!(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells = proj[:cells]
     windowname::String = proj.id
@@ -56,7 +56,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+function cell_delete!(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
     if length(cells) == 1
         olive_notify!(cm, "you cannot the last cell in the project", color = "red")
@@ -75,7 +75,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function cell_new!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+function cell_new!(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any}; type::String = "creator")
     windowname::String = proj.id
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
@@ -91,7 +91,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, 
+function focus_up!(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any}, 
     proj::Project{<:Any})
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     i = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
@@ -104,7 +104,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+function focus_down!(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     i = findfirst(cel::Cell{<:Any} -> cel.id == cell.id, cells)
@@ -544,7 +544,7 @@ Session cells
 """
 **Olive Cells**
 ```
-build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+build(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}) -> ::Component{:div}
 ```
 ------------------
@@ -569,7 +569,7 @@ And code cells can be extended with
 - `on_code_highlight`
 - `on_code_build`
 """
-function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
     ToolipsMarkdown.julia_block!(tm)
@@ -593,7 +593,7 @@ inputcell_style (generic function with 1 method)
 """
 ##### Olive Cells
 ```
-evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+evaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}) -> ::Nothing
 ```
 ------------------
@@ -610,7 +610,7 @@ evaluate it however, providing a return to the cell's outputs. The example below
 function for a `txt` cell.
 #### example
 ```
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
+function evaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:txt},
     proj::Project{<:Any})
     cells = proj[:cells]
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
@@ -627,7 +627,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
 end
 ```
 """
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+function evaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells = proj[:cells]
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
@@ -645,7 +645,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
+function evaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:txt},
     proj::Project{<:Any})
     cells = proj[:cells]
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
@@ -667,7 +667,7 @@ inputcell_style (generic function with 1 method)
 """
 ##### Olive Cells
 ```
-cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+cell_highlight!(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any})
 ```
 ------------------
@@ -683,7 +683,7 @@ using Olive.Toolips
 using Olive.ToolipsMarkdown
 using Olive.ToolipsSession
 
-function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:python}, proj::Project{<:Any})
+function cell_highlight!(c::Connection, cm::AbstractComponentModifier, cell::Cell{:python}, proj::Project{<:Any})
     curr = cm["cell\$(cell.id)"]["text"]
     cell.source = curr
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
@@ -703,7 +703,7 @@ inputcell_style (generic function with 1 method)
 """
 ##### Olive Cells
 ```
-cell_bind!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+cell_bind!(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}) -> ::ToolipsSession.KeyMap
 ```
 ------------------
@@ -765,7 +765,7 @@ inputcell_style (generic function with 1 method)
 """
 ##### Olive Cells
 ```
-build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+build_base_input(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}; highlight::Bool = false) -> ::Component{:div}
 ```
 ------------------
@@ -777,7 +777,7 @@ This function builds the base input box of a standard cell with or without highl
 
 ```
 """
-function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+function build_base_input(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any}; highlight::Bool = false)
     windowname::String = proj.id
     inputbox::Component{:div} = div("cellinput$(cell.id)")
@@ -817,7 +817,7 @@ inputcell_style (generic function with 1 method)
 """
 ##### Olive Cells
 ```
-build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+build_base_cell(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}; highlight::Bool = false, sidebox::Bool = false) -> ::Component{:div}
 ```
 ------------------
@@ -828,7 +828,7 @@ This function builds a base `Cell` which comes pre-binded using `cell_bind!`. Th
 
 ```
 """
-function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+function build_base_cell(c::Connection, cm::AbstractComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any}; highlight::Bool = false,
     sidebox::Bool = false)
     windowname::String = proj.id
@@ -866,7 +866,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     windowname::String = proj.id
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
@@ -898,7 +898,7 @@ inputcell_style (generic function with 1 method)
 """
 ##### Olive Cells
 ```
-on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any},
+on_code_evaluate(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any},
 cell::Cell{:code}, proj::Project{<:Any}) -> ::Nothing
 ```
 ------------------
@@ -916,7 +916,7 @@ function on_code_evaluate(c::Olive.Toolips.Connection, cm::Olive.ToolipsSession.
 end
 ```
 """
-function on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
+function on_code_evaluate(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any})
 
 end
@@ -927,7 +927,7 @@ inputcell_style (generic function with 1 method)
 """
 ##### Olive Cells
 ```
-on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any},
+on_code_highlight(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any},
 cell::Cell{:code}, proj::Project{<:Any}) -> ::Nothing
 ```
 ------------------
@@ -945,7 +945,7 @@ function on_code_highlight(c::Olive.Toolips.Connection, cm::Olive.ToolipsSession
 end
 ```
 """
-function on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
+function on_code_highlight(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any})
 
 end
@@ -956,7 +956,7 @@ inputcell_style (generic function with 1 method)
 """
 ##### Olive Cells
 ```
-on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any},
+on_code_evaluate(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any},
 cell::Cell{:code}, proj::Project{<:Any}) -> ::Nothing
 ```
 ------------------
@@ -974,7 +974,7 @@ function on_code_build(c::Olive.Toolips.Connection, cm::Olive.ToolipsSession.Com
 end
 ```
 """
-function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
+function on_code_build(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any}, 
     cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div})
 
 end
@@ -982,7 +982,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code},
+function cell_highlight!(c::Connection, cm::AbstractComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     [begin
@@ -1003,7 +1003,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
+function evaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     window = proj.id
     cells = proj[:cells]
@@ -1063,7 +1063,7 @@ end
 Session cells
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     newcell = build_base_cell(c, cm, cell, proj, highlight = true, sidebox = true)
@@ -1098,7 +1098,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
+function evaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     activemd = cm["cell$(cell.id)"]["text"]
     cell.source = replace(activemd, "<br>" => "\n", "<div>" => "")
@@ -1108,7 +1108,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     set_text!(cm, "cellhighlight$(cell.id)", "")
 end
 
-function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
+function cell_highlight!(c::Connection, cm::AbstractComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
@@ -1122,7 +1122,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:TODO},
     proj::Project{<:Any})
     cell.source = "#"
     maincontainer = div("cellcontainer$(cell.id)")
@@ -1161,7 +1161,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:NOTE},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:NOTE},
     proj::Project{<:Any})
     cell.source = "#"
     maincontainer = div("cellcontainer$(cell.id)")
@@ -1199,7 +1199,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:getstarted},
     proj::Project{<:Any})
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = false, highlight = false)
@@ -1290,7 +1290,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:tomlvalues},
     proj::Project{<:Any})
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
     tm.raw = cell.source
@@ -1332,7 +1332,7 @@ end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
+function evaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:tomlvalues},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     varname = "data"
@@ -1369,7 +1369,7 @@ inputcell_style (generic function with 1 method)
 ==#
 
 #==|||==#
-function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
+function cell_highlight!(c::Connection, cm::AbstractComponentModifier, cell::Cell{:tomlvalues},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
@@ -1383,7 +1383,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:creator},
     proj::Project{<:Any})
     cells = proj[:cells]
     windowname::String = proj.id
@@ -1440,7 +1440,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:helprepl},
     proj::Project{<:Any})
     km = cell_bind!(c, cell, proj)
     src = ""
@@ -1508,7 +1508,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
+function realevaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:helprepl},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     window::String = proj.id
@@ -1553,7 +1553,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:shell},
     proj::Project{<:Any})
     km = cell_bind!(c, cell, proj)
     src = ""
@@ -1618,7 +1618,7 @@ end
 Session cells
 ==#
 #==|||==#
-function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
+function realevaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:shell},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     mod = proj[:mod]
@@ -1642,7 +1642,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:pkgrepl},
     proj::Project{<:Any})
     cell.source = ""
     windowname::String = proj.id
@@ -1682,7 +1682,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
+function realevaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:pkgrepl},
     proj::Project{<:Any})
     cells = proj[:cells]
     mod = proj[:mod]
@@ -1768,7 +1768,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     cells = proj[:cells]
     projs = c[:OliveCore].open[getname(c)].projects
@@ -1792,7 +1792,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include}, 
+function evaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:include}, 
     proj::Project{<:Any})
     path = cm["cell$(cell.id)"]["text"]
     env = c[:OliveCore].open[getname(c)]
@@ -1826,7 +1826,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
+function cell_highlight!(c::Connection, cm::AbstractComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     txt = cm["cell$(cell.id)"]["text"]
     tm = ToolipsMarkdown.TextStyleModifier(txt)
@@ -1849,7 +1849,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
+function build(c::Connection, cm::AbstractComponentModifier, cell::Cell{:module},
     proj::Project{<:Any})
     cells = proj[:cells]
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
@@ -1913,7 +1913,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
+function evaluate(c::Connection, cm::AbstractComponentModifier, cell::Cell{:module}, 
     proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
     if length(findall(proj -> proj.id == cell.outputs, projects)) > 0
@@ -1944,7 +1944,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:module},
+function cell_highlight!(c::Connection, cm::AbstractComponentModifier, cell::Cell{:module},
     proj::Project{<:Any})
     cell.source = cm["cell$(cell.id)"]["text"]
     tm = ToolipsMarkdown.TextStyleModifier(cell.source)
