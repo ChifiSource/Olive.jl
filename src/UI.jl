@@ -237,7 +237,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-switch_work_dir!(c::Connection, cm::ComponentModifier, path::String) -> ::Nothing
+switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String) -> ::Nothing
 ````
 ------------------
 Switches the active working directory (`Environment.pwd`) to the provided path. 
@@ -247,7 +247,7 @@ This will also decollapse the **inspector** and open the **project explorer**
 
 ```
 """
-function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
+function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
     c[:OliveCore].open[getname(c)].pwd = path
     style!(cm, "workmenu", "opacity" => 100percent, "height" => 60percent, 
     "pointer-events" => "auto")
@@ -269,7 +269,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; 
+create_new!(c::Connection, cm::AbstractComponentModifier, dir::Directory{<:Any}; 
 directory::Bool = false) -> ::Nothing
 ````
 ------------------
@@ -280,7 +280,7 @@ completes these operations and denotes the status using `olive_notify!`.
 
 ```
 """
-function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; directory::Bool = false)
+function create_new!(c::Connection, cm::AbstractComponentModifier, dir::Directory{<:Any}; directory::Bool = false)
     switch_work_dir!(c, cm, dir.uri)
     namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
     style!(namebox, "width" => 25percent, "border" => "1px solid")
@@ -316,7 +316,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; 
+create_new!(c::Connection, cm::AbstractComponentModifier, dir::Directory{<:Any}; 
 directory::Bool = false) -> ::Nothing
 ````
 ------------------
@@ -327,7 +327,7 @@ completes these operations and denotes the status using `olive_notify!`.
 
 ```
 """
-function copy_file!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}, file::String)
+function copy_file!(c::Connection, cm::AbstractComponentModifier, dir::Directory{<:Any}, file::String)
     switch_work_dir!(c, cm, file)
     namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
     style!(namebox, "width" => 80percent, "border" => "1px solid")
@@ -437,7 +437,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
+create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
 ````
 Creates a new project from a given template. Each method for this function will 
 create a new button inside of the **create** menu in the **inspector**.
@@ -446,7 +446,7 @@ create a new button inside of the **create** menu in the **inspector**.
 
 ```
 """
-function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
+function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any})
     projdata = Dict{Symbol, Any}(:cells => Vector{Cell}(Cell(1, "code", "")), 
     :env => c[:OliveCore].data["home"])
     newproj = Project{:olive}("new", projdata)
@@ -458,7 +458,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{:module})
+function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:module})
     namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
     style!(namebox, "width" => 25percent)
     savebutton = button("confirm_new", text = "confirm")
@@ -757,8 +757,8 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     end
     end for project in c[:OliveCore].open[getname(c)].projects]
     if fpath in all_paths
-        olive_notify!(cm, "project already open!", color = "red")
-        return
+        n_open = length(findall(path -> path == fpath, all_paths))
+        source = "$source | $(n_open + 1)"
     end
     fsplit::Vector{SubString} = split(fpath, "/")
     uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
@@ -877,7 +877,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any}) -> ::Nothing
+switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}) -> ::Nothing
 ````
 This function is called on a project whenever its tab is minimized.
     All that happens here for most projects is that the tab changes style.
@@ -886,7 +886,7 @@ This function is called on a project whenever its tab is minimized.
 
 ```
 """
-function switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any})
+function switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
     name = proj.id
     if proj.data[:pane] == "one"
@@ -1035,7 +1035,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
+step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
 ````
 Step evaluate evaluates each cell in descending order, typical to that of notebook
 convention. `e` in this case is the specific number of cells to evaluate.
@@ -1044,7 +1044,7 @@ convention. `e` in this case is the specific number of cells to evaluate.
 
 ```
 """
-function step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
+function step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
     e += 1
     script!(c, cm, "$(proj.data[:cells][e].id)eval", type = "Timeout") do cm2::ComponentModifier
         evaluate(c, cm2, proj.data[:cells][e], proj)
@@ -1061,7 +1061,7 @@ UndefVarError: Cell not defined 
 """
 ### Olive UI
 ````
-close_project(c::Connection, cm::ComponentModifier, proj::Project{<:Any})
+close_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any})
 ````
 This is the function `Olive` uses to close the project in the UI.
 #### example
@@ -1069,7 +1069,7 @@ This is the function `Olive` uses to close the project in the UI.
 
 ```
 """
-function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:Any})
+function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Project{<:Any})
     name = proj.id
     projs = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
@@ -1099,7 +1099,9 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     push!(c[:OliveCore].pool, proj.id)
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
-    [proj[:mod].feld = nothing for feld in names(proj[:mod])]
+    [proj[:mod].feld = Nothing for feld in names(proj[:mod])]
+    proj[:mod].evalin(Meta.parse("Pkg.gc()"))
+    source_module!(c, proj, "new")
     Pkg.gc()
 end
 #==output[code]
@@ -1269,7 +1271,7 @@ UndefVarError: ComponentModifier not defined
 """
 ### Olive UI
 ````
-save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any}) -> ::Nothing
+save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{<:Any}) -> ::Nothing
 ````
 Saves a project to the URI contained within the :path key of its `data` field.
 #### example
@@ -1277,7 +1279,7 @@ Saves a project to the URI contained within the :path key of its `data` field.
 
 ```
 """
-function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
+function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{<:Any})
     save_split = split(p.name, ".")
     if ~(:path in keys(p.data))
         save_project_as(c, cm2, p)
@@ -1308,7 +1310,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any}) -> ::Nothing
+save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{<:Any}) -> ::Nothing
 ````
 Saves a project to a new path.
 #### example
@@ -1316,7 +1318,7 @@ Saves a project to a new path.
 
 ```
 """
-function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any})
+function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Project{<:Any})
     projpath = c[:OliveCore].open[getname(c)].pwd
     if :path in keys(p.data)
         projpath = p[:path]

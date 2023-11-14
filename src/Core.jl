@@ -188,6 +188,19 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:styles}) = begin
+    if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
+        push!(c[:OliveCore].client_data[getname(c)],
+        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
+        "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
+        "m" => "module"))
+    end
+    creatorkeysdropd = containersection(c, "creatorkeys", text = "creator keys")
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begin
     if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
         push!(c[:OliveCore].client_data[getname(c)],
