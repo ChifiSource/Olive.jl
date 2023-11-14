@@ -757,8 +757,8 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     end
     end for project in c[:OliveCore].open[getname(c)].projects]
     if fpath in all_paths
-        olive_notify!(cm, "project already open!", color = "red")
-        return
+        n_open = length(findall(path -> path == fpath, all_paths))
+        source = "$source | $(n_open + 1)"
     end
     fsplit::Vector{SubString} = split(fpath, "/")
     uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
