@@ -433,7 +433,7 @@ Here are some other **important** functions to look at for a `Directory`:
 The nature of file `Cell` functions can also be altered by changing 
 their `build` or `evaluate` dispatch using a directory type.
 """
-function build(c::Connection, dir::Directory{<:Any}, m::Module)
+function build(c::Connection, dir::Directory{<:Any})
     becell = replace(dir.uri, "/" => "|")
     dirtext = split(replace(dir.uri, homedir() => "~",), "/")
     if length(dirtext) > 3
@@ -451,61 +451,33 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
             
         end
     end
-    container = containersection(c, becell, text = dirtext)
-    containerheader = container[:children][1]
-    containerbody = container[:children][2]
-    style!(container, "overflow" => "hidden")
-    if "home" in keys(c[:OliveCore].data) && dir.uri == c[:OliveCore].data["home"]
-        srcbutton = topbar_icon("srchome", "play_arrow")
-        on(c, srcbutton, "click") do cm::ComponentModifier
-            home = c[:OliveCore].data["home"]
-            try
-                load_extensions!(c[:OliveCore])
-                olive_notify!(cm, "olive module successfully sourced!", color = "green")
-            catch e
-                olive_notify!(cm,
-                "failed to source olive module",
-                color = "red")
-                print(e)
-            end
-        end
-        style!(srcbutton,"font-size" => 20pt, "color" => "red",
-        "font-weight" => "bold", "cursor" => "pointer")
-        push!(containerheader, srcbutton)
-    end
-    cells::Vector{Servable} = Vector{Servable}([begin
-        Base.invokelatest(m.build, c, cell, dir)
-    end for cell in directory_cells(dir.uri)])
-    cellcontainer = section("$(becell)cells")
-    cellcontainer[:children] = cells
-    new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
-    new_fb = topbar_icon("newfb$(becell)", "article")
-    openworkb = topbar_icon("cd$(becell)", "open_in_browser")
-    refb = topbar_icon("refb$(becell)", "sync")
-    style!(new_dirb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    style!(new_fb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    style!(refb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    style!(openworkb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    push!(containerheader, openworkb, refb, new_dirb, new_fb)
-    on(c, openworkb, "click") do cm::ComponentModifier
-        switch_work_dir!(c, cm, dir.uri)
-    end
-    on(c, new_dirb, "click") do cm::ComponentModifier
-        create_new!(c, cm, dir, directory = true)
-    end
-    on(c, new_fb, "click") do cm::ComponentModifier
-        create_new!(c, cm, dir)
-    end
-    on(c, refb, "click") do cm::ComponentModifier
-        dir.cells = directory_cells(dir.uri)
-        cells = Vector{Servable}([begin
-        Base.invokelatest(m.build, c, cell, dir)
-        end for cell in directory_cells(dir.uri)])
-        set_children!(cm, cellcontainer, cells)
-    end
-    push!(containerbody, cellcontainer)
-    return(container)
+    dircell = Cell(1, "dir", dir)
+    build(c, dircell, dir)
 end
+
+function build(c::Connection, dir::Directory{:home})
+    srcbutton = topbar_icon("srchome", "play_arrow")
+    on(c, srcbutton, "click") do cm::ComponentModifier
+        home = c[:OliveCore].data["home"]
+        try
+            load_extensions!(c[:OliveCore])
+            olive_notify!(cm, "olive module successfully sourced!", color = "green")
+        catch e
+            olive_notify!(cm,
+            "failed to source olive module",
+            color = "red")
+            print(e)
+        end
+    end
+    style!(srcbutton,"font-size" => 20pt, "color" => "red",
+    "font-weight" => "bold", "cursor" => "pointer")
+    push!(containerheader, srcbutton)
+end
+
+function build(c::Connection, dir::Directory{:pwd})
+
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
