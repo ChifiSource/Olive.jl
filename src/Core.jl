@@ -451,7 +451,7 @@ function build(c::Connection, dir::Directory{<:Any})
             
         end
     end
-    dircell = Cell(1, "dir", dir)
+    dircell = Cell(1, "dir", dir.uri)
     build(c, dircell, dir)
 end
 

@@ -166,7 +166,7 @@ function build(c::Connection, env::Environment)
     ui_settings::Component{:section} = settings_menu(c)
     style!(ui_settings, "position" => "sticky")
     ui_explorer[:children] = Vector{Servable}([begin
-    Base.invokelatest(olmod.build, c, d, olmod)
+    olmod.build(c, d)
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
     olivemain["pane"] = "1"
@@ -248,14 +248,12 @@ function session(c::Connection; key::Bool = true)
                 end
             end for proj in env.projects]
             if length(env.projects) > 0
-                window::Component{:div} = Base.invokelatest(olmod.build, c,
-                cm2, env.projects[1])
+                window::Component{:div} = olmod.build(c, cm2, env.projects[1])
                 append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
                 p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
                 if ~(isnothing(p2i))
                     style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
-                    append!(cm2,"pane_two", Base.invokelatest(olmod.build, c,
-                    cm2, env.projects[1]))
+                    append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[1]))
                 end
             end
         end
