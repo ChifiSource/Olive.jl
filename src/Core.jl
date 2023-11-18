@@ -75,7 +75,7 @@ function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
         if sig == OliveExtension{<:Any}
             continue
         end
-        Base.invokelatest(c[:OliveCore].olmod.build, c, mod, sig())
+        c[:OliveCore].olmod.build(c, mod, sig())
     end
 end
 """
@@ -594,8 +594,7 @@ use these methods to change what different projects do with different cell types
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]
     retvs = Vector{Servable}([begin
-        Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        p)::Component{<:Any}
+       c[:OliveCore].olmod.build(c, cm, cell, p)::Component{<:Any}
     end for cell in frstcells])
     proj_window::Component{:div} = div(p.id)
     proj_window[:children] = retvs

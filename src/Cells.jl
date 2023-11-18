@@ -401,11 +401,11 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     filecell = build_base_cell(c, cell, d)
     filecell[:ex] = "0"
     childbox = div("child$(cell.id)")
-    style!(container, "padding" => 0px, "margin-bottom" => 0px)
+    style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "show", "overflow-x" => "hidden")
     style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-left-width" => 1px, 
     "border-bottom-width" => 1px,
     "border-color" => "darkblue", "height" => 0percent, 
-    "border-width" => 0px, "transition" => "600ms", "padding" => 0px)
+    "border-width" => 0px, "transition" => "600ms", "padding" => 0px, "overflow-x" => "show", "overflow-y" => "scroll")
     style!(filecell, "background-color" => "#18191A")
     on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin

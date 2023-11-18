@@ -237,7 +237,8 @@ function session(c::Connection; key::Bool = true)
     script!(c, "load", ["olivemain"], type = "Timeout", time = 350) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
-        ToolipsSession.insert!(cm, "projectexplorer", 1, work_menu(c))
+        wmenu = work_menu(c)
+        ToolipsSession.insert!(cm, "projectexplorer", 1, wmenu)
         next!(c, loadicondiv, cm, ["olivemain"]) do cm2::ComponentModifier
             remove!(cm2, "loaddiv")
             switch_work_dir!(c, cm2, env.pwd)

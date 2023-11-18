@@ -82,9 +82,8 @@ iconstyle (generic function with 1 method)
 ==#
 #==|||==#
 function filec_style()
-    s = Style("div.file-cell", "height" => 30px, "padding" => 10px,
-    "background-color" => "gray",
-     "width" => 80percent, "overflow" => "show", "cursor" => "pointer",
+    s = Style("div.file-cell", "padding" => 10px,
+    "background-color" => "gray","overflow" => "show", "cursor" => "pointer", "overflow-x" => "hidden",
     "padding" => 4px, "transition" => "0.5s")
     s:"hover":["border" => "1px solid magenta", "transform" => "scale(1.02)"]
     s::Style
@@ -111,11 +110,11 @@ olivesheet (generic function with 1 method)
 #==|||==#
 function projectexplorer()
     pexplore = divider("projectexplorer")
-    style!(pexplore, "background" => "transparent", "position" => "absolute",
+    style!(pexplore, "opacity" => 0percent, 
+    "background" => "transparent", "position" => "absolute",
     "z-index" => "1", "top" => "0", "overflow-x" => "hidden",
      "padding-top" => 75px, "width" => "0", "height" => "90%", "left" => "0",
-     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%", 
-     "opacity" => 0percent)
+     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%")
     pexplore
 end
 #==output[code]
