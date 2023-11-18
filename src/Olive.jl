@@ -429,50 +429,13 @@ will present a headless `Olive` with no `olive` home module.
 ```
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
-    devmode::Bool = false, path::String = homedir(), free::Bool = false, hostname::String = IP)
-    homedirec::String = path
-    ollogger = OliveLogger()
+    path::String = replace(homedir(), "\\" => "/"), hostname::String = IP)
+    ollogger::Toolips.Logger = OliveLogger()
     rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
-    srcdir = homedir()
-    if path == homedir() && ~(free) && isfile("$srcdir/home.txt")
-        homedirec = read("$srcdir/home.txt", String)
-    end
     oc::OliveCore = OliveCore("olive")
-    if Sys.iswindows()
-        homedirec = replace(homedirec, "\\" => "/")
-    end
-    if free
-        ollogger.log(1, "starting olive in free mode.")
-        modstr = """module olive
-        using Olive
-        end"""
-        mod::Module = Main.evalin(Meta.parse(modstr))
-        oc = OliveCore("olive")
-        oc.olmod = mod
-        oc.data = Dict{String, Any}("root" => "root", "wd" => pwd())
-        oc.client_data = Dict{String, Any}("root" => Dict{String, Any}())
-        rs = routes(fourofour, main, icons, mainicon)
-        server = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
-        oc, Session(["/"])])
-        server.start()
-        key = ToolipsSession.gen_ref(16)
-        push!(oc.client_keys, key => "root")
-        ollogger.log(3,"olive started in free mode: note this is a testing-feature and might not be stable.")
-        ollogger.log(2,
-            "olive link: http://$(IP):$(PORT)/?key=$key")
-        return
-    elseif devmode
-        server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
-        oc, Session(["/"])])
-        server.start()
-        return
-    end
     oc.data["home"] = homedirec
     rootname::String = ""
-    if devmode
-        nokeyr = route("/", c -> session(c, key = false))
-        rs = routes(fourofour, nokeyr, icons, mainicon)
-    elseif ~(isdir("$homedirec/olive"))
+    if ~(isdir("$homedirec/olive"))
         oc.data["wd"] = pwd()
         oc.data["path"] = true
         rs = routes(setup, fourofour, icons, mainicon)
@@ -542,6 +505,10 @@ code/none
 ==#
 #--
 function rebuild_settings!()
+
+end
+
+function setup_olive()
 
 end
 #==
