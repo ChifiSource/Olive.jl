@@ -431,55 +431,48 @@ will present a headless `Olive` with no `olive` home module.
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     path::String = replace(homedir(), "\\" => "/"), hostname::String = IP)
     ollogger::Toolips.Logger = OliveLogger()
-    rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
     oc::OliveCore = OliveCore("olive")
-    oc.data["home"] = homedirec
     rootname::String = ""
-    if ~(isdir("$homedirec/olive"))
-        oc.data["wd"] = pwd()
-        oc.data["path"] = true
-        rs = routes(setup, fourofour, icons, mainicon)
-        ollogger.log(2, "olive setup started at http://$IP:$PORT")
-    else
-        try
-            config = TOML.parse(read("$homedirec/olive/Project.toml", String))
-            Pkg.activate("$homedirec/olive")
-            Pkg.instantiate()
-            oc.data = config["olive"]
-            rootname = oc.data["root"]
-            oc.client_data = config["oliveusers"]
-            oc.data["home"] = homedirec * "/olive"
-            oc.data["wd"] = pwd()
-        catch e
-            throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
-            ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
-            with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""")
-        end
-        try
-            source_module!(oc)
-        catch e
-            throw(StartError(e, " module load", "Failed to source olive home module."))
-             ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
-            with a fresh olive.jl source file. Would you like to recreate your olive source file? (y or n)""")
-        end
-        rs = routes(fourofour, main, icons, mainicon)
-        try
-            load_extensions!(oc)
-        catch e
-            ollogger.log(3, "Olive extensions failed to load.")
-            show(e)
-        end
+    if ~(isdir("$path/olive"))
+        setup_olive(path)
     end
-    server = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
+    try
+        config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
+        Pkg.activate("$path/olive")
+        oc.data = config["olive"]
+        rootname = oc.data["root"]
+        oc.client_data = config["oliveusers"]
+        oc.data["home"] = path * "/olive"
+        oc.data["wd"] = pwd()
+    catch e
+        throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
+        ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
+        with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""")
+    end
+    try
+        source_module!(oc)
+    catch e
+        throw(StartError(e, " module load", "Failed to source olive home module."))
+            ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
+        with a fresh olive.jl source file.""")
+    end
+    try
+        load_extensions!(oc)
+    catch e
+        ollogger.log(3, "olive extensions failed to load.")
+        showerror(stdout, e)
+    end
+    rs::Vector{AbstractRoute} = routes(fourofour, main, icons, mainicon)
+    server::WebServer = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
     oc, Session(["/"])], hostname = hostname)
-    server.start();
+    server.start()
     if rootname != ""
         key = ToolipsSession.gen_ref(16)
         push!(oc.client_keys, key => rootname)
         server[:Logger].log(2,
             "link for $(rootname): http://$(IP):$(PORT)/?key=$key")
     end
-    server::Toolips.ToolipsServer
+    server::WebServer
 end
 #==
 code/none
@@ -498,7 +491,7 @@ code/none
 ==#
 #--
 function showerror(io::IO, err::StartError{<:Any})
-    println(io, """on $(err.on).\n$(err.message)\n$(showerror(io, err.cause))""")
+    println(io, Toolips.Crayon(foreground = :red), """on $(err.on).\n$(err.message)\n$(showerror(io, err.cause))""")
 end
 #==
 code/none
@@ -508,8 +501,27 @@ function rebuild_settings!()
 
 end
 
-function setup_olive()
-
+function setup_olive(path::String)
+    if cm["selector"]["text"] != homedir() && ~("path" in keys(c[:OliveCore].data))
+        srcdir = homedir()
+        touch("$srcdir/home.txt")
+        open("$srcdir/home.txt", "w") do o
+            write(o, cm["selector"]["text"])
+        end
+    end
+    create_project(replace(cm["selector"]["text"], "\\" => "/"))
+    config = TOML.parse(read(
+    "$(cm["selector"]["text"])/olive/Project.toml",String))
+    users = Dict{String, Any}(
+    username => Dict{String, Vector{String}}(
+    "group" => ["all", "root"])
+    )
+    push!(config,
+    "olive" => Dict{String, String}("root" => username),
+    "oliveusers" => users)
+    open("$(cm["selector"]["text"])/olive/Project.toml", "w") do io
+        TOML.print(io, config)
+    end
 end
 #==
 code/none
