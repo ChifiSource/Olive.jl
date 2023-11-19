@@ -862,6 +862,38 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     push!(outside, interiorbox, output)
     outside::Component{:div}
 end
+
+function build_base_replcell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+    proj::Project{<:Any})
+    outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
+    output::Component{:div} = div("cell$(cell.id)out")
+    interior::Component{:div} = div("cellinterior$(cell.id)")
+    km::ToolipsSession.KeyMap = cell_bind!(c, cell, proj)
+    interior::Component{:div} = div("cellinterior$(cell.id)")
+    style!(interior, "display" => "flex")
+    inside::Component{:div} = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.outputs)
+    bind!(km, "Enter") do cm2::ComponentModifier
+        realevaluate(c, cm2, cell, proj)
+    end
+    sidebox = div("cellside$(cell.id)")
+    style!(sidebox, "display" => "inline-block",
+    "background-color" => "blue",
+    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
+    "overflow" => "hidden", "border-width" => 2px, "border-style" => "solid")
+    pkglabel =  a("$(cell.id)pkglabel", text = "pkg>")
+    style!(pkglabel, "font-weight" => "bold", "color" => "white")
+    push!(sidebox, pkglabel)
+    style!(inside, "width" => 80percent, "border-bottom-left-radius" => 0px,
+    "border-top-left-radius" => 0px,
+    "min-height" => 50px, "display" => "inline-block",
+     "margin-top" => 0px, "font-weight" => "bold",
+     "background-color" => "#301934", "color" => "white", "border-width" => 2px,
+     "border-style" => "solid")
+    push!(interior, sidebox, inside)
+    push!(outside, interior, output, cmds)
+    bind!(c, cm, inside, km, ["cell$(cell.id)"])
+    outside
+end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -1644,39 +1676,8 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     proj::Project{<:Any})
-    cell.source = ""
-    windowname::String = proj.id
-    km = cell_bind!(c, cell, proj)
-    outside = div("cellcontainer$(cell.id)", class = "cell")
-    output = div("cell$(cell.id)out")
-    style!(output, "background-color" => "#301934", "color" => "white",
-    "font-size" => 14pt, "opacity" => 0percent, "height" => 0percent,
-    "width" => 50percent, "margin-left" => 30px, "transition" => 1seconds)
     cmds = div("$(cell.id)cmds", text = replace(cell.source, "\n" => "<br>"))
-    interior = div("cellinterior$(cell.id)")
-    style!(interior, "display" => "flex")
-    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.outputs)
-    bind!(km, "Enter") do cm2::ComponentModifier
-        realevaluate(c, cm2, cell, proj)
-    end
-    sidebox = div("cellside$(cell.id)")
-    style!(sidebox, "display" => "inline-block",
-    "background-color" => "blue",
-    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-    "overflow" => "hidden", "border-width" => 2px, "border-style" => "solid")
-    pkglabel =  a("$(cell.id)pkglabel", text = "pkg>")
-    style!(pkglabel, "font-weight" => "bold", "color" => "white")
-    push!(sidebox, pkglabel)
-    style!(inside, "width" => 80percent, "border-bottom-left-radius" => 0px,
-    "border-top-left-radius" => 0px,
-    "min-height" => 50px, "display" => "inline-block",
-     "margin-top" => 0px, "font-weight" => "bold",
-     "background-color" => "#301934", "color" => "white", "border-width" => 2px,
-     "border-style" => "solid")
-    push!(interior, sidebox, inside)
-    push!(outside, interior, output, cmds)
-    bind!(c, cm, inside, km, ["cell$(cell.id)"])
-    outside
+
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
