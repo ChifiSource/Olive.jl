@@ -396,7 +396,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
+function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool = true)
     container = div("cellcontainer$(cell.id)")
     filecell = build_base_cell(c, cell, d)
     filecell[:ex] = "0"
@@ -407,24 +407,26 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any})
     "border-color" => "darkblue", "height" => 0percent, 
     "border-width" => 0px, "transition" => "600ms", "padding" => 0px, "overflow-x" => "show", "overflow-y" => "scroll")
     style!(filecell, "background-color" => "#18191A")
-    on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
-        childs = Vector{Servable}([begin
-        build(c, mcell, d)
-        end
-        for mcell in directory_cells(cell.outputs * "/" * cell.source)])
-        if cm[filecell]["ex"] == "0"
-            adjust = 40 * length(childs)
-            if adjust == 0
-                adjust = 40
+    if bind
+        on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
+            childs = Vector{Servable}([begin
+            build(c, mcell, d)
             end
-            adjust += 60
-            style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
-            set_children!(cm, childbox, childs)
-            cm[filecell] = "ex" => "1"
-            return
+            for mcell in directory_cells(cell.outputs * "/" * cell.source)])
+            if cm[filecell]["ex"] == "0"
+                adjust = 40 * length(childs)
+                if adjust == 0
+                    adjust = 40
+                end
+                adjust += 60
+                style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
+                set_children!(cm, childbox, childs)
+                cm[filecell] = "ex" => "1"
+                return
+            end
+            style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
+            cm[filecell] = "ex" => "0"
         end
-        style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
-        cm[filecell] = "ex" => "0"
     end
     push!(container, filecell, childbox)
     container

@@ -471,11 +471,33 @@ function build(c::Connection, dir::Directory{:home})
     end
     style!(srcbutton,"font-size" => 20pt, "color" => "red",
     "font-weight" => "bold", "cursor" => "pointer")
-    push!(containerheader, srcbutton)
+    dircell = Cell(1, "dir", dir.uri)
+    push!(dircell, srcbutton)
+    build(c, dircell, dir)
 end
 
 function build(c::Connection, dir::Directory{:pwd})
-
+    dircell = Cell(1, "dir", dir.uri)
+    build(c, dircell, dir, bind = false)
+    on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
+        childs = Vector{Servable}([begin
+        build(c, mcell, d)
+        end
+        for mcell in directory_cells(cell.outputs * "/" * cell.source)])
+        if cm[filecell]["ex"] == "0"
+            adjust = 40 * length(childs)
+            if adjust == 0
+                adjust = 40
+            end
+            adjust += 60
+            style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
+            set_children!(cm, childbox, childs)
+            cm[filecell] = "ex" => "1"
+            return
+        end
+        style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
+        cm[filecell] = "ex" => "0"
+    end
 end
 
 #==output[code]
