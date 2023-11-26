@@ -33,7 +33,6 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 
 ###### map
 - [get started](#get-started)
-   - [setup](#setup)
    - [documentation](#documentation)
    - [user interface](#user-interface)
      - [topbar](#topbar)
@@ -113,8 +112,6 @@ This should provide you with a link to get started with Olive!
 
 To change the IP or PORT, use the positional arguments `IP` (1, `String`) and `PORT` (2, `Int64`). There are also the key-word arguments
 - `path`**::String** = `homedirec()`
-- `free`**::Bool** = `false`
-- `devmode`**::Bool** = `false`
 
 ```julia
 IP = "127.0.0.1" # same as default (see ?(Olive.start))
@@ -122,29 +119,13 @@ PORT = 8000
 startpath = "/home/dev/notebooks"
 using Olive
 
-Olive.start(IP, PORT, devmode = false, path = startpath)
+Olive.start(IP, PORT, path = startpath)
 ```
-Providing `devmode` as `true` will start `Olive` in developer mode. This just makes it easier to test things when working on `Olive` itself. More will eventually come to `devmode`, as of right now this option will simply **disable authentication**. Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions. Providing `free` as `true` will start the `Olive` server in **global mode**. This means that instead of using an `olive` home file, `olive` will use your default Julia environment.
+Providing a `path` will search for an `olive` home at the provided directory. If there is no `olive` directory, this will start the `setup` inside of this directory. This can be useful for developing extensions, deploying olive, or having multiple profiles with different sets of extensions. 
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/termsc.png"></img>
 
 The `Olive.start` method also returns a `Toolips.WebServer`, this being the server that contains your entire `Olive` session. This provides an easy avenue to introspect and work with `Olive`, especially if you know what you are doing. There is more information on working with this server type in the [olive servers](#olive-servers) portion of this `README`.
-##### setup
-
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/setupsc.png"></img>
-
-
-When you start `Olive` for the first time, you will be greeted with a new link to your olive setup. This screen also holds a directory selector. The currently selected directory is indicated by the label at the top. In this directory, a new Julia project will be created. This will be your `olive` home environment. This includes the folder `olive`, the `Project.toml` environment and its `Manifest.toml` counter-part, the contained `src` directory and corresponding source file `src/olive.jl`. After selecting a directory, the setup will then move to a second screen.
-
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/setup2sc.png"></img>
-
-This portion of the setup will ask for a name and if you want to add [OliveDefaults](https://github.com/ChifiSource/OliveDefaults.jl). This package provides `Olive` with some default extensions that many developers would likely prefer. This includes
-- The `Styler` extension.
-- The `DocBrowser` extension.
-- The `AutoComplete` extension
-- And the `Themes` extension.
-
-These extensions can be loaded individually; the setup will only add `OliveDefaults` with `Pkg`. The name is also pretty important, though certainly not necessary. Any name will work, including the default `root`. After pressing continue, a loadbar will appear and `Olive` will begin setting up your `olive` environment. After this loadbar finishes (so long as the setup completes successfully), you will be redirected to a new `Olive` session!
 #### documentation
 With the upcoming release of `0.1.0`, [chifi](https://github.com/ChifiSource) will also be releasing [OliveCreator](https://github.com/ChifiSource/OliveCreator.jl), this will be a website which hosts `Olive`. Along with this there will be interactive examples, notebooks, and most importantly -- documentation (for all chifi stuff, really awesome olive-based documentation). The problem is that this still requires a lot of work to `Olive` and its sister projects. In its current state the two best tools to learn `Olive` are
 - this `README`
