@@ -365,9 +365,9 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function directory_cells(dir::String = pwd(), access::Pair{String, String} ...)
+function directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool = false)
     files = readdir(dir)
-    return(filter!(e -> ~(isnothing(e)), [build_file_cell(e, path, dir) for (e, path) in enumerate(files)]::AbstractVector))
+    return(filter!(e -> ~(isnothing(e)), [build_file_cell(e, path, dir, pwd = pwd) for (e, path) in enumerate(files)]::AbstractVector))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -389,7 +389,11 @@ function build_file_cell(e::Int64, path::String, dir::String)
             return
         end
     else
-        Cell(e, "dir", path, dir)
+        if pwd
+            Cell(e, "switchdir", path, dir)
+        else
+            Cell(e, "dir", path, dir)
+        end
     end
 end
 #==output[code]
@@ -430,6 +434,33 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
     end
     push!(container, filecell, childbox)
     container
+end
+
+function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any})
+    filecell = build_base_cell(c, cell, d)
+    style!(filecell, "background-color" => "#18191A")
+    if bind
+        on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
+            childs = Vector{Servable}([begin
+            build(c, mcell, d)
+            end
+            for mcell in directory_cells(cell.outputs * "/" * cell.source, pwd = true)])
+            if cm[filecell]["ex"] == "0"
+                adjust = 40 * length(childs)
+                if adjust == 0
+                    adjust = 40
+                end
+                adjust += 60
+                style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
+                set_children!(cm, childbox, childs)
+                cm[filecell] = "ex" => "1"
+                return
+            end
+            style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
+            cm[filecell] = "ex" => "0"
+        end
+    end
+    filecell
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

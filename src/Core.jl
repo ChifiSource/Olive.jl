@@ -478,12 +478,12 @@ end
 
 function build(c::Connection, dir::Directory{:pwd})
     dircell = Cell(1, "dir", dir.uri)
-    build(c, dircell, dir, bind = false)
+    filecell = build(c, dircell, dir, bind = false)
     on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin
         build(c, mcell, d)
         end
-        for mcell in directory_cells(cell.outputs * "/" * cell.source)])
+        for mcell in directory_cells(cell.outputs * "/" * cell.source, pwd = true)])
         if cm[filecell]["ex"] == "0"
             adjust = 40 * length(childs)
             if adjust == 0
@@ -498,6 +498,7 @@ function build(c::Connection, dir::Directory{:pwd})
         style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
         cm[filecell] = "ex" => "0"
     end
+
 end
 
 #==output[code]
