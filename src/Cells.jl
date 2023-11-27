@@ -373,7 +373,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build_file_cell(e::Int64, path::String, dir::String)
+function build_file_cell(e::Int64, path::String, dir::String; pwd::Bool = false)
     fpath = dir * "/" * path
     if ~(isdir(fpath))
         if isfile(fpath)
@@ -902,7 +902,6 @@ function build_base_replcell(c::Connection, cm::ComponentModifier, cell::Cell{<:
     output::Component{:div} = div("cell$(cell.id)out")
     interior::Component{:div} = div("cellinterior$(cell.id)")
     km::ToolipsSession.KeyMap = cell_bind!(c, cell, proj)
-    interior::Component{:div} = div("cellinterior$(cell.id)")
     style!(interior, "display" => "flex")
     inside::Component{:div} = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.outputs)
     bind!(km, "Enter") do cm2::ComponentModifier
