@@ -827,7 +827,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         "border-radius" => "0px !important",
         "border-width" =>  0px,  "pointer-events" => "none", "color" => "#4C4646 !important",
         "border-radius" => 0px, "max-width" => 90percent)
-        on(c, inputbox, "keyup", ["cell$(cell.id)", "rawcell$(cell.id)"]) do cm2::ComponentModifier
+        on(c, inputbox, "keyup", ["cell$(cell.id)"]) do cm2::ComponentModifier
             cell_highlight!(c, cm2, cell, proj)
         end
         on(cm, inputbox, "paste") do cl

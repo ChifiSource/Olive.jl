@@ -399,7 +399,7 @@ cells and directories
 """
 mutable struct Directory{S <: Any}
     uri::String
-    function Directory(uri::String, access::Pair{String, String} ...;
+    function Directory(uri::String;
         dirtype::String = "olive")
         new{Symbol(dirtype)}(uri)
     end
@@ -469,21 +469,23 @@ function build(c::Connection, dir::Directory{:home})
             print(e)
         end
     end
-    style!(srcbutton,"font-size" => 20pt, "color" => "red",
-    "font-weight" => "bold", "cursor" => "pointer")
     dircell = Cell(1, "dir", dir.uri)
-    push!(dircell, srcbutton)
-    build(c, dircell, dir)
+    built = build(c, dircell, dir)
+    push!(built[:children][1], srcbutton)
+    built
 end
 
 function build(c::Connection, dir::Directory{:pwd})
-    dircell = Cell(1, "dir", dir.uri)
+    splits = split(dir.uri, "/")
+    path, name = join(splits[1:length(splits) - 1], "/"), splits[length(splits)]
+    dircell = Cell(1, "dir", dir.uri, name)
     filecell = build(c, dircell, dir, bind = false)
+    style!(filecell[:children][1], "background-color" => "#00072D")
     on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin
-        build(c, mcell, d)
+            build(c, mcell, dir)
         end
-        for mcell in directory_cells(cell.outputs * "/" * cell.source, pwd = true)])
+        for mcell in directory_cells(dir.uri, pwd = true)])
         if cm[filecell]["ex"] == "0"
             adjust = 40 * length(childs)
             if adjust == 0
@@ -498,7 +500,7 @@ function build(c::Connection, dir::Directory{:pwd})
         style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
         cm[filecell] = "ex" => "0"
     end
-
+    filecell
 end
 
 #==output[code]

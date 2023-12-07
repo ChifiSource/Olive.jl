@@ -1,4 +1,4 @@
-"""
+ """
 Created in February, 2022 by
 [chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
 by team
@@ -126,7 +126,7 @@ function load_default_project!(c::Connection)
     cells = Vector{Cell}([Cell(1, "getstarted", "")])
     env::Environment = Environment(getname(c))
     env.pwd = c[:OliveCore].data["wd"]
-    pwd_direc = Directory(env.pwd)
+    pwd_direc = Directory(env.pwd, dirtype = "pwd")
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :pane => "one", :env => " ")
     sourced_path = " "
@@ -135,13 +135,12 @@ function load_default_project!(c::Connection)
         sourced_path = c[:OliveCore].data["home"]
     end
     myproj::Project{<:Any} = Project{:olive}("get started", projdict)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, 
-    sourced_path)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    c[:OliveCore].olmod.Olive.source_module!(c, myproj, sourced_path)
+    c[:OliveCore].olmod.Olive.check!(myproj)
     push!(env.directories, pwd_direc)
     if c[:OliveCore].data["root"] == getname(c)
         if "home" in keys(c[:OliveCore].data)
-            home_direc = Directory(c[:OliveCore].data["home"])
+            home_direc = Directory(c[:OliveCore].data["home"], dirtype = "home")
             push!(env.directories, home_direc)
         end
     end
@@ -166,7 +165,7 @@ function build(c::Connection, env::Environment)
     ui_settings::Component{:section} = settings_menu(c)
     style!(ui_settings, "position" => "sticky")
     ui_explorer[:children] = Vector{Servable}([begin
-    olmod.build(c, d)
+        olmod.build(c, d)
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
     olivemain["pane"] = "1"
@@ -237,8 +236,6 @@ function session(c::Connection; key::Bool = true)
     script!(c, "load", ["olivemain"], type = "Timeout", time = 350) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
-        wmenu = work_menu(c)
-        ToolipsSession.insert!(cm, "projectexplorer", 1, wmenu)
         next!(c, loadicondiv, cm, ["olivemain"]) do cm2::ComponentModifier
             remove!(cm2, "loaddiv")
             switch_work_dir!(c, cm2, env.pwd)
