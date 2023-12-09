@@ -440,24 +440,8 @@ function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any}, bind:
     filecell = build_base_cell(c, cell, d)
     style!(filecell, "background-color" => "#18191A")
     if bind
-        on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
-            childs = Vector{Servable}([begin
-            build(c, mcell, d)
-            end
-            for mcell in directory_cells(cell.outputs * "/" * cell.source, pwd = true)])
-            if cm[filecell]["ex"] == "0"
-                adjust = 40 * length(childs)
-                if adjust == 0
-                    adjust = 40
-                end
-                adjust += 60
-                style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
-                set_children!(cm, childbox, childs)
-                cm[filecell] = "ex" => "1"
-                return
-            end
-            style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
-            cm[filecell] = "ex" => "0"
+        on(c, filecell, "click", ["none"]) do cm::ComponentModifier
+            switch_work_dir!(c, cm, cell.outputs * "/" * cell.source)
         end
     end
     filecell

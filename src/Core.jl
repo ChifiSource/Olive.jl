@@ -485,6 +485,7 @@ function build(c::Connection, dir::Directory{:pwd})
     slctor.name = "selector"
     maincell = filecell[:children][1]
     childbox = filecell[:children][2]
+    childbox.name = "pwdbox"
     on(c, filecell, "click", [maincell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin
             build(c, mcell, dir)

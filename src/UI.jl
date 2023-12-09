@@ -84,7 +84,8 @@ iconstyle (generic function with 1 method)
 function filec_style()
     s = Style("div.file-cell", "padding" => 10px,
     "background-color" => "gray","overflow" => "show", "cursor" => "pointer", "overflow-x" => "hidden",
-    "padding" => 4px, "transition" => "0.5s")
+    "padding" => 4px, "transition" => "0.5s", "border-radius" => 0px, "border-top-left-radius" => 0px, 
+    "border-top-right-radius" => 0px)
     s:"hover":["border" => "1px solid magenta", "transform" => "scale(1.02)"]
     s::Style
 end
@@ -253,9 +254,13 @@ function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::St
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
+    newd = Directory(path)
+    childs = Vector{Servable}([begin
+        build(c, mcell, newd)
+    end
+    for mcell in directory_cells(string(path), pwd = true)])
     set_text!(cm, "selector", string(path))
-  #  children::Vector{Servable} = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])
- #   set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
+    set_children!(cm, "pwdbox", childs)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
