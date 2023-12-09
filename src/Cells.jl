@@ -436,7 +436,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
     container
 end
 
-function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any})
+function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any}, bind::Bool = true)
     filecell = build_base_cell(c, cell, d)
     style!(filecell, "background-color" => "#18191A")
     if bind

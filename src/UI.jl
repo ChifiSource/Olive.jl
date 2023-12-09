@@ -248,18 +248,14 @@ This will also decollapse the **inspector** and open the **project explorer**
 """
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
     c[:OliveCore].open[getname(c)].pwd = path
-    style!(cm, "workmenu", "opacity" => 100percent, "height" => 60percent, 
-    "pointer-events" => "auto")
     style!(cm, "projectexplorer", "opacity" => 100percent)
-    style!(cm, "workmenu-expander", "color" => "darkpink")
-    cm["outerworkmenu"] = "ex" => "1"
     if isfile(path)
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
     set_text!(cm, "selector", string(path))
-    children::Vector{Servable} = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])
-    set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
+  #  children::Vector{Servable} = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])
+ #   set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

@@ -481,12 +481,17 @@ function build(c::Connection, dir::Directory{:pwd})
     dircell = Cell(1, "dir", dir.uri, name)
     filecell = build(c, dircell, dir, bind = false)
     style!(filecell[:children][1], "background-color" => "#00072D")
-    on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
+    slctor = filecell[:children][1][:children][4]
+    slctor.name = "selector"
+    maincell = filecell[:children][1]
+    childbox = filecell[:children][2]
+    on(c, filecell, "click", [maincell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin
             build(c, mcell, dir)
         end
-        for mcell in directory_cells(dir.uri, pwd = true)])
-        if cm[filecell]["ex"] == "0"
+        for mcell
+             in directory_cells(dir.uri, pwd = true)])
+        if cm[maincell]["ex"] == "0"
             adjust = 40 * length(childs)
             if adjust == 0
                 adjust = 40
