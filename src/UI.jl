@@ -3,7 +3,7 @@ function inputcell_style()
     "border-radius" => 8px, "margin-top" => 30px, "transition" => 1seconds,
     "font-size" => 13pt, "letter-spacing" => 1px,
     "font-family" => """"Lucida Console", "Courier New", monospace;""",
-    "line-height" => 15px, "width" => 90percent, "border-bottom-left-radius" => 0px,
+    "line-height" => 19px, "width" => 90percent, "border-bottom-left-radius" => 0px,
     "min-height" => 50px, "position" => "relative", "margin-top" => 0px,
     "display" => "inline-block", "border-left-top-radius" => "0px !important",
     "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray",
@@ -60,7 +60,7 @@ hdeps_style (generic function with 1 method)
 olive_icons_font() = Style("@font-face", "font-family" => "'Material Icons'",
     "font-style" => "normal", "font-weight" => "400",
     "src" => """local('Material Icons'), local('MaterialIcons-Regular'),
-    url(/MaterialIcons.otf) format('opentype')""")
+    url(/MaterialIcons.otf) format('opentype')""")::Style
 #==output[code]
 google_icons (generic function with 1 method)
 ==#
@@ -82,10 +82,10 @@ iconstyle (generic function with 1 method)
 ==#
 #==|||==#
 function filec_style()
-    s = Style("div.file-cell", "height" => 30px, "padding" => 10px,
-    "background-color" => "gray",
-     "width" => 80percent, "overflow" => "show", "cursor" => "pointer",
-    "padding" => 4px, "transition" => "0.5s")
+    s = Style("div.file-cell", "padding" => 10px,
+    "background-color" => "gray","overflow" => "visible", "cursor" => "pointer", "overflow" => "visible",
+    "padding" => 4px, "transition" => "0.5s", "border-radius" => 0px, "border-top-left-radius" => 0px, 
+    "border-top-right-radius" => 0px)
     s:"hover":["border" => "1px solid magenta", "transform" => "scale(1.02)"]
     s::Style
 end
@@ -111,11 +111,13 @@ olivesheet (generic function with 1 method)
 #==|||==#
 function projectexplorer()
     pexplore = divider("projectexplorer")
-    style!(pexplore, "background" => "transparent", "position" => "absolute",
-    "z-index" => "1", "top" => "0", "overflow-x" => "hidden",
+    style!(pexplore, "opacity" => 0percent, 
+    "background" => "transparent", "position" => "absolute",
+    "z-index" => "1", "top" => "0", "overflow-x" => "show",
      "padding-top" => 75px, "width" => "0", "height" => "90%", "left" => "0",
-     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%", 
-     "opacity" => 0percent)
+     "transition" => "0.8s", "overflow-y" => "scroll", "margin-top" => "1.5%")
+     projpreview = div("pinfo")
+     style!(projpreview, "display" => "flex")
     pexplore
 end
 #==output[code]
@@ -249,18 +251,18 @@ This will also decollapse the **inspector** and open the **project explorer**
 """
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
     c[:OliveCore].open[getname(c)].pwd = path
-    style!(cm, "workmenu", "opacity" => 100percent, "height" => 60percent, 
-    "pointer-events" => "auto")
     style!(cm, "projectexplorer", "opacity" => 100percent)
-    style!(cm, "workmenu-expander", "color" => "darkpink")
-    cm["outerworkmenu"] = "ex" => "1"
     if isfile(path)
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
+    newd = Directory(path)
+    childs = Vector{Servable}([begin
+        build(c, mcell, newd)
+    end
+    for mcell in directory_cells(string(path), pwd = true)])
     set_text!(cm, "selector", string(path))
-    children::Vector{Servable} = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])
-    set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
+    set_children!(cm, "pwdbox", childs)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -801,7 +803,6 @@ This is the function `Olive` uses to load a project into its UI.
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
     projects = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projects)
-    append!(cm, "pinfoworkmenu", work_preview(c, proj))
     projbuild = build(c, cm, proj)
     proj.data[:pane] = "one"
     inpane2 = findall(p::Project{<:Any} -> p[:pane] == "two", projects)

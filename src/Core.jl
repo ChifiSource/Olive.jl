@@ -75,7 +75,7 @@ function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
         if sig == OliveExtension{<:Any}
             continue
         end
-        Base.invokelatest(c[:OliveCore].olmod.build, c, mod, sig())
+        c[:OliveCore].olmod.build(c, mod, sig())
     end
 end
 """
@@ -399,7 +399,7 @@ cells and directories
 """
 mutable struct Directory{S <: Any}
     uri::String
-    function Directory(uri::String, access::Pair{String, String} ...;
+    function Directory(uri::String;
         dirtype::String = "olive")
         new{Symbol(dirtype)}(uri)
     end
@@ -433,7 +433,7 @@ Here are some other **important** functions to look at for a `Directory`:
 The nature of file `Cell` functions can also be altered by changing 
 their `build` or `evaluate` dispatch using a directory type.
 """
-function build(c::Connection, dir::Directory{<:Any}, m::Module)
+function build(c::Connection, dir::Directory{<:Any})
     becell = replace(dir.uri, "/" => "|")
     dirtext = split(replace(dir.uri, homedir() => "~",), "/")
     if length(dirtext) > 3
@@ -451,61 +451,64 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
             
         end
     end
-    container = containersection(c, becell, text = dirtext)
-    containerheader = container[:children][1]
-    containerbody = container[:children][2]
-    style!(container, "overflow" => "hidden")
-    if "home" in keys(c[:OliveCore].data) && dir.uri == c[:OliveCore].data["home"]
-        srcbutton = topbar_icon("srchome", "play_arrow")
-        on(c, srcbutton, "click") do cm::ComponentModifier
-            home = c[:OliveCore].data["home"]
-            try
-                load_extensions!(c[:OliveCore])
-                olive_notify!(cm, "olive module successfully sourced!", color = "green")
-            catch e
-                olive_notify!(cm,
-                "failed to source olive module",
-                color = "red")
-                print(e)
-            end
-        end
-        style!(srcbutton,"font-size" => 20pt, "color" => "red",
-        "font-weight" => "bold", "cursor" => "pointer")
-        push!(containerheader, srcbutton)
-    end
-    cells::Vector{Servable} = Vector{Servable}([begin
-        Base.invokelatest(m.build, c, cell, dir)
-    end for cell in directory_cells(dir.uri)])
-    cellcontainer = section("$(becell)cells")
-    cellcontainer[:children] = cells
-    new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
-    new_fb = topbar_icon("newfb$(becell)", "article")
-    openworkb = topbar_icon("cd$(becell)", "open_in_browser")
-    refb = topbar_icon("refb$(becell)", "sync")
-    style!(new_dirb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    style!(new_fb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    style!(refb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    style!(openworkb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    push!(containerheader, openworkb, refb, new_dirb, new_fb)
-    on(c, openworkb, "click") do cm::ComponentModifier
-        switch_work_dir!(c, cm, dir.uri)
-    end
-    on(c, new_dirb, "click") do cm::ComponentModifier
-        create_new!(c, cm, dir, directory = true)
-    end
-    on(c, new_fb, "click") do cm::ComponentModifier
-        create_new!(c, cm, dir)
-    end
-    on(c, refb, "click") do cm::ComponentModifier
-        dir.cells = directory_cells(dir.uri)
-        cells = Vector{Servable}([begin
-        Base.invokelatest(m.build, c, cell, dir)
-        end for cell in directory_cells(dir.uri)])
-        set_children!(cm, cellcontainer, cells)
-    end
-    push!(containerbody, cellcontainer)
-    return(container)
+    dircell = Cell(1, "dir", dir.uri)
+    build(c, dircell, dir)
 end
+
+function build(c::Connection, dir::Directory{:home})
+    srcbutton = topbar_icon("srchome", "play_arrow")
+    on(c, srcbutton, "click") do cm::ComponentModifier
+        home = c[:OliveCore].data["home"]
+        try
+            load_extensions!(c[:OliveCore])
+            olive_notify!(cm, "olive module successfully sourced!", color = "green")
+        catch e
+            olive_notify!(cm,
+            "failed to source olive module",
+            color = "red")
+            print(e)
+        end
+    end
+    dircell = Cell(1, "dir", dir.uri)
+    built = build(c, dircell, dir)
+    push!(built[:children][1], srcbutton)
+    built
+end
+
+function build(c::Connection, dir::Directory{:pwd})
+    splits = split(dir.uri, "/")
+    path, name = join(splits[1:length(splits) - 1], "/"), splits[length(splits)]
+    dircell = Cell(1, "dir", dir.uri, name)
+    filecell = build(c, dircell, dir, bind = false)
+    style!(filecell[:children][1], "background-color" => "#00072D")
+    slctor = filecell[:children][1][:children][4]
+    slctor.name = "selector"
+    maincell = filecell[:children][1]
+    childbox = filecell[:children][2]
+    childbox.name = "pwdbox"
+    on(c, filecell, "click", [maincell.name]) do cm::ComponentModifier
+        childs = Vector{Servable}([begin
+            build(c, mcell, dir)
+        end
+        for mcell
+             in directory_cells(dir.uri, pwd = true)])
+        if cm[maincell]["ex"] == "0"
+            adjust = 40 * length(childs)
+            if adjust == 0
+                adjust = 40
+            end
+            adjust += 60
+            style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
+            set_children!(cm, childbox, childs)
+            cm[filecell] = "ex" => "1"
+            return
+        end
+        style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
+        cm[filecell] = "ex" => "0"
+    end
+    filecell
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -622,8 +625,7 @@ use these methods to change what different projects do with different cell types
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]
     retvs = Vector{Servable}([begin
-        Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        p)::Component{<:Any}
+       c[:OliveCore].olmod.build(c, cm, cell, p)::Component{<:Any}
     end for cell in frstcells])
     proj_window::Component{:div} = div(p.id)
     proj_window[:children] = retvs
