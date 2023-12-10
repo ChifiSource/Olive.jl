@@ -126,21 +126,20 @@ function load_default_project!(c::Connection)
     cells = Vector{Cell}([Cell(1, "getstarted", "")])
     env::Environment = Environment(getname(c))
     env.pwd = c[:OliveCore].data["wd"]
-    pwd_direc = Directory(env.pwd, dirtype = "pwd")
+    pwd_direc::Directory{:pwd} = Directory(env.pwd, dirtype = "pwd")
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :pane => "one", :env => " ")
-    sourced_path = " "
+    sourced_path::String = " "
     if "home" in keys(c[:OliveCore].data)
         push!(projdict, :env => c[:OliveCore].data["home"])
         sourced_path = c[:OliveCore].data["home"]
     end
     myproj::Project{<:Any} = Project{:olive}("get started", projdict)
     c[:OliveCore].olmod.Olive.source_module!(c, myproj, sourced_path)
-    c[:OliveCore].olmod.Olive.check!(myproj)
     push!(env.directories, pwd_direc)
     if c[:OliveCore].data["root"] == getname(c)
         if "home" in keys(c[:OliveCore].data)
-            home_direc = Directory(c[:OliveCore].data["home"], dirtype = "home")
+            home_direc::Directory{:home} = Directory(c[:OliveCore].data["home"], dirtype = "home")
             push!(env.directories, home_direc)
         end
     end
@@ -195,7 +194,7 @@ function build(c::Connection, env::Environment)
     "border-color" => "#333333")
     push!(pane_container_one, pane_one_tabs, pane_one)
     push!(pane_container_two, pane_two_tabs, pane_two)
-    loadicondiv = div("loaddiv", align = "center")
+    loadicondiv::Component{:div} = div("loaddiv", align = "center")
     style!(loadicondiv, "padding" => 10percent, "transition" => "1.5s")
     push!(loadicondiv, olive_loadicon())
     push!(pane_one, loadicondiv)
@@ -203,7 +202,7 @@ function build(c::Connection, env::Environment)
     style!(olivemain, "overflow-x" => "hidden", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",
     "height" => 90percent, "display" => "inline-flex")
-    bod = body("mainbody")
+    bod::Component{:body} = body("mainbody")
     style!(bod, "overflow" => "hidden")
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
     return(bod, loadicondiv, olmod)

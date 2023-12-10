@@ -3,7 +3,7 @@ function inputcell_style()
     "border-radius" => 8px, "margin-top" => 30px, "transition" => 1seconds,
     "font-size" => 13pt, "letter-spacing" => 1px,
     "font-family" => """"Lucida Console", "Courier New", monospace;""",
-    "line-height" => 15px, "width" => 90percent, "border-bottom-left-radius" => 0px,
+    "line-height" => 19px, "width" => 90percent, "border-bottom-left-radius" => 0px,
     "min-height" => 50px, "position" => "relative", "margin-top" => 0px,
     "display" => "inline-block", "border-left-top-radius" => "0px !important",
     "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray",
@@ -60,7 +60,7 @@ hdeps_style (generic function with 1 method)
 olive_icons_font() = Style("@font-face", "font-family" => "'Material Icons'",
     "font-style" => "normal", "font-weight" => "400",
     "src" => """local('Material Icons'), local('MaterialIcons-Regular'),
-    url(/MaterialIcons.otf) format('opentype')""")
+    url(/MaterialIcons.otf) format('opentype')""")::Style
 #==output[code]
 google_icons (generic function with 1 method)
 ==#
@@ -83,7 +83,7 @@ iconstyle (generic function with 1 method)
 #==|||==#
 function filec_style()
     s = Style("div.file-cell", "padding" => 10px,
-    "background-color" => "gray","overflow" => "show", "cursor" => "pointer", "overflow-x" => "hidden",
+    "background-color" => "gray","overflow" => "visible", "cursor" => "pointer", "overflow" => "visible",
     "padding" => 4px, "transition" => "0.5s", "border-radius" => 0px, "border-top-left-radius" => 0px, 
     "border-top-right-radius" => 0px)
     s:"hover":["border" => "1px solid magenta", "transform" => "scale(1.02)"]
@@ -113,9 +113,11 @@ function projectexplorer()
     pexplore = divider("projectexplorer")
     style!(pexplore, "opacity" => 0percent, 
     "background" => "transparent", "position" => "absolute",
-    "z-index" => "1", "top" => "0", "overflow-x" => "hidden",
+    "z-index" => "1", "top" => "0", "overflow-x" => "show",
      "padding-top" => 75px, "width" => "0", "height" => "90%", "left" => "0",
-     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%")
+     "transition" => "0.8s", "overflow-y" => "scroll", "margin-top" => "1.5%")
+     projpreview = div("pinfo")
+     style!(projpreview, "display" => "flex")
     pexplore
 end
 #==output[code]
@@ -801,7 +803,6 @@ This is the function `Olive` uses to load a project into its UI.
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
     projects = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projects)
-    append!(cm, "pinfoworkmenu", work_preview(c, proj))
     projbuild = build(c, cm, proj)
     proj.data[:pane] = "one"
     inpane2 = findall(p::Project{<:Any} -> p[:pane] == "two", projects)

@@ -402,14 +402,15 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool = true)
     container = div("cellcontainer$(cell.id)")
+    style!(container, "border-radius" => 0px)
     filecell = build_base_cell(c, cell, d)
     filecell[:ex] = "0"
     childbox = div("child$(cell.id)")
-    style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "show", "overflow-x" => "hidden")
+    style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px)
     style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-left-width" => 1px, 
-    "border-bottom-width" => 1px,
+    "border-bottom-width" => 1px, "border-radius" => 0px,
     "border-color" => "darkblue", "height" => 0percent, 
-    "border-width" => 0px, "transition" => "600ms", "padding" => 0px, "overflow-x" => "show", "overflow-y" => "scroll")
+    "border-width" => 0px, "transition" => "600ms", "padding" => 0px, "overflow" => "visible")
     style!(filecell, "background-color" => "#18191A")
     if bind
         on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
@@ -762,7 +763,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
         icon.name = "load$(cell.id)"
         icon["width"] = "16"
         append!(cm2, "cellside$(cell.id)", icon)
-        script!(c, cm2, "$(cell.id)eval", type = "Timeout") do cm::ComponentModifier
+        script!(c, cm2, "$(cell.id)eval", ["cell$(cell.id)", "cellinput$(cell.id)", "cellside$(cell.id)", "cellhightlight$(cell.id)"], type = "Timeout") do cm::ComponentModifier
             evaluate(c, cm, cell, proj)
             remove!(cm, "load$(cell.id)")
         end
@@ -881,7 +882,7 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
 end
 
 function build_base_replcell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
-    proj::Project{<:Any})
+    proj::Project{<:Any}; repl::String = "pkg>", replc::String = "#301934", sideboxc::String = "blue", lblc::String = "white")
     outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
     output::Component{:div} = div("cell$(cell.id)out")
     interior::Component{:div} = div("cellinterior$(cell.id)")
@@ -891,24 +892,24 @@ function build_base_replcell(c::Connection, cm::ComponentModifier, cell::Cell{<:
     bind!(km, "Enter") do cm2::ComponentModifier
         realevaluate(c, cm2, cell, proj)
     end
-    sidebox = div("cellside$(cell.id)")
+    sidebox::Component{:div} = div("cellside$(cell.id)")
     style!(sidebox, "display" => "inline-block",
-    "background-color" => "blue",
+    "background-color" => sideboxc,
     "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
     "overflow" => "hidden", "border-width" => 2px, "border-style" => "solid")
-    pkglabel =  a("$(cell.id)pkglabel", text = "pkg>")
-    style!(pkglabel, "font-weight" => "bold", "color" => "white")
+    pkglabel::Component{:a} =  a("$(cell.id)pkglabel", text = repl)
+    style!(pkglabel, "font-weight" => "bold", "color" => lblc)
     push!(sidebox, pkglabel)
     style!(inside, "width" => 80percent, "border-bottom-left-radius" => 0px,
     "border-top-left-radius" => 0px,
     "min-height" => 50px, "display" => "inline-block",
      "margin-top" => 0px, "font-weight" => "bold",
-     "background-color" => "#301934", "color" => "white", "border-width" => 2px,
+     "background-color" => repl, "color" => "white", "border-width" => 2px,
      "border-style" => "solid")
     push!(interior, sidebox, inside)
-    push!(outside, interior, output, cmds)
+    push!(outside, interior, output)
     bind!(c, cm, inside, km, ["cell$(cell.id)"])
-    outside
+    outside::Component{:div}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1056,8 +1057,9 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     window = proj.id
     cells = proj[:cells]
     # get code
-    rawcode::String = cm["cell$(cell.id)"]["text"]
-    execcode::String = *("begin\n", rawcode, "\nend\n")
+    testdiv = cm["cell$(cell.id)"]
+    cell.source = cm["cell$(cell.id)"]["text"]
+    execcode::String = *("begin\n", cell.source, "\nend\n")
     ret::Any = ""
     p = Pipe()
     err = Pipe()
@@ -1257,19 +1259,23 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     getstarted = div("getstarted$(cell.id)", contenteditable = false)
     style!(getstarted, "padding" => 8px, "margin-top" => 0px)
     use_this = button("new$(cell.id)", text = "start now")
+    style!(use_this, "background-color" => "white", "color" => "darkgray", 
+    "border-width-bottom" => 2px, "font-weight" => 10px)
     push!(getstarted, h("gshead$(cell.id)", 4, text = ""), 
     use_this)
+    bcelln::String = builtcell.name
     on(c, use_this, "click", ["none"]) do cm::ComponentModifier
-        proj.data[:cells] = Vector{IPyCells.Cell{<:Any}}()
-        new_cell = Cell(1, "code", "")
+        proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}()
+        new_cell::Cell{:code} = Cell(1, "code", "")
         push!(proj[:cells], new_cell)
         append!(cm, proj.id, build(c, cm, new_cell, proj))
         olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
-        remove!(cm, builtcell)
+        remove!(cm, bcelln)
         focus!(cm, "cell$(new_cell.id)")
     end
     if "recent" in keys(c[:OliveCore].client_data[getname(c)])
         recent_projects = [begin
+
         end]
     end
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
@@ -1490,56 +1496,23 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     proj::Project{<:Any})
-    km = cell_bind!(c, cell, proj)
-    src = ""
+    built_cell::Component{:div} = build_Base_replcell(c, cm, cell, proj, repl = "help>", sideboxc => "orange", 
+    replc = "#b33000")
+    src::String = ""
     if contains(cell.source, "#")
         src = split(cell.source, "?")[2]
     end
     cell.source = src
-    outside = div("cellcontainer$(cell.id)", class = "cell")
-    inner  = div("cellinside$(cell.id)")
-    style!(inner, "display" => "flex")
-    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
-    bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
-        if cm2["cell$(cell.id)"]["text"] == ""
-            pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            new_cell = Cell(pos, "code", "")
-            cells[pos] = new_cell
-            cell = new_cell
-            remove!(cm2, outside)
-            built = build(c, cm2, new_cell, proj)
-            ToolipsSession.insert!(cm2, proj.id, pos, built)
-            focus!(cm2, "cell$(cell.id)")
-        end
-    end
-    bind!(km, "Enter") do cm2::ComponentModifier
-        realevaluate(c, cm2, cell, proj)
-    end
-    sidebox = div("cellside$(cell.id)")
-    style!(sidebox, "display" => "inline-block",
-    "background-color" => "orange",
-    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-    "overflow" => "hidden", "border-style" => "solid",
-    "border-width" => 2px)
-    pkglabel =  a("$(cell.id)helplabel", text = "help>")
-    style!(pkglabel, "font-weight" => "bold", "color" => "black")
-    push!(sidebox, pkglabel)
-    style!(inside, "width" => 80percent, "border-bottom-left-radius" => 0px,
-    "border-top-left-radius" => 0px,
-    "min-height" => 50px, "display" => "inline-block",
-     "margin-top" => 0px, "font-weight" => "bold",
-     "background-color" => "#b33000", "color" => "white", "border-style" => "solid",
-     "border-width" => 2px)
-     output = div("cell$(cell.id)out")
-     style!(output, "max-height" => 40percent)
-     opbox::Component{:div} = div("opbox$(cell.id)")
-     pinbox::Component{:div} = div("pinbox$(cell.id)")
-     push!(output, opbox, pinbox)
-     if contains(cell.outputs, ";")
-         spl = split(cell.outputs, ";")
-         lastoutput = spl[1]
-         pinned = spl[2]
-         [begin
+    output = built_cell[:children]["cell$(cell.id)out"]
+    style!(output, "max-height" => 40percent)
+    opbox::Component{:div} = div("opbox$(cell.id)")
+    pinbox::Component{:div} = div("pinbox$(cell.id)")
+    push!(output, opbox, pinbox)
+    if contains(cell.outputs, ";")
+        spl = split(cell.outputs, ";")
+        lastoutput = spl[1]
+        pinned = spl[2]
+        [begin
             if pin != " "
 
             end
@@ -1547,10 +1520,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
      else
          cell.outputs = " ; "
      end
-     push!(inner, sidebox, inside)
-    push!(outside, inner, output)
-    bind!(c, cm, inside, km)
-    outside
+    built_cell::Component{:div}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1608,59 +1578,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     if contains(cell.source, "#")
         src = split(cell.source, "?")[2]
     end
-    cell.source = src
-    outside = div("cellcontainer$(cell.id)", class = "cell")
-    inner  = div("cellinside$(cell.id)")
-    style!(inner, "display" => "flex")
-    inside = ToolipsDefaults.textdiv("cell$(cell.id)", text = "")
-    bind!(km, "Backspace") do cm2::ComponentModifier
-        if cm2["rawcell$(cell.id)"]["text"] == ""
-            pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            new_cell = Cell(pos, "code", "")
-            cells[pos] = new_cell
-            cell = new_cell
-            remove!(cm2, outside)
-            built = build(c, cm2, new_cell, proj)
-            ToolipsSession.insert!(cm2, windowname, pos, built)
-            focus!(cm2, "cell$(cell.id)")
-        end
-    end
-    bind!(km, "Enter") do cm2::ComponentModifier
-        realevaluate(c, cm2, cell, proj)
-    end
-    sidebox = div("cellside$(cell.id)")
-    style!(sidebox, "display" => "inline-block",
-    "background-color" => "red",
-    "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-    "overflow" => "hidden", "border-style" => "solid",
-    "border-width" => 2px)
-    pkglabel =  a("$(cell.id)helplabel", text = "shell>")
-    style!(pkglabel, "font-weight" => "bold", "color" => "white")
-    push!(sidebox, pkglabel)
-    style!(inside, "width" => 80percent, "border-bottom-left-radius" => 0px,
-    "border-top-left-radius" => 0px,
-    "min-height" => 50px, "display" => "inline-block",
-     "margin-top" => 0px, "font-weight" => "bold",
-     "background-color" => "#b33000", "color" => "white", "border-style" => "solid",
-     "border-width" => 2px)
-     output = div("cell$(cell.id)out")
-     if contains(cell.outputs, ";")
-         spl = split(cell.outputs, ";")
-         lastoutput = spl[1]
-         pinned = spl[2]
-         [begin
-            if pin != " "
-                push!(output, iframe("$(e)$(cell.id)pin", width = "500", height = "500",
-                src = "/doc?mod=$(windowname)&get=$pin"))
-            end
-        end for (e, pin) in enumerate(split(pinned, " "))]
-     else
-         cell.outputs = " ; "
-     end
-     push!(inner, sidebox, inside)
-    push!(outside, inner, output)
-    bind!(c, cm, inside, km)
-    outside
+    build_base_replcell(c, cm, cell, proj, repl = "shell>", replc = "#b33000", 
+    sideboxc = "red")
 end
 #==output[code]
 Session cells
@@ -1692,8 +1611,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     proj::Project{<:Any})
-    cmds = div("$(cell.id)cmds", text = replace(cell.source, "\n" => "<br>"))
-
+    build_base_replcell(c, cm, cell, proj)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
