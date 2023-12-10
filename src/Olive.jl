@@ -1,4 +1,4 @@
-"""
+ """
 Created in February, 2022 by
 [chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
 by team
@@ -126,22 +126,20 @@ function load_default_project!(c::Connection)
     cells = Vector{Cell}([Cell(1, "getstarted", "")])
     env::Environment = Environment(getname(c))
     env.pwd = c[:OliveCore].data["wd"]
-    pwd_direc = Directory(env.pwd)
+    pwd_direc::Directory{:pwd} = Directory(env.pwd, dirtype = "pwd")
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :pane => "one", :env => " ")
-    sourced_path = " "
+    sourced_path::String = " "
     if "home" in keys(c[:OliveCore].data)
         push!(projdict, :env => c[:OliveCore].data["home"])
         sourced_path = c[:OliveCore].data["home"]
     end
     myproj::Project{<:Any} = Project{:olive}("get started", projdict)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, 
-    sourced_path)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    c[:OliveCore].olmod.Olive.source_module!(c, myproj, sourced_path)
     push!(env.directories, pwd_direc)
     if c[:OliveCore].data["root"] == getname(c)
         if "home" in keys(c[:OliveCore].data)
-            home_direc = Directory(c[:OliveCore].data["home"])
+            home_direc::Directory{:home} = Directory(c[:OliveCore].data["home"], dirtype = "home")
             push!(env.directories, home_direc)
         end
     end
@@ -166,7 +164,7 @@ function build(c::Connection, env::Environment)
     ui_settings::Component{:section} = settings_menu(c)
     style!(ui_settings, "position" => "sticky")
     ui_explorer[:children] = Vector{Servable}([begin
-    olmod.build(c, d)
+        olmod.build(c, d)
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
     olivemain["pane"] = "1"
@@ -196,7 +194,7 @@ function build(c::Connection, env::Environment)
     "border-color" => "#333333")
     push!(pane_container_one, pane_one_tabs, pane_one)
     push!(pane_container_two, pane_two_tabs, pane_two)
-    loadicondiv = div("loaddiv", align = "center")
+    loadicondiv::Component{:div} = div("loaddiv", align = "center")
     style!(loadicondiv, "padding" => 10percent, "transition" => "1.5s")
     push!(loadicondiv, olive_loadicon())
     push!(pane_one, loadicondiv)
@@ -204,7 +202,7 @@ function build(c::Connection, env::Environment)
     style!(olivemain, "overflow-x" => "hidden", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",
     "height" => 90percent, "display" => "inline-flex")
-    bod = body("mainbody")
+    bod::Component{:body} = body("mainbody")
     style!(bod, "overflow" => "hidden")
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
     return(bod, loadicondiv, olmod)
@@ -237,8 +235,6 @@ function session(c::Connection; key::Bool = true)
     script!(c, "load", ["olivemain"], type = "Timeout", time = 350) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
-        wmenu = work_menu(c)
-        ToolipsSession.insert!(cm, "projectexplorer", 1, wmenu)
         next!(c, loadicondiv, cm, ["olivemain"]) do cm2::ComponentModifier
             remove!(cm2, "loaddiv")
             switch_work_dir!(c, cm2, env.pwd)
@@ -429,94 +425,50 @@ will present a headless `Olive` with no `olive` home module.
 ```
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
-    devmode::Bool = false, path::String = homedir(), free::Bool = false, hostname::String = IP)
-    homedirec::String = path
-    ollogger = OliveLogger()
-    rs::Vector{AbstractRoute} = Vector{AbstractRoute}()
-    srcdir = homedir()
-    if path == homedir() && ~(free) && isfile("$srcdir/home.txt")
-        homedirec = read("$srcdir/home.txt", String)
-    end
+    path::String = replace(homedir(), "\\" => "/"), hostname::String = IP)
+    ollogger::Toolips.Logger = OliveLogger()
     oc::OliveCore = OliveCore("olive")
-    if Sys.iswindows()
-        homedirec = replace(homedirec, "\\" => "/")
-    end
-    if free
-        ollogger.log(1, "starting olive in free mode.")
-        modstr = """module olive
-        using Olive
-        end"""
-        mod::Module = Main.evalin(Meta.parse(modstr))
-        oc = OliveCore("olive")
-        oc.olmod = mod
-        oc.data = Dict{String, Any}("root" => "root", "wd" => pwd())
-        oc.client_data = Dict{String, Any}("root" => Dict{String, Any}())
-        rs = routes(fourofour, main, icons, mainicon)
-        server = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
-        oc, Session(["/"])])
-        server.start()
-        key = ToolipsSession.gen_ref(16)
-        push!(oc.client_keys, key => "root")
-        ollogger.log(3,"olive started in free mode: note this is a testing-feature and might not be stable.")
-        ollogger.log(2,
-            "olive link: http://$(IP):$(PORT)/?key=$key")
-        return
-    elseif devmode
-        server = WebServer(IP, PORT, routes = rs, extensions = [OliveLogger(),
-        oc, Session(["/"])])
-        server.start()
-        return
-    end
-    oc.data["home"] = homedirec
     rootname::String = ""
-    if devmode
-        nokeyr = route("/", c -> session(c, key = false))
-        rs = routes(fourofour, nokeyr, icons, mainicon)
-    elseif ~(isdir("$homedirec/olive"))
-        oc.data["wd"] = pwd()
-        oc.data["path"] = true
-        rs = routes(setup, fourofour, icons, mainicon)
-        ollogger.log(2, "olive setup started at http://$IP:$PORT")
-    else
-        try
-            config = TOML.parse(read("$homedirec/olive/Project.toml", String))
-            Pkg.activate("$homedirec/olive")
-            Pkg.instantiate()
-            oc.data = config["olive"]
-            rootname = oc.data["root"]
-            oc.client_data = config["oliveusers"]
-            oc.data["home"] = homedirec * "/olive"
-            oc.data["wd"] = pwd()
-        catch e
-            throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
-            ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
-            with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""")
-        end
-        try
-            source_module!(oc)
-        catch e
-            throw(StartError(e, " module load", "Failed to source olive home module."))
-             ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
-            with a fresh olive.jl source file. Would you like to recreate your olive source file? (y or n)""")
-        end
-        rs = routes(fourofour, main, icons, mainicon)
-        try
-            load_extensions!(oc)
-        catch e
-            ollogger.log(3, "Olive extensions failed to load.")
-            show(e)
-        end
+    if ~(isdir("$path/olive"))
+        setup_olive(ollogger, path)
     end
-    server = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
+    try
+        config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
+        Pkg.activate("$path/olive")
+        oc.data = config["olive"]
+        rootname = oc.data["root"]
+        oc.client_data = config["oliveusers"]
+        oc.data["home"] = path * "/olive"
+        oc.data["wd"] = pwd()
+    catch e
+        throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
+        ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
+        with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""")
+    end
+    try
+        source_module!(oc)
+    catch e
+        throw(StartError(e, " module load", "Failed to source olive home module."))
+            ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
+        with a fresh olive.jl source file.""")
+    end
+    try
+        load_extensions!(oc)
+    catch e
+        ollogger.log(3, "olive extensions failed to load.")
+        showerror(stdout, e)
+    end
+    rs::Vector{AbstractRoute} = routes(fourofour, main, icons, mainicon)
+    server::WebServer = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
     oc, Session(["/"])], hostname = hostname)
-    server.start();
+    server.start()
     if rootname != ""
         key = ToolipsSession.gen_ref(16)
         push!(oc.client_keys, key => rootname)
         server[:Logger].log(2,
             "link for $(rootname): http://$(IP):$(PORT)/?key=$key")
     end
-    server::Toolips.ToolipsServer
+    server::WebServer
 end
 #==
 code/none
@@ -535,7 +487,7 @@ code/none
 ==#
 #--
 function showerror(io::IO, err::StartError{<:Any})
-    println(io, """on $(err.on).\n$(err.message)\n$(showerror(io, err.cause))""")
+    println(io, Toolips.Crayon(foreground = :red), """on $(err.on).\n$(err.message)\n$(showerror(io, err.cause))""")
 end
 #==
 code/none
@@ -543,6 +495,32 @@ code/none
 #--
 function rebuild_settings!()
 
+end
+
+function setup_olive(logger::Toolips.Logger, path::String)
+    logger.log("welcome to olive! to set up olive, please provide a name.")
+    print("name yourself: ")
+    username::String = readline()
+    logger.log("creating $username's `olive` ...")
+    create_project(replace(path, "\\" => "/"))
+    config = TOML.parse(read(
+    "$path/olive/Project.toml",String))
+    logger.log("creating user configuration")
+    users = Dict{String, Any}(
+    username => Dict{String, Vector{String}}(
+    "group" => ["all", "root"])
+    )
+    push!(config,
+    "olive" => Dict{String, String}("root" => username),
+    "oliveusers" => users)
+    open("$path/olive/Project.toml", "w") do io
+        TOML.print(io, config)
+    end
+    logger.log("installing `olive` dependencies.")
+    Pkg.activate("$path/olive")
+    Pkg.add("Pkg")
+    Pkg.add("Olive")
+    logger.log("olive setup completed successfully")
 end
 #==
 code/none
