@@ -904,7 +904,7 @@ function build_base_replcell(c::Connection, cm::ComponentModifier, cell::Cell{<:
     "border-top-left-radius" => 0px,
     "min-height" => 50px, "display" => "inline-block",
      "margin-top" => 0px, "font-weight" => "bold",
-     "background-color" => repl, "color" => "white", "border-width" => 2px,
+     "background-color" => replc, "color" => "white", "border-width" => 2px,
      "border-style" => "solid")
     push!(interior, sidebox, inside)
     push!(outside, interior, output)
@@ -1496,7 +1496,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     proj::Project{<:Any})
-    built_cell::Component{:div} = build_Base_replcell(c, cm, cell, proj, repl = "help>", sideboxc => "orange", 
+    built_cell::Component{:div} = build_base_replcell(c, cm, cell, proj, repl = "help>", sideboxc = "orange", 
     replc = "#b33000")
     src::String = ""
     if contains(cell.source, "#")
