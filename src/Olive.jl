@@ -430,7 +430,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     oc::OliveCore = OliveCore("olive")
     rootname::String = ""
     if ~(isdir("$path/olive"))
-        setup_olive(path)
+        setup_olive(ollogger, path)
     end
     try
         config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
@@ -497,17 +497,15 @@ function rebuild_settings!()
 
 end
 
-function setup_olive(path::String)
-    if cm["selector"]["text"] != homedir() && ~("path" in keys(c[:OliveCore].data))
-        srcdir = homedir()
-        touch("$srcdir/home.txt")
-        open("$srcdir/home.txt", "w") do o
-            write(o, cm["selector"]["text"])
-        end
-    end
-    create_project(replace(cm["selector"]["text"], "\\" => "/"))
+function setup_olive(logger::Toolips.Logger, path::String)
+    logger.log("welcome to olive! to set up olive, please provide a name.")
+    print("name yourself: ")
+    username::String = readline()
+    logger.log("creating $username's `olive` ...")
+    create_project(replace(path, "\\" => "/"))
     config = TOML.parse(read(
-    "$(cm["selector"]["text"])/olive/Project.toml",String))
+    "$path/olive/Project.toml",String))
+    logger.log("creating user configuration")
     users = Dict{String, Any}(
     username => Dict{String, Vector{String}}(
     "group" => ["all", "root"])
@@ -515,9 +513,14 @@ function setup_olive(path::String)
     push!(config,
     "olive" => Dict{String, String}("root" => username),
     "oliveusers" => users)
-    open("$(cm["selector"]["text"])/olive/Project.toml", "w") do io
+    open("$path/olive/Project.toml", "w") do io
         TOML.print(io, config)
     end
+    logger.log("installing `olive` dependencies.")
+    Pkg.activate("$path/olive")
+    Pkg.add("Pkg")
+    Pkg.add("Olive")
+    logger.log("olive setup completed successfully")
 end
 #==
 code/none
