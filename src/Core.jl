@@ -481,7 +481,7 @@ function build(c::Connection, dir::Directory{:pwd})
     dircell = Cell(1, "dir", dir.uri, name)
     filecell = build(c, dircell, dir, bind = false)
     style!(filecell[:children][1], "background-color" => "#00072D")
-    slctor = filecell[:children][1][:children][4]
+    slctor = filecell[:children][1][:children][5]
     slctor.name = "selector"
     maincell = filecell[:children][1]
     childbox = filecell[:children][2]

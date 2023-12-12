@@ -257,6 +257,8 @@ function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::St
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
     newd = Directory(path)
+    # TODO new :retdir cell here.
+ #   newcells = vcat([Cell()], directory_cells(string(path), pwd = true))
     childs = Vector{Servable}([begin
         build(c, mcell, newd)
     end
@@ -1100,10 +1102,9 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     push!(c[:OliveCore].pool, proj.id)
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
-    [proj[:mod].feld = Nothing for feld in names(proj[:mod])]
-    proj[:mod].evalin(Meta.parse("Pkg.gc()"))
-    source_module!(c, proj, "new")
-    Pkg.gc()
+    [proj[:mod].feld = nothing for feld in names(proj[:mod])]
+    proj[:mod].evalin(Meta.parse("Base.GC.gc(true)"))
+    Base.GC.gc()
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
