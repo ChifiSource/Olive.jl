@@ -473,8 +473,10 @@ function build(c::Connection, dir::Directory{:home})
     dircell = Cell(1, "dir", dir.uri)
     filecell = build(c, dircell, dir)
     maincell = filecell[:children][1]
+    maincell[:children] = [maincell[:children][2], srcbutton, maincell[:children][5]]
     childbox = filecell[:children][2]
-    push!(maincell, srcbutton)
+    style!(maincell, "background-color" => "#D90166")
+    style!(childbox, "border-color" => "#D90166")
     filecell
 end
 
@@ -491,6 +493,7 @@ function build(c::Connection, dir::Directory{:pwd})
     style!(slctor, "font-size" => 11pt)
     slctor.name = "selector"
     childbox.name = "pwdbox"
+    style!(childbox, "border-left" => "10px solid", "border-color" => "#64bf6a")
     on(c, maincell, "click", [maincell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin
             build(c, mcell, dir)

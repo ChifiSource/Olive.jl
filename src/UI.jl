@@ -114,8 +114,9 @@ function projectexplorer()
     style!(pexplore, "opacity" => 0percent, 
     "background" => "transparent", "position" => "absolute",
     "z-index" => "1", "top" => "0", "overflow-x" => "show",
-     "padding-top" => 75px, "width" => "0", "height" => "90%", "left" => "0",
-     "transition" => "0.8s", "overflow-y" => "scroll", "margin-top" => "1.5%")
+    "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
+     "transition" => "0.8s", "overflow-y" => "scroll", "margin-top" => 5percent, "border-radius" => 0px, 
+     "border-right" => "3px solid black")
      projpreview = div("pinfo")
      style!(projpreview, "display" => "flex")
     pexplore
@@ -136,12 +137,14 @@ function explorer_icon(c::Connection)
             "overflow-y" => "scroll", "opacity" => 100percent)
             style!(cm, "olivemain", "margin-left" => "500px")
             style!(cm, explorericon, "color" => "lightblue")
+            style!(cm, "menubar", "border-bottom-left-radius" => 0px)
             set_text!(cm, explorericon, "folder_open")
             cm["olivemain"] = "ex" => "1"
             return
         else
             style!(cm, "projectexplorer", "width" => "0px", 
             "overflow-y" => "hidden", "opacity" => 0percent)
+            style!(cm, "menubar", "border-bottom-left-radius" => 5px)
             style!(cm, "olivemain", "margin-left" => "0px")
             set_text!(cm, explorericon, "drive_file_move_rtl")
             style!(cm, explorericon, "color" => "black")
@@ -651,7 +654,7 @@ function topbar(c::Connection)
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
     "border-radius" => "5px", "overflow" =>  "hidden", "position" => "sticky",
-    "top" => 0percent, "z-index" => "7", "background-color" => "white")
+    "top" => 0percent, "z-index" => "7", "background-color" => "white", "transition" => "500ms")
     tabmenu = div("tabmenu", align = "center")
     style!(tabmenu, "display" => "inline-block")
     push!(leftmenu, explorer_icon(c))

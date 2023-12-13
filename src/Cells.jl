@@ -1271,22 +1271,12 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
-    getstarted = div("getstarted$(cell.id)", contenteditable = false)
+    getstarted = div("getstarted$(cell.id)", contenteditable = true)
     style!(getstarted, "padding" => 8px, "margin-top" => 0px)
-    use_this = button("new$(cell.id)", text = "start now")
-    style!(use_this, "background-color" => "white", "color" => "darkgray", 
-    "border-bottom-width" => 2px, "font-weight" => 10px, "border-color" => "pink")
-    push!(getstarted, h("gshead$(cell.id)", 4, text = ""), 
-    use_this)
+   # keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
+    runl = tmd("runl", """- use `shift` + `enter` to use this project\n- use `ctrl` + `shift` + `enter` to take a tour of olive !""")
+    push!(getstarted, runl)
     bcelln::String = builtcell.name
-    on(c, use_this, "click", [use_this.name]) do cm::ComponentModifier
-        proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}([Cell(1, "code", "")])
-        new_cell::Cell{:code} = proj.data[:cells][1]
-        append!(cm, proj.id, build(c, cm, new_cell, proj))
-        olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
-        remove!(cm, bcelln)
-        focus!(cm, "cell$(new_cell.id)")
-    end
     if "recent" in keys(c[:OliveCore].client_data[getname(c)])
         recent_projects = [begin
 
@@ -1298,6 +1288,24 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     inp[:children]["cell$(cell.id)"][:text] = ""
     inp[:children]["cell$(cell.id)"][:children] = [olive_motd(), getstarted]
     builtcell::Component{:div}
+end
+
+function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any})
+    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
+    km = ToolipsSession.KeyMap()
+    cells::Vector{Cell{<:Any}} = proj.data[:cells]
+    bind!(km, keybindings["evaluate"]) do cm::ComponentModifier
+        proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}([Cell(1, "code", "")])
+        new_cell::Cell{:code} = proj.data[:cells][1]
+        append!(cm, proj.id, build(c, cm, new_cell, proj))
+        olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
+        remove!(cm, bcelln)
+        focus!(cm, "cell$(new_cell.id)")
+    end
+    bind!(km, keybindings["new"]) do cm::ComponentModifier
+        cell_new!(c, cm, cell, proj)
+    end
+    km::KeyMap
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1484,7 +1492,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
      push!(buttonbox, cbox)
      push!(buttonbox, h("spawn$(cell.id)", 3, text = "new cell"))
      for sig in signatures
-         if sig in (Cell{:creator}, Cell{<:Any}, Cell{:versioninfo})
+         if sig in (Cell{:creator}, Cell{<:Any}, Cell{:getstarted})
              continue
          end
          if length(sig.parameters) < 1
