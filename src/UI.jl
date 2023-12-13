@@ -250,19 +250,23 @@ This will also decollapse the **inspector** and open the **project explorer**
 ```
 """
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
-    c[:OliveCore].open[getname(c)].pwd = path
+    env::Environment = c[:OliveCore].open[getname(c)]
+    env.pwd = path
     style!(cm, "projectexplorer", "opacity" => 100percent)
     if isfile(path)
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
+    newcells = directory_cells(string(path), pwd = true)
+    pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
+    if path != env.directories[pwddi].uri
+        newcells = vcat([Cell(1, "retdir", "")], newcells)
+    end
     newd = Directory(path)
-    # TODO new :retdir cell here.
- #   newcells = vcat([Cell()], directory_cells(string(path), pwd = true))
     childs = Vector{Servable}([begin
         build(c, mcell, newd)
     end
-    for mcell in directory_cells(string(path), pwd = true)])
+    for mcell in newcells])
     set_text!(cm, "selector", string(path))
     set_children!(cm, "pwdbox", childs)
 end

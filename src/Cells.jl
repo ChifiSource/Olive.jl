@@ -446,6 +446,22 @@ function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any}, bind:
     end
     filecell
 end
+
+function build(c::Connection, cell::Cell{:retdir}, d::Directory{<:Any}, bind::Bool = true)
+    filecell = build_base_cell(c, cell, d, bind = false)
+    filecell[:children] = filecell[:children][5:5]
+    filecell[:children][1][:text] = "..."
+    style!(filecell, "background-color" => "darkred")
+    if bind
+        newpspl::Vector{SubString} = split(d.uri, "/")
+        newdir::String = join(newpspl[1:length(newpspl) - 1], "/")
+        on(c, filecell, "click", ["none"]) do cm::ComponentModifier
+            switch_work_dir!(c, cm, newdir)
+        end
+    end
+    filecell
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
