@@ -936,18 +936,18 @@ Returns the default set of tab controls for a `Project`.
 function tab_controls(c::Connection, p::Project{<:Any})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
-    on(c, closebutton, "click") do cm2::ComponentModifier
+    on(c, closebutton, "click", ["none"]) do cm2::ComponentModifier
         close_project(c, cm2, p)
     end
     restartbutton = topbar_icon("$(fname)restart", "restart_alt")
-    on(c, restartbutton, "click") do cm2::ComponentModifier
+    on(c, restartbutton, "click", ["none"]) do cm2::ComponentModifier
         new_name = string(split(fname, ".")[1])
         delete!(p.data, :mod)
         source_module!(c, p, new_name)
         olive_notify!(cm2, "module for $(fname) re-sourced")
     end
     add_button = topbar_icon("$(fname)add", "add_circle")
-    on(c, add_button, "click") do cm2::ComponentModifier
+    on(c, add_button, "click", ["none"]) do cm2::ComponentModifier
         cells = p[:cells]
         new_cell = Cell(length(cells) + 1, "creator", "")
         push!(cells, new_cell)
@@ -955,11 +955,11 @@ function tab_controls(c::Connection, p::Project{<:Any})
         focus!(cm2, "cell$(new_cell.id)")
     end
     runall_button = topbar_icon("$(fname)run", "start")
-    on(c, runall_button, "click") do cm2::ComponentModifier
+    on(c, runall_button, "click", ["none"]) do cm2::ComponentModifier
         step_evaluate(c, cm2, p)
     end
     switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
-    on(c, switchpane_button, "click") do cm2::ComponentModifier
+    on(c, switchpane_button, "click", ["none"]) do cm2::ComponentModifier
         switch_pane!(c, cm2, p)
     end
     style!(closebutton, "font-size"  => 17pt, "color" => "red")
@@ -1149,10 +1149,10 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "white")
     end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
+    on(c, tabbody, "dblclick", ["$(fname)close"]) do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
+            on(c, decollapse_button, "click", ["none"]) do cm2::ComponentModifier
                 remove!(cm2, "$(fname)close")
                 remove!(cm2, "$(fname)add")
                 remove!(cm2, "$(fname)restart")
@@ -1187,7 +1187,7 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
+    on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
@@ -1202,7 +1202,7 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
     on(c, tabbody, "dblclick") do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
+            on(c, decollapse_button, "click", ["none"]) do cm2::ComponentModifier
                 remove!(cm2, "$(fname)close")
                 remove!(cm2, "$(fname)add")
                 remove!(cm2, "$(fname)run")
@@ -1235,7 +1235,7 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     tablabel = a("tablabel$(fname)", text = p.name)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt, "color" => "white")
-    push!(tabbody, tablabel)
+    push!(tabbody, tablabel, ["none"])
     on(c, tabbody, "click") do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
@@ -1248,7 +1248,7 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "#FF6C5C")
     end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
+    on(c, tabbody, "dblclick", ["none"]) do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
             on(c, decollapse_button, "click") do cm2::ComponentModifier

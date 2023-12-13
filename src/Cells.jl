@@ -410,11 +410,11 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
     filecell = build_base_cell(c, cell, d, bind = false)
     filecell[:ex] = "0"
     childbox = div("child$(cell.id)")
-    style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px)
-    style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-left-width" => 1px, 
-    "border-bottom-width" => 1px, "border-radius" => 0px,
-    "border-color" => "darkblue", "height" => 0percent, 
-    "border-width" => 0px, "transition" => "600ms", "padding" => 0px, "overflow" => "visible")
+    style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px, 
+    "border-bottom" => "2px solid #3b444b")
+    style!(childbox, "opacity" => 0percent, "border-left" => "10px solid", "border-radius" => 0px,
+    "border-color" => "#18191A", "height" => 0percent,  "background-color" => "#3b444b",
+    "transition" => "600ms", "padding" => 0px, "overflow" => "visible", "pointer-events" => "none")
     style!(filecell, "background-color" => "#18191A")
     if bind
         on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
@@ -423,17 +423,12 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
             end
             for mcell in directory_cells(cell.outputs * "/" * cell.source)])
             if cm[filecell]["ex"] == "0"
-                adjust = 40 * length(childs)
-                if adjust == 0
-                    adjust = 40
-                end
-                adjust += 60
-                style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
+                style!(cm, childbox, "height" => "auto", "opacity" => 100percent, "pointer-events" => "auto")
                 set_children!(cm, childbox, childs)
                 cm[filecell] = "ex" => "1"
                 return
             end
-            style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
+            style!(cm, childbox, "opacity" => 0percent, "height" => 0percent, "pointer-events" => "none")
             cm[filecell] = "ex" => "0"
         end
     end
