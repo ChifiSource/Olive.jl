@@ -23,6 +23,7 @@ using ToolipsMarkdown
 using ToolipsBase64
 using TOML
 using Revise
+__precompile__()
 #==
 code/none
 ==#
@@ -218,7 +219,7 @@ code/none
 This is the function/Route which runs olive's "session" page, the main editor
     for olive.
 """
-function session(c::Connection; key::Bool = true)
+function session(c::Connection; key::Bool = true, default::Function = load_default_project!)
     uname::String = c[:OliveCore].data["root"]
     if key
         uname = verify_client!(c)
@@ -226,7 +227,7 @@ function session(c::Connection; key::Bool = true)
     # check for environment, if none load.
     envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
     if isnothing(envsearch)
-        env::Environment = load_default_project!(c)
+        env::Environment = default(c)
     else
         env = c[:OliveCore].open[getname(c)]
     end
@@ -262,129 +263,6 @@ code/none
 ==#
 #--
 main = route("/", session)
-#==
-code/none
-==#
-#--
-setup = route("/") do c::Connection
-    write!(c, olivesheet())
-    bod = body("mainbody")
-    cells = [Cell(1, "setup", "welcome to olive"),
-    Cell(2, "dirselect", c[:OliveCore].data["home"])]
-    built_cells = Vector{Servable}([build(c, cell) for cell in cells])
-    bod[:children] = built_cells
-    confirm_button = button("confirm", text = "confirm")
-    questions = section("questions")
-    style!(questions, "opacity" => 0percent, "transition" => 2seconds,
-    "transform" => "translateY(50%)")
-    push!(questions, h("questions-heading", 2, text = "a few more things ..."))
-    opts = [button("no", text = "no"), button("yes", text = "yes")]
-    push!(questions, h("questions-defaults", 4, text = "would you like to add OliveDefaults?"))
-    push!(questions, p("defaults-explain", text = """this extension adds a documentation browser, 
-    style customizer, and autocomplete functionality for code cells."""))
-    defaults_q = ToolipsDefaults.button_select(c, "defaults_q", opts)
-    push!(questions, defaults_q)
-    push!(questions, h("questions-name", 2,
-    text = "lastly, a username?"))
-    namebox::Component{:div} = ToolipsDefaults.textdiv("namesetup",
-    text = "root")
-    style!(namebox, "outline" => "none", "background-color" => "darkblue",
-    "color" => "white", "font-weight" => "bold")
-    on(c, namebox, "click") do cm
-        set_text!(cm, "namesetup", "")
-    end
-    push!(questions, namebox)
-    confirm_questions = button("conf-q", text = "confirm")
-    on(c, confirm_questions, "click") do cm::ComponentModifier
-        dfaults = cm[defaults_q]["value"]
-        statindicator = a("statind", text = "okay! i'll get this set up for you.")
-        loadbar = ToolipsDefaults.progress("oliveprogress", value = "0")
-        style!(loadbar, "webkit-progreess-value" => "pink", "background-color" => "orange",
-         "radius" => 4px, "transition" => 1seconds, "width" => 0percent,
-         "opacity" => 0percent)
-         append!(cm, bod, loadbar)
-         append!(cm, questions, br())
-         append!(cm, questions, statindicator)
-         style!(cm, questions, "border-radius" => 0px)
-         next!(c, questions, cm) do cm2
-             set_text!(cm2, statindicator, "setting up olive ...")
-             style!(cm2, loadbar, "opacity" => 100percent, "width" => 100percent)
-             next!(c, loadbar, cm2) do cm3
-                 username::String = replace(cm3[namebox]["text"],
-                 " " => "_")
-                 if ~(isdir(cm["selector"]["text"] * "/olive"))
-                     if cm["selector"]["text"] != homedir() && ~("path" in keys(c[:OliveCore].data))
-                         srcdir = homedir()
-                         touch("$srcdir/home.txt")
-                         open("$srcdir/home.txt", "w") do o
-                             write(o, cm["selector"]["text"])
-                         end
-                     end
-                     create_project(replace(cm["selector"]["text"], "\\" => "/"))
-                     config = TOML.parse(read(
-                     "$(cm["selector"]["text"])/olive/Project.toml",String))
-                     users = Dict{String, Any}(
-                     username => Dict{String, Vector{String}}(
-                     "group" => ["all", "root"])
-                     )
-                     push!(config,
-                     "olive" => Dict{String, String}("root" => username),
-                     "oliveusers" => users)
-                     open("$(cm["selector"]["text"])/olive/Project.toml", "w") do io
-                         TOML.print(io, config)
-                     end
-                 end
-                 set_text!(cm3, statindicator, "project created !")
-                 Pkg.activate("$(cm["selector"]["text"])/olive")
-                 Pkg.add("Pkg")
-                 Pkg.add(url = "https://github.com/ChifiSource/Olive.jl")
-                 cm3[loadbar] = "value" => ".50"
-                 style!(cm3, loadbar, "opacity" => 99percent)
-                 next!(c, loadbar, cm3) do cm4
-                     txt = ""
-                     if dfaults == "yes"
-                         Pkg.add(
-                         url = "https://github.com/ChifiSource/OliveDefaults.jl"
-                         ) 
-                         txt = txt * "defaults loaded! "
-                     end
-                     set_text!(cm4, statindicator, txt)
-                     cm4[loadbar] = "value" => "1"
-                     style!(cm4, loadbar, "opacity" => 100percent)
-                     next!(c, loadbar, cm4) do cm5
-                         deleteat!(c.routes, 1)
-                         deleteat!(c.routes, 1)
-                         oc = c[:OliveCore]
-                         direc = cm["selector"]["text"]
-                         oc.data["home"] = "$direc/olive"
-                         source_module!(oc)
-                         push!(c.routes, fourofour, main)
-                         unamekey = ToolipsSession.gen_ref(16)
-                         push!(c[:OliveCore].client_keys, unamekey => username)
-                         push!(c[:OliveCore].client_data,
-                         username => Dict{String, String}())
-                         c[:OliveCore].data["root"] = username
-                         redirect!(cm5, "/?key=$(unamekey)")
-                     end
-                 end
-             end
-         end
-    end
-    push!(questions, confirm_questions)
-    on(c, confirm_button, "click") do cm::ComponentModifier
-        selected = cm["selector"]["text"]
-        insert!(questions[:children], 1, h("selector", 1, text = selected))
-        [style!(cm, b_cell, "transform" => "translateX(-110%)", "transition" => 2seconds) for b_cell in built_cells]
-        style!(cm, confirm_button, "transform" => "translateX(-120%)", "transition" => 2seconds)
-        append!(cm, bod, questions)
-        next!(c, confirm_button, cm) do cm2
-            [remove!(cm2, b_cell) for b_cell in built_cells]
-            style!(cm2, questions, "transform" => "translateY(0%)", "opacity" => 100percent)
-        end
-    end
-    push!(bod, confirm_button)
-    write!(c, bod)
-end
 #==
 code/none
 ==#
@@ -493,8 +371,26 @@ end
 code/none
 ==#
 #--
-function rebuild_settings!()
-
+function restore_defaults!(server::Toolips.WebServer)
+    path::String = server[:OliveCore].data["home"]
+    root_name::String = server[:OliveCore].data["root"]
+    rm("$path/Project.toml"); rm("$path/Manifest.toml")
+    Pkg.activate(path)
+    Pkg.add("Pkg")
+    Pkg.add("Olive")
+    config::Dict{String, Any} = TOML.parse(read(
+    "$path/Project.toml",String))
+    users::Dict{String, Any} = Dict{String, Any}(
+        username => Dict{String, Vector{String}}(
+        "group" => ["all", "root"])
+        )
+    push!(config,
+        "olive" => Dict{String, String}("root" => username),
+        "oliveusers" => users)
+    open("$path/olive/Project.toml", "w") do io
+        TOML.print(io, config)
+    end
+    server[:Logger].log("restored olive settings to defaults!")
 end
 
 function setup_olive(logger::Toolips.Logger, path::String)
@@ -503,10 +399,10 @@ function setup_olive(logger::Toolips.Logger, path::String)
     username::String = readline()
     logger.log("creating $username's `olive` ...")
     create_project(replace(path, "\\" => "/"))
-    config = TOML.parse(read(
+    config::Dict{String, Any} = TOML.parse(read(
     "$path/olive/Project.toml",String))
     logger.log("creating user configuration")
-    users = Dict{String, Any}(
+    users::Dict{String, Any} = Dict{String, Any}(
     username => Dict{String, Vector{String}}(
     "group" => ["all", "root"])
     )

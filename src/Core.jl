@@ -457,6 +457,7 @@ end
 
 function build(c::Connection, dir::Directory{:home})
     srcbutton = topbar_icon("srchome", "play_arrow")
+    style!(srcbutton, "color" => "white", "font-size" => 17pt)
     on(c, srcbutton, "click") do cm::ComponentModifier
         home = c[:OliveCore].data["home"]
         try
@@ -470,9 +471,13 @@ function build(c::Connection, dir::Directory{:home})
         end
     end
     dircell = Cell(1, "dir", dir.uri)
-    built = build(c, dircell, dir)
-    push!(built[:children][1], srcbutton)
-    built
+    filecell = build(c, dircell, dir)
+    maincell = filecell[:children][1]
+    maincell[:children] = [maincell[:children][2], srcbutton, maincell[:children][5]]
+    childbox = filecell[:children][2]
+    style!(maincell, "background-color" => "#D90166")
+    style!(childbox, "border-color" => "#D90166")
+    filecell
 end
 
 function build(c::Connection, dir::Directory{:pwd})
@@ -480,31 +485,29 @@ function build(c::Connection, dir::Directory{:pwd})
     path, name = join(splits[1:length(splits) - 1], "/"), splits[length(splits)]
     dircell = Cell(1, "dir", dir.uri, name)
     filecell = build(c, dircell, dir, bind = false)
-    style!(filecell[:children][1], "background-color" => "#00072D")
-    slctor = filecell[:children][1][:children][4]
-    slctor.name = "selector"
     maincell = filecell[:children][1]
     childbox = filecell[:children][2]
+    style!(maincell, "background-color" => "#64bf6a")
+    maincell[:children] = maincell[:children][5:5]
+    slctor = maincell[:children][1]
+    style!(slctor, "font-size" => 11pt)
+    slctor.name = "selector"
     childbox.name = "pwdbox"
-    on(c, filecell, "click", [maincell.name]) do cm::ComponentModifier
+    style!(childbox, "border-left" => "10px solid", "border-color" => "#64bf6a")
+    on(c, maincell, "click", [maincell.name]) do cm::ComponentModifier
         childs = Vector{Servable}([begin
             build(c, mcell, dir)
         end
         for mcell
              in directory_cells(dir.uri, pwd = true)])
         if cm[maincell]["ex"] == "0"
-            adjust = 40 * length(childs)
-            if adjust == 0
-                adjust = 40
-            end
-            adjust += 60
-            style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
+            style!(cm, childbox, "height" => "auto", "opacity" => 100percent, "pointer-events" => "auto")
             set_children!(cm, childbox, childs)
-            cm[filecell] = "ex" => "1"
+            cm[maincell] = "ex" => "1"
             return
         end
-        style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
-        cm[filecell] = "ex" => "0"
+        style!(cm, childbox, "opacity" => 0percent, "height" => 0percent, "pointer-events" => "none")
+        cm[maincell] = "ex" => "0"
     end
     filecell
 end

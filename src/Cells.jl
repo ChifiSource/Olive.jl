@@ -137,31 +137,10 @@ This is a callable build function that can be used to create a base file cell.
 
 ```
 """
-function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
+function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; bind::Bool = true)
     hiddencell = div("cell$(cell.id)")
     hiddencell["class"] = "file-cell"
     name = a("cell$(cell.id)label", text = cell.source, contenteditable = true)
-    on(c, name, "dblclick", ["none"]) do cm
-        km = ToolipsSession.KeyMap()
-        bind!(km, "Enter", [name.name]) do cm2
-            fname = replace(cm2[name]["text"], "\n" => "")
-            ps = split(cell.outputs, "/")
-            nps = ps[1:length(ps) - 1]
-            push!(nps, SubString(fname))
-            joined = join(nps, "/")
-            cp(cell.outputs, joined)
-            rm(cell.outputs)
-            cell.outputs = joined
-            cell.source = fname
-            olive_notify!(cm2, "file renamed", color = "green")
-            cm2[name] = "contenteditable" => "false"
-            set_text!(cm2, name, fname)
-        end
-        bind!(c, cm, name, km)
-        cm[name] = "contenteditable" => "true"
-        set_text!(cm, name, "")
-        focus!(cm, name)
-    end
     outputfmt = "b"
     fs = filesize(cell.outputs)
     if fs > Int64(1e+9)
@@ -174,9 +153,11 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
         outputfmt = "kb"
         fs = round(fs / 1000)
     end
-    on(c, hiddencell, "dblclick", ["none"]) do cm::ComponentModifier
-        cs::Vector{Cell{<:Any}} = olive_read(cell)
-        add_to_session(c, cs, cm, cell.source, cell.outputs)
+    if bind
+        on(c, hiddencell, "dblclick", ["none"]) do cm::ComponentModifier
+            cs::Vector{Cell{<:Any}} = olive_read(cell)
+            add_to_session(c, cs, cm, cell.source, cell.outputs)
+        end
     end
     finfo = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
     style!(finfo, "color" => "white", "float" => "right", "font-weight" => "bold")
@@ -216,12 +197,35 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
         set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
         style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
     end
+    editbutton = topbar_icon("$(cell.id)edit", "edit")
+    on(c, editbutton, "click", ["none"]) do cm
+        km = ToolipsSession.KeyMap()
+        bind!(km, "Enter", [name.name]) do cm2
+            fname = replace(cm2[name]["text"], "\n" => "")
+            ps = split(cell.outputs, "/")
+            nps = ps[1:length(ps) - 1]
+            push!(nps, SubString(fname))
+            joined = join(nps, "/")
+            cp(cell.outputs, joined)
+            rm(cell.outputs)
+            cell.outputs = joined
+            cell.source = fname
+            olive_notify!(cm2, "file renamed", color = "green")
+            cm2[name] = "contenteditable" => "false"
+            set_text!(cm2, name, fname)
+        end
+        bind!(c, cm, name, km)
+        cm[name] = "contenteditable" => "true"
+        set_text!(cm, name, "")
+        focus!(cm, name)
+    end
     style!(delbutton, "color" => "white", "font-size" => 17pt)
     style!(movbutton, "color" => "white", "font-size" => 17pt)
     style!(copyb, "color" => "white", "font-size" => 17pt)
+    style!(editbutton, "color" => "white", "font-size" => 17pt)
     style!(name, "color" => "white", "font-weight" => "bold",
     "font-size" => 14pt, "margin-left" => 5px)
-    push!(hiddencell, delbutton, movbutton, copyb, name, finfo)
+    push!(hiddencell, delbutton, movbutton, copyb, editbutton, name, finfo)
     hiddencell
 end
 #==output[code]
@@ -403,14 +407,14 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool = true)
     container = div("cellcontainer$(cell.id)")
     style!(container, "border-radius" => 0px)
-    filecell = build_base_cell(c, cell, d)
+    filecell = build_base_cell(c, cell, d, bind = false)
     filecell[:ex] = "0"
     childbox = div("child$(cell.id)")
-    style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px)
-    style!(childbox, "opacity" => 0percent, "margin-left" => 7px, "border-left-width" => 1px, 
-    "border-bottom-width" => 1px, "border-radius" => 0px,
-    "border-color" => "darkblue", "height" => 0percent, 
-    "border-width" => 0px, "transition" => "600ms", "padding" => 0px, "overflow" => "visible")
+    style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px, 
+    "border-bottom" => "2px solid #3b444b")
+    style!(childbox, "opacity" => 0percent, "border-left" => "10px solid", "border-radius" => 0px,
+    "border-color" => "#18191A", "height" => 0percent,  "background-color" => "#3b444b",
+    "transition" => "600ms", "padding" => 0px, "overflow" => "visible", "pointer-events" => "none")
     style!(filecell, "background-color" => "#18191A")
     if bind
         on(c, filecell, "click", [filecell.name]) do cm::ComponentModifier
@@ -419,17 +423,12 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
             end
             for mcell in directory_cells(cell.outputs * "/" * cell.source)])
             if cm[filecell]["ex"] == "0"
-                adjust = 40 * length(childs)
-                if adjust == 0
-                    adjust = 40
-                end
-                adjust += 60
-                style!(cm, childbox, "height" => "$(adjust)px", "opacity" => 100percent)
+                style!(cm, childbox, "height" => "auto", "opacity" => 100percent, "pointer-events" => "auto")
                 set_children!(cm, childbox, childs)
                 cm[filecell] = "ex" => "1"
                 return
             end
-            style!(cm, childbox, "opacity" => 0percent, "height" => 0percent)
+            style!(cm, childbox, "opacity" => 0percent, "height" => 0percent, "pointer-events" => "none")
             cm[filecell] = "ex" => "0"
         end
     end
@@ -438,7 +437,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
 end
 
 function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any}, bind::Bool = true)
-    filecell = build_base_cell(c, cell, d)
+    filecell = build_base_cell(c, cell, d, bind = false)
     style!(filecell, "background-color" => "#18191A")
     if bind
         on(c, filecell, "click", ["none"]) do cm::ComponentModifier
@@ -447,6 +446,22 @@ function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any}, bind:
     end
     filecell
 end
+
+function build(c::Connection, cell::Cell{:retdir}, d::Directory{<:Any}, bind::Bool = true)
+    filecell = build_base_cell(c, cell, d, bind = false)
+    filecell[:children] = filecell[:children][5:5]
+    filecell[:children][1][:text] = "..."
+    style!(filecell, "background-color" => "darkred")
+    if bind
+        newpspl::Vector{SubString} = split(d.uri, "/")
+        newdir::String = join(newpspl[1:length(newpspl) - 1], "/")
+        on(c, filecell, "click", ["none"]) do cm::ComponentModifier
+            switch_work_dir!(c, cm, newdir)
+        end
+    end
+    filecell
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -1256,23 +1271,12 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
-    getstarted = div("getstarted$(cell.id)", contenteditable = false)
+    getstarted = div("getstarted$(cell.id)", contenteditable = true)
     style!(getstarted, "padding" => 8px, "margin-top" => 0px)
-    use_this = button("new$(cell.id)", text = "start now")
-    style!(use_this, "background-color" => "white", "color" => "darkgray", 
-    "border-width-bottom" => 2px, "font-weight" => 10px)
-    push!(getstarted, h("gshead$(cell.id)", 4, text = ""), 
-    use_this)
+   # keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
+    runl = tmd("runl", """- use `shift` + `enter` to use this project\n- use `ctrl` + `shift` + `enter` to take a tour of olive !""")
+    push!(getstarted, runl)
     bcelln::String = builtcell.name
-    on(c, use_this, "click", ["none"]) do cm::ComponentModifier
-        proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}()
-        new_cell::Cell{:code} = Cell(1, "code", "")
-        push!(proj[:cells], new_cell)
-        append!(cm, proj.id, build(c, cm, new_cell, proj))
-        olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
-        remove!(cm, bcelln)
-        focus!(cm, "cell$(new_cell.id)")
-    end
     if "recent" in keys(c[:OliveCore].client_data[getname(c)])
         recent_projects = [begin
 
@@ -1284,6 +1288,24 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     inp[:children]["cell$(cell.id)"][:text] = ""
     inp[:children]["cell$(cell.id)"][:children] = [olive_motd(), getstarted]
     builtcell::Component{:div}
+end
+
+function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any})
+    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
+    km = ToolipsSession.KeyMap()
+    cells::Vector{Cell{<:Any}} = proj.data[:cells]
+    bind!(km, keybindings["evaluate"]) do cm::ComponentModifier
+        proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}([Cell(1, "code", "")])
+        new_cell::Cell{:code} = proj.data[:cells][1]
+        append!(cm, proj.id, build(c, cm, new_cell, proj))
+        olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
+        remove!(cm, bcelln)
+        focus!(cm, "cell$(new_cell.id)")
+    end
+    bind!(km, keybindings["new"]) do cm::ComponentModifier
+        cell_new!(c, cm, cell, proj)
+    end
+    km::KeyMap
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1470,7 +1492,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
      push!(buttonbox, cbox)
      push!(buttonbox, h("spawn$(cell.id)", 3, text = "new cell"))
      for sig in signatures
-         if sig in (Cell{:creator}, Cell{<:Any}, Cell{:versioninfo})
+         if sig in (Cell{:creator}, Cell{<:Any}, Cell{:getstarted})
              continue
          end
          if length(sig.parameters) < 1
