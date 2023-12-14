@@ -495,8 +495,39 @@ function build(c::Connection, cell::Cell{:creator}, template::String = "jl")
     maincell
 end
 
-function build(c::Connection, cell::Cell{:creator}, dir::String, name::String, template::String = "jl")
-
+function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::ComponentModifier)
+    projpath = c[:OliveCore].open[getname(c)].pwd
+    if :path in keys(p.data)
+        projpath = p[:path]
+    end
+    switch_work_dir!(c, cm, projpath)
+    save_split = split(projpath, "/")
+    nfmt = split(save_split[length(save_split)], ".")
+    d = Directory(join(save_split[1:length(save_split) - 1], "/"))
+    maincell = build_base_cell(c, cell, d, bind = false)
+    style!(maincell, "display" => "flex", "background-color" => "#64bf6a")
+    namebox = ToolipsDefaults.textdiv("new_namebox", text = string(nfmt[1]))
+    style!(namebox, "width" => 50percent, "border" => "1px solid", "background-color" => "white", 
+    "border-radius" => 0px)
+    savebutton = button("confirm_new", text = cell.outputs)
+    cancelbutton = button("cancel_new", text = "cancel")
+    on(c, cancelbutton, "click", ["none"]) do cm::ComponentModifier
+        remove!(cm, maincell)
+    end
+    opts = Vector{Servable}(filter(x -> ~(isnothing(x)), [begin
+        Tsig = m.sig.parameters[4]
+        if Tsig != ProjectExport{<:Any}
+            ToolipsDefaults.option("creatorkey", text = string(Tsig.parameters[1]))   
+        end        
+    end for m in methods(olive_save)]))
+    formatbox = ToolipsDefaults.dropdown("formatbox", opts, value = string(nfmt[2]))
+    formatbox[:value] = string(nfmt[2])
+    style!(formatbox, "width" => 25percent)
+    on(c, savebutton, "click", [namebox.name, formatbox.name, "selector"]) do cm::ComponentModifier
+        alert!(cm, "almost done")
+    end
+    maincell[:children] = [namebox, formatbox, cancelbutton, savebutton]
+    maincell
 end
 
 #==output[code]
@@ -641,15 +672,13 @@ And code cells can be extended with
 """
 function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = false)
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     sidebox = interior[:children]["cellside$(cell.id)"]
-    [style!(child, "color" => "red") for child in sidebox[:children]]
-    insert!(builtcell[:children], 1, h("unknown", 3, text = "$(cell.type)"))
+    sidebox[:children] = Vector{Servable}([a("unknown", text = "$(cell.type)", align = "center")])
+    style!(sidebox[:children][1], "color" => "darkred")
     style!(sidebox, "background" => "transparent")
     inp = interior[:children]["cellinput$(cell.id)"]
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)

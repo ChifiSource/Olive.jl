@@ -1283,56 +1283,8 @@ Saves a project to a new path.
 ```
 """
 function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Project{<:Any})
-    projpath = c[:OliveCore].open[getname(c)].pwd
-    if :path in keys(p.data)
-        projpath = p[:path]
-    end
-    save_split = split(projpath, ".")
-    fnamesplit = split(save_split[1], "/")
-    epname = join(save_split[2:length(save_split)], ".")
-    fname = fnamesplit[length(fnamesplit)] * "(1)" * "." * epname 
-    switch_work_dir!(c, cm, projpath)
-    namebox = ToolipsDefaults.textdiv("saveasbox", text = fname)
-    output_opts = Vector{Servable}([begin
-        mname = m.sig.parameters[4]
-        if mname == ProjectExport{<:Any}
-            ToolipsDefaults.option("rawselect", text = "raw")
-        else
-            ToolipsDefaults.option(string(e), text = string(mname.parameters[1]))
-        end  
-    end for (e, m) in enumerate(methods(olive_save))])
-    selectorbox = ToolipsDefaults.dropdown("outputfmt", output_opts)
-    selectorbox["value"] = output_opts[1][:text]
-    savebutton = button("saveasbutton", text = "save")
-    style!(namebox, "display" => "flex", "width" => 100percent, "border" => "2px solid")
-    cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click", ["saveasbox", "outputfmt", "selector"]) do cm2::ComponentModifier
-        finalname = cm2[namebox]["text"]
-        path = cm2["selector"]["text"]
-        exporttype = cm2[selectorbox]["value"]
-        if epname != exporttype
-            p.data[:export] = epname
-        end
-        cells = p.data[:cells]
-        p.data[:path] = path * "/" * finalname
-        pe::ProjectExport{<:Any} = ProjectExport{Symbol(exporttype)}()
-        ret = olive_save(cells, p, pe)
-        if isnothing(ret)
-            olive_notify!(cm2, "file $(p[:path]) saved", color = "green")
-            p.name = finalname
-            set_text!(cm2, "tablabel$(p.id)", finalname)
-        else
-            olive_notify!(cm2, "file $(p[:path]) saved", color = "$ret")
-        end
-        set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-    end
-    on(c, cancelbutton, "click") do cm2::ComponentModifier
-        set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-    end
-    set_children!(cm, "fileeditbox", [namebox, selectorbox, cancelbutton, savebutton])
-    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+    creatorcell = Cell(1, "creator", "", "save")
+    insert!(cm, "pwdmain", 2, build(c, creatorcell, p, cm))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
