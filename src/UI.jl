@@ -116,7 +116,7 @@ function projectexplorer()
     "z-index" => "1", "top" => "0", "overflow-x" => "show",
     "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
      "transition" => "0.8s", "overflow-y" => "scroll", "margin-top" => 5percent, "border-radius" => 0px, 
-     "border-right" => "3px solid black", "background-color" => "#232b2b")
+     "border-right" => "2px solid black")
      projpreview = div("pinfo")
      style!(projpreview, "display" => "flex")
     pexplore
@@ -277,49 +277,6 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-"""
-### Olive UI
-````
-create_new!(c::Connection, cm::AbstractComponentModifier, dir::Directory{<:Any}; 
-directory::Bool = false) -> ::Nothing
-````
-------------------
-Initiates new file or directory creation. When the `confirm` or `save` button is pressed, 
-completes these operations and denotes the status using `olive_notify!`.
-#### example
-```
-
-```
-"""
-function create_new!(c::Connection, cm::AbstractComponentModifier, dir::Directory{<:Any}; directory::Bool = false)
-    switch_work_dir!(c, cm, dir.uri)
-    namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
-    style!(namebox, "width" => 25percent, "border" => "1px solid")
-    savebutton = button("confirm_new", text = "confirm")
-    cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click", ["new_namebox", "selector"]) do cm2::ComponentModifier
-        finalname = cm2[namebox]["text"]
-        path = cm2["selector"]["text"]
-        try
-            if directory
-                mkdir(path * "/" * finalname)
-            else
-                touch(path * "/" * finalname)
-            end
-            olive_notify!(cm2, "successfully created $finalname !", color = "green")
-            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
-            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-        catch e
-            olive_notify!(cm2, "failed to create $finalname !", color = "red")
-        end
-    end
-    on(c, cancelbutton, "click", ["none"]) do cm2::ComponentModifier
-        set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-    end
-    set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
-    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
-end
 
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -458,10 +415,10 @@ create a new button inside of the **create** menu in the **inspector**.
 
 ```
 """
-function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any})
-    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}(Cell(1, "code", "")), 
-    :env => c[:OliveCore].data["home"])
-    newproj = Project{:olive}("new", projdata)
+function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:jl}, path::String, finalname::String)
+    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}([Cell(1, "code", "")]), 
+    :env => c[:OliveCore].data["home"], :path => path * "/" * finalname)
+    newproj = Project{:olive}(finalname, projdata)
     source_module!(c, newproj, "new")
     projtab = build_tab(c, newproj)
     open_project(c, cm, newproj, projtab)
@@ -470,48 +427,34 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:module})
-    namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
-    style!(namebox, "width" => 25percent)
-    savebutton = button("confirm_new", text = "confirm")
-    cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click") do cm2::ComponentModifier
-        finalname = cm2[namebox]["text"]
-        path = cm2["selector"]["text"]
-        try
-            Pkg.generate(path * "/" * finalname)
-            open(path * "/" * finalname * "/src/$finalname.jl", "w") do o
-                write(o, """
-                module $finalname
-                function greet()
-                    println("hello world")
-                end
-                end
-                #==
-                code/hello world!
-                ==#
-                #--
-                #==output[module]
-                $finalname
-                ==#
-                #==|||==#""")
+function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:module}, path::String, finalname::String)
+    try
+        Pkg.generate(path * "/" * finalname)
+        open(path * "/" * finalname * "/src/$finalname.jl", "w") do o
+            write(o, """
+            module $finalname
+            function greet()
+                println("hello world")
             end
-            olive_notify!(cm2, "successfully created $finalname !", color = "green")
-            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
-            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-            cells = IPyCells.read_jl(path * "/$finalname/src/$finalname.jl")
-            add_to_session(c, cells, cm2, "$finalname.jl", path * "/$finalname/src/")
-        catch e
-            print(e)
-            olive_notify!(cm2, "failed to create $finalname !", color = "red")
+            end
+            #==
+            code/hello world!
+            ==#
+            #--
+            #==output[module]
+            $finalname
+            ==#
+            #==|||==#""")
         end
+        olive_notify!(cm, "successfully created $finalname !", color = "green")
+        set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
+        style!(cm, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+        cells = IPyCells.read_jl(path * "/$finalname/src/$finalname.jl")
+        add_to_session(c, cells, cm2, "$finalname.jl", path * "/$finalname/src/")
+    catch e
+        print(e)
+        olive_notify!(cm, "failed to create $finalname !", color = "red")
     end
-    on(c, cancelbutton, "click") do cm2::ComponentModifier
-        set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
-    end
-    set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
-    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

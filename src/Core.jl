@@ -488,9 +488,17 @@ function build(c::Connection, dir::Directory{:pwd})
     maincell = filecell[:children][1]
     childbox = filecell[:children][2]
     style!(maincell, "background-color" => "#64bf6a")
-    maincell[:children] = maincell[:children][5:5]
+    addbutton = topbar_icon("createfile", "add")
+    style!(addbutton, "color" => "white", "font-size" => 17pt)
+    on(c, addbutton, "click", ["selector"]) do cm::ComponentModifier
+        path = cm["selector"]["text"]
+        creatorcell = Cell(1, "creator", "new", "create")
+        insert!(cm, "pwdmain", 2, build(c, creatorcell, "jl"))
+    end
+    maincell[:children] = [maincell[:children][5], addbutton]
     slctor = maincell[:children][1]
     style!(slctor, "font-size" => 11pt)
+    filecell.name = "pwdmain"
     slctor.name = "selector"
     childbox.name = "pwdbox"
     style!(childbox, "border-left" => "10px solid", "border-color" => "#64bf6a")

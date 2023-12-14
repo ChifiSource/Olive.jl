@@ -160,7 +160,6 @@ function build(c::Connection, env::Environment)
     ui_topbar::Component{:div} = topbar(c)
     style!(ui_topbar, "position" => "sticky")
     ui_explorer::Component{:div} = projectexplorer()
-    style!(ui_explorer, "background" => "transparent")
     ui_settings::Component{:section} = settings_menu(c)
     style!(ui_settings, "position" => "sticky")
     ui_explorer[:children] = Vector{Servable}([begin
@@ -348,6 +347,8 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     end
     if warm
         __precompile__()
+        @async (Toolips.get("http://$(IP):$(PORT)/?key=$key") for i in 1:3)
+        @async (Toolips.get("http://$(IP):$(PORT)/session") for i in 1:3)
     end
     server::WebServer
 end
