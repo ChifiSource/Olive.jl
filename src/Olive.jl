@@ -23,6 +23,18 @@ using ToolipsMarkdown
 using ToolipsBase64
 using TOML
 using Revise
+
+"""
+## Olive
+---
+### build
+The `build` functions in `Olive` denote a translation between an `Olive` type and the `Olive` UI. This is the primary 
+Function through which `Olive` is extended. In order to add new functionality, simply add new methods to this function by 
+**explicitly** importing it and writing a new method. In most cases, the return from a `build` `Function` will be a `Toolips.Servable`. 
+#### methods
+"""
+function build end
+
 #==
 code/none
 ==#
@@ -37,13 +49,13 @@ code/none
 #--
 """
 ### Olive 
-````
+```julia
 olive_module(modname::String, environment::String) -> ::String
-````
-------------------
+```
+---
 Creates a simple, minimalist `Olive` module. This comes in the form of a `String`, which parsed and evaluated.
 #### example
-```
+```example
 mod = eval(Meta.parse(olive_module("mymod", "."))) 
 ```
 """
@@ -64,9 +76,26 @@ end
 code/none
 ==#
 #--
+"""
+### Olive 
+```julia
+olive_motd() -> ::Component{:div}
+```
+------------------
+Creates a markdown component containing the `Olive` message of the day.
+#### example
+```example
+using Olive
+
+route("/") do c::Connection
+    motd = Olive.olive_motd()
+    write!(c, motd)
+end
+```
+"""
 function olive_motd()
     recent_str::String = """# olive editor
-    ##### $(pkgversion(Olive)) (pre-release) (Unstable)
+    ##### $(pkgversion(Olive)) (pre-release)
     - **thank you for trying olive !**
     - [github](https://github.com/ChifiSource/Olive.jl)
     - [issues](https://github.com/ChifiSource/Olive.jl/issues)
@@ -87,6 +116,14 @@ include("UI.jl")
 include/none
 ==#
 #--
+"""
+### Olive
+```julia
+verify_clienty!(c::Connection) -> ::String
+```
+------------------
+Verifies an incoming client, registers keys to names. Returns the username of the current `Connection`.
+"""
 function verify_client!(c::Connection)
     args = getargs(c)
     if ~(:key in keys(args))
@@ -122,6 +159,14 @@ end
 code/none
 ==#
 #--
+"""
+### Olive
+```julia
+load_default_project!(c::Connection) -> ::Environment
+```
+---
+Creates the default `Olive` environment with the `getstarted` project.
+"""
 function load_default_project!(c::Connection)
     cells = Vector{Cell}([Cell(1, "getstarted", "")])
     env::Environment = Environment(getname(c))
@@ -151,8 +196,83 @@ end
 code/none
 ==#
 #--
+"""
+```julia
+build(c::Connection, env::Environment{<:Any}) -> ::Environment
+```
+---
+The `build` function for an `Olive` `Environment` assembles the various components 
+which compose `Olive` into the `Olive` page. That being said, simply changing the loaded 
+environment can alter how `Olive` loads entirely.
+###### example
+The calling of this function is done on a `Toolips.Route`, we are able to assemble our own `Environment` (`?(Environment)`) or use 
+    `load_default_project!(::Connection)`.
+```example
+myr = route("/") do c::Connection
+    uname = Olive.verify_client!(c)
+    # check for environment, if none, we load the default.
+    envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
+    if isnothing(envsearch)
+        env::Environment = load_default_project!(c)
+    else
+        env = c[:OliveCore].open[getname(c)]
+    end
+    # setup base UI
+    bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env)
+end
+```
+From here, we would still need to load the projects from our `Environment` into our olive main. For reference, this is how `session` does this.
+```julia
+script!(c, "load", ["olivemain"], type = "Timeout", time = 350) do cm::ComponentModifier
+    load_extensions!(c, cm, olmod)
+    style!(cm, "loaddiv", "opacity" => 0percent)
+    next!(c, loadicondiv, cm, ["olivemain"]) do cm2::ComponentModifier
+        remove!(cm2, "loaddiv")
+        switch_work_dir!(c, cm2, env.pwd)
+        [begin
+            append!(cm2, "pane_\$(proj.data[:pane])_tabs", build_tab(c, proj))
+            if proj.id != env.projects[1].id
+                style_tab_closed!(cm2, proj)
+            end
+        end for proj in env.projects]
+        if length(env.projects) > 0
+            window::Component{:div} = olmod.build(c, cm2, env.projects[1])
+            append!(cm2, "pane_\$(env.projects[1].data[:pane])", window)
+            focus!(cm2, "cell\$(env.projects[1].data[:cells][1].id)")
+            p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
+            if ~(isnothing(p2i))
+                style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+                append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[1]))
+            end
+        end
+    end
+end
+write!(c, bod)
+```
+###### extending
+To extend, we start by creating a new symbolic dispatch, this one I am naming `customenv`
+```example
+import Olive: build
+using Olive
 
-function build(c::Connection, env::Environment)
+function build(c::Connection, env::Environment{:customenv})
+    ui_explorer::Component{:div} = projectexplorer()
+    ui_explorer[:children] = Vector{Servable}([begin
+        olmod.build(c, d)
+    end for d in env.directories])
+    olivemain::Component{:div} = olive_main()
+    olivemain["pane"] = "1"
+    pane_one::Component{:section} = section("pane_one")
+    pane_one_tabs::Component{:div} = div("pane_one_tabs")
+    ...
+end
+```
+From here, we would need to build out the **entire `Olive` UI. That being said, 
+`Environment` extensions are likely the least approachable extensions, and it might be valuable 
+to look at this Function (line 274 of Olive.jl) to get an idea of how it works, and how one might 
+extend `Olive` using a new `Environment` type.
+"""
+function build(c::Connection, env::Environment{<:Any})
     write!(c, olivesheet())
     c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
@@ -212,10 +332,34 @@ code/none
 ==#
 #--
 """
-### route ("/") (main)
---- 
-This is the function/Route which runs olive's "session" page, the main editor
-    for olive.
+### Olive
+```julia
+session(c::Connection; key::Bool = true, default::Function = load_default_project) -> ::Nothing
+```
+---
+The `session` `Function` is responsible for comprising the initial `Olive` UI as it is served to 
+an incoming `Connection`. Providing a `Connection` to this route will create an `Olive` page on that route. 
+The `session` route consists of four major steps:
+- verifying the client
+- loading a default `Environment` for clients without an `Environment`
+- build and serve the `Olive` UI
+- load projects into the `Olive` UI.
+
+Providing the key-word argument `key` as `false` will remove client verification from `Olive`. Be weary, as this will also remove
+name registration. Providing a `default` function allows us to change the default `Environment` that is loaded. In order to use these arguments,
+we will need to create a passthrough.
+```example
+using Olive
+
+function example_function(c::Connection)
+    Environment(getname(c))::Environment
+end
+
+function customstart()
+    ws = Olive.start()
+    ws["/"] = c::Connection -> session(c, key = false, default = example_function)
+end
+````
 """
 function session(c::Connection; key::Bool = true, default::Function = load_default_project!)
     uname::String = c[:OliveCore].data["root"]
@@ -287,18 +431,19 @@ code/none
 #--
 """
 ### Olive 
-````
-start(IP::String = "127.0.0.1", PORT::Integer = 8000; devmode::Bool = false, 
-path::String = homedir(), free::Bool = false, hostname::String = IP) -> ::Toolips.WebServer
-````
+```julia
+start(IP::String = "127.0.0.1", PORT::Integer = 8000; path::String = homedir(), hostname::String = IP, warm::Bool = true) -> ::Toolips.WebServer
+```
 ------------------
-Starts your `Olive` server! This function puts together your `Olive` server and sources your `olive` home. 
-Providing `devmode` will launch olive in experimental mode. This is not recommended, especially not for this 
-version of `Olive`. Providing `path` will start `Olive` at the provided path. Starting in `free` mode 
-will present a headless `Olive` with no `olive` home module.
+Starts your `Olive` server! This function puts together your `Olive` server and sources your `olive` home.  `path` is used to denote a path to run `Olive` from.
+`warm` determines whether or not `Olive` should "warm up" your `Toolips` server by precompiling and invoking it.
 #### example
 ```
+using Olive
 
+olive_server = Olive.start()
+
+olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
@@ -356,6 +501,26 @@ end
 code/none
 ==#
 #--
+"""
+### StartError{E <: Exception}
+- on::**String**
+- cause**::E**
+- message**::String**
+
+The `StartError` is used to articulate problems with `Olive` starting, such as bad configurations or home 
+modules.
+##### example
+```example
+try
+    source_module!(oc)
+catch e
+    throw(StartError(e, " module load", "Failed to source olive home module."))
+end
+```
+------------------
+##### constructors
+- `StartError(cause::Exception, on::String, message::String = "")`
+"""
 struct StartError{E <: Exception} <: Exception
     on::String
     cause::E
@@ -375,6 +540,22 @@ end
 code/none
 ==#
 #--
+"""
+### Olive 
+```julia
+restore_defaults!(server::Toolips.WebServer) -> ::Nothing
+```
+---
+Restores `Olive` server and client settings to defaults.
+#### example
+```
+using Olive
+
+olive_server = Olive.start()
+
+Olive.restore_defaults!(olive_server)
+```
+"""
 function restore_defaults!(server::Toolips.WebServer)
     path::String = server[:OliveCore].data["home"]
     root_name::String = server[:OliveCore].data["root"]
@@ -397,6 +578,22 @@ function restore_defaults!(server::Toolips.WebServer)
     server[:Logger].log("restored olive settings to defaults!")
 end
 
+"""
+### Olive 
+```julia
+setup_olive(logger::Toolips.Logger, path::String) -> ::Nothing
+```
+---
+Creates the default `olive` home environment and `olive` home
+#### example
+```
+using Olive
+
+olive_server = Olive.start()
+
+Olive.restore_defaults!(olive_server)
+```
+"""
 function setup_olive(logger::Toolips.Logger, path::String)
     logger.log("welcome to olive! to set up olive, please provide a name.")
     print("name yourself: ")

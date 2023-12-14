@@ -654,15 +654,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-mutable struct Environment
+mutable struct Environment{T <: Any}
     name::String
     directories::Vector{Directory}
     projects::Vector{Project}
     pwd::String
-    function Environment(name::String)
-        new(name, Vector{Directory}(),
-        Vector{Project}(), "")::Environment
+    function Environment(T::String, name::String)
+        nT = Symbol(T)
+        new{nT}(name, Vector{Directory}(), 
+        Vector{Project}(), "")::Environment{nT}
     end
+    Environment(name::String) = Environment("olive", name)::Environment{:olive}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
