@@ -25,13 +25,13 @@ using TOML
 using Revise
 
 """
-## Olive
+# Olive
 ---
-### build
+## build
 The `build` functions in `Olive` denote a translation between an `Olive` type and the `Olive` UI. This is the primary 
 Function through which `Olive` is extended. In order to add new functionality, simply add new methods to this function by 
 **explicitly** importing it and writing a new method. In most cases, the return from a `build` `Function` will be a `Toolips.Servable`. 
-#### methods
+### methods
 """
 function build end
 
@@ -267,7 +267,7 @@ function build(c::Connection, env::Environment{:customenv})
     ...
 end
 ```
-From here, we would need to build out the **entire `Olive` UI. That being said, 
+From here, we would need to build out the **entire** `Olive` UI. That being said, 
 `Environment` extensions are likely the least approachable extensions, and it might be valuable 
 to look at this Function (line 274 of Olive.jl) to get an idea of how it works, and how one might 
 extend `Olive` using a new `Environment` type.

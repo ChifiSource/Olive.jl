@@ -7,7 +7,7 @@ The OliveExtension is a symbolic type that is used by the `build` function in
 order to create extensions using an OliveModifier. This constructor should only
 be called internally. Instead, simply use methods to define your extension.
 ##### example
-```
+```example
 # this is your olive root file:
 module olive
 using Olive
@@ -20,7 +20,7 @@ end
 ```
 ------------------
 ##### constructors
-OliveExtension{}
+OliveExtension{T <: Any}()
 """
 mutable struct OliveExtension{P <: Any} end
 #==output[code]
@@ -30,7 +30,7 @@ mutable struct OliveExtension{P <: Any} end
 ### OliveModifier <: ToolipsSession.AbstractComponentModifier
 - rootc**::Dict{String, AbstractComponent}**
 - changes**::Vector{String}**
-- data::Dict{String, Any}
+- data**::Dict{String, Any}**
 The OliveModifier is used whenever an extension is loaded with a `build`
 function.
 ##### example
@@ -47,7 +47,7 @@ end
 ```
 ------------------
 ##### constructors
-- OliveExtension{}
+- OliveModifier(c::Connection, cm::ComponentModifier)
 """
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     rootc::Vector{Servable}
@@ -65,6 +65,18 @@ setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
 #==output[code]
 ==#
 #==|||==#
+"""
+### Olive Core
+```julia
+load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module) -> ::Nothing
+```
+------------------
+Loads `Olive` extensions. This function is called when `Olive` loads the main session.
+#### example
+```example
+
+```
+"""
 function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
     mod = OliveModifier(c, cm)
     Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
@@ -79,17 +91,25 @@ function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
     end
 end
 """
-### Olive Core
-````
+```julia
 build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Nothing
-````
-------------------
+```
+---
 This is the base `Olive` extension function, used to create `load` extensions. These are 
     extensions which do something on `Olive's` startup. 
-    For instance, the example method below loads the `DocBrowser` extension 
-    from `OliveDefaults`.
 #### example
+In order to extend `build`, write `import` build and write a new `Method`:
+```example
+import Olive: build
+using Olive
+using ToolipsSession: alert!
+
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:hello}) = begin
+    olive_notify!(om, "hello !", color = "darkgreen")
+end
 ```
+The example below is pulled from `OliveDocBrowser`:
+```example
 import Olive: build
 using Olive
 using Olive.Toolips
@@ -347,6 +367,18 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive Core
+```julia
+save_settings!(c::Connection; core::Bool = false) -> ::Nothing
+```
+---
+`save_settings!` saves `OliveCore` settings for the user's `Connection`. Providing `core` 
+will also save `Olive` core settings, as well. Core settings are in 
+`OliveCore.data` whereas client settings are in `OliveCore.client_data`. 
+These correspond to the `olive` and `oliveusers` section in the `olive` home 
+`Project.toml`
+"""
 function save_settings!(c::Connection; core::Bool = false)
     homedir = c[:OliveCore].data["home"]
     alltoml = read("$homedir/Project.toml", String)
@@ -374,6 +406,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive Core
+```julia
+onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter}) -> ::Nothing
+```
+---
+Each `onsave` `Method` is called on client data before `save_settings!`, in the case of this `Method`, 
+(:highlighter), this method removes the highlighter objects from the client data, which 
+may not be saved in TOML. This is an example of where this might be applied -- this is how we 
+can store data in memory for only a single session.
+"""
 function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
     delete!(cd, "highlighters")
 end
@@ -383,10 +426,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 """
 ### Directory{S <: Any}
-- dirtype::String
 - uri::String
-- access::Dict{String, Vector{String}}
-- cells::Vector{Cell}
 The directory type holds Directory information and file cells on startup. It
 is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds
 cells and directories
@@ -395,7 +435,7 @@ cells and directories
 ```
 ------------------
 ##### constructors
-- Directory(uri::String, access::Pair{String, String} ...; dirtype::String = "olive")
+- Directory(uri::String; dirtype::String = "olive")
 """
 mutable struct Directory{S <: Any}
     uri::String
@@ -416,22 +456,23 @@ end
 ==#
 #==|||==#
 """
-### Olive Core
-````
-build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Component{:section}
-````
+```julia
+build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Component{:div}
+```
 ------------------
 The base `Directory` build function. This function can be extended to add new directory types to `Olive`.
-#### example
-```
 
-```
 Here are some other **important** functions to look at for a `Directory`:
 - create_new!
 - work_preview
-
 The nature of file `Cell` functions can also be altered by changing 
-their `build` or `evaluate` dispatch using a directory type.
+their `build` or `evaluate` dispatch using a directory type. 
+(for more information view this this documentation):
+- `build(::Connection, ::Cell{<:Any}, ::Directory{<:Any})`
+#### example
+```example
+
+```
 """
 function build(c::Connection, dir::Directory{<:Any})
     becell = replace(dir.uri, "/" => "|")
