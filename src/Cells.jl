@@ -495,6 +495,10 @@ function build(c::Connection, cell::Cell{:creator}, template::String = "jl")
     maincell
 end
 
+function build(c::Connection, cell::Cell{:creator}, dir::String, name::String, template::String = "jl")
+
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -1302,17 +1306,21 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     getstarted = div("getstarted$(cell.id)", contenteditable = true)
-    style!(getstarted, "padding" => 8px, "margin-top" => 0px)
+    style!(getstarted, "padding" => 8px, "margin-top" => 0px, "overflow" => "visible")
     runl = tmd("runl", """- use `shift` + `enter` to use this project\n- use `ctrl` + `shift` + `enter` to take a tour of olive !""")
     push!(getstarted, runl)
     dir = Directory("~/")
     if "recents" in keys(c[:OliveCore].client_data[getname(c)])
         recent_box = section("recents")
-        style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow" => "visible")
+        style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow-x" => "visible")
         recent_box[:children] = [begin
             psplit = split(recent_p, "/")
             ftypesplit = split(psplit[length(psplit)], ".")
-            build(c, Cell(1, string(ftypesplit[2]), string(ftypesplit[1]), recent_p), dir)
+            if length(ftypesplit) > 1
+                build(c, Cell(1, string(ftypesplit[2]), string(ftypesplit[1]), recent_p), dir)
+            else
+                build(c, Cell(1, "none", string(ftypesplit[1]), recent_p), dir)
+            end
         end for recent_p in c[:OliveCore].client_data[getname(c)]["recents"]]
         push!(getstarted, h("recentl", 4, text = "recent files"), recent_box)
     end

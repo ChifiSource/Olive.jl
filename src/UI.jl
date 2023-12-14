@@ -428,6 +428,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:module}, path::String, finalname::String)
+    finalname = split(finalname, ".")[1]
     try
         Pkg.generate(path * "/" * finalname)
         open(path * "/" * finalname * "/src/$finalname.jl", "w") do o
@@ -447,10 +448,8 @@ function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExten
             #==|||==#""")
         end
         olive_notify!(cm, "successfully created $finalname !", color = "green")
-        set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
-        style!(cm, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
         cells = IPyCells.read_jl(path * "/$finalname/src/$finalname.jl")
-        add_to_session(c, cells, cm2, "$finalname.jl", path * "/$finalname/src/")
+        add_to_session(c, cells, cm, "$finalname.jl", path * "/$finalname/src/")
     catch e
         print(e)
         olive_notify!(cm, "failed to create $finalname !", color = "red")
@@ -1100,7 +1099,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt, "color" => "#A2646F")
     push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
+    on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
@@ -1162,7 +1161,7 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "green")
     end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
+    on(c, tabbody, "dblclick", ["$(fname)close"]) do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
             on(c, decollapse_button, "click", ["none"]) do cm2::ComponentModifier
@@ -1198,8 +1197,8 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     tablabel = a("tablabel$(fname)", text = p.name)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt, "color" => "white")
-    push!(tabbody, tablabel, ["none"])
-    on(c, tabbody, "click") do cm::ComponentModifier
+    push!(tabbody, tablabel)
+    on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
@@ -1211,7 +1210,7 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "#FF6C5C")
     end
-    on(c, tabbody, "dblclick", ["none"]) do cm::ComponentModifier
+    on(c, tabbody, "dblclick", ["$(fname)close"]) do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
             on(c, decollapse_button, "click") do cm2::ComponentModifier
