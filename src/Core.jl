@@ -458,7 +458,7 @@ end
 function build(c::Connection, dir::Directory{:home})
     srcbutton = topbar_icon("srchome", "play_arrow")
     style!(srcbutton, "color" => "white", "font-size" => 17pt)
-    on(c, srcbutton, "click") do cm::ComponentModifier
+    on(c, srcbutton, "click", ["selector"]) do cm::ComponentModifier
         home = c[:OliveCore].data["home"]
         try
             load_extensions!(c[:OliveCore])
@@ -470,10 +470,17 @@ function build(c::Connection, dir::Directory{:home})
             print(e)
         end
     end
+    addbutton = topbar_icon("extensionadd", "add")
+    style!(addbutton, "color" => "white", "font-size" => 17pt)
+    on(c, addbutton, "click", ["selector"]) do cm::ComponentModifier
+        creatorcell = Cell(1, "creator", "")
+        insert!(cm, "homebox", 2, build(c, creatorcell, dir))
+    end
     dircell = Cell(1, "dir", dir.uri)
     filecell = build(c, dircell, dir)
+    filecell.name = "homebox"
     maincell = filecell[:children][1]
-    maincell[:children] = [maincell[:children][2], srcbutton, maincell[:children][5]]
+    maincell[:children] = [maincell[:children][2], srcbutton, addbutton, maincell[:children][5]]
     childbox = filecell[:children][2]
     style!(maincell, "background-color" => "#D90166")
     style!(childbox, "border-color" => "#D90166")

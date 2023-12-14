@@ -530,6 +530,50 @@ function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::Compo
     maincell
 end
 
+function build(c::Connection, cell::Cell{:creator}, d::Directory{:home})
+    maincell = build_base_cell(c, cell, d, bind = false)
+    addheading = a("addheading", text = "add extension")
+    style!(addheading, "color" => "white", "font-weight" => "bold")
+    nameenter = ToolipsDefaults.textdiv("extensionn", text = "OliveDefaults")
+    addbutt = button("addextb", text = "add")
+    style!(maincell, "display" => "flex", "background-color" => "#D90166")
+    cancelbutton = button("cancel_new", text = "cancel")
+    on(c, cancelbutton, "click", ["none"]) do cm::ComponentModifier
+        remove!(cm, maincell)
+    end
+    on(c, addbutt, "click", [nameenter.name]) do cm::ComponentModifier
+        packg = cm[nameenter]["text"]
+        try
+            packgn = packg
+            if contains(packg, "http")
+                Pkg.add(url = packg)
+                pkgsplit = split(packg, "/")
+                packgn = split(pkgsplit[length(pkgsplit)], ".")[1]
+            else
+                Pkg.add(packg)
+            end
+            srcp = c[:OliveCore].data["home"] * "/src/olive.jl"
+            current = read(srcp, String)
+            curr = current * "#==|||==#\nusing $packg\n#==output[code]\n==#\n"
+            open(srcp, "w") do o::IO
+                write(o, curr)
+            end
+            remove!(cm, maincell)
+            olive_notify!(cm, "added extension $packg", color = "#D90166")
+        catch e
+            show(e)
+            olive_notify!(cm, "could not add package $packg", color = "darkred")
+        end
+    end
+    on(nameenter, "click") do cl::ClientModifier
+        set_text!(cl, nameenter, "")
+    end
+    style!(nameenter, "width" => 70percent, "border-radius" => 0px, "border" => "2px solid darkgray", 
+    "background-color" => "#301934", "color" => "white")
+    maincell[:children] = [addheading, nameenter, cancelbutton, addbutt]
+    maincell
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
