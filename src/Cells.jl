@@ -462,6 +462,13 @@ function build(c::Connection, cell::Cell{:retdir}, d::Directory{<:Any}, bind::Bo
     filecell
 end
 
+function build(c::Connection, cell::Cell{:creator}, d::Directory{:pwd})
+    namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
+    style!(namebox, "width" => 25percent, "border" => "1px solid")
+    savebutton = button("confirm_new", text = "confirm")
+    cancelbutton = button("cancel_new", text = "cancel")
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -1273,14 +1280,18 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     inp = interior[:children]["cellinput$(cell.id)"]
     getstarted = div("getstarted$(cell.id)", contenteditable = true)
     style!(getstarted, "padding" => 8px, "margin-top" => 0px)
-   # keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     runl = tmd("runl", """- use `shift` + `enter` to use this project\n- use `ctrl` + `shift` + `enter` to take a tour of olive !""")
     push!(getstarted, runl)
-    bcelln::String = builtcell.name
-    if "recent" in keys(c[:OliveCore].client_data[getname(c)])
-        recent_projects = [begin
-
-        end]
+    dir = Directory("~/")
+    if "recents" in keys(c[:OliveCore].client_data[getname(c)])
+        recent_box = section("recents")
+        style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow" => "visible")
+        recent_box[:children] = [begin
+            psplit = split(recent_p, "/")
+            ftypesplit = split(psplit[length(psplit)], ".")
+            build(c, Cell(1, string(ftypesplit[2]), string(ftypesplit[1]), recent_p), dir)
+        end for recent_p in c[:OliveCore].client_data[getname(c)]["recents"]]
+        push!(getstarted, h("recentl", 4, text = "recent files"), recent_box)
     end
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
     style!(inp[:children]["cell$(cell.id)"], "color" => "black", "border-left" => "6px solid pink", 
@@ -1297,13 +1308,14 @@ function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any}
     bind!(km, keybindings["evaluate"]) do cm::ComponentModifier
         proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}([Cell(1, "code", "")])
         new_cell::Cell{:code} = proj.data[:cells][1]
+        remove!(cm, "cellcontainer$(cell.id)")
         append!(cm, proj.id, build(c, cm, new_cell, proj))
         olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
-        remove!(cm, bcelln)
         focus!(cm, "cell$(new_cell.id)")
     end
     bind!(km, keybindings["new"]) do cm::ComponentModifier
-        cell_new!(c, cm, cell, proj)
+        olive_notify!(cm, 
+        "tour mode is not yet implemented -- this feature will be added in Olive 0.0.93", color = "darkred")
     end
     km::KeyMap
 end

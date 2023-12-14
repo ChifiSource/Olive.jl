@@ -112,11 +112,11 @@ olivesheet (generic function with 1 method)
 function projectexplorer()
     pexplore = divider("projectexplorer")
     style!(pexplore, "opacity" => 0percent, 
-    "background" => "transparent", "position" => "absolute",
+    "position" => "absolute",
     "z-index" => "1", "top" => "0", "overflow-x" => "show",
     "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
      "transition" => "0.8s", "overflow-y" => "scroll", "margin-top" => 5percent, "border-radius" => 0px, 
-     "border-right" => "3px solid black")
+     "border-right" => "3px solid black", "background-color" => "#232b2b")
      projpreview = div("pinfo")
      style!(projpreview, "display" => "flex")
     pexplore
@@ -320,6 +320,7 @@ function create_new!(c::Connection, cm::AbstractComponentModifier, dir::Director
     set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
     style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
 end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -762,11 +763,22 @@ This is the function `Olive` uses to load files into projects. This function
 function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
-    all_paths = [begin
+    all_paths = (begin
     if :path in keys(project.data)
         project[:path]
     end
-    end for project in c[:OliveCore].open[getname(c)].projects]
+    end for project in c[:OliveCore].open[getname(c)].projects)
+    cldata = c[:OliveCore].client_data[getname(c)]
+    if ~("recents" in keys(cldata))
+        cldata["recents"] = Vector{String}()
+    end
+    recents = cldata["recents"]
+    if ~(fpath in recents)
+        push!(cldata["recents"], fpath)
+    end
+    if length(recents) > 5
+        cldata["recents"] = recents[2:6]
+    end
     if fpath in all_paths
         n_open = length(findall(path -> path == fpath, all_paths))
         source = "$source | $(n_open + 1)"
@@ -786,9 +798,10 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
             end
         end
     end
+    @async save_settings!(c)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, source)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    c[:OliveCore].olmod.Olive.source_module!(c, myproj, source)
+    c[:OliveCore].olmod.Olive.check!(myproj)
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     tab::Component{:div} = build_tab(c, myproj)
     open_project(c, cm, myproj, tab)
