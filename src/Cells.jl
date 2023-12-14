@@ -412,7 +412,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
     filecell[:ex] = "0"
     childbox = div("child$(cell.id)")
     style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px, 
-    "border-bottom" => "2px solid #3b444b")
+    "border-bottom" => "2px solid #3b444b", "width" => 100percent)
     style!(childbox, "opacity" => 0percent, "border-left" => "10px solid", "border-radius" => 0px,
     "border-color" => "#18191A", "height" => 0percent,  "background-color" => "#3b444b",
     "transition" => "600ms", "padding" => 0px, "overflow" => "visible", "pointer-events" => "none")

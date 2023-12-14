@@ -85,8 +85,9 @@ function filec_style()
     s = Style("div.file-cell", "padding" => 10px,
     "background-color" => "gray","overflow" => "visible", "cursor" => "pointer", "overflow" => "visible",
     "padding" => 4px, "transition" => "0.5s", "border-radius" => 0px, "border-top-left-radius" => 0px, 
-    "border-top-right-radius" => 0px)
-    s:"hover":["border" => "1px solid magenta", "transform" => "scale(1.02)"]
+    "border-top-right-radius" => 0px, "border-right" => "2px solid 	#232b2b", 
+    "width" => 98percent)
+    s:"hover":["border-left" => "5px solid magenta", "transform" => "scale(1.02)"]
     s::Style
 end
 #==output[code]
@@ -113,10 +114,9 @@ function projectexplorer()
     pexplore = divider("projectexplorer")
     style!(pexplore, "opacity" => 0percent, 
     "position" => "absolute",
-    "z-index" => "1", "top" => "0", "overflow-x" => "visible",
+    "z-index" => "1", "top" => "0", "overflow" => "visible",
     "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
-     "transition" => "0.8s", "overflow-y" => "scroll", "margin-top" => 85px, "border-radius" => 0px, 
-     "border-right" => "2px solid black")
+     "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px)
      projpreview = div("pinfo")
      style!(projpreview, "display" => "flex")
     pexplore
@@ -133,8 +133,8 @@ function explorer_icon(c::Connection)
             style!(cm, "settingicon", "transform" => "rotate(0deg)",
             "color" => "black")
             style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
-            style!(cm, "projectexplorer", "width" => "500px", 
-            "overflow-y" => "scroll", "opacity" => 100percent)
+            style!(cm, "projectexplorer", "width" => "500px")
+            "overflow-y" => "scroll")
             style!(cm, "olivemain", "margin-left" => "500px")
             style!(cm, explorericon, "color" => "lightblue")
             style!(cm, "menubar", "border-bottom-left-radius" => 0px)
