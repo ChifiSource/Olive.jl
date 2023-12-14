@@ -160,7 +160,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
         end
     end
     finfo = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
-    style!(finfo, "color" => "white", "float" => "right", "font-weight" => "bold")
+    style!(finfo, "color" => "white", "font-weight" => "bold", "margin-left" => 15percent)
     delbutton = topbar_icon("$(cell.id)expand", "cancel")
     copyb = topbar_icon("copb$(cell.id)", "copy")
     on(c, delbutton, "click", ["none"]) do cm::ComponentModifier
@@ -406,6 +406,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool = true)
     container = div("cellcontainer$(cell.id)")
+    style!(container, "padding" => 0px)
     style!(container, "border-radius" => 0px)
     filecell = build_base_cell(c, cell, d, bind = false)
     filecell[:ex] = "0"
@@ -460,6 +461,73 @@ function build(c::Connection, cell::Cell{:retdir}, d::Directory{<:Any}, bind::Bo
         end
     end
     filecell
+end
+
+function build(c::Connection, cell::Cell{:creator}, template::String = "jl")
+    d = Directory(c[:OliveCore].open[getname(c)].pwd)
+    maincell = build_base_cell(c, cell, d, bind = false)
+    style!(maincell, "display" => "flex", "background-color" => "#64bf6a")
+    namebox = ToolipsDefaults.textdiv("new_namebox", text = cell.source)
+    style!(namebox, "width" => 50percent, "border" => "1px solid", "background-color" => "white", 
+    "border-radius" => 0px)
+    savebutton = button("confirm_new", text = cell.outputs)
+    cancelbutton = button("cancel_new", text = "cancel")
+    on(c, cancelbutton, "click", ["none"]) do cm::ComponentModifier
+        remove!(cm, maincell)
+    end
+    opts = Vector{Servable}(filter(x -> ~(isnothing(x)), [begin
+        Tsig = m.sig.parameters[4]
+        if Tsig != OliveExtension{<:Any}
+            ToolipsDefaults.option("creatorkey", text = string(Tsig.parameters[1]))   
+        end        
+    end for m in methods(create_new)]))
+    formatbox = ToolipsDefaults.dropdown("formatbox", opts, value = template)
+    style!(formatbox, "width" => 25percent)
+    on(c, savebutton, "click", [namebox.name, formatbox.name, "selector"]) do cm::ComponentModifier
+        fmat = cm["formatbox"]["value"]
+        ext = OliveExtension{Symbol(fmat)}()
+        finalname = cm[namebox]["text"] * ".$fmat"
+        path = cm["selector"]["text"]
+        create_new(c, cm, ext, path, finalname)
+        remove!(cm, "cell$(cell.id)")
+    end
+    maincell[:children] = [namebox, formatbox, cancelbutton, savebutton]
+    maincell
+end
+
+function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::ComponentModifier)
+    projpath = c[:OliveCore].open[getname(c)].pwd
+    if :path in keys(p.data)
+        projpath = p[:path]
+    end
+    switch_work_dir!(c, cm, projpath)
+    save_split = split(projpath, "/")
+    nfmt = split(save_split[length(save_split)], ".")
+    d = Directory(join(save_split[1:length(save_split) - 1], "/"))
+    maincell = build_base_cell(c, cell, d, bind = false)
+    style!(maincell, "display" => "flex", "background-color" => "#64bf6a")
+    namebox = ToolipsDefaults.textdiv("new_namebox", text = string(nfmt[1]))
+    style!(namebox, "width" => 50percent, "border" => "1px solid", "background-color" => "white", 
+    "border-radius" => 0px)
+    savebutton = button("confirm_new", text = cell.outputs)
+    cancelbutton = button("cancel_new", text = "cancel")
+    on(c, cancelbutton, "click", ["none"]) do cm::ComponentModifier
+        remove!(cm, maincell)
+    end
+    opts = Vector{Servable}(filter(x -> ~(isnothing(x)), [begin
+        Tsig = m.sig.parameters[4]
+        if Tsig != ProjectExport{<:Any}
+            ToolipsDefaults.option("creatorkey", text = string(Tsig.parameters[1]))   
+        end        
+    end for m in methods(olive_save)]))
+    formatbox = ToolipsDefaults.dropdown("formatbox", opts, value = string(nfmt[2]))
+    formatbox[:value] = string(nfmt[2])
+    style!(formatbox, "width" => 25percent)
+    on(c, savebutton, "click", [namebox.name, formatbox.name, "selector"]) do cm::ComponentModifier
+        alert!(cm, "almost done")
+    end
+    maincell[:children] = [namebox, formatbox, cancelbutton, savebutton]
+    maincell
 end
 
 #==output[code]
@@ -604,15 +672,13 @@ And code cells can be extended with
 """
 function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = false)
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     sidebox = interior[:children]["cellside$(cell.id)"]
-    [style!(child, "color" => "red") for child in sidebox[:children]]
-    insert!(builtcell[:children], 1, h("unknown", 3, text = "$(cell.type)"))
+    sidebox[:children] = Vector{Servable}([a("unknown", text = "$(cell.type)", align = "center")])
+    style!(sidebox[:children][1], "color" => "darkred")
     style!(sidebox, "background" => "transparent")
     inp = interior[:children]["cellinput$(cell.id)"]
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
@@ -664,6 +730,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells = proj[:cells]
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    println("test")
     cell.source = cm["cell$(cell.id)"]["text"]
     if pos != length(cells)
         focus!(cm, "cell$(cells[pos + 1].id)")
@@ -746,9 +813,8 @@ Binds default cell controls, returns keymap to bind to your cell's input.
 
 ```
 """
-function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any})
+function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::ToolipsSession.KeyMap = ToolipsSession.KeyMap())
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
-    km = ToolipsSession.KeyMap()
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     bind!(km, keybindings["save"], prevent_default = true) do cm::ComponentModifier
         save_project(c, cm, proj)
@@ -904,9 +970,6 @@ function build_base_replcell(c::Connection, cm::ComponentModifier, cell::Cell{<:
     km::ToolipsSession.KeyMap = cell_bind!(c, cell, proj)
     style!(interior, "display" => "flex")
     inside::Component{:div} = ToolipsDefaults.textdiv("cell$(cell.id)", text = cell.outputs)
-    bind!(km, "Enter") do cm2::ComponentModifier
-        realevaluate(c, cm2, cell, proj)
-    end
     sidebox::Component{:div} = div("cellside$(cell.id)")
     style!(sidebox, "display" => "inline-block",
     "background-color" => sideboxc,
@@ -1272,15 +1335,23 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     getstarted = div("getstarted$(cell.id)", contenteditable = true)
-    style!(getstarted, "padding" => 8px, "margin-top" => 0px)
-   # keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
+    style!(getstarted, "padding" => 8px, "margin-top" => 0px, "overflow" => "visible")
     runl = tmd("runl", """- use `shift` + `enter` to use this project\n- use `ctrl` + `shift` + `enter` to take a tour of olive !""")
     push!(getstarted, runl)
-    bcelln::String = builtcell.name
-    if "recent" in keys(c[:OliveCore].client_data[getname(c)])
-        recent_projects = [begin
-
-        end]
+    dir = Directory("~/")
+    if "recents" in keys(c[:OliveCore].client_data[getname(c)])
+        recent_box = section("recents")
+        style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow-x" => "visible")
+        recent_box[:children] = [begin
+            psplit = split(recent_p, "/")
+            ftypesplit = split(psplit[length(psplit)], ".")
+            if length(ftypesplit) > 1
+                build(c, Cell(1, string(ftypesplit[2]), string(ftypesplit[1]), recent_p), dir)
+            else
+                build(c, Cell(1, "none", string(ftypesplit[1]), recent_p), dir)
+            end
+        end for recent_p in c[:OliveCore].client_data[getname(c)]["recents"]]
+        push!(getstarted, h("recentl", 4, text = "recent files"), recent_box)
     end
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
     style!(inp[:children]["cell$(cell.id)"], "color" => "black", "border-left" => "6px solid pink", 
@@ -1290,20 +1361,25 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     builtcell::Component{:div}
 end
 
+function change_gs(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted}, proj::Project{<:Any})
+    proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}([Cell(1, "code", "")])
+    new_cell::Cell{:code} = proj.data[:cells][1]
+    remove!(cm, "cellcontainer$(cell.id)")
+    append!(cm, proj.id, build(c, cm, new_cell, proj))
+    olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
+    focus!(cm, "cell$(new_cell.id)")
+end
+
 function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     bind!(km, keybindings["evaluate"]) do cm::ComponentModifier
-        proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}([Cell(1, "code", "")])
-        new_cell::Cell{:code} = proj.data[:cells][1]
-        append!(cm, proj.id, build(c, cm, new_cell, proj))
-        olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
-        remove!(cm, bcelln)
-        focus!(cm, "cell$(new_cell.id)")
+        change_gs(c, cm, cell, proj)
     end
     bind!(km, keybindings["new"]) do cm::ComponentModifier
-        cell_new!(c, cm, cell, proj)
+        olive_notify!(cm, 
+        "tour mode is not yet implemented -- this feature will be added in Olive 0.0.93", color = "darkred")
     end
     km::KeyMap
 end
@@ -1548,7 +1624,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     window::String = proj.id
@@ -1607,7 +1683,7 @@ end
 Session cells
 ==#
 #==|||==#
-function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     mod = proj[:mod]
@@ -1639,7 +1715,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function realevaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
+function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     proj::Project{<:Any})
     cells = proj[:cells]
     mod = proj[:mod]

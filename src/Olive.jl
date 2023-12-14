@@ -23,7 +23,6 @@ using ToolipsMarkdown
 using ToolipsBase64
 using TOML
 using Revise
-__precompile__()
 #==
 code/none
 ==#
@@ -161,7 +160,6 @@ function build(c::Connection, env::Environment)
     ui_topbar::Component{:div} = topbar(c)
     style!(ui_topbar, "position" => "sticky")
     ui_explorer::Component{:div} = projectexplorer()
-    style!(ui_explorer, "background" => "transparent")
     ui_settings::Component{:section} = settings_menu(c)
     style!(ui_settings, "position" => "sticky")
     ui_explorer[:children] = Vector{Servable}([begin
@@ -248,6 +246,7 @@ function session(c::Connection; key::Bool = true, default::Function = load_defau
             if length(env.projects) > 0
                 window::Component{:div} = olmod.build(c, cm2, env.projects[1])
                 append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
+                focus!(cm2, "cell$(env.projects[1].data[:cells][1].id)")
                 p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
                 if ~(isnothing(p2i))
                     style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
@@ -303,7 +302,7 @@ will present a headless `Olive` with no `olive` home module.
 ```
 """
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
-    path::String = replace(homedir(), "\\" => "/"), hostname::String = IP)
+    path::String = replace(homedir(), "\\" => "/"), hostname::String = IP, warm::Bool = true)
     ollogger::Toolips.Logger = OliveLogger()
     oc::OliveCore = OliveCore("olive")
     rootname::String = ""
@@ -345,6 +344,11 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         push!(oc.client_keys, key => rootname)
         server[:Logger].log(2,
             "link for $(rootname): http://$(IP):$(PORT)/?key=$key")
+    end
+    if warm
+        __precompile__()
+        @async (Toolips.get("http://$(IP):$(PORT)/?key=$key") for i in 1:3)
+        @async (Toolips.get("http://$(IP):$(PORT)/session") for i in 1:3)
     end
     server::WebServer
 end
