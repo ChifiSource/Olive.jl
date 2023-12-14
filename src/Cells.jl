@@ -520,8 +520,10 @@ function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::Compo
             ToolipsDefaults.option("creatorkey", text = string(Tsig.parameters[1]))   
         end        
     end for m in methods(olive_save)]))
-    formatbox = ToolipsDefaults.dropdown("formatbox", opts, value = string(nfmt[2]))
-    formatbox[:value] = string(nfmt[2])
+    formatbox = ToolipsDefaults.dropdown("formatbox", opts, value = "jl")
+    if length(nfmt) > 1
+        formatbox[:value] = string(nfmt[2])
+    end
     style!(formatbox, "width" => 25percent)
     on(c, savebutton, "click", [namebox.name, formatbox.name, "selector"]) do cm::ComponentModifier
         alert!(cm, "almost done")
@@ -939,6 +941,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         "border-radius" => 0px, "max-width" => 90percent)
         on(c, inputbox, "keyup", ["cell$(cell.id)"]) do cm2::ComponentModifier
             cell_highlight!(c, cm2, cell, proj)
+            style!(cm2, "tablabel$(proj.id)", "border-right" => "20px solid #79305a")
         end
         on(cm, inputbox, "paste") do cl
             push!(cl.changes, """
@@ -996,7 +999,6 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     else
         push!(interiorbox, inputbox)
     end
-    # TODO move these styles to stylesheet
     style!(inputbox, "padding" => 0px, "width" => 100percent, "overflow-x" => "hidden",
     "overflow" => "hidden", "border-top-left-radius" => "0px",
     "border-bottom-left-radius" => 0px, "border-radius" => "0px",

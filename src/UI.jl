@@ -113,9 +113,9 @@ function projectexplorer()
     pexplore = divider("projectexplorer")
     style!(pexplore, "opacity" => 0percent, 
     "position" => "absolute",
-    "z-index" => "1", "top" => "0", "overflow-x" => "show",
+    "z-index" => "1", "top" => "0", "overflow-x" => "visible",
     "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
-     "transition" => "0.8s", "overflow-y" => "scroll", "margin-top" => 5percent, "border-radius" => 0px, 
+     "transition" => "0.8s", "overflow-y" => "scroll", "margin-top" => 85px, "border-radius" => 0px, 
      "border-right" => "2px solid black")
      projpreview = div("pinfo")
      style!(projpreview, "display" => "flex")
@@ -1097,7 +1097,8 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     end
     tablabel = a("tablabel$(fname)", text = p.name)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "#A2646F")
+    "font-size"  => 13pt, "color" => "#A2646F", "transition" => "250ms", 
+    "padding-right" => 5px)
     push!(tabbody, tablabel)
     on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
@@ -1247,6 +1248,7 @@ function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{
     save_split = split(p.name, ".")
     if ~(:path in keys(p.data))
         save_project_as(c, cm2, p)
+        style!(cm2, "tablabel$(p.id)", "border-right" => "0px solid")
         return
     end
     if length(save_split) < 2
@@ -1266,6 +1268,7 @@ function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{
     else
         olive_notify!(cm2, "file $(p.name) failed to save.", color = "red")
     end
+    style!(cm2, "tablabel$(p.id)", "border-right" => "0px solid")
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
