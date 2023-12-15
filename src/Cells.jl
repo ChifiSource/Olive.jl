@@ -169,33 +169,24 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
         remove!(cm, hiddencell)
     end
     on(c, copyb, "click", ["none"]) do cm::ComponentModifier
-        copy_file!(c, cm, d, cell.outputs)
+        splt = split(cell.outputs, "/")
+        nfmt = split(splt[length(splt)], ".")
+        creatorcell = Cell(1, "creator", string(nfmt[1]), "copy")
+        built = build(c, creatorcell, string(nfmt[2])) do cm::ComponentModifier
+
+        end
+        insert!(cm, "pwdmain", 2, built)
     end
     movbutton = topbar_icon("$(cell.id)move", "drive_file_move")
     on(c, movbutton, "click") do cm::ComponentModifier
         switch_work_dir!(c, cm, d.uri)
-        namebox = ToolipsDefaults.textdiv("new_namebox", text = cell.source)
-        style!(namebox, "width" => 25percent)
-        savebutton = button("confirm_new", text = "confirm")
-        cancelbutton = button("cancel_new", text = "cancel")
-        on(c, savebutton, "click") do cm2::ComponentModifier
-            finalname = cm2[namebox]["text"]
-            path = cm2["selector"]["text"]
-            try
-                mv(cell.outputs, path * "/" * finalname, force = true)
-            catch e
-                println(e)
-                olive_notify!(cm2, "failed to move $finalname", color = "red")
-            end
-            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
-            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
+        splt = split(cell.outputs, "/")
+        nfmt = split(splt[length(splt)], ".")
+        creatorcell = Cell(1, "creator", string(nfmt[1]), "copy")
+        built = build(c, creatorcell, string(nfmt[2])) do cm::ComponentModifier
+            
         end
-        on(c, cancelbutton, "click") do cm2::ComponentModifier
-            set_children!(cm2, "fileeditbox", Vector{Servable}())
-            style!(cm2, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
-        end
-        set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
-        style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+        insert!(cm, "pwdmain", 2, built)
     end
     editbutton = topbar_icon("$(cell.id)edit", "edit")
     on(c, editbutton, "click", ["none"]) do cm
@@ -409,6 +400,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
     style!(container, "padding" => 0px)
     style!(container, "border-radius" => 0px)
     filecell = build_base_cell(c, cell, d, bind = false)
+    filecell[:children] = filecell[:children][4:5]
     filecell[:ex] = "0"
     childbox = div("child$(cell.id)")
     style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px, 
@@ -463,7 +455,7 @@ function build(c::Connection, cell::Cell{:retdir}, d::Directory{<:Any}, bind::Bo
     filecell
 end
 
-function build(c::Connection, cell::Cell{:creator}, template::String = "jl")
+function build(f::Function, c::Connection, cell::Cell{:creator}, template::String = "jl")
     d = Directory(c[:OliveCore].open[getname(c)].pwd)
     maincell = build_base_cell(c, cell, d, bind = false)
     style!(maincell, "display" => "flex", "background-color" => "#64bf6a")
@@ -484,11 +476,7 @@ function build(c::Connection, cell::Cell{:creator}, template::String = "jl")
     formatbox = ToolipsDefaults.dropdown("formatbox", opts, value = template)
     style!(formatbox, "width" => 25percent)
     on(c, savebutton, "click", [namebox.name, formatbox.name, "selector"]) do cm::ComponentModifier
-        fmat = cm["formatbox"]["value"]
-        ext = OliveExtension{Symbol(fmat)}()
-        finalname = cm[namebox]["text"] * ".$fmat"
-        path = cm["selector"]["text"]
-        create_new(c, cm, ext, path, finalname)
+        f(cm)
         remove!(cm, "cell$(cell.id)")
     end
     maincell[:children] = [namebox, formatbox, cancelbutton, savebutton]

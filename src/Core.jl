@@ -521,7 +521,7 @@ function build(c::Connection, dir::Directory{:home})
     filecell = build(c, dircell, dir)
     filecell.name = "homebox"
     maincell = filecell[:children][1]
-    maincell[:children] = [maincell[:children][2], srcbutton, addbutton, maincell[:children][5]]
+    maincell[:children] = [maincell[:children][2], srcbutton, addbutton]
     childbox = filecell[:children][2]
     style!(maincell, "background-color" => "#D90166")
     style!(childbox, "border-color" => "#D90166")
@@ -541,9 +541,16 @@ function build(c::Connection, dir::Directory{:pwd})
     on(c, addbutton, "click", ["selector"]) do cm::ComponentModifier
         path = cm["selector"]["text"]
         creatorcell = Cell(1, "creator", "new", "create")
-        insert!(cm, "pwdmain", 2, build(c, creatorcell, "jl"))
+        built = build(c, creatorcell, "jl") do cm::ComponentModifier
+            fmat = cm["formatbox"]["value"]
+            ext = OliveExtension{Symbol(fmat)}()
+            finalname = cm["new_namebox"]["text"] * ".$fmat"
+            path = cm["selector"]["text"]
+            create_new(c, cm, ext, path, finalname)
+        end
+        insert!(cm, "pwdmain", 2, built)
     end
-    maincell[:children] = [maincell[:children][5], addbutton]
+    maincell[:children] = [maincell[:children][2], addbutton]
     slctor = maincell[:children][1]
     style!(slctor, "font-size" => 11pt)
     filecell.name = "pwdmain"

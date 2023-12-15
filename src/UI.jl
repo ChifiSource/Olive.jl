@@ -133,7 +133,7 @@ function explorer_icon(c::Connection)
             style!(cm, "settingicon", "transform" => "rotate(0deg)",
             "color" => "black")
             style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
-            style!(cm, "projectexplorer", "width" => "500px")
+            style!(cm, "projectexplorer", "width" => "500px", "opacity" => 100percent,
             "overflow-y" => "scroll")
             style!(cm, "olivemain", "margin-left" => "500px")
             style!(cm, explorericon, "color" => "lightblue")
