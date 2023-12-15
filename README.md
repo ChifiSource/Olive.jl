@@ -67,7 +67,7 @@ using Olive; Olive.start()
 ```
 To change the IP or PORT, use the positional arguments `IP` (**1**, `String`) and `PORT` (**2**, `Int64`). There are also the key-word arguments
 - `path`**::String** = `homedirec()` -- Provides a path from which to setup or start `Olive`.
-- `warm`**::Bool** = `true` -- determines whether or not `Olive` should precompile and "warm" the `Toolips` server. This helps reduce initial latency when starting `Olive`.
+- `warm`**::Bool** = `true` -- determines whether or not `Olive` should precompile `olive` and "warm" the `Toolips` server. This helps reduce initial latency when starting `Olive`.
 
 If there is no `olive` setup inside of `path`, `start` will ask us for a root name to create a new `olive` home at that path. Providing `path` allows us to setup multiple `Olive` environments across our filesystem.
 # get started 2
@@ -82,32 +82,15 @@ Olive.start(IP, PORT, path = startpath)
 ```
 The `Olive.start` method also returns a `Toolips.WebServer`, this being the server that contains your entire `Olive` session. This provides an easy avenue to introspect and work with `Olive`, especially if you know what you are doing. There is more information on working with this server type in the [deploying olive](#deploying-olive) portion of this `README`.
 #### user interface
-Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`. A `Project` in `Olive` is represented by a tab and the project's cells. This consumes the majority of the UI. These projects are contained within two separate panes, the **left pane** and the **right pane** respectively. The left pane **can** be open without the right pane, but the right pane **cannot** be open without the left pane. The project can be switched using the pane switcher button on the top of the project. At the top of the window will be the **topbar**. The **topbar** has two buttons on it, on the left this is a folder with an arrow. Clicking this button will open the **project explorer**. This is the menu to the left of your `Olive` session.  At the top of this menu, there is the **inspector**, and below this is where every `Directory` is placed. When a `Project` is added to the session, it will also add a preview into the inspector. In the top right there is a cog, this button will reveal the **settings menu**. All settings in `Olive` are added via extensions, so these will be your extension settings, such as key-bindings and syntax highlighting. Adding more extensions will often add new settings to this menu.
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/uiui.png"></img>
-
+Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`. A `Project` in `Olive` is represented by a tab and the project's cells. This consumes the majority of the UI. These projects are contained within two separate panes, the **left pane** and the **right pane** respectively. The left pane **can** be open without the right pane, but the right pane **cannot** be open without the left pane. The project can be switched using the pane switcher button on the top of the project. At the top of the window will be the **topbar**. The **topbar** has two buttons on it, on the left this is a folder with an arrow. Clicking this button will open the **project explorer**. This is the menu to the left of your `Olive` session. The **project explorer** contains a (*green*) working directory, as well as any other saved user directories. Additionally, the project explorer holds a `home` directory if the current user is root.
+# ui 1
 The main window is called **session**. This contains two panes which will be filled with your projects. Projects are denoted by a tab and a window which contains cells. This tab can be double clicked for a range of different project options.
 ##### session
 **Session** is the colloquial name for the main editor which comprises `Olive` -- this being the `Project` and `Cell` combination. Inside of **session** there are two panes, `pane_one` and `pane_two` respectively. These panes houses projects, their tabs being contained within a tab container above them. Clicking these tabs will yield project focus. Double clicking will add the tab's controls to the tab. These are, from left to right, `decollapse controls`, `new cell`, `switch pane`, `re-source`,`step evaluate`, and `close project`. Other than this, the hotkeys in [keybindings](https://github.com/ChifiSource/Olive.jl#keybindings) are the primary method `Olive` uses for input. Files are open from the **project explorer** and then edited inside of this session, before being saved via `ctrl` + `S` or the **inspector**. 
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/sessionui.png"></img>
-##### project explorer
-<div align="center">
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/pexplorer.png"></img>
-</div>
-
-The **project explorer** is a crucial component to your `Olive` session because it manages the entire underlying filesystem running in your `Environment`. At the top of the **project explorer** will be the **inspector**. Once expanded, this section contains a file browser and previews of directories and projects in your `Environment` currently. Beneath this are the currently loaded directories. New directories can be added from the inspector by clicking the arrow next to the current working directory. Once added, we can open files from a given directory by double clicking.
-
-<div align="center">
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/inspectorui.png" width="300"></img>
-</div>
-
-This will also be where other file operations take place, such as `save as` and `create file`. Below this will be your directories with **file cells** inside. On the top, there is a button to update the `Directory` and a button to `cd` to the directory. If this directory is your `olive` home root, this is added if the client is root, then there will also be a red run button, this button sources your `olive` home module. Whenever a new file is created, our directory will not be updated until we hit the refresh button. All file creation happens through the **inspector** inside of the **project explorer**. After creating the file in an added `Directory`, refresh the `Directory` to open the file in `Olive`. The **file cells** inside of your **directories** are the main way `Olive` interacts with files aside from the file browser in the **inspector**. In order to update our directory with new file changes, we will need to hit its refresh button.
-
-<div align="center">
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/scdirs.png" width="300"></img>
-</div>
+# ui 2
 
 ###### keybindings
-<img 
+# ui 3
 Using cells is simple. By default, olive bindings use `ctrl` alone for window features, `ctrl` + `shift` to do things inside of `Cell`, and `shift` to work with the `Project`. Here is the keymap reflecting this:
 - **window bindings**
   - `ctrl` + `C` **copy**
@@ -136,6 +119,17 @@ Using cells is simple. By default, olive bindings use `ctrl` alone for window fe
   - `shift` + `↑` **shift focus down**
 
 These keybindings can be edited inside of the [settings](https://github.com/ChifiSource/Olive.jl#settings)
+##### project explorer
+# pexplore1
+
+The **project explorer** is a crucial component to your `Olive` session because it manages the entire underlying filesystem running in your `Environment`. At the top of the **project explorer** will be the **inspector**. Once expanded, this section contains a file browser and previews of directories and projects in your `Environment` currently. Beneath this are the currently loaded directories. New directories can be added from the inspector by clicking the arrow next to the current working directory. Once added, we can open files from a given directory by double clicking.
+
+# pexplore2
+
+This will also be where other file operations take place, such as `save as` and `create file`. Below this will be your directories with **file cells** inside. On the top, there is a button to update the `Directory` and a button to `cd` to the directory. If this directory is your `olive` home root, this is added if the client is root, then there will also be a red run button, this button sources your `olive` home module. Whenever a new file is created, our directory will not be updated until we hit the refresh button. All file creation happens through the **inspector** inside of the **project explorer**. After creating the file in an added `Directory`, refresh the `Directory` to open the file in `Olive`. The **file cells** inside of your **directories** are the main way `Olive` interacts with files aside from the file browser in the **inspector**. In order to update our directory with new file changes, we will need to hit its refresh button.
+
+# pexplore3
+
 #### settings
 The final component of the Olive UI we might want to familiarize ourselves with is the **settings** menu. Using [load extensions](#load-extensions), everything in `Olive` becomes a customizable setting. This menu is pretty straightforward, press the cog in the **top bar** to open or close the settings. Settings are organized into different menus by extension. These menus can be collapsed and decollapsed and contain editable settings for `Olive`. Note that in some cases, the page may need to be refreshed for new settings to be applied. There are more nuanced examples to this, as well. For example, changing your highlighter's style will yield no changes until a cell is typed into (or another cell is built.) Changing the key-bindings will only apply to newly built cells. 
 #### parametric methodology
