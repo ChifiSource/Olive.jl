@@ -173,10 +173,9 @@ function load_default_project!(c::Connection)
     cells = Vector{Cell}([Cell(1, "getstarted", "")])
     env::Environment = Environment(name)
     env.pwd = oc.data["wd"]
-    if ~("directories" in keys(oc.client_data[name]))
-        push!(oc.client_data[name], "directories" => Vector{String}())
+    if "directories" in keys(oc.client_data[name])
+        env.directories = Vector{Directory}([Directory(uri, dirtype = "saved") for uri in oc.client_data[name]["directories"]])
     end
-    env.directories = Vector{Directory}([Directory(uri) for uri in oc.client_data[name]["directories"]])
     pwd_direc::Directory{:pwd} = Directory(env.pwd, dirtype = "pwd")
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :pane => "one", :env => " ")

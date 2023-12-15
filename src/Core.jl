@@ -472,6 +472,57 @@ their `build` or `evaluate` dispatch using a directory type.
 ```
 """
 function build(c::Connection, dir::Directory{<:Any})
+    nsplit::Vector{SubString} = split(dir.uri, "/")
+    dircell::Cell{:dir} = Cell(1, "dir", string(nsplit[length(nsplit)]),
+    string(join(nsplit[1:length(nsplit) - 1], "/")))
+    builtcell::Component{:div} = build(c, dircell, dir)
+ #==   if "Project.toml" in readdir(dir.uri)
+        toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
+        String))
+        if "name" in keys(toml_cats)
+            dirtext = toml_cats["name"]
+        end
+        if "type" in keys(toml_cats)
+            
+        end
+    end ==#
+    savebutton = topbar_icon("$(dircell.id)sa", "save")
+    dirs = c[:OliveCore].open[getname(c)].directories
+    builtname::String = builtcell.name
+    on(c, savebutton, "click", ["none"]) do cm::ComponentModifier
+        pos = findfirst(d -> d.uri == dir.uri, dirs)
+        newdir = Directory(dir.uri, dirtype = "saved")
+        deleteat!(dirs, pos)
+        remove!(cm, builtname)
+        push!(dirs, newdir)
+        cdata = c[:OliveCore].client_data[getname(c)]
+        if "directories" in keys(cdata)
+            push!(cdata["directories"], newdir.uri)
+        else
+            push!(cdata, "directories" => Vector{String}([newdir.uri]))
+        end
+        save_settings!(c)
+        Pkg.gc(); Base.GC.gc(true)
+        append!(cm, "projectexplorer", build(c, newdir))
+    end
+    style!(savebutton, "color" => "white", "font-size" => 17pt)
+    rmbutton = topbar_icon("$(dircell.id)rm", "delete")
+    on(c, rmbutton, "click", ["none"]) do cm::ComponentModifier
+        pos = findfirst(d -> d.uri == dir.uri, dirs)
+        deleteat!(dirs, pos)
+        remove!(cm, builtname)
+        olive_notify!(cm, "$(dir.uri) removed from directories.", color = "darkblue")
+        Pkg.gc(); Base.GC.gc(true)
+    end
+    style!(rmbutton, "color" => "white", "font-size" => 17pt)
+    insert!(builtcell[:children][1][:children], 1, rmbutton)
+    insert!(builtcell[:children][1][:children], 2, savebutton)
+    builtcell::Component{:div}
+end
+
+function build(c::Connection, dir::Directory{:saved})
+    srcbutton = topbar_icon("srchome", "play_arrow")
+    style!(srcbutton, "color" => "white", "font-size" => 17pt)
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
@@ -485,7 +536,30 @@ function build(c::Connection, dir::Directory{<:Any})
     nsplit = split(dir.uri, "/")
     dircell = Cell(1, "dir", string(nsplit[length(nsplit)]),
     string(join(nsplit[1:length(nsplit) - 1], "/")))
-    build(c, dircell, dir)
+    builtcell::Component{:div} = build(c, dircell, dir)
+    rmbutton = topbar_icon("$(dircell.id)rm", "delete")
+    dirs = c[:OliveCore].open[getname(c)].directories
+    builtname::String = builtcell.name
+    on(c, rmbutton, "click", ["none"]) do cm::ComponentModifier
+        pos = findfirst(d -> d.uri == dir.uri, dirs)
+        if ~(isnothing(pos))
+            deleteat!(dirs, pos)
+        end
+        remove!(cm, builtname)
+        dlist::Vector{String} = c[:OliveCore].client_data[getname(c)]["directories"]
+        pos = findfirst(s -> s == dir.uri, dlist)
+        if ~(isnothing(pos))
+            deleteat!(dlist, pos)
+        end
+        save_settings!(c)
+        olive_notify!(cm, "$(dir.uri) removed from directories.", color = "darkblue")
+        Pkg.gc(); Base.GC.gc(true)
+    end
+    style!(rmbutton, "color" => "white", "font-size" => 17pt)
+    insert!(builtcell[:children][1][:children], 1, rmbutton)
+    style!(builtcell[:children][1], "background-color" => "#36013F")
+    style!(builtcell[:children][2], "border-color" => "#36013F")
+    builtcell::Component{:div}
 end
 
 function build(c::Connection, dir::Directory{:home})
@@ -514,7 +588,7 @@ function build(c::Connection, dir::Directory{:home})
     filecell = build(c, dircell, dir)
     filecell.name = "homebox"
     maincell = filecell[:children][1]
-    maincell[:children] = [maincell[:children][1], maincell[:children][3], srcbutton, addbutton]
+    maincell[:children] = [maincell[:children][1], srcbutton, maincell[:children][3], addbutton]
     childbox = filecell[:children][2]
     style!(maincell, "background-color" => "#D90166")
     style!(childbox, "border-color" => "#D90166")
