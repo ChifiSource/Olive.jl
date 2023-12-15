@@ -198,22 +198,23 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     end
     editbutton = topbar_icon("$(cell.id)edit", "edit")
     on(c, editbutton, "click", ["none"]) do cm
-        km = ToolipsSession.KeyMap()
-        bind!(km, "Enter", [name.name]) do cm2
+        bind!(c, cm, name, "Enter") do cm2::ComponentModifier
             fname = replace(cm2[name]["text"], "\n" => "")
             ps = split(cell.outputs, "/")
             nps = ps[1:length(ps) - 1]
             push!(nps, SubString(fname))
             joined = join(nps, "/")
-            cp(cell.outputs, joined)
+            newfd = read(cell.outputs, String)
             rm(cell.outputs)
+            open(joined, "w") do o::IO
+                write(o, newfd)
+            end
             cell.outputs = joined
             cell.source = fname
             olive_notify!(cm2, "file renamed", color = "green")
             cm2[name] = "contenteditable" => "false"
             set_text!(cm2, name, fname)
         end
-        bind!(c, cm, name, km)
         cm[name] = "contenteditable" => "true"
         set_text!(cm, name, "")
         focus!(cm, name)

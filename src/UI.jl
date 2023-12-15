@@ -255,7 +255,6 @@ This will also decollapse the **inspector** and open the **project explorer**
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
     env::Environment = c[:OliveCore].open[getname(c)]
     env.pwd = path
-    style!(cm, "projectexplorer", "opacity" => 100percent)
     if isfile(path)
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
