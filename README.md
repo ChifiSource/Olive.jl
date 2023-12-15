@@ -253,7 +253,7 @@ oliveserver = Olive.start()
 
 oliveserver[:OliveCore]
 ```
-This also means that the routes of an `Olive` server could be changed, or rerouted in anyway -- really. All of the projects are stored within the `OliveCore.open` field, a `Vector{Olive.Environment}`.
+This also means that the routes of an `Olive` server could be changed, or rerouted in anyway -- really. All of the projects are stored within the `OliveCore.open` field, a `Vector{Olive.Environment}`. Our client data is stored inside of `OliveCore.client_data` and open projects are in `OliveCore.open`.
 #### olive session
 A crucial project you are probably going to want to be aware of if you are planning to deploy `Olive` is [OliveSession](https://github.com/ChifiSource/OliveSession.jl). This is an `Olive` extension provided to make `Olive` far more deployable and multi-user friendly. This project is still in the works, it is not recommended to deploy this current state of `Olive`. The modules need to limit access to `Base` functions, something base `Olive` is not intended to offer. This build of `Olive` is intended to primarily be focused on the single-computer experience, while still making `Olive` apply to that type of context in deployment and customized.
 ### contributing
@@ -274,8 +274,8 @@ When submitting issues or pull-requests for Olive, it is important to make sure 
 3. **Pull Request TO UNSTABLE**
 4. This is an issue with Olive, not a dependency; if there is a problem with highlighting, please report that issue to [ToolipsMarkdown](https://github.com/ChifiSource/ToolipsMarkdown.jl). If there is an issue with Cell reading/writing, report that issue to [IPyCells](https://github.com/ChifiSource/IPyCells.jl)
 5. Be **specific** about your issue -- if you are experiencing multiple issues, open multiple issues. It is better to have a high quantity of issues that specifically describe things than a low quantity of issues that describe multiple things.
-6. If you have a new issue, **open a new issue**. It is not best to comment your issue under an unrelated issue; even a case where you are experiencing that issue, if you want to mention **another issue**, open a **new issue**. 
-###### issue guidelines
+6. If you have a new issue, **open a new issue**. It is not best to comment your issue under an unrelated issue; even a case where you are experiencing that issue, if you want to mention **another issue**, open a **new issue**.
+7. Questions are fine, but **not** questions answered inside of this `README`.
 ### tech stack
 I appreciate those who are interested to take some time to look into the tech-stack used to create this project. I created a lot of these, and it took a lot of time.
 
