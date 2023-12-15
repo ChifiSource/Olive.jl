@@ -173,7 +173,11 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
         nfmt = split(splt[length(splt)], ".")
         creatorcell = Cell(1, "creator", string(nfmt[1]), "copy")
         built = build(c, creatorcell, string(nfmt[2])) do cm::ComponentModifier
-
+            fmat = cm["formatbox"]["value"]
+            ext = OliveExtension{Symbol(fmat)}()
+            finalname = cm["new_namebox"]["text"] * ".$fmat"
+            path = cm["selector"]["text"]
+            cp(cell.outputs, path * "/" * finalname)
         end
         insert!(cm, "pwdmain", 2, built)
     end
@@ -182,9 +186,13 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
         switch_work_dir!(c, cm, d.uri)
         splt = split(cell.outputs, "/")
         nfmt = split(splt[length(splt)], ".")
-        creatorcell = Cell(1, "creator", string(nfmt[1]), "copy")
+        creatorcell = Cell(1, "creator", string(nfmt[1]), "move")
         built = build(c, creatorcell, string(nfmt[2])) do cm::ComponentModifier
-            
+            fmat = cm["formatbox"]["value"]
+            ext = OliveExtension{Symbol(fmat)}()
+            finalname = cm["new_namebox"]["text"] * ".$fmat"
+            path = cm["selector"]["text"]
+            mv(cell.outputs, path * "/" * finalname)
         end
         insert!(cm, "pwdmain", 2, built)
     end
@@ -400,7 +408,12 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
     style!(container, "padding" => 0px)
     style!(container, "border-radius" => 0px)
     filecell = build_base_cell(c, cell, d, bind = false)
-    filecell[:children] = filecell[:children][4:5]
+    cdto = topbar_icon("$(cell.id)cd", "file_open")
+    on(c, cdto, "click", ["none"]) do cm::ComponentModifier
+        switch_work_dir!(c, cm, cell.outputs)
+    end
+    style!(cdto, "font-size" => 17pt, "color" => "white")
+    filecell[:children] = vcat(cdto, filecell[:children][4:5])
     filecell[:ex] = "0"
     childbox = div("child$(cell.id)")
     style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px, 
@@ -431,6 +444,8 @@ end
 
 function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any}, bind::Bool = true)
     filecell = build_base_cell(c, cell, d, bind = false)
+    maincell = filecell[:children][1]
+    filecell[:children] = filecell[:children][5:5]
     style!(filecell, "background-color" => "#18191A")
     if bind
         on(c, filecell, "click", ["none"]) do cm::ComponentModifier

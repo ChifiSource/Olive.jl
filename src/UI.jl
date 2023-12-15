@@ -755,12 +755,12 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 """
 ### Olive UI
-````
+```julia
 open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab)
-````
+```
 This is the function `Olive` uses to load a project into its UI.
 #### example
-```
+```example
 
 ```
 """

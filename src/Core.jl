@@ -521,7 +521,7 @@ function build(c::Connection, dir::Directory{:home})
     filecell = build(c, dircell, dir)
     filecell.name = "homebox"
     maincell = filecell[:children][1]
-    maincell[:children] = [maincell[:children][2], srcbutton, addbutton]
+    maincell[:children] = [maincell[:children][3], srcbutton, addbutton]
     childbox = filecell[:children][2]
     style!(maincell, "background-color" => "#D90166")
     style!(childbox, "border-color" => "#D90166")
@@ -550,7 +550,7 @@ function build(c::Connection, dir::Directory{:pwd})
         end
         insert!(cm, "pwdmain", 2, built)
     end
-    maincell[:children] = [maincell[:children][2], addbutton]
+    maincell[:children] = [maincell[:children][3], addbutton]
     slctor = maincell[:children][1]
     style!(slctor, "font-size" => 11pt)
     filecell.name = "pwdmain"
