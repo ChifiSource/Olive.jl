@@ -140,7 +140,7 @@ This is a callable build function that can be used to create a base file cell.
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; bind::Bool = true)
     hiddencell = div("cell$(cell.id)")
     hiddencell["class"] = "file-cell"
-    name = a("cell$(cell.id)label", text = cell.source, contenteditable = true)
+    name = a("cell$(cell.id)label", text = cell.source)
     outputfmt = "b"
     fs = filesize(cell.outputs)
     if fs > Int64(1e+9)
@@ -165,7 +165,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     copyb = topbar_icon("copb$(cell.id)", "copy")
     on(c, delbutton, "click", ["none"]) do cm::ComponentModifier
         rm(cell.outputs)
-        olive_notify!(cm, "file deleted", color = "red")
+        olive_notify!(cm, "file $(cell.outputs) deleted", color = "red")
         remove!(cm, hiddencell)
     end
     on(c, copyb, "click", ["none"]) do cm::ComponentModifier
@@ -224,7 +224,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     style!(copyb, "color" => "white", "font-size" => 17pt)
     style!(editbutton, "color" => "white", "font-size" => 17pt)
     style!(name, "color" => "white", "font-weight" => "bold",
-    "font-size" => 14pt, "margin-left" => 5px)
+    "font-size" => 14pt, "margin-left" => 5px, "pointer-events" => "none")
     push!(hiddencell, delbutton, movbutton, copyb, editbutton, name, finfo)
     hiddencell
 end
@@ -411,7 +411,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
     filecell = build_base_cell(c, cell, d, bind = false)
     cdto = topbar_icon("$(cell.id)cd", "file_open")
     on(c, cdto, "click", ["none"]) do cm::ComponentModifier
-        switch_work_dir!(c, cm, cell.outputs)
+        switch_work_dir!(c, cm, cell.outputs * "/" * cell.source)
     end
     style!(cdto, "font-size" => 17pt, "color" => "white")
     filecell[:children] = vcat(cdto, filecell[:children][4:5])
@@ -445,11 +445,27 @@ end
 
 function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any}, bind::Bool = true)
     filecell = build_base_cell(c, cell, d, bind = false)
-    maincell = filecell[:children][1]
     filecell[:children] = filecell[:children][5:5]
+    if getname(c) == c[:OliveCore].data["root"]
+        addir = topbar_icon("$(cell.id)cd", "bookmark")
+        style!(addir, "font-size" => 17pt, "color" => "white")
+        direcs = c[:OliveCore].open[getname(c)].directories
+        on(c, addir, "click", ["none"]) do cm::ComponentModifier
+            path::String = cell.outputs * "/" * cell.source
+            inalready = findfirst(d -> d.uri == path, direcs)
+            if isnothing(inalready)
+                newdir::Directory{<:Any} = Directory(path)
+                push!(direcs, newdir)
+                append!(cm, "projectexplorer", build(c, newdir))
+                return
+            end
+            olive_notify!(cm, "$path is already in your project explorer!", color = "darkred")
+        end
+        insert!(filecell[:children], 1, addir)
+    end
     style!(filecell, "background-color" => "#18191A")
     if bind
-        on(c, filecell, "click", ["none"]) do cm::ComponentModifier
+        on(c, filecell, "dblclick", ["none"]) do cm::ComponentModifier
             switch_work_dir!(c, cm, cell.outputs * "/" * cell.source)
         end
     end
@@ -780,7 +796,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells = proj[:cells]
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
-    println("test")
     cell.source = cm["cell$(cell.id)"]["text"]
     if pos != length(cells)
         focus!(cm, "cell$(cells[pos + 1].id)")

@@ -228,9 +228,6 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
         "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
         "m" => "module"))
     end
-    if om.data["selected"] == "files"
-        return
-    end
     creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
     creatorkeysdropd = containersection(c, "creatorkeys", text = "creator keys")
     creatorkeysmen = creatorkeysdropd[:children][2]
@@ -475,13 +472,6 @@ their `build` or `evaluate` dispatch using a directory type.
 ```
 """
 function build(c::Connection, dir::Directory{<:Any})
-    becell = replace(dir.uri, "/" => "|")
-    dirtext = split(replace(dir.uri, homedir() => "~",), "/")
-    if length(dirtext) > 3
-        dirtext = join(dirtext[length(dirtext) - 3:length(dirtext)], "/")
-    else
-        dirtext = join(dirtext, "/")
-    end
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
@@ -492,7 +482,9 @@ function build(c::Connection, dir::Directory{<:Any})
             
         end
     end
-    dircell = Cell(1, "dir", dir.uri)
+    nsplit = split(dir.uri, "/")
+    dircell = Cell(1, "dir", string(nsplit[length(nsplit)]),
+    string(join(nsplit[1:length(nsplit) - 1], "/")))
     build(c, dircell, dir)
 end
 
@@ -517,11 +509,12 @@ function build(c::Connection, dir::Directory{:home})
         creatorcell = Cell(1, "creator", "")
         insert!(cm, "homebox", 2, build(c, creatorcell, dir))
     end
-    dircell = Cell(1, "dir", dir.uri)
+    nsplit = split(dir.uri, "/")
+    dircell = Cell(1, "dir", string(nsplit[length(nsplit)]),  string(join(nsplit[1:length(nsplit) - 1], "/")))
     filecell = build(c, dircell, dir)
     filecell.name = "homebox"
     maincell = filecell[:children][1]
-    maincell[:children] = [maincell[:children][3], srcbutton, addbutton]
+    maincell[:children] = [maincell[:children][1], maincell[:children][3], srcbutton, addbutton]
     childbox = filecell[:children][2]
     style!(maincell, "background-color" => "#D90166")
     style!(childbox, "border-color" => "#D90166")

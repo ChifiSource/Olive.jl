@@ -168,28 +168,34 @@ load_default_project!(c::Connection) -> ::Environment
 Creates the default `Olive` environment with the `getstarted` project.
 """
 function load_default_project!(c::Connection)
+    name::String = getname(c)
+    oc::OliveCore = c[:OliveCore]
     cells = Vector{Cell}([Cell(1, "getstarted", "")])
-    env::Environment = Environment(getname(c))
-    env.pwd = c[:OliveCore].data["wd"]
+    env::Environment = Environment(name)
+    env.pwd = oc.data["wd"]
+    if ~("directories" in keys(oc.client_data[name]))
+        push!(oc.client_data[name], "directories" => Vector{String}())
+    end
+    env.directories = Vector{Directory}([Directory(uri) for uri in oc.client_data[name]["directories"]])
     pwd_direc::Directory{:pwd} = Directory(env.pwd, dirtype = "pwd")
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :pane => "one", :env => " ")
     sourced_path::String = " "
-    if "home" in keys(c[:OliveCore].data)
-        push!(projdict, :env => c[:OliveCore].data["home"])
-        sourced_path = c[:OliveCore].data["home"]
+    if "home" in keys(oc.data)
+        push!(projdict, :env => oc.data["home"])
+        sourced_path = oc.data["home"]
     end
     myproj::Project{<:Any} = Project{:olive}("get started", projdict)
-    c[:OliveCore].olmod.Olive.source_module!(c, myproj, sourced_path)
-    push!(env.directories, pwd_direc)
-    if c[:OliveCore].data["root"] == getname(c)
-        if "home" in keys(c[:OliveCore].data)
-            home_direc::Directory{:home} = Directory(c[:OliveCore].data["home"], dirtype = "home")
-            push!(env.directories, home_direc)
+    oc.olmod.Olive.source_module!(c, myproj, sourced_path)
+    insert!(env.directories, 1, pwd_direc)
+    if oc.data["root"] == name
+        if "home" in keys(oc.data)
+            home_direc::Directory{:home} = Directory(oc.data["home"], dirtype = "home")
+            insert!(env.directories, 2, home_direc)
         end
     end
     push!(env.projects, myproj)
-    push!(c[:OliveCore].open, env)
+    push!(oc.open, env)
     env::Environment
 end
 #==
@@ -274,7 +280,6 @@ extend `Olive` using a new `Environment` type.
 """
 function build(c::Connection, env::Environment{<:Any})
     write!(c, olivesheet())
-    c[:OliveCore].client_data[getname(c)]["selected"] = "session"
     olmod::Module = c[:OliveCore].olmod
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
@@ -298,11 +303,11 @@ function build(c::Connection, env::Environment{<:Any})
     pane_container_two::Component{:div} = div("pane_container_two")
     style!(pane_container_two, "width" => 0percent, "overflow" => "hidden", "display" => "inline-block",
     "opacity" => 0percent, "transition" => 1seconds)
-    on(c, pane_container_one, "click") do cm::ComponentModifier
+    on(c, pane_container_one, "click", ["none"]) do cm::ComponentModifier
         cm[olivemain] = "pane" => "1"
     end
     pane_two::Component{:section} = section("pane_two")
-    on(c, pane_container_two, "click") do cm::ComponentModifier
+    on(c, pane_container_two, "click", ["none"]) do cm::ComponentModifier
         cm[olivemain] = "pane" => "2"
     end
     style!(pane_one, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
