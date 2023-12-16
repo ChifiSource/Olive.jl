@@ -138,11 +138,11 @@ This is a callable build function that can be used to create a base file cell.
 ```
 """
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; bind::Bool = true)
-    hiddencell = div("cell$(cell.id)")
+    hiddencell::Component{:div} = div("cell$(cell.id)")
     hiddencell["class"] = "file-cell"
-    name = a("cell$(cell.id)label", text = cell.source)
-    outputfmt = "b"
-    fs = filesize(cell.outputs)
+    name::Component{:a} = a("cell$(cell.id)label", text = cell.source)
+    outputfmt::String = "b"
+    fs::Number = filesize(cell.outputs)
     if fs > Int64(1e+9)
         outputfmt = "gb"
         fs = round(fs / Int64(1e+9))
@@ -159,10 +159,10 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
             add_to_session(c, cs, cm, cell.source, cell.outputs)
         end
     end
-    finfo = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
+    finfo::Component{:a} = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
     style!(finfo, "color" => "white", "font-weight" => "bold", "margin-left" => 15percent)
-    delbutton = topbar_icon("$(cell.id)expand", "cancel")
-    copyb = topbar_icon("copb$(cell.id)", "copy")
+    delbutton::Component{:span} = topbar_icon("$(cell.id)expand", "cancel")
+    copyb::Component{:span} = topbar_icon("copb$(cell.id)", "copy")
     on(c, delbutton, "click", ["none"]) do cm::ComponentModifier
         rm(cell.outputs)
         olive_notify!(cm, "file $(cell.outputs) deleted", color = "red")
@@ -181,7 +181,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
         end
         insert!(cm, "pwdmain", 2, built)
     end
-    movbutton = topbar_icon("$(cell.id)move", "drive_file_move")
+    movbutton::Component{:span} = topbar_icon("$(cell.id)move", "drive_file_move")
     on(c, movbutton, "click") do cm::ComponentModifier
         switch_work_dir!(c, cm, d.uri)
         splt = split(cell.outputs, "/")
@@ -196,7 +196,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
         end
         insert!(cm, "pwdmain", 2, built)
     end
-    editbutton = topbar_icon("$(cell.id)edit", "edit")
+    editbutton::Component{:span} = topbar_icon("$(cell.id)edit", "edit")
     on(c, editbutton, "click", ["none"]) do cm
         bind!(c, cm, name, "Enter") do cm2::ComponentModifier
             fname = replace(cm2[name]["text"], "\n" => "")
@@ -226,7 +226,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     style!(name, "color" => "white", "font-weight" => "bold",
     "font-size" => 14pt, "margin-left" => 5px, "pointer-events" => "none")
     push!(hiddencell, delbutton, movbutton, copyb, editbutton, name, finfo)
-    hiddencell
+    hiddencell::Component{:div}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1284,7 +1284,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
         ToolipsMarkdown.clear!(tm)
     end
     km = cell_bind!(c, cell, proj)
-    bind!(c, cm, maincell, km)
+    bind!(c, cm, maincell, km, ["cell$(cell.id)"])
     newcell::Component{:div}
 end
 #==output[code]
@@ -1384,7 +1384,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:NOTE},
             focus!(cm2, "cell$(cell.id)")
         end
     end
-    bind!(c, cm, inpbox, km)
+    bind!(c, cm, inpbox, km, ["cell$(cell.id)"])
     push!(maincontainer, todolabel, inpbox)
     maincontainer
 end
@@ -1418,7 +1418,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
         end for recent_p in c[:OliveCore].client_data[getname(c)]["recents"]]
         push!(getstarted, h("recentl", 4, text = "recent files"), recent_box)
     end
-    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km, ["none"])
     style!(inp[:children]["cell$(cell.id)"], "color" => "black", "border-left" => "6px solid pink", 
     "border-top-left-radius" => 8px, "border-bottom-left-radius" => 8px, "margin-bottom" => 0px)
     inp[:children]["cell$(cell.id)"][:text] = ""
@@ -1519,7 +1519,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     style!(builtcell, "transition" => 1seconds)
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
-    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km, ["cell$(cell.id)"])
     sideb = interior[:children]["cellside$(cell.id)"]
     collapsebutt = topbar_icon("$(cell.id)collapse", "unfold_less")
     collapsebutt["col"] = "false"
@@ -1624,7 +1624,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
         end
     end
     km = cell_bind!(c, cell, proj)
-    bind!(c, cm, cbox, km)
+    bind!(c, cm, cbox, km, ["cell$(cell.id)"])
     olmod = c[:OliveCore].olmod
     signatures = [m.sig.parameters[4] for m in methods(Olive.build,
     [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
@@ -1883,7 +1883,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     style!(interior[:children]["cellside$(cell.id)"],
     "background-color" => "lightgreen")
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
-    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km, ["cell$(cell.id)"])
     builtcell::Component{:div}
 end
 #==output[code]
@@ -1959,7 +1959,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     style!(inp[:children]["cell$(cell.id)"], "color" => "darkred")
     style!(interior[:children]["cellside$(cell.id)"],
     "background-color" => "red")
-    bind!(c, cm, inp[:children]["cell$(cell.id)"], km)
+    bind!(c, cm, inp[:children]["cell$(cell.id)"], km, ["cell$(cell.id)"])
     builtcell::Component{:div}
 end
 #==output[code]
