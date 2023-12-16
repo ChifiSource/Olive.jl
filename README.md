@@ -40,7 +40,6 @@ Welcome to olive! Olive is a **pure julia** notebook editor built on the back of
    - [`0.0.9`deployment status](#status)
    - [creating an olive server](#creating-a-server)
    - [olive servers](#olive-servers)
-   - [OliveSession](#olive-session)
 - [contributing](#contributing)
    - [guidelines](#guidelines)
    - [tech stack](#tech-stack)
@@ -185,12 +184,10 @@ With the upcoming release of `0.1.0`, [chifi](https://github.com/ChifiSource) wi
 
   I would recommend the latter. For the most part, this documentation is only needed if you are writing extensions for `Olive`. I could see knowledge of how the thing works being beneficial in these early pre-releases, however. In other instances, this `README` should suffice.
 ### deploying olive
-Olive has a goal to be very deployable, but it is recommended to wait for `0.1.0` to deploy `Olive`. It is also recommended to add `OliveSession`; this provides a number of great features for multiple users, including better directory management, login screens, and sharable sessions.
    - [`0.0.9`deployment status](#status)
    - [creating an olive server](#creating-a-server)
-   - [OliveSession](#session)
 #### status
-In its current form, `Olive` would certainly need some things to be deployable. The main concern on this front is that the Julia session is active. There are simple ways to get around this -- removing portions of `Base` and `Main` from the scope of the module they have access to. As of the release of `0.0.9`, [OliveSession](#olive-session) has not yet been completed, so this type of secure module is not really supported yet. That being said, `Olive` will be deployable, and for anyone wanting to create a server, the most optimal approach to doing so is probably using `OliveSession`. The project is certainly planned to fill this application, though -- so deployment will be very feasible in the near future. However, the goal is for this package to focus on the single-user experience while `OliveSession` focuses on the multi-user experience.
+In its current form, `Olive` would certainly need some things to be deployable. The main concern on this front is that the modules still have `Base` inside of them (they can `cd` the julia working directory around, for example). Currently, we are working through the extensions to facilitate this functionality, and this section will be updated once this is done.
 #### creating a server
 Unless you are only sharing your `olive` with a limited number of people, you probably do not want this server to load from your home `olive`. That being said, it is really easy to create an `olive` at any path on your machine using the `path` key-word argument on `start`.
 ```julia
@@ -242,8 +239,6 @@ oliveserver = Olive.start()
 oliveserver[:OliveCore]
 ```
 This also means that the routes of an `Olive` server could be changed, or rerouted in anyway -- really. All of the projects are stored within the `OliveCore.open` field, a `Vector{Olive.Environment}`. Our client data is stored inside of `OliveCore.client_data` and open projects are in `OliveCore.open`.
-#### olive session
-A crucial project you are probably going to want to be aware of if you are planning to deploy `Olive` is [OliveSession](https://github.com/ChifiSource/OliveSession.jl). This is an `Olive` extension provided to make `Olive` far more deployable and multi-user friendly. This project is still in the works, it is not recommended to deploy this current state of `Olive`. The modules need to limit access to `Base` functions, something base `Olive` is not intended to offer. This build of `Olive` is intended to primarily be focused on the single-computer experience, while still making `Olive` apply to that type of context in deployment and customized.
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
 - simply using olive 🫒
