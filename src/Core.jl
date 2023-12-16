@@ -7,7 +7,7 @@ The OliveExtension is a symbolic type that is used by the `build` function in
 order to create extensions using an OliveModifier. This constructor should only
 be called internally. Instead, simply use methods to define your extension.
 ##### example
-```
+```example
 # this is your olive root file:
 module olive
 using Olive
@@ -20,7 +20,7 @@ end
 ```
 ------------------
 ##### constructors
-OliveExtension{}
+OliveExtension{T <: Any}()
 """
 mutable struct OliveExtension{P <: Any} end
 #==output[code]
@@ -30,7 +30,7 @@ mutable struct OliveExtension{P <: Any} end
 ### OliveModifier <: ToolipsSession.AbstractComponentModifier
 - rootc**::Dict{String, AbstractComponent}**
 - changes**::Vector{String}**
-- data::Dict{String, Any}
+- data**::Dict{String, Any}**
 The OliveModifier is used whenever an extension is loaded with a `build`
 function.
 ##### example
@@ -47,7 +47,7 @@ end
 ```
 ------------------
 ##### constructors
-- OliveExtension{}
+- OliveModifier(c::Connection, cm::ComponentModifier)
 """
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     rootc::Vector{Servable}
@@ -65,6 +65,18 @@ setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
 #==output[code]
 ==#
 #==|||==#
+"""
+### Olive Core
+```julia
+load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module) -> ::Nothing
+```
+------------------
+Loads `Olive` extensions. This function is called when `Olive` loads the main session.
+#### example
+```example
+
+```
+"""
 function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
     mod = OliveModifier(c, cm)
     Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
@@ -75,21 +87,29 @@ function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
         if sig == OliveExtension{<:Any}
             continue
         end
-        Base.invokelatest(c[:OliveCore].olmod.build, c, mod, sig())
+        c[:OliveCore].olmod.build(c, mod, sig())
     end
 end
 """
-### Olive Core
-````
+```julia
 build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Nothing
-````
-------------------
+```
+---
 This is the base `Olive` extension function, used to create `load` extensions. These are 
     extensions which do something on `Olive's` startup. 
-    For instance, the example method below loads the `DocBrowser` extension 
-    from `OliveDefaults`.
 #### example
+In order to extend `build`, write `import` build and write a new `Method`:
+```example
+import Olive: build
+using Olive
+using ToolipsSession: alert!
+
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:hello}) = begin
+    olive_notify!(om, "hello !", color = "darkgreen")
+end
 ```
+The example below is pulled from `OliveDocBrowser`:
+```example
 import Olive: build
 using Olive
 using Olive.Toolips
@@ -188,15 +208,25 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begin
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:styles}) = begin
     if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
         push!(c[:OliveCore].client_data[getname(c)],
         "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
         "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
         "m" => "module"))
     end
-    if om.data["selected"] == "files"
-        return
+    creatorkeysdropd = containersection(c, "creatorkeys", text = "creator keys")
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begin
+    if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
+        push!(c[:OliveCore].client_data[getname(c)],
+        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
+        "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
+        "m" => "module"))
     end
     creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
     creatorkeysdropd = containersection(c, "creatorkeys", text = "creator keys")
@@ -334,6 +364,18 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive Core
+```julia
+save_settings!(c::Connection; core::Bool = false) -> ::Nothing
+```
+---
+`save_settings!` saves `OliveCore` settings for the user's `Connection`. Providing `core` 
+will also save `Olive` core settings, as well. Core settings are in 
+`OliveCore.data` whereas client settings are in `OliveCore.client_data`. 
+These correspond to the `olive` and `oliveusers` section in the `olive` home 
+`Project.toml`
+"""
 function save_settings!(c::Connection; core::Bool = false)
     homedir = c[:OliveCore].data["home"]
     alltoml = read("$homedir/Project.toml", String)
@@ -361,6 +403,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+"""
+### Olive Core
+```julia
+onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter}) -> ::Nothing
+```
+---
+Each `onsave` `Method` is called on client data before `save_settings!`, in the case of this `Method`, 
+(:highlighter), this method removes the highlighter objects from the client data, which 
+may not be saved in TOML. This is an example of where this might be applied -- this is how we 
+can store data in memory for only a single session.
+"""
 function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
     delete!(cd, "highlighters")
 end
@@ -370,10 +423,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 """
 ### Directory{S <: Any}
-- dirtype::String
 - uri::String
-- access::Dict{String, Vector{String}}
-- cells::Vector{Cell}
 The directory type holds Directory information and file cells on startup. It
 is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds
 cells and directories
@@ -382,11 +432,11 @@ cells and directories
 ```
 ------------------
 ##### constructors
-- Directory(uri::String, access::Pair{String, String} ...; dirtype::String = "olive")
+- Directory(uri::String; dirtype::String = "olive")
 """
 mutable struct Directory{S <: Any}
     uri::String
-    function Directory(uri::String, access::Pair{String, String} ...;
+    function Directory(uri::String;
         dirtype::String = "olive")
         new{Symbol(dirtype)}(uri)
     end
@@ -403,31 +453,76 @@ end
 ==#
 #==|||==#
 """
-### Olive Core
-````
-build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Component{:section}
-````
+```julia
+build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Component{:div}
+```
 ------------------
 The base `Directory` build function. This function can be extended to add new directory types to `Olive`.
-#### example
-```
 
-```
 Here are some other **important** functions to look at for a `Directory`:
 - create_new!
 - work_preview
-
 The nature of file `Cell` functions can also be altered by changing 
-their `build` or `evaluate` dispatch using a directory type.
+their `build` or `evaluate` dispatch using a directory type. 
+(for more information view this this documentation):
+- `build(::Connection, ::Cell{<:Any}, ::Directory{<:Any})`
+#### example
+```example
+
+```
 """
-function build(c::Connection, dir::Directory{<:Any}, m::Module)
-    becell = replace(dir.uri, "/" => "|")
-    dirtext = split(replace(dir.uri, homedir() => "~",), "/")
-    if length(dirtext) > 3
-        dirtext = join(dirtext[length(dirtext) - 3:length(dirtext)], "/")
-    else
-        dirtext = join(dirtext, "/")
+function build(c::Connection, dir::Directory{<:Any})
+    nsplit::Vector{SubString} = split(dir.uri, "/")
+    dircell::Cell{:dir} = Cell(1, "dir", string(nsplit[length(nsplit)]),
+    string(join(nsplit[1:length(nsplit) - 1], "/")))
+    builtcell::Component{:div} = build(c, dircell, dir)
+ #==   if "Project.toml" in readdir(dir.uri)
+        toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
+        String))
+        if "name" in keys(toml_cats)
+            dirtext = toml_cats["name"]
+        end
+        if "type" in keys(toml_cats)
+            
+        end
+    end ==#
+    savebutton = topbar_icon("$(dircell.id)sa", "save")
+    dirs = c[:OliveCore].open[getname(c)].directories
+    builtname::String = builtcell.name
+    on(c, savebutton, "click", ["none"]) do cm::ComponentModifier
+        pos = findfirst(d -> d.uri == dir.uri, dirs)
+        newdir = Directory(dir.uri, dirtype = "saved")
+        deleteat!(dirs, pos)
+        remove!(cm, builtname)
+        push!(dirs, newdir)
+        cdata = c[:OliveCore].client_data[getname(c)]
+        if "directories" in keys(cdata)
+            push!(cdata["directories"], newdir.uri)
+        else
+            push!(cdata, "directories" => Vector{String}([newdir.uri]))
+        end
+        save_settings!(c)
+        Pkg.gc(); Base.GC.gc(true)
+        append!(cm, "projectexplorer", build(c, newdir))
     end
+    style!(savebutton, "color" => "white", "font-size" => 17pt)
+    rmbutton = topbar_icon("$(dircell.id)rm", "delete")
+    on(c, rmbutton, "click", ["none"]) do cm::ComponentModifier
+        pos = findfirst(d -> d.uri == dir.uri, dirs)
+        deleteat!(dirs, pos)
+        remove!(cm, builtname)
+        olive_notify!(cm, "$(dir.uri) removed from directories.", color = "darkblue")
+        Pkg.gc(); Base.GC.gc(true)
+    end
+    style!(rmbutton, "color" => "white", "font-size" => 17pt)
+    insert!(builtcell[:children][1][:children], 1, rmbutton)
+    insert!(builtcell[:children][1][:children], 2, savebutton)
+    builtcell::Component{:div}
+end
+
+function build(c::Connection, dir::Directory{:saved})
+    srcbutton = topbar_icon("srchome", "play_arrow")
+    style!(srcbutton, "color" => "white", "font-size" => 17pt)
     if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
@@ -438,61 +533,115 @@ function build(c::Connection, dir::Directory{<:Any}, m::Module)
             
         end
     end
-    container = containersection(c, becell, text = dirtext)
-    containerheader = container[:children][1]
-    containerbody = container[:children][2]
-    style!(container, "overflow" => "hidden")
-    if "home" in keys(c[:OliveCore].data) && dir.uri == c[:OliveCore].data["home"]
-        srcbutton = topbar_icon("srchome", "play_arrow")
-        on(c, srcbutton, "click") do cm::ComponentModifier
-            home = c[:OliveCore].data["home"]
-            try
-                load_extensions!(c[:OliveCore])
-                olive_notify!(cm, "olive module successfully sourced!", color = "green")
-            catch e
-                olive_notify!(cm,
-                "failed to source olive module",
-                color = "red")
-                print(e)
-            end
+    nsplit = split(dir.uri, "/")
+    dircell = Cell(1, "dir", string(nsplit[length(nsplit)]),
+    string(join(nsplit[1:length(nsplit) - 1], "/")))
+    builtcell::Component{:div} = build(c, dircell, dir)
+    rmbutton = topbar_icon("$(dircell.id)rm", "delete")
+    dirs = c[:OliveCore].open[getname(c)].directories
+    builtname::String = builtcell.name
+    on(c, rmbutton, "click", ["none"]) do cm::ComponentModifier
+        pos = findfirst(d -> d.uri == dir.uri, dirs)
+        if ~(isnothing(pos))
+            deleteat!(dirs, pos)
         end
-        style!(srcbutton,"font-size" => 20pt, "color" => "red",
-        "font-weight" => "bold", "cursor" => "pointer")
-        push!(containerheader, srcbutton)
+        remove!(cm, builtname)
+        dlist::Vector{String} = c[:OliveCore].client_data[getname(c)]["directories"]
+        pos = findfirst(s -> s == dir.uri, dlist)
+        if ~(isnothing(pos))
+            deleteat!(dlist, pos)
+        end
+        save_settings!(c)
+        olive_notify!(cm, "$(dir.uri) removed from directories.", color = "darkblue")
+        Pkg.gc(); Base.GC.gc(true)
     end
-    cells::Vector{Servable} = Vector{Servable}([begin
-        Base.invokelatest(m.build, c, cell, dir)
-    end for cell in directory_cells(dir.uri)])
-    cellcontainer = section("$(becell)cells")
-    cellcontainer[:children] = cells
-    new_dirb = topbar_icon("newdir$(becell)", "create_new_folder")
-    new_fb = topbar_icon("newfb$(becell)", "article")
-    openworkb = topbar_icon("cd$(becell)", "open_in_browser")
-    refb = topbar_icon("refb$(becell)", "sync")
-    style!(new_dirb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    style!(new_fb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    style!(refb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    style!(openworkb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    push!(containerheader, openworkb, refb, new_dirb, new_fb)
-    on(c, openworkb, "click") do cm::ComponentModifier
-        switch_work_dir!(c, cm, dir.uri)
-    end
-    on(c, new_dirb, "click") do cm::ComponentModifier
-        create_new!(c, cm, dir, directory = true)
-    end
-    on(c, new_fb, "click") do cm::ComponentModifier
-        create_new!(c, cm, dir)
-    end
-    on(c, refb, "click") do cm::ComponentModifier
-        dir.cells = directory_cells(dir.uri)
-        cells = Vector{Servable}([begin
-        Base.invokelatest(m.build, c, cell, dir)
-        end for cell in directory_cells(dir.uri)])
-        set_children!(cm, cellcontainer, cells)
-    end
-    push!(containerbody, cellcontainer)
-    return(container)
+    style!(rmbutton, "color" => "white", "font-size" => 17pt)
+    insert!(builtcell[:children][1][:children], 1, rmbutton)
+    style!(builtcell[:children][1], "background-color" => "#36013F")
+    style!(builtcell[:children][2], "border-color" => "#36013F")
+    builtcell::Component{:div}
 end
+
+function build(c::Connection, dir::Directory{:home})
+    srcbutton = topbar_icon("srchome", "play_arrow")
+    style!(srcbutton, "color" => "white", "font-size" => 17pt)
+    on(c, srcbutton, "click", ["selector"]) do cm::ComponentModifier
+        home = c[:OliveCore].data["home"]
+        try
+            load_extensions!(c[:OliveCore])
+            olive_notify!(cm, "olive module successfully sourced!", color = "green")
+        catch e
+            olive_notify!(cm,
+            "failed to source olive module",
+            color = "red")
+            print(e)
+        end
+    end
+    addbutton = topbar_icon("extensionadd", "add")
+    style!(addbutton, "color" => "white", "font-size" => 17pt)
+    on(c, addbutton, "click", ["selector"]) do cm::ComponentModifier
+        creatorcell = Cell(1, "creator", "")
+        insert!(cm, "homebox", 2, build(c, creatorcell, dir))
+    end
+    nsplit = split(dir.uri, "/")
+    dircell = Cell(1, "dir", string(nsplit[length(nsplit)]),  string(join(nsplit[1:length(nsplit) - 1], "/")))
+    filecell = build(c, dircell, dir)
+    filecell.name = "homebox"
+    maincell = filecell[:children][1]
+    maincell[:children] = [maincell[:children][1], srcbutton, maincell[:children][3], addbutton]
+    childbox = filecell[:children][2]
+    style!(maincell, "background-color" => "#D90166")
+    style!(childbox, "border-color" => "#D90166")
+    filecell
+end
+
+function build(c::Connection, dir::Directory{:pwd})
+    splits = split(dir.uri, "/")
+    path, name = join(splits[1:length(splits) - 1], "/"), splits[length(splits)]
+    dircell = Cell(1, "dir", dir.uri, name)
+    filecell = build(c, dircell, dir, bind = false)
+    maincell = filecell[:children][1]
+    childbox = filecell[:children][2]
+    style!(maincell, "background-color" => "#64bf6a")
+    addbutton = topbar_icon("createfile", "add")
+    style!(addbutton, "color" => "white", "font-size" => 17pt)
+    on(c, addbutton, "click", ["selector"]) do cm::ComponentModifier
+        path = cm["selector"]["text"]
+        creatorcell = Cell(1, "creator", "new", "create")
+        built = build(c, creatorcell, "jl") do cm::ComponentModifier
+            fmat = cm["formatbox"]["value"]
+            ext = OliveExtension{Symbol(fmat)}()
+            finalname = cm["new_namebox"]["text"] * ".$fmat"
+            path = cm["selector"]["text"]
+            create_new(c, cm, ext, path, finalname)
+        end
+        insert!(cm, "pwdmain", 2, built)
+    end
+    maincell[:children] = [maincell[:children][3], addbutton]
+    slctor = maincell[:children][1]
+    style!(slctor, "font-size" => 11pt)
+    filecell.name = "pwdmain"
+    slctor.name = "selector"
+    childbox.name = "pwdbox"
+    style!(childbox, "border-left" => "10px solid", "border-color" => "#64bf6a")
+    on(c, maincell, "click", [maincell.name]) do cm::ComponentModifier
+        childs = Vector{Servable}([begin
+            build(c, mcell, dir)
+        end
+        for mcell
+             in directory_cells(dir.uri, pwd = true)])
+        if cm[maincell]["ex"] == "0"
+            style!(cm, childbox, "height" => "auto", "opacity" => 100percent, "pointer-events" => "auto")
+            set_children!(cm, childbox, childs)
+            cm[maincell] = "ex" => "1"
+            return
+        end
+        style!(cm, childbox, "opacity" => 0percent, "height" => 0percent, "pointer-events" => "none")
+        cm[maincell] = "ex" => "0"
+    end
+    filecell
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -609,8 +758,7 @@ use these methods to change what different projects do with different cell types
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]
     retvs = Vector{Servable}([begin
-        Base.invokelatest(c[:OliveCore].olmod.build, c, cm, cell,
-        p)::Component{<:Any}
+       c[:OliveCore].olmod.build(c, cm, cell, p)::Component{<:Any}
     end for cell in frstcells])
     proj_window::Component{:div} = div(p.id)
     proj_window[:children] = retvs
@@ -621,15 +769,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-mutable struct Environment
+mutable struct Environment{T <: Any}
     name::String
     directories::Vector{Directory}
     projects::Vector{Project}
     pwd::String
-    function Environment(name::String)
-        new(name, Vector{Directory}(),
-        Vector{Project}(), "")::Environment
+    function Environment(T::String, name::String)
+        nT = Symbol(T)
+        new{nT}(name, Vector{Directory}(), 
+        Vector{Project}(), "")::Environment{nT}
     end
+    Environment(name::String) = Environment("olive", name)::Environment{:olive}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

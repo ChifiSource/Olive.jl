@@ -3,7 +3,7 @@ function inputcell_style()
     "border-radius" => 8px, "margin-top" => 30px, "transition" => 1seconds,
     "font-size" => 13pt, "letter-spacing" => 1px,
     "font-family" => """"Lucida Console", "Courier New", monospace;""",
-    "line-height" => 15px, "width" => 90percent, "border-bottom-left-radius" => 0px,
+    "line-height" => 19px, "width" => 90percent, "border-bottom-left-radius" => 0px,
     "min-height" => 50px, "position" => "relative", "margin-top" => 0px,
     "display" => "inline-block", "border-left-top-radius" => "0px !important",
     "border-top-left-radius" => 0px, "color" => "white", "caret-color" => "gray",
@@ -60,7 +60,7 @@ hdeps_style (generic function with 1 method)
 olive_icons_font() = Style("@font-face", "font-family" => "'Material Icons'",
     "font-style" => "normal", "font-weight" => "400",
     "src" => """local('Material Icons'), local('MaterialIcons-Regular'),
-    url(/MaterialIcons.otf) format('opentype')""")
+    url(/MaterialIcons.otf) format('opentype')""")::Style
 #==output[code]
 google_icons (generic function with 1 method)
 ==#
@@ -82,11 +82,12 @@ iconstyle (generic function with 1 method)
 ==#
 #==|||==#
 function filec_style()
-    s = Style("div.file-cell", "height" => 30px, "padding" => 10px,
-    "background-color" => "gray",
-     "width" => 80percent, "overflow" => "show", "cursor" => "pointer",
-    "padding" => 4px, "transition" => "0.5s")
-    s:"hover":["border" => "1px solid magenta", "transform" => "scale(1.02)"]
+    s = Style("div.file-cell", "padding" => 10px,
+    "background-color" => "gray","overflow" => "visible", "cursor" => "pointer", "overflow" => "visible",
+    "padding" => 4px, "transition" => "0.5s", "border-radius" => 0px, "border-top-left-radius" => 0px, 
+    "border-top-right-radius" => 0px, "border-right" => "2px solid 	#232b2b", 
+    "width" => 98percent)
+    s:"hover":["border-left" => "5px solid magenta", "transform" => "scale(1.02)"]
     s::Style
 end
 #==output[code]
@@ -111,11 +112,13 @@ olivesheet (generic function with 1 method)
 #==|||==#
 function projectexplorer()
     pexplore = divider("projectexplorer")
-    style!(pexplore, "background" => "transparent", "position" => "absolute",
-    "z-index" => "1", "top" => "0", "overflow-x" => "hidden",
-     "padding-top" => 75px, "width" => "0", "height" => "90%", "left" => "0",
-     "transition" => "0.8s", "overflow-y" => "hidden", "margin-top" => "1.5%", 
-     "opacity" => 0percent)
+    style!(pexplore, "opacity" => 0percent, 
+    "position" => "absolute",
+    "z-index" => "1", "top" => "0", "overflow" => "visible",
+    "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
+     "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px)
+     projpreview = div("pinfo")
+     style!(projpreview, "display" => "flex")
     pexplore
 end
 #==output[code]
@@ -130,16 +133,18 @@ function explorer_icon(c::Connection)
             style!(cm, "settingicon", "transform" => "rotate(0deg)",
             "color" => "black")
             style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
-            style!(cm, "projectexplorer", "width" => "500px", 
-            "overflow-y" => "scroll", "opacity" => 100percent)
+            style!(cm, "projectexplorer", "width" => "500px", "opacity" => 100percent,
+            "overflow-y" => "scroll")
             style!(cm, "olivemain", "margin-left" => "500px")
             style!(cm, explorericon, "color" => "lightblue")
+            style!(cm, "menubar", "border-bottom-left-radius" => 0px)
             set_text!(cm, explorericon, "folder_open")
             cm["olivemain"] = "ex" => "1"
             return
         else
             style!(cm, "projectexplorer", "width" => "0px", 
             "overflow-y" => "hidden", "opacity" => 0percent)
+            style!(cm, "menubar", "border-bottom-left-radius" => 5px)
             style!(cm, "olivemain", "margin-left" => "0px")
             set_text!(cm, explorericon, "drive_file_move_rtl")
             style!(cm, explorericon, "color" => "black")
@@ -157,29 +162,6 @@ function settings_menu(c::Connection)
     style!(mainmenu, "opacity" => 0percent,  "height" => 0percent,
     "overflow-y" => "scroll", "padding" => 0px)
     mainmenu::Component{:section}
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function work_menu(c::Connection)
-    becell = "workmenu"
-    env::Environment = c[:OliveCore].open[getname(c)]
-    working_area = containersection(c, becell, text = "inspector")
-    style!(working_area[:children][2], "padding" => 12px)
-    pinfo_box = div("pinfo$becell")
-    style!(pinfo_box, "display" => "flex", "flex-wrap" => "wrap")
-    pinfo_box[:children] = Vector{Servable}([work_preview(c, p) for p in env.projects])
-    insert!(pinfo_box[:children], 1, work_newpreview(c))
-    dinfo_box = div("dinfo$becell")
-    dinfo_box[:children] = Vector{Servable}([work_preview(c, d) for d in env.directories])
-    fileedit = div("fileeditbox")
-    style!(fileedit, "height" => 0percent, "opacity" => 0percent, "transition" => 1seconds, 
-    "display" => "flex")
-    dirselector = work_filemenu(c, env.directories[1].uri)
-    push!(working_area[:children][2], Component("worksep", "hr"), pinfo_box, dinfo_box, 
-    dirselector, fileedit)
-    working_area
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -237,7 +219,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-switch_work_dir!(c::Connection, cm::ComponentModifier, path::String) -> ::Nothing
+switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String) -> ::Nothing
 ````
 ------------------
 Switches the active working directory (`Environment.pwd`) to the provided path. 
@@ -247,20 +229,25 @@ This will also decollapse the **inspector** and open the **project explorer**
 
 ```
 """
-function switch_work_dir!(c::Connection, cm::ComponentModifier, path::String)
-    c[:OliveCore].open[getname(c)].pwd = path
-    style!(cm, "workmenu", "opacity" => 100percent, "height" => 60percent, 
-    "pointer-events" => "auto")
-    style!(cm, "projectexplorer", "opacity" => 100percent)
-    style!(cm, "workmenu-expander", "color" => "darkpink")
-    cm["outerworkmenu"] = "ex" => "1"
+function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
+    env::Environment = c[:OliveCore].open[getname(c)]
+    env.pwd = path
     if isfile(path)
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
+    newcells = directory_cells(string(path), pwd = true)
+    pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
+    if path != env.directories[pwddi].uri
+        newcells = vcat([Cell(1, "retdir", "")], newcells)
+    end
+    newd = Directory(path)
+    childs = Vector{Servable}([begin
+        build(c, mcell, newd)
+    end
+    for mcell in newcells])
     set_text!(cm, "selector", string(path))
-    children::Vector{Servable} = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])
-    set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
+    set_children!(cm, "pwdbox", childs)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -269,175 +256,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; 
-directory::Bool = false) -> ::Nothing
-````
-------------------
-Initiates new file or directory creation. When the `confirm` or `save` button is pressed, 
-completes these operations and denotes the status using `olive_notify!`.
-#### example
-```
-
-```
-"""
-function create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; directory::Bool = false)
-    switch_work_dir!(c, cm, dir.uri)
-    namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
-    style!(namebox, "width" => 25percent, "border" => "1px solid")
-    savebutton = button("confirm_new", text = "confirm")
-    cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click", ["new_namebox", "selector"]) do cm2::ComponentModifier
-        finalname = cm2[namebox]["text"]
-        path = cm2["selector"]["text"]
-        try
-            if directory
-                mkdir(path * "/" * finalname)
-            else
-                touch(path * "/" * finalname)
-            end
-            olive_notify!(cm2, "successfully created $finalname !", color = "green")
-            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
-            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-        catch e
-            olive_notify!(cm2, "failed to create $finalname !", color = "red")
-        end
-    end
-    on(c, cancelbutton, "click", ["none"]) do cm2::ComponentModifier
-        set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-    end
-    set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
-    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-"""
-### Olive UI
-````
-create_new!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}; 
-directory::Bool = false) -> ::Nothing
-````
-------------------
-Initiates new file or directory creation. When the `confirm` or `save` button is pressed, 
-completes these operations and denotes the status using `olive_notify!`.
-#### example
-```
-
-```
-"""
-function copy_file!(c::Connection, cm::ComponentModifier, dir::Directory{<:Any}, file::String)
-    switch_work_dir!(c, cm, file)
-    namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
-    style!(namebox, "width" => 80percent, "border" => "1px solid")
-    savebutton = button("confirm_new", text = "confirm")
-    cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click", [namebox.name, "selector"]) do cm2::ComponentModifier
-        finalname = cm2[namebox]["text"]
-        path = cm2["selector"]["text"]
-        try
-            cp(file, path * "/" * finalname)
-            olive_notify!(cm2, "successfully created $finalname !", color = "green")
-            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
-            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-        catch e
-            olive_notify!(cm2, "failed to create $finalname !", color = "red")
-        end
-    end
-    on(c, cancelbutton, "click", ["none"]) do cm2::ComponentModifier
-        set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-    end
-    set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
-    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function work_filemenu(c::Connection, path::String)
-    selector_indicator = h("selector", 4, text = path)
-    selector_box = div("selectorbox")
-    controls = div("filecontrols")
-    style!(selector_box, "display" => "inline-block")
-    style!(selector_indicator, "display" => "inline-block")
-    adddirec = topbar_icon("add_direc", "arrow_upward")
-    new_dirb = topbar_icon("newdirwork", "create_new_folder")
-    new_fb = topbar_icon("newfbwork", "article")
-    style!(adddirec, "color" => "gray", "font-size" => 10pt)
-    style!(new_dirb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray", 
-    "margin-left" => 30px)
-    style!(new_fb, "font-size" => 20pt, "display" => "inline-block", "color" => "darkgray")
-    on(c, new_dirb, "click") do cm::ComponentModifier
-        uri::String = cm[selector_indicator]["text"]
-        dir::Directory{<:Any} = Directory(uri)
-        create_new_dir!(c, cm, dir)
-    end
-    on(c, new_fb, "click") do cm::ComponentModifier
-        uri::String = cm[selector_indicator]["text"]
-        dir::Directory{<:Any} = Directory(uri)
-        create_new!(c, cm, dir)
-    end
-    on(c, adddirec, "click") do cm::ComponentModifier
-        env = c[:OliveCore].open[getname(c)]
-        newdirec = cm[selector_indicator]["text"]
-        if length(findall(d -> d.uri == newdirec, env.directories)) > 0
-            olive_notify!(cm, "this directory is already open!", color = "red")
-            return
-        end
-        newdirectory = Directory(newdirec)
-        addeddirec = build(c, newdirectory, c[:OliveCore].olmod)
-        append!(cm, "projectexplorer", addeddirec)
-        append!(cm, "dinfoworkmenu", work_preview(c, newdirectory))
-        push!(env.directories, newdirectory)
-    end
-    push!(controls, selector_indicator, adddirec, new_dirb, new_fb)
-    push!(selector_box, selector_indicator, controls)
-    filebox = section("filebox")
-    style!(filebox, "height" => 40percent, "overflow-y" => "scroll", 
-    "padding" => 2px)
-    filebox[:children] = vcat(Vector{Servable}([build_returner(c, path)]),
-    Vector{Servable}([build_comp(c, path, f) for f in readdir(path)]))
-    cellover = div("dirselectover")
-    push!(cellover, controls, filebox)
-    cellover
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function work_newpreview(c::Connection)
-    preview = div("preview_new")
-    style!(preview, "display" => "inline-block", "border-radius" => 4px, "border-width" => 2px, "border-color" => "lightgray", "border-style" => "solid")
-    name_label = a("labelpreviewnew", text = "create")
-    style!(name_label, "color" => "#A2646F", "display" => "inline-block")
-    controlsection = div("newcontrols")
-    newbuttons = Vector{Servable}([begin
-        name = m.sig.parameters[4]
-        if name == OliveExtension{<:Any}
-            name = "file"
-        else
-            name = string(name.parameters[1])
-        end
-        createbutt = button("create$name", text = name)
-        on(c, createbutt, "click") do cm::ComponentModifier
-            create_new(c, cm, OliveExtension{Symbol(name)}())
-        end
-        createbutt
-    end for m in methods(create_new, [Connection, ComponentModifier, OliveExtension])])
-    controlsection[:children] = newbuttons
-    push!(preview, name_label, br(), controlsection)
-    preview::Component{:div}
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-"""
-### Olive UI
-````
-create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
+create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
 ````
 Creates a new project from a given template. Each method for this function will 
 create a new button inside of the **create** menu in the **inspector**.
@@ -446,10 +265,10 @@ create a new button inside of the **create** menu in the **inspector**.
 
 ```
 """
-function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any})
-    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}(Cell(1, "code", "")), 
-    :env => c[:OliveCore].data["home"])
-    newproj = Project{:olive}("new", projdata)
+function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:jl}, path::String, finalname::String)
+    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}([Cell(1, "code", "")]), 
+    :env => c[:OliveCore].data["home"], :path => path * "/" * finalname)
+    newproj = Project{:olive}(finalname, projdata)
     source_module!(c, newproj, "new")
     projtab = build_tab(c, newproj)
     open_project(c, cm, newproj, projtab)
@@ -458,108 +277,33 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function create_new(c::Connection, cm::ComponentModifier, oe::OliveExtension{:module})
-    namebox = ToolipsDefaults.textdiv("new_namebox", text = "")
-    style!(namebox, "width" => 25percent)
-    savebutton = button("confirm_new", text = "confirm")
-    cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click") do cm2::ComponentModifier
-        finalname = cm2[namebox]["text"]
-        path = cm2["selector"]["text"]
-        try
-            Pkg.generate(path * "/" * finalname)
-            open(path * "/" * finalname * "/src/$finalname.jl", "w") do o
-                write(o, """
-                module $finalname
-                function greet()
-                    println("hello world")
-                end
-                end
-                #==
-                code/hello world!
-                ==#
-                #--
-                #==output[module]
-                $finalname
-                ==#
-                #==|||==#""")
+function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:module}, path::String, finalname::String)
+    finalname = split(finalname, ".")[1]
+    try
+        Pkg.generate(path * "/" * finalname)
+        open(path * "/" * finalname * "/src/$finalname.jl", "w") do o
+            write(o, """
+            module $finalname
+            function greet()
+                println("hello world")
             end
-            olive_notify!(cm2, "successfully created $finalname !", color = "green")
-            set_children!(cm2, "fileeditbox", [namebox, cancelbutton, savebutton])
-            style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-            cells = IPyCells.read_jl(path * "/$finalname/src/$finalname.jl")
-            add_to_session(c, cells, cm2, "$finalname.jl", path * "/$finalname/src/")
-        catch e
-            print(e)
-            olive_notify!(cm2, "failed to create $finalname !", color = "red")
+            end
+            #==
+            code/hello world!
+            ==#
+            #--
+            #==output[module]
+            $finalname
+            ==#
+            #==|||==#""")
         end
+        olive_notify!(cm, "successfully created $finalname !", color = "green")
+        cells = IPyCells.read_jl(path * "/$finalname/src/$finalname.jl")
+        add_to_session(c, cells, cm, "$finalname.jl", path * "/$finalname/src/")
+    catch e
+        print(e)
+        olive_notify!(cm, "failed to create $finalname !", color = "red")
     end
-    on(c, cancelbutton, "click") do cm2::ComponentModifier
-        set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
-    end
-    set_children!(cm, "fileeditbox", [namebox, cancelbutton, savebutton])
-    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-"""
-### Olive UI
-````
-work_preview(c::Connection, p::Project{<:Any}) -> ::Component{:div}
-````
-Creates the preview inside of the **work menu**.
-#### example
-```
-
-```
-"""
-function work_preview(c::Connection, p::Project{<:Any})
-    name = p.id
-    preview = div("preview$name")
-    style!(preview, "display" => "inline-block", "border-radius" => 4px, "border-width" => 2px, "border-color" => "lightgray", "border-style" => "solid")
-    name_label = a("label$name", text = p.name)
-    style!(name_label, "color" => "#A2646F", "display" => "inline-block")
-    savebutton = topbar_icon("save$name", "save")
-    style!(savebutton, "font-size"  => 20pt, "color" => "gray", 
-    "display" => "inline-block")
-    on(c, savebutton, "click") do cm::ComponentModifier
-        save_project(c, cm, p)
-    end
-    saveasbutton = topbar_icon("saveas$name", "save_as")
-    style!(saveasbutton, "font-size"  => 20pt, "color" => "gray", 
-    "display" => "inline-block")
-    on(c, saveasbutton, "click") do cm::ComponentModifier
-        save_project_as(c, cm, p)
-    end
-    push!(preview, name_label, br(), savebutton, saveasbutton)
-    preview::Component{:div}
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-"""
-### Olive UI
-````
-work_preview(c::Connection, d::Directory{<:Any}) -> ::Component{:div}
-````
-Creates the preview inside of the **work menu**.
-#### example
-```
-
-```
-"""
-function work_preview(c::Connection, d::Directory{<:Any})
-    becell = replace(d.uri, "/" => "|")
-    preview = div("preview$becell", text = d.uri)
-    style!(preview, "background-color" => "#A2646F", "color" => "white", "font-weight" => "bold")
-    on(c, preview, "click") do cm::ComponentModifier
-
-    end
-    preview::Component{:div}
 end
 #==output[code]
 UndefVarError: Connection not defined
@@ -643,7 +387,7 @@ function topbar(c::Connection)
     style!(rightmenu, "display" => "inline-block", "float" => "right")
     style!(topbar, "border-style" => "solid", "border-color" => "black",
     "border-radius" => "5px", "overflow" =>  "hidden", "position" => "sticky",
-    "top" => 0percent, "z-index" => "7", "background-color" => "white")
+    "top" => 0percent, "z-index" => "7", "background-color" => "white", "transition" => "500ms")
     tabmenu = div("tabmenu", align = "center")
     style!(tabmenu, "display" => "inline-block")
     push!(leftmenu, explorer_icon(c))
@@ -751,14 +495,25 @@ This is the function `Olive` uses to load files into projects. This function
 function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
-    all_paths = [begin
+    all_paths = (begin
     if :path in keys(project.data)
         project[:path]
     end
-    end for project in c[:OliveCore].open[getname(c)].projects]
+    end for project in c[:OliveCore].open[getname(c)].projects)
+    cldata = c[:OliveCore].client_data[getname(c)]
+    if ~("recents" in keys(cldata))
+        cldata["recents"] = Vector{String}()
+    end
+    recents = cldata["recents"]
+    if ~(fpath in recents)
+        push!(cldata["recents"], fpath)
+    end
+    if length(recents) > 5
+        cldata["recents"] = recents[2:6]
+    end
     if fpath in all_paths
-        olive_notify!(cm, "project already open!", color = "red")
-        return
+        n_open = length(findall(path -> path == fpath, all_paths))
+        source = "$source | $(n_open + 1)"
     end
     fsplit::Vector{SubString} = split(fpath, "/")
     uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
@@ -775,9 +530,10 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
             end
         end
     end
+    @async save_settings!(c)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.source_module!, c, myproj, source)
-    Base.invokelatest(c[:OliveCore].olmod.Olive.check!, myproj)
+    c[:OliveCore].olmod.Olive.source_module!(c, myproj, source)
+    c[:OliveCore].olmod.Olive.check!(myproj)
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     tab::Component{:div} = build_tab(c, myproj)
     open_project(c, cm, myproj, tab)
@@ -789,19 +545,18 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 """
 ### Olive UI
-````
+```julia
 open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab)
-````
+```
 This is the function `Olive` uses to load a project into its UI.
 #### example
-```
+```example
 
 ```
 """
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
     projects = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projects)
-    append!(cm, "pinfoworkmenu", work_preview(c, proj))
     projbuild = build(c, cm, proj)
     proj.data[:pane] = "one"
     inpane2 = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
@@ -877,7 +632,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any}) -> ::Nothing
+switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}) -> ::Nothing
 ````
 This function is called on a project whenever its tab is minimized.
     All that happens here for most projects is that the tab changes style.
@@ -886,7 +641,7 @@ This function is called on a project whenever its tab is minimized.
 
 ```
 """
-function switch_pane!(c::Connection, cm::ComponentModifier, proj::Project{<:Any})
+function switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
     name = proj.id
     if proj.data[:pane] == "one"
@@ -933,18 +688,18 @@ Returns the default set of tab controls for a `Project`.
 function tab_controls(c::Connection, p::Project{<:Any})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
-    on(c, closebutton, "click") do cm2::ComponentModifier
+    on(c, closebutton, "click", ["none"]) do cm2::ComponentModifier
         close_project(c, cm2, p)
     end
     restartbutton = topbar_icon("$(fname)restart", "restart_alt")
-    on(c, restartbutton, "click") do cm2::ComponentModifier
+    on(c, restartbutton, "click", ["none"]) do cm2::ComponentModifier
         new_name = string(split(fname, ".")[1])
         delete!(p.data, :mod)
         source_module!(c, p, new_name)
         olive_notify!(cm2, "module for $(fname) re-sourced")
     end
     add_button = topbar_icon("$(fname)add", "add_circle")
-    on(c, add_button, "click") do cm2::ComponentModifier
+    on(c, add_button, "click", ["none"]) do cm2::ComponentModifier
         cells = p[:cells]
         new_cell = Cell(length(cells) + 1, "creator", "")
         push!(cells, new_cell)
@@ -952,11 +707,11 @@ function tab_controls(c::Connection, p::Project{<:Any})
         focus!(cm2, "cell$(new_cell.id)")
     end
     runall_button = topbar_icon("$(fname)run", "start")
-    on(c, runall_button, "click") do cm2::ComponentModifier
+    on(c, runall_button, "click", ["none"]) do cm2::ComponentModifier
         step_evaluate(c, cm2, p)
     end
     switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
-    on(c, switchpane_button, "click") do cm2::ComponentModifier
+    on(c, switchpane_button, "click", ["none"]) do cm2::ComponentModifier
         switch_pane!(c, cm2, p)
     end
     style!(closebutton, "font-size"  => 17pt, "color" => "red")
@@ -1035,7 +790,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
+step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
 ````
 Step evaluate evaluates each cell in descending order, typical to that of notebook
 convention. `e` in this case is the specific number of cells to evaluate.
@@ -1044,7 +799,7 @@ convention. `e` in this case is the specific number of cells to evaluate.
 
 ```
 """
-function step_evaluate(c::Connection, cm::ComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
+function step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
     e += 1
     script!(c, cm, "$(proj.data[:cells][e].id)eval", type = "Timeout") do cm2::ComponentModifier
         evaluate(c, cm2, proj.data[:cells][e], proj)
@@ -1061,7 +816,7 @@ UndefVarError: Cell not defined 
 """
 ### Olive UI
 ````
-close_project(c::Connection, cm::ComponentModifier, proj::Project{<:Any})
+close_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any})
 ````
 This is the function `Olive` uses to close the project in the UI.
 #### example
@@ -1069,7 +824,7 @@ This is the function `Olive` uses to close the project in the UI.
 
 ```
 """
-function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:Any})
+function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Project{<:Any})
     name = proj.id
     projs = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
@@ -1100,7 +855,8 @@ function close_project(c::Connection, cm2::ComponentModifier, proj::Project{<:An
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
     [proj[:mod].feld = nothing for feld in names(proj[:mod])]
-    Pkg.gc()
+    proj[:mod].evalin(Meta.parse("Base.GC.gc(true)"))
+    Base.GC.gc()
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1131,9 +887,10 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     end
     tablabel = a("tablabel$(fname)", text = p.name)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "#A2646F")
+    "font-size"  => 13pt, "color" => "#A2646F", "transition" => "250ms", 
+    "padding-right" => 5px)
     push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
+    on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
@@ -1145,10 +902,10 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "white")
     end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
+    on(c, tabbody, "dblclick", ["$(fname)close"]) do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
+            on(c, decollapse_button, "click", ["none"]) do cm2::ComponentModifier
                 remove!(cm2, "$(fname)close")
                 remove!(cm2, "$(fname)add")
                 remove!(cm2, "$(fname)restart")
@@ -1183,7 +940,7 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
+    on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
@@ -1195,10 +952,10 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "green")
     end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
+    on(c, tabbody, "dblclick", ["$(fname)close"]) do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
+            on(c, decollapse_button, "click", ["none"]) do cm2::ComponentModifier
                 remove!(cm2, "$(fname)close")
                 remove!(cm2, "$(fname)add")
                 remove!(cm2, "$(fname)run")
@@ -1232,7 +989,7 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
+    on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
@@ -1244,7 +1001,7 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "#FF6C5C")
     end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
+    on(c, tabbody, "dblclick", ["$(fname)close"]) do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
             on(c, decollapse_button, "click") do cm2::ComponentModifier
@@ -1269,7 +1026,7 @@ UndefVarError: ComponentModifier not defined
 """
 ### Olive UI
 ````
-save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any}) -> ::Nothing
+save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{<:Any}) -> ::Nothing
 ````
 Saves a project to the URI contained within the :path key of its `data` field.
 #### example
@@ -1277,10 +1034,11 @@ Saves a project to the URI contained within the :path key of its `data` field.
 
 ```
 """
-function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
+function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{<:Any})
     save_split = split(p.name, ".")
     if ~(:path in keys(p.data))
         save_project_as(c, cm2, p)
+        style!(cm2, "tablabel$(p.id)", "border-right" => "0px solid")
         return
     end
     if length(save_split) < 2
@@ -1288,18 +1046,18 @@ function save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any})
     else
         save_type = join(save_split[2:length(save_split)])
     end
-    cells = p[:cells]
     if :export in keys(p.data)
         pe::ProjectExport{<:Any} = ProjectExport{Symbol(p[:export])}()
     else
         pe = ProjectExport{Symbol(save_type)}()
     end
-    ret = olive_save(cells, p, pe)
+    ret = olive_save(p, pe)
     if isnothing(ret)
         olive_notify!(cm2, "project $(p.name) saved", color = "green")
     else
         olive_notify!(cm2, "file $(p.name) failed to save.", color = "red")
     end
+    style!(cm2, "tablabel$(p.id)", "border-right" => "0px solid")
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1308,7 +1066,7 @@ inputcell_style (generic function with 1 method)
 """
 ### Olive UI
 ````
-save_project(c::Connection, cm2::ComponentModifier, p::Project{<:Any}) -> ::Nothing
+save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{<:Any}) -> ::Nothing
 ````
 Saves a project to a new path.
 #### example
@@ -1316,57 +1074,10 @@ Saves a project to a new path.
 
 ```
 """
-function save_project_as(c::Connection, cm::ComponentModifier, p::Project{<:Any})
-    projpath = c[:OliveCore].open[getname(c)].pwd
-    if :path in keys(p.data)
-        projpath = p[:path]
-    end
-    save_split = split(projpath, ".")
-    fnamesplit = split(save_split[1], "/")
-    epname = join(save_split[2:length(save_split)], ".")
-    fname = fnamesplit[length(fnamesplit)] * "(1)" * "." * epname 
-    switch_work_dir!(c, cm, projpath)
-    namebox = ToolipsDefaults.textdiv("saveasbox", text = fname)
-    output_opts = Vector{Servable}([begin
-        mname = m.sig.parameters[4]
-        if mname == ProjectExport{<:Any}
-            ToolipsDefaults.option("rawselect", text = "raw")
-        else
-            ToolipsDefaults.option(string(e), text = string(mname.parameters[1]))
-        end  
-    end for (e, m) in enumerate(methods(olive_save))])
-    selectorbox = ToolipsDefaults.dropdown("outputfmt", output_opts)
-    selectorbox["value"] = output_opts[1][:text]
-    savebutton = button("saveasbutton", text = "save")
-    style!(namebox, "display" => "flex", "width" => 100percent, "border" => "2px solid")
-    cancelbutton = button("cancel_new", text = "cancel")
-    on(c, savebutton, "click", ["saveasbox", "outputfmt", "selector"]) do cm2::ComponentModifier
-        finalname = cm2[namebox]["text"]
-        path = cm2["selector"]["text"]
-        exporttype = cm2[selectorbox]["value"]
-        if epname != exporttype
-            p.data[:export] = epname
-        end
-        cells = p.data[:cells]
-        p.data[:path] = path * "/" * finalname
-        pe::ProjectExport{<:Any} = ProjectExport{Symbol(exporttype)}()
-        ret = olive_save(cells, p, pe)
-        if isnothing(ret)
-            olive_notify!(cm2, "file $(p[:path]) saved", color = "green")
-            p.name = finalname
-            set_text!(cm2, "tablabel$(p.id)", finalname)
-        else
-            olive_notify!(cm2, "file $(p[:path]) saved", color = "$ret")
-        end
-        set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-    end
-    on(c, cancelbutton, "click") do cm2::ComponentModifier
-        set_children!(cm2, "fileeditbox", Vector{Servable}())
-        style!(cm2, "fileeditbox", "opacity" => 0percent, "height" => 0percent)
-    end
-    set_children!(cm, "fileeditbox", [namebox, selectorbox, cancelbutton, savebutton])
-    style!(cm, "fileeditbox", "opacity" => 100percent, "height" => 6percent)
+function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Project{<:Any})
+    creatorcell = Cell(1, "creator", "", "save")
+    style!(cm, "projectexplorer", "opacity" => 100percent)
+    insert!(cm, "pwdmain", 2, build(c, creatorcell, p, cm))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
