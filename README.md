@@ -26,11 +26,13 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 
 ###### map
 - [get started](#get-started)
-   - [user interface](#user-interface)
-     - [session](#session)
-     - [keybindings](#keybindings)
-     - [project explorer](#project-explorer)
-     - [settings](#settings)
+   - [getting olive](#getting-olive)
+   - [explanation](#explanation)
+- [user interface](#user-interface)
+   - [session](#session)
+   - [keybindings](#keybindings)
+   - [project explorer](#project-explorer)
+   - [settings](#settings)
 - [extensions](#extensions)
    - [installing extensions](#installing-extensions)
    - [common extensions](https://github.com/ChifiSource#olive-extensions)
@@ -48,6 +50,7 @@ Keep in mind this version of Olive (while functional) is still a **work in progr
 ### get started
 - this overview corresponds to `Olive` **0.0.92**, subsequent versions may vary slightly.
 # get started 1
+###### getting olive
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**, or use the `Pkg.add` `Function` to add `Olive`.
 ```julia
 julia> using Pkg; Pkg.add("Olive")
@@ -81,7 +84,7 @@ using Olive
 Olive.start(IP, PORT, path = startpath)
 ```
 The `Olive.start` method also returns a `Toolips.WebServer`, this being the server that contains your entire `Olive` session. This provides an easy avenue to introspect and work with `Olive`, especially if you know what you are doing. There is more information on working with this server type in the [deploying olive](#deploying-olive) portion of this `README`.
-#### parametric methodology
+#### explanation
 Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method definitions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
 
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/alpha9sc/creatorcell.png"></img>
