@@ -17,6 +17,7 @@ ToolipsSession = "2fe55384-55bc-4df3-9d59-c817d405cd05"
 [compat]
 IPyCells = "0.1.0"
 ToolipsMarkdown = "0.1.4"
+ToolipsBase64 = "0.1.4"
 ToolipsDefaults = "0.1.0"
 ToolipsSession = "0.3.5 - 0.3.9"
 Pkg = "1.0"
