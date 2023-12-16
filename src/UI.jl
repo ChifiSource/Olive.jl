@@ -1255,13 +1255,12 @@ function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{
     else
         save_type = join(save_split[2:length(save_split)])
     end
-    cells = p[:cells]
     if :export in keys(p.data)
         pe::ProjectExport{<:Any} = ProjectExport{Symbol(p[:export])}()
     else
         pe = ProjectExport{Symbol(save_type)}()
     end
-    ret = olive_save(cells, p, pe)
+    ret = olive_save(p, pe)
     if isnothing(ret)
         olive_notify!(cm2, "project $(p.name) saved", color = "green")
     else
@@ -1286,6 +1285,7 @@ Saves a project to a new path.
 """
 function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Project{<:Any})
     creatorcell = Cell(1, "creator", "", "save")
+    style!(cm, "projectexplorer", "opacity" => 100percent)
     insert!(cm, "pwdmain", 2, build(c, creatorcell, p, cm))
 end
 #==output[code]

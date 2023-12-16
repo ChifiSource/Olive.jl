@@ -322,8 +322,7 @@ filecell = Cell(1, "jl", "myjl.jl", "myfolder/myjl.jl")
 olive_save(cells, filecell) # saves `cells` to "myfolder/myjl.jl"
 ```
 """
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
-    pe::ProjectExport{<:Any})
+function olive_save(p::Project{<:Any}, pe::ProjectExport{<:Any})
     open(p.data[:path], "w") do io
         [write(io, string(cell.source) * "\n") for cell in p.data[:cells]]
     end
@@ -333,27 +332,24 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
-    pe::ProjectExport{:jl})
-    IPyCells.save(cells, p.data[:path])
+function olive_save(p::Project{<:Any}, pe::ProjectExport{:jl})
+    IPyCells.save(p.data[:cells], p.data[:path])
     nothing
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
-    pe::ProjectExport{:ipynb})
-    IPyCells.save_ipynb(cells, p.data[:path])
+function olive_save(p::Project{<:Any}, pe::ProjectExport{:ipynb})
+    IPyCells.save_ipynb(p.data[:cells], p.data[:path])
     nothing
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function olive_save(cells::Vector{<:IPyCells.AbstractCell}, p::Project{<:Any}, 
-    pe::ProjectExport{:toml})
-    joinedstr = join([toml_string(cell) for cell in cells])
+function olive_save(p::Project{<:Any}, pe::ProjectExport{:toml})
+    joinedstr = join([toml_string(cell) for cell in p.data[:cells]])
     ret = ""
     try
         ret = TOML.parse(joinedstr * "\n")
@@ -535,7 +531,7 @@ function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::Compo
         remove!(cm, maincell)
     end
     opts = Vector{Servable}(filter(x -> ~(isnothing(x)), [begin
-        Tsig = m.sig.parameters[4]
+        Tsig = m.sig.parameters[3]
         if Tsig != ProjectExport{<:Any}
             ToolipsDefaults.option("creatorkey", text = string(Tsig.parameters[1]))   
         end        
@@ -546,7 +542,11 @@ function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::Compo
     end
     style!(formatbox, "width" => 25percent)
     on(c, savebutton, "click", [namebox.name, formatbox.name, "selector"]) do cm::ComponentModifier
-        alert!(cm, "almost done")
+        fname = cm[namebox]["text"]
+        fmtn = cm[formatbox]["value"]
+        direc = cm["selector"]["text"]
+        proj[:path] = direc * "/" * fname * ".$fmtn"
+        proj[:export] = string(fmtn)
     end
     maincell[:children] = [namebox, formatbox, cancelbutton, savebutton]
     maincell
