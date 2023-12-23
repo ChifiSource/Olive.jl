@@ -545,8 +545,10 @@ function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::Compo
         fname = cm[namebox]["text"]
         fmtn = cm[formatbox]["value"]
         direc = cm["selector"]["text"]
-        proj[:path] = direc * "/" * fname * ".$fmtn"
-        proj[:export] = string(fmtn)
+        p.data[:path] = direc * "/" * fname * ".$fmtn"
+        p.data[:export] = string(fmtn)
+        save_project(c, cm, p)
+        remove!(cm, "cell$(cell.id)")
     end
     maincell[:children] = [namebox, formatbox, cancelbutton, savebutton]
     maincell
@@ -1431,7 +1433,7 @@ function change_gs(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted}
     new_cell::Cell{:code} = proj.data[:cells][1]
     remove!(cm, "cellcontainer$(cell.id)")
     append!(cm, proj.id, build(c, cm, new_cell, proj))
-    olive_notify!(cm, "use ctrl + alt + S to name your project!", color = "blue")
+    olive_notify!(cm, "use ctrl + shift + S to name your project!", color = "blue")
     focus!(cm, "cell$(new_cell.id)")
 end
 
