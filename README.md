@@ -263,11 +263,9 @@ I appreciate those who are interested to take some time to look into the tech-st
 **toolips packages**
 - [Toolips](https://github.com/ChifiSource/Toolips.jl) - Base web-development framework.
 - [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) - Fullstack callbacks.
-- [ToolipsMarkdown](https://github.com/ChifiSource/ToolipsMarkdown.jl) - Markdown interpolation, syntax highlighting.
-- [ToolipsDefaults](https://github.com/ChifiSource/ToolipsDefaults.jl) - Default Components.
-- [ToolipsBase64](https://github.com/ChifiSource/ToolipsBase64.jl) - Image types into Components -- for Olive display.
 
 **other packages**
+- [OliveHighlighters](https://github.com/OliveHighlighters.jl) Provides `ToolipsServables`-based syntax highlighting.
 - [IPyCells](https://github.com/ChifiSource/IPyCells.jl) Provides the parametric cell structures for the back-end, as well as the Julia/IPython readers/writers
 - [Pkg]() Used to manage Julia dependencies and virtual environments.
 - [TOML]() Used to manage environment information, save settings, and read TOML into cells.
