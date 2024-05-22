@@ -12,17 +12,16 @@ julia and for other languages and data editing. Crucially, olive is abstract
 module Olive
 import Base: write, display, getindex, setindex!, string, showerror
 using IPyCells
-using IPyCells: Cell
 using Pkg
 using Toolips
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier
+using OliveHighlighters
 using ToolipsSession
-import ToolipsSession: bind!, AbstractComponentModifier
-using ToolipsDefaults
-using ToolipsMarkdown
-using ToolipsBase64
+import ToolipsSession: bind, AbstractComponentModifier
 using TOML
 using Revise
+
+session = Session(["/"])
 
 """
 # Olive
@@ -450,9 +449,8 @@ olive_server = Olive.start()
 olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
-function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
-    path::String = replace(homedir(), "\\" => "/"), hostname::String = IP, warm::Bool = true)
-    ollogger::Toolips.Logger = OliveLogger()
+function start(IP::Toolips.IP4, path::String = replace(homedir(), "\\" => "/"))
+    ollogger::Toolips.Logger = Toolips.Logger()
     oc::OliveCore = OliveCore("olive")
     rootname::String = ""
     if ~(isdir("$path/olive"))
@@ -474,7 +472,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
     try
         source_module!(oc)
     catch e
-        throw(StartError(e, " module load", "Failed to source olive home module."))
+        throw(StartError(e, "module load", "Failed to source olive home module."))
             ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
         with a fresh olive.jl source file.""")
     end
@@ -485,6 +483,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         showerror(stdout, e)
     end
     rs::Vector{AbstractRoute} = routes(fourofour, main, icons, mainicon)
+    start!(Olive, IP:PORT)
     server::WebServer = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
     oc, Session(["/"])], hostname = hostname)
     server.start()
@@ -493,11 +492,6 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000;
         push!(oc.client_keys, key => rootname)
         server[:Logger].log(2,
             "link for $(rootname): http://$(IP):$(PORT)/?key=$key")
-    end
-    if warm
-        __precompile__()
-        @async (Toolips.get("http://$(IP):$(PORT)/?key=$key") for i in 1:3)
-        @async (Toolips.get("http://$(IP):$(PORT)/session") for i in 1:3)
     end
     server::WebServer
 end
@@ -627,8 +621,7 @@ end
 code/none
 ==#
 #--
-export OliveCore, build, Pkg, TOML
-export OliveExtension, OliveModifier, Cell
+export OliveCore, main, icons, mainicon, session
 #==
 code/none
 ==#

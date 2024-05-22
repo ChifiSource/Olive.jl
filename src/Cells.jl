@@ -853,7 +853,7 @@ using Olive.ToolipsSession
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:python}, proj::Project{<:Any})
     curr = cm["cell\$(cell.id)"]["text"]
     cell.source = curr
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
+    tm = OliveHighlighters.TextStyleModifier(cell.source)
     python_block!(tm)
     set_text!(cm, "cellhighlight\$(cell.id)", string(tm))
 end
@@ -1065,7 +1065,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     windowname::String = proj.id
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
     tm.raw = cell.source
-    ToolipsMarkdown.mark_julia!(tm)
+    OliveHighlighters.mark_julia!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, proj)
@@ -1074,7 +1074,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     sideb = interior[:children]["cellside$(cell.id)"]
     style!(sideb, "background-color" => "pink")
-    ToolipsMarkdown.clear!(tm)
+    OliveHighlighters.clear!(tm)
     bind!(c, cm, inp[:children]["cell$(cell.id)"], km, ["cell$(cell.id)", "cellinput$(cell.id)", "cellside$(cell.id)", "cellhightlight$(cell.id)"], on = :down)
     [begin
         xtname = m.sig.parameters[4]
@@ -1188,10 +1188,10 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     end for m in methods(on_code_highlight)]
     cell.source = replace(curr, "<div>" => "", "<br>" => "\n", "&nbsp;" => " ")
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
-    ToolipsMarkdown.set_text!(tm, cell.source)
-    ToolipsMarkdown.mark_julia!(tm)
+    OliveHighlighters.set_text!(tm, cell.source)
+    OliveHighlighters.mark_julia!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
-    ToolipsMarkdown.clear!(tm)
+    OliveHighlighters.clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1245,7 +1245,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cell.outputs = outp
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
     if pos == length(cells)
-        new_cell = Cell(length(cells) + 1, "code", "", id = ToolipsSession.gen_ref())
+        new_cell = Cell("code", "", id = ToolipsSession.gen_ref(4))
         push!(cells, new_cell)
         append!(cm, window, build(c, cm, new_cell, proj))
         focus!(cm, "cell$(new_cell.id)")
@@ -1283,7 +1283,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
         tm.raw = cell.source
         mark_markdown!(tm)
         set_text!(cm, "cellhighlight$(cell.id)", string(tm))
-        ToolipsMarkdown.clear!(tm)
+        OliveHighlighters.clear!(tm)
     end
     km = cell_bind!(c, cell, proj)
     bind!(c, cm, maincell, km, ["cell$(cell.id)"])
@@ -1308,10 +1308,10 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markd
     curr = cm["cell$(cell.id)"]["text"]
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
-    ToolipsMarkdown.set_text!(tm, cell.source)
+    OliveHighlighters.set_text!(tm, cell.source)
     mark_markdown!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
-    ToolipsMarkdown.clear!(tm)
+    OliveHighlighters.clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1339,7 +1339,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:TODO},
     bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
         if cm2["cell$(cell.id)"]["text"] == ""
             pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            new_cell = Cell(pos, "code", "")
+            new_cell = Cell{:code}("")
             deleteat!(cells, pos)
             insert!(cells, pos, new_cell)
             remove!(cm2, maincontainer)
@@ -1377,7 +1377,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:NOTE},
     bind!(km, "Backspace", prevent_default = false) do cm2::ComponentModifier
         if cm2["cell$(cell.id)"]["text"] == ""
             pos = findfirst(lcell -> lcell.id == cell.id, cells)
-            new_cell = Cell(pos, "code", "")
+            new_cell = Cell{:code}("")
             deleteat!(cells, pos)
             insert!(cells, pos, new_cell)
             remove!(cm2, maincontainer)
@@ -1413,9 +1413,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
             psplit = split(recent_p, "/")
             ftypesplit = split(psplit[length(psplit)], ".")
             if length(ftypesplit) > 1
-                build(c, Cell(1, string(ftypesplit[2]), string(ftypesplit[1]), recent_p), dir)
+                build(c, Cell{Symbol(ftypesplit[2])}(string(ftypesplit[1]), recent_p), dir)
             else
-                build(c, Cell(1, "none", string(ftypesplit[1]), recent_p), dir)
+                build(c, Cell{:none}(string(ftypesplit[1]), recent_p), dir)
             end
         end for recent_p in c[:OliveCore].client_data[getname(c)]["recents"]]
         push!(getstarted, h("recentl", 4, text = "recent files"), recent_box)
@@ -1429,7 +1429,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
 end
 
 function change_gs(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted}, proj::Project{<:Any})
-    proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}([Cell(1, "code", "")])
+    proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}([Cell{:code}("")])
     new_cell::Cell{:code} = proj.data[:cells][1]
     remove!(cm, "cellcontainer$(cell.id)")
     append!(cm, proj.id, build(c, cm, new_cell, proj))
@@ -1454,7 +1454,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function toml_style!(tm::ToolipsMarkdown.TextStyleModifier)
+function toml_style!(tm::OliveHighlighters.TextStyleModifier)
     style!(tm, :keys, ["color" => "#D67229"])
     style!(tm, :equals, ["color" => "purple"])
     style!(tm, :string, ["color" => "#007958"])
@@ -1465,7 +1465,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function markdown_style!(tm::ToolipsMarkdown.TextStyleModifier)
+function markdown_style!(tm::OliveHighlighters.TextStyleModifier)
     style!(tm, :link, ["color" => "#D67229"])
     style!(tm, :heading, ["color" => "purple"])
     style!(tm, :point, ["color" => "darkgreen"])
@@ -1479,28 +1479,28 @@ end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
-function mark_toml!(tm::ToolipsMarkdown.TextModifier)
-    ToolipsMarkdown.mark_between!(tm, "[", "]", :keys)
-    ToolipsMarkdown.mark_between!(tm, "\"", :string)
-    ToolipsMarkdown.mark_all!(tm, "=", :equals)
-    [ToolipsMarkdown.mark_all!(tm, string(dig), :number) for dig in digits(1234567890)]
+function mark_toml!(tm::OliveHighlighters.TextModifier)
+    OliveHighlighters.mark_between!(tm, "[", "]", :keys)
+    OliveHighlighters.mark_between!(tm, "\"", :string)
+    OliveHighlighters.mark_all!(tm, "=", :equals)
+    [OliveHighlighters.mark_all!(tm, string(dig), :number) for dig in digits(1234567890)]
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
-function mark_markdown!(tm::ToolipsMarkdown.TextModifier)
-    ToolipsMarkdown.mark_after!(tm, "# ", until = ["\n"], :heading)
-    ToolipsMarkdown.mark_between!(tm, "[", "]", :keys)
-    ToolipsMarkdown.mark_between!(tm, "(", ")", :link)
-    ToolipsMarkdown.mark_between!(tm, "**", :bold)
-    ToolipsMarkdown.mark_between!(tm, "*", :italic)
-    ToolipsMarkdown.mark_between!(tm, "``", :code)
+function mark_markdown!(tm::OliveHighlighters.TextModifier)
+    OliveHighlighters.mark_after!(tm, "# ", until = ["\n"], :heading)
+    OliveHighlighters.mark_between!(tm, "[", "]", :keys)
+    OliveHighlighters.mark_between!(tm, "(", ")", :link)
+    OliveHighlighters.mark_between!(tm, "**", :bold)
+    OliveHighlighters.mark_between!(tm, "*", :italic)
+    OliveHighlighters.mark_between!(tm, "``", :code)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function toml_block!(tm::ToolipsMarkdown.TextStyleModifier)
+function toml_block!(tm::OliveHighlighters.TextStyleModifier)
     mark_toml!(tm)
     toml_style!(tm)
 end
@@ -1543,7 +1543,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
         cm2[collapsebutt] = "col" => "false"
     end
     style!(sideb, "background-color" => "lightblue")
-    ToolipsMarkdown.clear!(tm)
+    OliveHighlighters.clear!(tm)
     sideb[:children] = [sideb[:children][1:2], collapsebutt]
     builtcell::Component{:div}
 end
@@ -1593,10 +1593,10 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:tomlv
     curr = cm["cell$(cell.id)"]["text"]
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
     tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
-    ToolipsMarkdown.set_text!(tm, cell.source)
+    OliveHighlighters.set_text!(tm, cell.source)
     mark_toml!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
-    ToolipsMarkdown.clear!(tm)
+    OliveHighlighters.clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1875,8 +1875,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     if cell.source != ""
         cell.source = replace(cell.source, "include(\"" => "", "\")" => "")
     end
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
+    tm = OliveHighlighters.TextStyleModifier(cell.source)
+    OliveHighlighters.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = true)
     km = cell_bind!(c, cell, proj)
@@ -1929,10 +1929,10 @@ inputcell_style (generic function with 1 method)
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     txt = cm["cell$(cell.id)"]["text"]
-    tm = ToolipsMarkdown.TextStyleModifier(txt)
-    ToolipsMarkdown.julia_block!(tm)
+    tm = OliveHighlighters.TextStyleModifier(txt)
+    OliveHighlighters.julia_block!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
-    ToolipsMarkdown.clear!(tm)
+    OliveHighlighters.clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -2047,10 +2047,10 @@ inputcell_style (generic function with 1 method)
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     proj::Project{<:Any})
     cell.source = cm["cell$(cell.id)"]["text"]
-    tm = ToolipsMarkdown.TextStyleModifier(cell.source)
-    ToolipsMarkdown.julia_block!(tm)
+    tm = OliveHighlighters.TextStyleModifier(cell.source)
+    OliveHighlighters.julia_block!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
-    ToolipsMarkdown.clear!(tm)
+    OliveHighlighters.clear!(tm)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

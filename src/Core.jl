@@ -803,7 +803,6 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 mutable struct OliveCore <: ServerExtension
     olmod::Module
-    type::Vector{Symbol}
     data::Dict{String, Any}
     names::Dict{String, String}
     client_data::Dict{String, Dict{String, Any}}
@@ -817,10 +816,15 @@ mutable struct OliveCore <: ServerExtension
         pool = Vector{String}()
         client_data = Dict{String, Dict{String, Any}}()
         client_keys::Dict{String, String} = Dict{String, String}()
-        new(m, [:connection], data, Dict{String, String}(),
+        new(m, data, Dict{String, String}(),
         client_data, open, pool, client_keys)
     end
 end
+
+function on_start(oc::OliveCore)
+    push!(data, oc)
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
