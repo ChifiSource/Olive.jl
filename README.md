@@ -7,7 +7,7 @@ Welcome to olive! Olive is a **pure julia** notebook editor built on the back of
 - regular **julia modules**
 - *parametric* **extension** loading
 - **tabbing** notebooks
-- **customizable** settings
+- **customizable** *everything*
 - reading of pluto, julia, olive, **and** ipython notebooks
 - a full **file-browser**
 - **deployability**
