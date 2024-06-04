@@ -300,13 +300,10 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
             "toml" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tomltm.styles),
             "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
     end
-    # TODO Exception for markdown highlighter missing will be removed `0.1.0`
-    if ~("markdown" in keys(c[:OliveCore].client_data[getname(c)]["highlighting"]))
-        mdtm = ToolipsMarkdown.TextStyleModifier("")
-        markdown_style!(mdtm)
-        push!(c[:OliveCore].client_data[getname(c)]["highlighting"], 
-        "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
-    end
+    mdtm = ToolipsMarkdown.TextStyleModifier("")
+    markdown_style!(mdtm)
+    push!(c[:OliveCore].client_data[getname(c)]["highlighting"], 
+    "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
     if ~("highlighters" in keys(c[:OliveCore].client_data[getname(c)]))
         highlighting = c[:OliveCore].client_data[getname(c)]["highlighting"]
         julia_highlighter = ToolipsMarkdown.TextStyleModifier("")
@@ -355,9 +352,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
         end for highlighter in dic]
         olive_notify!(cm, "Your syntax highlighters have been updated", color = "green")
     end
-    push!(sect, Component("highsep", "sep
-    
-    "), updatebutton)
+    push!(sect, Component{:sep}("highsep"), updatebutton)
     append!(om, "settingsmenu", container)
 end
 #==output[code]
@@ -801,7 +796,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-mutable struct OliveCore <: ServerExtension
+mutable struct OliveCore <: Toolips.AbstractExtension
     olmod::Module
     data::Dict{String, Any}
     names::Dict{String, String}
@@ -811,7 +806,7 @@ mutable struct OliveCore <: ServerExtension
     client_keys::Dict{String, String}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
-        m = eval(Meta.parse("module olive end"))
+        m = eval(Meta.parse("module $mod end"))
         open = Vector{Environment}()
         pool = Vector{String}()
         client_data = Dict{String, Dict{String, Any}}()
@@ -821,8 +816,9 @@ mutable struct OliveCore <: ServerExtension
     end
 end
 
-function on_start(oc::OliveCore)
-    push!(data, oc)
+function on_start(oc::OliveCore, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
+    push!(data, :OliveCore => oc)
+    @info "hi"
 end
 
 #==output[code]

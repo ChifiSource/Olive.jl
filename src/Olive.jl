@@ -11,15 +11,16 @@ julia and for other languages and data editing. Crucially, olive is abstract
 """
 module Olive
 import Base: write, display, getindex, setindex!, string, showerror
-using IPyCells
-using Pkg
 using Toolips
-import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier
-using OliveHighlighters
+using Toolips.Components
+import Toolips.Components: Servable
+import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier, AbstractComponentModifier, on_start
 using ToolipsSession
-import ToolipsSession: bind, AbstractComponentModifier
+using IPyCells
+import IPyCells: Cell
+using Pkg
+using OliveHighlighters
 using TOML
-using Revise
 
 session = Session(["/"])
 
@@ -364,7 +365,7 @@ function customstart()
 end
 ````
 """
-function session(c::Connection; key::Bool = true, default::Function = load_default_project!)
+function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!)
     uname::String = c[:OliveCore].data["root"]
     if key
         uname = verify_client!(c)
@@ -408,7 +409,7 @@ end
 code/none
 ==#
 #--
-main = route("/", session)
+main = route(make_session, "/")
 #==
 code/none
 ==#
@@ -451,7 +452,6 @@ olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 """
 function start(IP::Toolips.IP4, path::String = replace(homedir(), "\\" => "/"))
     ollogger::Toolips.Logger = Toolips.Logger()
-    oc::OliveCore = OliveCore("olive")
     rootname::String = ""
     if ~(isdir("$path/olive"))
         setup_olive(ollogger, path)
@@ -484,16 +484,12 @@ function start(IP::Toolips.IP4, path::String = replace(homedir(), "\\" => "/"))
     end
     rs::Vector{AbstractRoute} = routes(fourofour, main, icons, mainicon)
     start!(Olive, IP:PORT)
-    server::WebServer = WebServer(IP, PORT, routes = rs, extensions = [ollogger,
-    oc, Session(["/"])], hostname = hostname)
-    server.start()
     if rootname != ""
         key = ToolipsSession.gen_ref(16)
         push!(oc.client_keys, key => rootname)
         server[:Logger].log(2,
             "link for $(rootname): http://$(IP):$(PORT)/?key=$key")
     end
-    server::WebServer
 end
 #==
 code/none
@@ -617,11 +613,13 @@ function setup_olive(logger::Toolips.Logger, path::String)
     Pkg.add("Olive")
     logger.log("olive setup completed successfully")
 end
+
+CORE::OliveCore = OliveCore("olive")
 #==
 code/none
 ==#
 #--
-export OliveCore, main, icons, mainicon, session
+export CORE, main, icons, mainicon, make_session
 #==
 code/none
 ==#
