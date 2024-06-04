@@ -1454,52 +1454,6 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function toml_style!(tm::OliveHighlighters.TextStyleModifier)
-    style!(tm, :keys, ["color" => "#D67229"])
-    style!(tm, :equals, ["color" => "purple"])
-    style!(tm, :string, ["color" => "#007958"])
-    style!(tm, :default, ["color" => "darkblue"])
-    style!(tm, :number, ["color" => "#8b0000"])
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function markdown_style!(tm::OliveHighlighters.TextStyleModifier)
-    style!(tm, :link, ["color" => "#D67229"])
-    style!(tm, :heading, ["color" => "purple"])
-    style!(tm, :point, ["color" => "darkgreen"])
-    style!(tm, :bold, ["color" => "darkblue"])
-    style!(tm, :italic, ["color" => "#8b0000"])
-    style!(tm, :keys, ["color" => "#ffc00"])
-    style!(tm, :code, ["color" => "#8b0000"])
-    style!(tm, :default, ["color" => "brown"])
-    style!(tm, :link, ["color" => "#8b0000"])
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-function mark_toml!(tm::OliveHighlighters.TextModifier)
-    OliveHighlighters.mark_between!(tm, "[", "]", :keys)
-    OliveHighlighters.mark_between!(tm, "\"", :string)
-    OliveHighlighters.mark_all!(tm, "=", :equals)
-    [OliveHighlighters.mark_all!(tm, string(dig), :number) for dig in digits(1234567890)]
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-function mark_markdown!(tm::OliveHighlighters.TextModifier)
-    OliveHighlighters.mark_after!(tm, "# ", until = ["\n"], :heading)
-    OliveHighlighters.mark_between!(tm, "[", "]", :keys)
-    OliveHighlighters.mark_between!(tm, "(", ")", :link)
-    OliveHighlighters.mark_between!(tm, "**", :bold)
-    OliveHighlighters.mark_between!(tm, "*", :italic)
-    OliveHighlighters.mark_between!(tm, "``", :code)
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function toml_block!(tm::OliveHighlighters.TextStyleModifier)
     mark_toml!(tm)
     toml_style!(tm)
@@ -1547,10 +1501,10 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     sideb[:children] = [sideb[:children][1:2], collapsebutt]
     builtcell::Component{:div}
 end
-#==|||==#
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
+#==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
@@ -1582,11 +1536,9 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
         set_text!(cm, "cell$(cell.id)out", varname)
     end
 end
-#==|||==#
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
-
 #==|||==#
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     proj::Project{<:Any})
