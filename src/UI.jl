@@ -1,5 +1,5 @@
 function inputcell_style()
-    st = Style("div.input_cell", border = "2px solid gray", padding = "20px",
+    st = Style("div.input_cell", "border" => "2px solid gray", "padding" => "20px",
     "border-radius" => 8px, "margin-top" => 30px, "transition" => 1seconds,
     "font-size" => 13pt, "letter-spacing" => 1px,
     "font-family" => """"Lucida Console", "Courier New", monospace;""",
@@ -23,9 +23,10 @@ jl_style (generic function with 1 method)
 ==#
 #==|||==#
 function spin_forever()
-    load = Animation("spin_forever", delay = 0.0, length = 1.0, iterations = 0)
-    load[:to] = "transform" => "rotate(360deg)"
-    load::Animation
+    load = keyframes("spin_forever",  duration = 1s, iterations = 0)
+    keyframes!(load, 0percent, "transform" => "rotate(0deg)")
+    keyframes!(load, 100percent, "transform" => "rotate(360deg)")
+    load
 end
 #==output[code]
 spin_forever (generic function with 1 method)
@@ -33,7 +34,7 @@ spin_forever (generic function with 1 method)
 #==|||==#
 function load_spinner()
     mys = Style("img.loadicon", "transition" => ".5s")
-    animate!(mys, spin_forever())
+    style!(mys, spin_forever())
     mys::Style
 end
 #==output[code]
@@ -52,7 +53,7 @@ end
 cell_style (generic function with 1 method)
 ==#
 #==|||==#
-hdeps_style() = Style("h1.deps", color = "white")
+hdeps_style() = Style("h1.deps", "color" => "white")
 #==output[code]
 hdeps_style (generic function with 1 method)
 ==#
@@ -67,7 +68,7 @@ google_icons (generic function with 1 method)
 #==|||==#
 
 function iconstyle()
-    s = Style(".material-icons", cursor = "pointer",
+    s = Style(".material-icons", "cursor" => "pointer",
     "font-family" => "'Material Icons'", "font-weight" => "normal",
     "font-style" => "normal", "display" => "inline-block", "line-height" => "1",
     "wewbkit-font-smoothing" => "antialiased", "text-rendering" => "optimizeLegibility",
@@ -90,16 +91,75 @@ function filec_style()
     s:"hover":["border-left" => "5px solid magenta", "transform" => "scale(1.02)"]
     s::Style
 end
+
+function default_divstyle(;padding::Integer = 7, radius1::Integer = 15)
+    Style("div", "padding" => padding, "background" => "transparent",
+    "border-radius" => "$(radius1)px", "overflow-y" => "scroll")
+end
+
+function default_buttonstyle(;face_padding::Integer = 5,
+    radius2::Integer = 8)
+    s = Style("button", "padding" => face_padding, "color" => "#754679",
+    "background-color" => "#F9AFEC", "border-style" => "none",
+    "border-radius" => "$(radius2)px", "transition" => 1seconds)
+    s:"hover":["background-color" => "#A2DEBD", "transform" => "scale(1.1)"]
+    s
+end
+
+function default_tabstyle(; radiustop::Int64 = 5,
+    face_padding::Int64 = 5)
+    Style("tab", "padding" => face_padding, "transition" => 1seconds,
+    "backgroundcolor" => "#754679", "color" => "#754679")::Style
+end
+
+default_astyle() = Style("a", "color" => "#754679")
+
+default_pstyle(; textsize = 12pt) = Style("p",
+    "color" => "#FDF8FF", "font-size" => "14pt")::Style
+
+function default_sectionstyle(;padding::Any = 30px,
+    radius::Any = 10px)
+    Style("section", "padding" => "30px", "border-color" => "#754679",
+    "border-width" => "2px", "border-radius" => 10px, "border-style" => "solid",
+    "transition" => 1seconds)::Style
+end
+
+function sheet(name::String,p::Pair{String, Any} ...;
+    textsize::Integer = 14, face_textsize::Integer = 12,
+    padding::Integer = 7, face_padding::Integer = 5,
+    radius1::Integer = 15, radius2::Integer = 8,
+    transition::Float64 = 0.5,
+    args ...)
+    msheet = Component{:sheet}(name, p ..., args ...)
+    divs = default_divstyle()
+    buttons = default_buttonstyle()
+    as = default_astyle()
+    ps = default_pstyle(textsize = textsize)
+    sectionst = default_sectionstyle(padding = padding)
+    tabs = default_tabstyle()
+    h1s = Style("h1", "color" => "#754679")
+    h2s = Style("h2", "color" => "#797ef6")
+    h3s = Style("h3", "color" => "#DDD6DD")
+    h4s = Style("h4", "color" => "#dddddd")
+    h5s = Style("h5", "color" => "#daddad")
+    scrollbars = Style("::-webkit-scrollbar", "width" => "5px")
+    scrtrack = Style("::-webkit-scrollbar-track", "background" => "transparent")
+    scrthumb = Style("::-webkit-scrollbar-thumb", "background" => "#797ef6",
+    "border-radius" => "5px")
+    push!(msheet, divs, buttons, sectionst, as, ps, h1s,
+    h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb)
+    msheet
+end
 #==output[code]
 hidden_style (generic function with 1 method)
 ==#
 #==|||==#
 function olivesheet()
-    st = ToolipsDefaults.sheet("olivestyle", dark = false)
+    st = sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
     pr = Style("pre", "background" => "transparent")
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
-    iconstyle(), hdeps_style(), Toolips.link("oliveicon", rel = "icon",
+    iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
     inputcell_style(), bdy, cellside_style(), filec_style(), pr,
     Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
@@ -111,7 +171,7 @@ olivesheet (generic function with 1 method)
 ==#
 #==|||==#
 function projectexplorer()
-    pexplore = divider("projectexplorer")
+    pexplore = div("projectexplorer")
     style!(pexplore, "opacity" => 0percent, 
     "position" => "absolute",
     "z-index" => "1", "top" => "0", "overflow" => "visible",
@@ -127,7 +187,7 @@ projectexplorer (generic function with 1 method)
 #==|||==#
 function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
-    on(c, explorericon, "click", ["olivemain"]) do cm::ComponentModifier
+    on(c, explorericon, "click") do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
             cm["settingsmenu"] =  "open" => "0"
             style!(cm, "settingicon", "transform" => "rotate(0deg)",
@@ -187,16 +247,16 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
     arrow = topbar_icon("$name-expander", "expand_more")
     style!(arrow, "color" => "darkgray", "font-size" => 17pt)
     outersection = section("outer$name", ex = "0")
-    heading = h("$name-heading", level, text = text)
+    heading = Component{Symbol("h$level")}("$name-heading", text = text)
     style!(outersection, "padding" => 3px, "transition" => 1seconds)
     style!(heading, "display" => "inline-block")
     upperdiv = div("$name-upper")
-    push!(upperdiv, heading, arrow, Component("sep$name", "sep"))
+    push!(upperdiv, heading, arrow, Component{:sep}("sep$name"))
     push!(outersection, upperdiv)
     innersection = div("$name")
     style!(innersection, "opacity" => 0percent, "height" => 0percent, 
     "padding" => 0px, "transition" => 1seconds, "pointer-events" => "none")
-    on(c, arrow, "click", [outersection.name]) do cm::ComponentModifier
+    on(c, arrow, "click") do cm::ComponentModifier
         if cm[outersection]["ex"] == "0"
             style!(cm, innersection, "opacity" => 100percent, "height" => "$fillto%", 
             "pointer-events" => "auto")
@@ -239,7 +299,7 @@ function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::St
     newcells = directory_cells(string(path), pwd = true)
     pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
     if path != env.directories[pwddi].uri
-        newcells = vcat([Cell(1, "retdir", "")], newcells)
+        newcells = vcat([Cell("retdir", "")], newcells)
     end
     newd = Directory(path)
     childs = Vector{Servable}([begin
@@ -266,7 +326,7 @@ create a new button inside of the **create** menu in the **inspector**.
 ```
 """
 function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:jl}, path::String, finalname::String)
-    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}([Cell(1, "code", "")]), 
+    projdata = Dict{Symbol, Any}(:cells => Vector{Cell}([Cell("code", "")]), 
     :env => c[:OliveCore].data["home"], :path => path * "/" * finalname)
     newproj = Project{:olive}(finalname, projdata)
     source_module!(c, newproj, "new")
@@ -297,12 +357,12 @@ function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExten
             ==#
             #==|||==#""")
         end
-        olive_notify!(cm, "successfully created $finalname !", color = "green")
+        olive_notify!(cm, "successfully created $finalname !", "color" => "green")
         cells = IPyCells.read_jl(path * "/$finalname/src/$finalname.jl")
         add_to_session(c, cells, cm, "$finalname.jl", path * "/$finalname/src/")
     catch e
         print(e)
-        olive_notify!(cm, "failed to create $finalname !", color = "red")
+        olive_notify!(cm, "failed to create $finalname !", "color" => "red")
     end
 end
 #==output[code]
@@ -351,7 +411,7 @@ olive_notific (generic function with 1 method)
 #==|||==#
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
-    on(c, settingicon, "click", ["settingsmenu"]) do cm::ComponentModifier
+    on(c, settingicon, "click") do cm::ComponentModifier
         style!(cm, "projectexplorer", "width" => "0px", 
         "overflow-y" => "hidden")
         style!(cm, "olivemain", "margin-left" => "0px")
@@ -371,7 +431,7 @@ function settings(c::Connection)
         "color" => "black")
         style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
         save_settings!(c)
-        olive_notify!(cm, "settings saved", color = "green")
+        olive_notify!(cm, "settings saved", "color" => "green")
     end
     settingicon::Component{:span}
 end
@@ -380,7 +440,7 @@ UndefVarError: ComponentModifier not defined
 ==#
 #==|||==#
 function topbar(c::Connection)
-    topbar = divider("menubar")
+    topbar = div("menubar")
     leftmenu = span("leftmenu", align = "left")
     style!(leftmenu, "display" => "inline-block")
     rightmenu = span("rightmenu", align = "right")
@@ -688,30 +748,30 @@ Returns the default set of tab controls for a `Project`.
 function tab_controls(c::Connection, p::Project{<:Any})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
-    on(c, closebutton, "click", ["none"]) do cm2::ComponentModifier
+    on(c, closebutton, "click") do cm2::ComponentModifier
         close_project(c, cm2, p)
     end
     restartbutton = topbar_icon("$(fname)restart", "restart_alt")
-    on(c, restartbutton, "click", ["none"]) do cm2::ComponentModifier
+    on(c, restartbutton, "click") do cm2::ComponentModifier
         new_name = string(split(fname, ".")[1])
         delete!(p.data, :mod)
         source_module!(c, p, new_name)
         olive_notify!(cm2, "module for $(fname) re-sourced")
     end
     add_button = topbar_icon("$(fname)add", "add_circle")
-    on(c, add_button, "click", ["none"]) do cm2::ComponentModifier
+    on(c, add_button, "click") do cm2::ComponentModifier
         cells = p[:cells]
-        new_cell = Cell(length(cells) + 1, "creator", "")
+        new_cell = Cell("creator", "")
         push!(cells, new_cell)
         append!(cm2, fname, build(c, cm2, new_cell, p))
         focus!(cm2, "cell$(new_cell.id)")
     end
     runall_button = topbar_icon("$(fname)run", "start")
-    on(c, runall_button, "click", ["none"]) do cm2::ComponentModifier
+    on(c, runall_button, "click") do cm2::ComponentModifier
         step_evaluate(c, cm2, p)
     end
     switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
-    on(c, switchpane_button, "click", ["none"]) do cm2::ComponentModifier
+    on(c, switchpane_button, "click") do cm2::ComponentModifier
         switch_pane!(c, cm2, p)
     end
     style!(closebutton, "font-size"  => 17pt, "color" => "red")
@@ -734,7 +794,7 @@ function tab_controls(c::Connection, p::Project{:include})
     add_button = topbar_icon("$(fname)add", "add_circle")
     on(c, add_button, "click") do cm2::ComponentModifier
         cells = p[:cells]
-        new_cell = Cell(length(cells) + 1, "creator", "")
+        new_cell = Cell("creator", "")
         push!(cells, new_cell)
         append!(cm2, fname, build(c, cm2, new_cell, p))
     end
@@ -765,7 +825,7 @@ function tab_controls(c::Connection, p::Project{:module})
     add_button = topbar_icon("$(fname)add", "add_circle")
     on(c, add_button, "click") do cm2::ComponentModifier
         cells = p[:cells]
-        new_cell = Cell(length(cells) + 1, "creator", "")
+        new_cell = Cell("creator", "")
         push!(cells, new_cell)
         append!(cm2, fname, build(c, cm2, new_cell, p))
     end
@@ -853,7 +913,7 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     projs)
     push!(c[:OliveCore].pool, proj.id)
     deleteat!(projs, pos)
-    olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
+    olive_notify!(cm2, "project $(proj.name) closed", "color" => "blue")
     [proj[:mod].feld = nothing for feld in names(proj[:mod])]
     proj[:mod].evalin(Meta.parse("Base.GC.gc(true)"))
     Base.GC.gc()
@@ -890,7 +950,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     "font-size"  => 13pt, "color" => "#A2646F", "transition" => "250ms", 
     "padding-right" => 5px)
     push!(tabbody, tablabel)
-    on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
+    on(c, tabbody, "click") do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
@@ -902,10 +962,10 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "white")
     end
-    on(c, tabbody, "dblclick", ["$(fname)close"]) do cm::ComponentModifier
+    on(c, tabbody, "dblclick") do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click", ["none"]) do cm2::ComponentModifier
+            on(c, decollapse_button, "click") do cm2::ComponentModifier
                 remove!(cm2, "$(fname)close")
                 remove!(cm2, "$(fname)add")
                 remove!(cm2, "$(fname)restart")
@@ -940,7 +1000,7 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
-    on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
+    on(c, tabbody, "click") do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
@@ -952,10 +1012,10 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "green")
     end
-    on(c, tabbody, "dblclick", ["$(fname)close"]) do cm::ComponentModifier
+    on(c, tabbody, "dblclick") do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click", ["none"]) do cm2::ComponentModifier
+            on(c, decollapse_button, "click") do cm2::ComponentModifier
                 remove!(cm2, "$(fname)close")
                 remove!(cm2, "$(fname)add")
                 remove!(cm2, "$(fname)run")
@@ -989,7 +1049,7 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
     "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
-    on(c, tabbody, "click", ["none"]) do cm::ComponentModifier
+    on(c, tabbody, "click") do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
@@ -1001,7 +1061,7 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "#FF6C5C")
     end
-    on(c, tabbody, "dblclick", ["$(fname)close"]) do cm::ComponentModifier
+    on(c, tabbody, "dblclick") do cm::ComponentModifier
         if ~("$(fname)close" in keys(cm.rootc))
             decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
             on(c, decollapse_button, "click") do cm2::ComponentModifier
@@ -1053,9 +1113,9 @@ function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{
     end
     ret = olive_save(p, pe)
     if isnothing(ret)
-        olive_notify!(cm2, "project $(p.name) saved", color = "green")
+        olive_notify!(cm2, "project $(p.name) saved", "color" => "green")
     else
-        olive_notify!(cm2, "file $(p.name) failed to save.", color = "red")
+        olive_notify!(cm2, "file $(p.name) failed to save.", "color" => "red")
     end
     style!(cm2, "tablabel$(p.id)", "border-right" => "0px solid")
 end
@@ -1075,7 +1135,7 @@ Saves a project to a new path.
 ```
 """
 function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Project{<:Any})
-    creatorcell = Cell(1, "creator", "", "save")
+    creatorcell = Cell("creator", "", "save")
     style!(cm, "projectexplorer", "opacity" => 100percent)
     insert!(cm, "pwdmain", 2, build(c, creatorcell, p, cm))
 end
@@ -1087,7 +1147,7 @@ function olive_loadicon()
     srcdir = @__DIR__
     iconb64 = read(srcdir * "/images/loadicon.png", String)
     myimg = img("olive-loader", src = iconb64, class = "loadicon")
-    animate!(myimg, spin_forever())
+    style!(myimg, spin_forever())
     myimg
 end
 #==output[code]

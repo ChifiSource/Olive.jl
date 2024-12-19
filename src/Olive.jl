@@ -16,6 +16,7 @@ using Toolips.Components
 import Toolips.Components: Servable
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier, AbstractComponentModifier, on_start
 using ToolipsSession
+import ToolipsSession: KeyMap
 using IPyCells
 import IPyCells: Cell
 using Pkg
@@ -125,7 +126,7 @@ verify_clienty!(c::Connection) -> ::String
 Verifies an incoming client, registers keys to names. Returns the username of the current `Connection`.
 """
 function verify_client!(c::Connection)
-    args = getargs(c)
+    args = get_args(c)
     if ~(:key in keys(args))
         coverimg::Component{:img} = olive_cover()
         olivecover::Component{:div} = div("topdiv", align = "center")
@@ -141,7 +142,7 @@ function verify_client!(c::Connection)
             end
         end
         push!(olivecover, coverimg,
-        h("mustconfirm", 2, text = "request access (no key)"), logbutt)
+        h2("mustconfirm", text = "request access (no key)"), logbutt)
         write!(c, olivecover)
         return
     end
@@ -150,8 +151,8 @@ function verify_client!(c::Connection)
         return
     end
     uname = c[:OliveCore].client_keys[args[:key]]
-    if ~(getip(c) in keys(c[:OliveCore].names))
-        push!(c[:OliveCore].names, getip(c) => uname)
+    if ~(get_ip(c) in keys(c[:OliveCore].names))
+        push!(c[:OliveCore].names, get_ip(c) => uname)
     end
     uname::String
 end
@@ -170,7 +171,7 @@ Creates the default `Olive` environment with the `getstarted` project.
 function load_default_project!(c::Connection)
     name::String = getname(c)
     oc::OliveCore = c[:OliveCore]
-    cells = Vector{Cell}([Cell(1, "getstarted", "")])
+    cells = Vector{Cell}([Cell("getstarted", "")])
     env::Environment = Environment(name)
     env.pwd = oc.data["wd"]
     if "directories" in keys(oc.client_data[name])
@@ -302,11 +303,11 @@ function build(c::Connection, env::Environment{<:Any})
     pane_container_two::Component{:div} = div("pane_container_two")
     style!(pane_container_two, "width" => 0percent, "overflow" => "hidden", "display" => "inline-block",
     "opacity" => 0percent, "transition" => 1seconds)
-    on(c, pane_container_one, "click", ["none"]) do cm::ComponentModifier
+    on(c, pane_container_one, "click") do cm::ComponentModifier
         cm[olivemain] = "pane" => "1"
     end
     pane_two::Component{:section} = section("pane_two")
-    on(c, pane_container_two, "click", ["none"]) do cm::ComponentModifier
+    on(c, pane_container_two, "click") do cm::ComponentModifier
         cm[olivemain] = "pane" => "2"
     end
     style!(pane_one, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
@@ -379,10 +380,10 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
      # setup base UI
     bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env)
-    script!(c, "load", ["olivemain"], type = "Timeout", time = 350) do cm::ComponentModifier
+    script!(c, "load", type = "Timeout", time = 350) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
-        next!(c, loadicondiv, cm, ["olivemain"]) do cm2::ComponentModifier
+        next!(c, cm, loadicondiv) do cm2::ComponentModifier
             remove!(cm2, "loaddiv")
             switch_work_dir!(c, cm2, env.pwd)
             [begin
@@ -433,6 +434,7 @@ end
 code/none
 ==#
 #--
+CORE::OliveCore = OliveCore("olive")
 """
 ### Olive 
 ```julia
@@ -450,7 +452,7 @@ olive_server = Olive.start()
 olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
-function start(IP::Toolips.IP4, path::String = replace(homedir(), "\\" => "/"))
+function start(IP::Toolips.IP4 = "127.0.0.1":8000, path::String = replace(homedir(), "\\" => "/"))
     ollogger::Toolips.Logger = Toolips.Logger()
     rootname::String = ""
     if ~(isdir("$path/olive"))
@@ -459,36 +461,36 @@ function start(IP::Toolips.IP4, path::String = replace(homedir(), "\\" => "/"))
     try
         config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
         Pkg.activate("$path/olive")
-        oc.data = config["olive"]
-        rootname = oc.data["root"]
-        oc.client_data = config["oliveusers"]
-        oc.data["home"] = path * "/olive"
-        oc.data["wd"] = pwd()
+        CORE.data = config["olive"]
+        rootname = CORE.data["root"]
+        CORE.client_data = config["oliveusers"]
+        CORE.data["home"] = path * "/olive"
+        CORE.data["wd"] = pwd()
     catch e
         throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
-        ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
-        with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""")
+        log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
+        with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""", 3)
     end
     try
-        source_module!(oc)
+        source_module!(CORE)
     catch e
         throw(StartError(e, "module load", "Failed to source olive home module."))
-            ollogger.log(3, """If you are unsure why this is happening, the best choice is probably just to start 
-        with a fresh olive.jl source file.""")
+            log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
+        with a fresh olive.jl source file.""", 2)
     end
     try
-        load_extensions!(oc)
+        load_extensions!(CORE)
     catch e
-        ollogger.log(3, "olive extensions failed to load.")
+        log(ollogger, "olive extensions failed to load.", 3)
         showerror(stdout, e)
     end
-    rs::Vector{AbstractRoute} = routes(fourofour, main, icons, mainicon)
-    start!(Olive, IP:PORT)
+    rs::Vector{AbstractRoute} = Vector{Toolips.Route}([fourofour, main, icons, mainicon])
+    start!(Olive, IP)
     if rootname != ""
         key = ToolipsSession.gen_ref(16)
-        push!(oc.client_keys, key => rootname)
-        server[:Logger].log(2,
-            "link for $(rootname): http://$(IP):$(PORT)/?key=$key")
+        push!(CORE.client_keys, key => rootname)
+        log(ollogger,
+            "link for $(rootname): http://$(string(IP))/?key=$key", 2)
     end
 end
 #==
@@ -550,7 +552,7 @@ olive_server = Olive.start()
 Olive.restore_defaults!(olive_server)
 ```
 """
-function restore_defaults!(server::Toolips.WebServer)
+function restore_defaults!(server)
     path::String = server[:OliveCore].data["home"]
     root_name::String = server[:OliveCore].data["root"]
     rm("$path/Project.toml"); rm("$path/Manifest.toml")
@@ -613,13 +615,12 @@ function setup_olive(logger::Toolips.Logger, path::String)
     Pkg.add("Olive")
     logger.log("olive setup completed successfully")
 end
-
-CORE::OliveCore = OliveCore("olive")
+SES = ToolipsSession.Session()
 #==
 code/none
 ==#
 #--
-export CORE, main, icons, mainicon, make_session
+export CORE, main, icons, mainicon, make_session, SES, build
 #==
 code/none
 ==#

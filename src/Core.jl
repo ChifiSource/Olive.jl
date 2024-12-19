@@ -50,7 +50,7 @@ end
 - OliveModifier(c::Connection, cm::ComponentModifier)
 """
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
-    rootc::Vector{Servable}
+    rootc::String
     changes::Vector{String}
     data::Dict{String, Any}
     function OliveModifier(c::Connection, cm::ComponentModifier)
@@ -170,16 +170,16 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
     keybind_section = keybind_drop[:children][2]
     shftlabel = a("shiftlabel", text = "  shift:    ")
     ctrllabel = a("ctrllabel", text = "  ctrl:   ")
-    keybind_section[:children] = Vector{Servable}(vcat([h("setkeyslbl", 2, text = "keybindings")],
+    keybind_section[:children] = Vector{Servable}(vcat([h2("setkeyslbl", text = "keybindings")],
     [begin
         newkeymain = div("keybind$(keybinding[1])")
-        head = h("keylabel$(keybinding[1])",5,  text = "$(keybinding[1])")
-        setinput = ToolipsDefaults.keyinput("$(keybinding[1])inp", text = keybinding[2][1])
+        head = h5("keylabel$(keybinding[1])",  text = "$(keybinding[1])")
+        setinput = Components.keyinput("$(keybinding[1])inp", text = keybinding[2][1])
         style!(setinput, "background-color" => "blue", "width" => 5percent,
         "display" => "inline-block", "color" => "white")
-        shift_checkbox = ToolipsDefaults.checkbox("shiftk$(keybinding[1])",
+        shift_checkbox = Components.checkbox("shiftk$(keybinding[1])",
         value = "shift" in keybinding[2])
-        ctrl_checkbox = ToolipsDefaults.checkbox("ctrlk$(keybinding[1])",
+        ctrl_checkbox = Components.checkbox("ctrlk$(keybinding[1])",
         value = "ctrl" in keybinding[2])
         confirm = button("keybind$(keybinding[1])confirm", text = "confirm")
         on(c, confirm, "click") do cm::ComponentModifier
@@ -249,15 +249,15 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
         end
         mainbox::Component{:div}
     end for key in creatorkeys]
-    push!(creatorkeysmen, h("creatorkeys", 2, text = "creator keys"), regkeys)
-    setinput = ToolipsDefaults.keyinput("creatorkeyinp", text = "c")
+    push!(creatorkeysmen, h2("creatorkeys", text = "creator keys"), regkeys)
+    setinput = Components.keyinput("creatorkeyinp", text = "c")
     style!(setinput, "background-color" => "blue", "width" => 5percent,
     "display" => "inline-block", "color" => "white")
     newsection = div("newcreator")
-    push!(newsection, h("news", 4, text = "bind new"), setinput)
+    push!(newsection, h3("news", text = "bind new"), setinput)
     signatures = [m.sig.parameters[4] for m in methods(c[:OliveCore].olmod.build,
     [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell, Project{<:Any}])]
-    opts = Vector{Servable}()
+    opts = Vector{Toolips.AbstractComponent}()
     for sig in signatures
         if sig == Cell{:creator} || sig == Cell{<:Any} || sig == Cell{:versioninfo}
             continue
@@ -265,10 +265,10 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
         if length(sig.parameters) < 1
             continue
         end
-        b = ToolipsDefaults.option("creatorkey", text = string(sig.parameters[1]))
+        b = Components.option("creatorkey", text = string(sig.parameters[1]))
         push!(opts, b)
     end
-    sigselector = ToolipsDefaults.dropdown("sigselector", opts, value = "code")
+    sigselector = Components.select("sigselector", opts, value = "code")
     style!(sigselector, "background-color" => "white", "margin-left" => 5px,
     "margin-right" => 5px)
     addbutton = button("addcreatekey", text = "add key")
@@ -288,27 +288,27 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = begin
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
-        tm = ToolipsMarkdown.TextStyleModifier("")
-        ToolipsMarkdown.highlight_julia!(tm)
-        tomltm = ToolipsMarkdown.TextStyleModifier("")
+        tm = OliveHighlighters.TextStyleModifier("")
+        OliveHighlighters.highlight_julia!(tm)
+        tomltm = OliveHighlighters.TextStyleModifier("")
         toml_style!(tomltm)
-        mdtm = ToolipsMarkdown.TextStyleModifier("")
-        markdown_style!(mdtm)
+        mdtm = OliveHighlighters.TextStyleModifier("")
+        OliveHighlighters.markdown_style!(mdtm)
         dic = Dict{String, Dict{<:Any, <:Any}}()
         push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
         push!(dic, "julia" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tm.styles),
             "toml" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tomltm.styles),
             "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
     end
-    mdtm = ToolipsMarkdown.TextStyleModifier("")
-    markdown_style!(mdtm)
+    mdtm = OliveHighlighters.TextStyleModifier("")
+    OliveHighlighters.markdown_style!(mdtm)
     push!(c[:OliveCore].client_data[getname(c)]["highlighting"], 
     "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
     if ~("highlighters" in keys(c[:OliveCore].client_data[getname(c)]))
         highlighting = c[:OliveCore].client_data[getname(c)]["highlighting"]
-        julia_highlighter = ToolipsMarkdown.TextStyleModifier("")
-        toml_highlighter = ToolipsMarkdown.TextStyleModifier("")
-        md_highlighter = ToolipsMarkdown.TextStyleModifier("")
+        julia_highlighter = OliveHighlighters.TextStyleModifier("")
+        toml_highlighter = OliveHighlighters.TextStyleModifier("")
+        md_highlighter = OliveHighlighters.TextStyleModifier("")
         julia_highlighter.styles = Dict(begin
             Symbol(k[1]) => ["color" => k[2]]
         end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["julia"])
@@ -319,21 +319,21 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
             Symbol(k[1]) => ["color" => k[2]]
         end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["markdown"])
         push!(c[:OliveCore].client_data[getname(c)], 
-        "highlighters" => Dict{String, ToolipsMarkdown.TextStyleModifier}(
+        "highlighters" => Dict{String, OliveHighlighters.TextStyleModifier}(
             "julia" => julia_highlighter, "toml" => toml_highlighter, "markdown" => md_highlighter
         ))
     end
     dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
     container = containersection(c, "highlighting", fillto = 80)
     sect = container[:children][2]
-    highheader = h("highlighthead", 3, text = "fonts and highlighting")
+    highheader = h3("highlighthead", text = "fonts and highlighting")
     push!(sect, highheader)
     for colorset in keys(dic)
         colorsetbox = div("$colorset-settings")
-        push!(colorsetbox, h("$colorset-label", 4, text = colorset))
+        push!(colorsetbox, h4("$colorset-label", text = colorset))
         [begin 
-            label = h("colorlabel", 5, text = color)
-            vbox = ToolipsDefaults.colorinput("$(color)$(colorset)", 
+            label = h5("colorlabel", text = color)
+            vbox = Components.colorinput("$(color)$(colorset)", 
             value = "'$(dic[colorset][color])'")
             clrdiv = div("clrdiv$(color)$(colorset)")
             style!(clrdiv, "display" => "inline-block")
@@ -468,7 +468,7 @@ their `build` or `evaluate` dispatch using a directory type.
 """
 function build(c::Connection, dir::Directory{<:Any})
     nsplit::Vector{SubString} = split(dir.uri, "/")
-    dircell::Cell{:dir} = Cell(1, "dir", string(nsplit[length(nsplit)]),
+    dircell::Cell{:dir} = Cell{:dir}(string(nsplit[length(nsplit)]),
     string(join(nsplit[1:length(nsplit) - 1], "/")))
     builtcell::Component{:div} = build(c, dircell, dir)
  #==   if "Project.toml" in readdir(dir.uri)
@@ -484,7 +484,7 @@ function build(c::Connection, dir::Directory{<:Any})
     savebutton = topbar_icon("$(dircell.id)sa", "save")
     dirs = c[:OliveCore].open[getname(c)].directories
     builtname::String = builtcell.name
-    on(c, savebutton, "click", ["none"]) do cm::ComponentModifier
+    on(c, savebutton, "click") do cm::ComponentModifier
         pos = findfirst(d -> d.uri == dir.uri, dirs)
         newdir = Directory(dir.uri, dirtype = "saved")
         deleteat!(dirs, pos)
@@ -502,7 +502,7 @@ function build(c::Connection, dir::Directory{<:Any})
     end
     style!(savebutton, "color" => "white", "font-size" => 17pt)
     rmbutton = topbar_icon("$(dircell.id)rm", "delete")
-    on(c, rmbutton, "click", ["none"]) do cm::ComponentModifier
+    on(c, rmbutton, "click") do cm::ComponentModifier
         pos = findfirst(d -> d.uri == dir.uri, dirs)
         deleteat!(dirs, pos)
         remove!(cm, builtname)
@@ -529,13 +529,13 @@ function build(c::Connection, dir::Directory{:saved})
         end
     end
     nsplit = split(dir.uri, "/")
-    dircell = Cell(1, "dir", string(nsplit[length(nsplit)]),
+    dircell = Cell{:dir}(string(nsplit[length(nsplit)]),
     string(join(nsplit[1:length(nsplit) - 1], "/")))
     builtcell::Component{:div} = build(c, dircell, dir)
     rmbutton = topbar_icon("$(dircell.id)rm", "delete")
     dirs = c[:OliveCore].open[getname(c)].directories
     builtname::String = builtcell.name
-    on(c, rmbutton, "click", ["none"]) do cm::ComponentModifier
+    on(c, rmbutton, "click") do cm::ComponentModifier
         pos = findfirst(d -> d.uri == dir.uri, dirs)
         if ~(isnothing(pos))
             deleteat!(dirs, pos)
@@ -560,7 +560,7 @@ end
 function build(c::Connection, dir::Directory{:home})
     srcbutton = topbar_icon("srchome", "play_arrow")
     style!(srcbutton, "color" => "white", "font-size" => 17pt)
-    on(c, srcbutton, "click", ["selector"]) do cm::ComponentModifier
+    on(c, srcbutton, "click") do cm::ComponentModifier
         home = c[:OliveCore].data["home"]
         try
             load_extensions!(c[:OliveCore])
@@ -574,12 +574,12 @@ function build(c::Connection, dir::Directory{:home})
     end
     addbutton = topbar_icon("extensionadd", "add")
     style!(addbutton, "color" => "white", "font-size" => 17pt)
-    on(c, addbutton, "click", ["selector"]) do cm::ComponentModifier
-        creatorcell = Cell(1, "creator", "")
+    on(c, addbutton, "click") do cm::ComponentModifier
+        creatorcell = Cell{:creator}("")
         insert!(cm, "homebox", 2, build(c, creatorcell, dir))
     end
     nsplit = split(dir.uri, "/")
-    dircell = Cell(1, "dir", string(nsplit[length(nsplit)]),  string(join(nsplit[1:length(nsplit) - 1], "/")))
+    dircell = Cell{:dir}(string(nsplit[length(nsplit)]),  string(join(nsplit[1:length(nsplit) - 1], "/")))
     filecell = build(c, dircell, dir)
     filecell.name = "homebox"
     maincell = filecell[:children][1]
@@ -593,16 +593,16 @@ end
 function build(c::Connection, dir::Directory{:pwd})
     splits = split(dir.uri, "/")
     path, name = join(splits[1:length(splits) - 1], "/"), splits[length(splits)]
-    dircell = Cell(1, "dir", dir.uri, name)
+    dircell = Cell{:dir}(dir.uri, name)
     filecell = build(c, dircell, dir, bind = false)
     maincell = filecell[:children][1]
     childbox = filecell[:children][2]
     style!(maincell, "background-color" => "#64bf6a")
     addbutton = topbar_icon("createfile", "add")
     style!(addbutton, "color" => "white", "font-size" => 17pt)
-    on(c, addbutton, "click", ["selector"]) do cm::ComponentModifier
+    on(c, addbutton, "click") do cm::ComponentModifier
         path = cm["selector"]["text"]
-        creatorcell = Cell(1, "creator", "new", "create")
+        creatorcell = Cell{:creator}("new", "create")
         built = build(c, creatorcell, "jl") do cm::ComponentModifier
             fmat = cm["formatbox"]["value"]
             ext = OliveExtension{Symbol(fmat)}()
@@ -619,7 +619,7 @@ function build(c::Connection, dir::Directory{:pwd})
     slctor.name = "selector"
     childbox.name = "pwdbox"
     style!(childbox, "border-left" => "10px solid", "border-color" => "#64bf6a")
-    on(c, maincell, "click", [maincell.name]) do cm::ComponentModifier
+    on(c, maincell, "click") do cm::ComponentModifier
         childs = Vector{Servable}([begin
             build(c, mcell, dir)
         end
@@ -807,6 +807,7 @@ mutable struct OliveCore <: Toolips.AbstractExtension
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
         m = eval(Meta.parse("module $mod end"))
+        m.build = build
         open = Vector{Environment}()
         pool = Vector{String}()
         client_data = Dict{String, Dict{String, Any}}()
@@ -818,14 +819,13 @@ end
 
 function on_start(oc::OliveCore, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
     push!(data, :OliveCore => oc)
-    @info "hi"
 end
 
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-getname(c::Connection) = c[:OliveCore].names[getip(c)]::String
+getname(c::Connection) = c[:OliveCore].names[get_ip(c)]::String
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
