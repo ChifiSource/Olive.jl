@@ -96,10 +96,8 @@ end
 """
 function olive_motd()
     recent_str::String = """# olive editor
-    ##### $(pkgversion(Olive)) (pre-release)
-    - **thank you for trying olive !**
-    - [github](https://github.com/ChifiSource/Olive.jl)
-    - [issues](https://github.com/ChifiSource/Olive.jl/issues)
+    ##### $(pkgversion(Olive)) (Beta I)
+    - **thank you for using olive beta I !**
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end

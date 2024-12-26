@@ -421,7 +421,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
     style!(filecell, "background-color" => "#18191A")
     if bind
         on(c, filecell, "click") do cm::ComponentModifier
-            childs = Vector{Servable}([begin
+            childs = Vector{AbstractComponent}([begin
             build(c, mcell, d)
             end
             for mcell in directory_cells(cell.outputs * "/" * cell.source)])
@@ -495,7 +495,7 @@ function build(f::Function, c::Connection, cell::Cell{:creator}, template::Strin
     on(c, cancelbutton, "click") do cm::ComponentModifier
         remove!(cm, maincell)
     end
-    opts = Vector{Servable}(filter(x -> ~(isnothing(x)), [begin
+    opts = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
         Tsig = m.sig.parameters[4]
         if Tsig != OliveExtension{<:Any}
             Components.option("creatorkey", text = string(Tsig.parameters[1]))   
@@ -530,7 +530,7 @@ function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::Compo
     on(c, cancelbutton, "click") do cm::ComponentModifier
         remove!(cm, maincell)
     end
-    opts = Vector{Servable}(filter(x -> ~(isnothing(x)), [begin
+    opts = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
         Tsig = m.sig.parameters[3]
         if Tsig != ProjectExport{<:Any}
             Components.option("creatorkey", text = string(Tsig.parameters[1]))   
@@ -745,7 +745,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     sidebox = interior[:children]["cellside$(cell.id)"]
-    sidebox[:children] = Vector{Servable}([a("unknown", text = "$(cell.type)", align = "center")])
+    sidebox[:children] = Vector{AbstractComponent}([a("unknown", text = "$(cell.type)", align = "center")])
     style!(sidebox[:children][1], "color" => "darkred")
     style!(sidebox, "background" => "transparent")
     inp = interior[:children]["cellinput$(cell.id)"]
@@ -911,7 +911,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         icon.name = "load$(cell.id)"
         icon["width"] = "16"
         append!(cm2, "cellside$(cell.id)", icon)
-        script!(c, cm2, "$(cell.id)eval", ["cell$(cell.id)", "cellinput$(cell.id)", "cellside$(cell.id)", "cellhightlight$(cell.id)"], type = "Timeout") do cm::ComponentModifier
+        script!(c, cm2, type = "Timeout") do cm::ComponentModifier
             evaluate(c, cm, cell, proj)
             remove!(cm, "load$(cell.id)")
         end
@@ -966,7 +966,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         end
         on(cm, inputbox, "paste") do cl
             push!(cl.changes, """
-            e.preventDefault();
+            event.preventDefault();
             var text = e.clipboardData.getData('text/plain');
             document.execCommand('insertText', false, text);
             """)
@@ -1268,7 +1268,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     inp = interior[:children]["cellinput$(cell.id)"]
     sideb = interior[:children]["cellside$(cell.id)"]
     style!(sideb, "background-color" => "#88807B")
-    sideb[:children] = [sideb[:children][1:2]]
+    sideb[:children] = sideb[:children][1:2]
    # cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
     #style!(cell_edit, "color" => "white", "font-size" => 17pt)
     maincell = inp[:children]["cell$(cell.id)"]
@@ -1277,7 +1277,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     push!(maincell, newtmd)
     on(c, cm, maincell, "dblclick") do cm::ComponentModifier
         cm["cell$(cell.id)"] = "contenteditable" => "true"
-        set_children!(cm, "cell$(cell.id)", Vector{Servable}())
+        set_children!(cm, "cell$(cell.id)", Vector{AbstractComponent}())
         set_text!(cm, "cell$(cell.id)", replace(cell.source, "\n" => "<br>"))
         tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
         tm.raw = cell.source
@@ -1362,7 +1362,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:NOTE},
     maincontainer = div("cellcontainer$(cell.id)")
     style!(maincontainer, "background-color" => "#242526",
     "border-color" => "darkpink", "border-width" => 2px, "padding" => 1percent)
-    todolabel = h("todoheader$(cell.id)", 2, text = "NOTE")
+    todolabel = h2("todoheader$(cell.id)", text = "NOTE")
     style!(todolabel, "font-weight" => "bold", "color" => "lightblue")
     inpbox = Components.textdiv("cell$(cell.id)", text = cell.outputs)
     style!(inpbox, "background-color" => "#242526", "color" => "white",
@@ -1498,7 +1498,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     end
     style!(sideb, "background-color" => "lightblue")
     OliveHighlighters.clear!(tm)
-    sideb[:children] = [sideb[:children][1:2], collapsebutt]
+    sideb[:children] = [sideb[:children][1:2] ..., collapsebutt]
     builtcell::Component{:div}
 end
 #==output[code]
@@ -1678,7 +1678,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
         end for pin in splitputs]
         filter!(c -> ~(isnothing(c)), pins)
         pinhead = h3("pinhead$(cell.id)", text = "pins")
-        pinsect::Vector{Servable} = Vector{Servable}([pinhead, pins ...])
+        pinsect::Vector{AbstractComponent} = Vector{AbstractComponent}([pinhead, pins ...])
         set_children!(cm, "pinbox$(cell.id)", pinsect)
     end
     set_text!(cm, "cell$(cell.id)", "")
@@ -2030,9 +2030,9 @@ function build_returner(c::Connection, path::String)
         paths = split(path, "/")
         path = join(paths[1:length(paths) - 1], "/")
         set_text!(cm, "selector", path)
-        set_children!(cm, "filebox", Vector{Servable}(vcat(
+        set_children!(cm, "filebox", Vector{AbstractComponent}(vcat(
         build_returner(c, path),
-        [build_comp(c, path, f) for f in readdir(path)]))::Vector{Servable})
+        [build_comp(c, path, f) for f in readdir(path)]))::Vector{AbstractComponent})
     end
     returner_div
 end
@@ -2048,8 +2048,8 @@ function build_comp(c::Connection, path::String, dir::String)
         on(c, maincomp, "click") do cm::ComponentModifier
             path = path * "/" * dir
             set_text!(cm, "selector", path)
-            children = Vector{Servable}([build_comp(c, path, f) for f in readdir(path)])::Vector{Servable}
-            set_children!(cm, "filebox", vcat(Vector{Servable}([build_returner(c, path)]), children))
+            children = Vector{AbstractComponent}([build_comp(c, path, f) for f in readdir(path)])::Vector{AbstractComponent}
+            set_children!(cm, "filebox", vcat(Vector{AbstractComponent}([build_returner(c, path)]), children))
         end
         return(maincomp)::Component{:div}
     end
@@ -2066,8 +2066,8 @@ function build(c::Connection, cell::Cell{:dirselect})
     path = cell.source
     filebox = section("filebox")
     style!(filebox, "height" => 40percent, "overflow-y" => "scroll")
-    filebox[:children] = vcat(Vector{Servable}([build_returner(c, path)]),
-    Vector{Servable}([build_comp(c, path, f) for f in readdir(path)]))
+    filebox[:children] = vcat(Vector{AbstractComponent}([build_returner(c, path)]),
+    Vector{AbstractComponent}([build_comp(c, path, f) for f in readdir(path)]))
     cellover = div("dirselectover")
     push!(cellover, selector_indicator, filebox)
     cellover

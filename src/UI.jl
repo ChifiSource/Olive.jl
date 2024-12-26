@@ -112,10 +112,10 @@ function default_tabstyle(; radiustop::Int64 = 5,
     "backgroundcolor" => "#754679", "color" => "#754679")::Style
 end
 
-default_astyle() = Style("a", "color" => "#754679")
+default_astyle() = Style("a", "color" => "#2c4c3b")
 
 default_pstyle(; textsize = 12pt) = Style("p",
-    "color" => "#FDF8FF", "font-size" => "14pt")::Style
+    "color" => "#141414", "font-size" => "14pt")::Style
 
 function default_sectionstyle(;padding::Any = 30px,
     radius::Any = 10px)
@@ -357,12 +357,12 @@ function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExten
             ==#
             #==|||==#""")
         end
-        olive_notify!(cm, "successfully created $finalname !", "color" => "green")
+        olive_notify!(cm, "successfully created $finalname !"; color = "green")
         cells = IPyCells.read_jl(path * "/$finalname/src/$finalname.jl")
         add_to_session(c, cells, cm, "$finalname.jl", path * "/$finalname/src/")
     catch e
         print(e)
-        olive_notify!(cm, "failed to create $finalname !", "color" => "red")
+        olive_notify!(cm, "failed to create $finalname !", color = "red")
     end
 end
 #==output[code]
@@ -387,7 +387,7 @@ function olive_notify!(cm::AbstractComponentModifier, message::String,
     set_text!(cm, "olive-notifier", message)
     style!(cm, "olive-notifier", "height" => 2percent, "opacity" => 100percent,
     "background-color" => color)
-    script!(cm, "notifierdie", time = duration) do cm2
+    on(cm, time = duration) do cm2
         style!(cm2, "olive-notifier", "height" => 0percent, "opacity" => 0percent)
     end
 end
@@ -431,7 +431,7 @@ function settings(c::Connection)
         "color" => "black")
         style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
         save_settings!(c)
-        olive_notify!(cm, "settings saved", "color" => "green")
+        olive_notify!(cm, "settings saved", color = "green")
     end
     settingicon::Component{:span}
 end
@@ -861,7 +861,7 @@ convention. `e` in this case is the specific number of cells to evaluate.
 """
 function step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
     e += 1
-    script!(c, cm, "$(proj.data[:cells][e].id)eval", type = "Timeout") do cm2::ComponentModifier
+    script!(c, cm, type = "Timeout") do cm2::ComponentModifier
         evaluate(c, cm2, proj.data[:cells][e], proj)
         if e == length(proj.data[:cells])
             return
@@ -890,7 +890,6 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     n_projects::Int64 = length(projs)
     set_children!(cm2, "pane_$(proj.data[:pane])", Vector{Servable}())
     remove!(cm2, "tab$(name)")
-    remove!(cm2, "preview$(proj.id)")
     if(n_projects == 1)
         # TODO start screen here
         remove!(cm2, proj.id)
@@ -913,7 +912,7 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     projs)
     push!(c[:OliveCore].pool, proj.id)
     deleteat!(projs, pos)
-    olive_notify!(cm2, "project $(proj.name) closed", "color" => "blue")
+    olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
     [proj[:mod].feld = nothing for feld in names(proj[:mod])]
     proj[:mod].evalin(Meta.parse("Base.GC.gc(true)"))
     Base.GC.gc()
@@ -1113,9 +1112,9 @@ function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{
     end
     ret = olive_save(p, pe)
     if isnothing(ret)
-        olive_notify!(cm2, "project $(p.name) saved", "color" => "green")
+        olive_notify!(cm2, "project $(p.name) saved", color = "green")
     else
-        olive_notify!(cm2, "file $(p.name) failed to save.", "color" => "red")
+        olive_notify!(cm2, "file $(p.name) failed to save.", color = "red")
     end
     style!(cm2, "tablabel$(p.id)", "border-right" => "0px solid")
 end

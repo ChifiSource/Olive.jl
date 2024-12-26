@@ -845,7 +845,7 @@ inputcell_style (generic function with 1 method)
 function load_extensions!(oc::OliveCore)
     homedirec = oc.data["home"]
     olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
-    olive_cells = filter!(ocell -> ocell.type == "code" && ocell.source != "\n" && ocell.source != "\n\n",
+    olive_cells = filter!(ocell -> typeof(ocell) == Cell{:code} && ocell.source != "\n" && ocell.source != "\n\n",
     olive_cells)
     modstr = "begin\n" * join(
         [cell.source for cell in olive_cells], "\n") * "\nend"
