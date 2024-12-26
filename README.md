@@ -1,6 +1,6 @@
 <div align = "center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/newoliveover.png" width="350">
-<h6>🩷| 0.1 |🩷</h6>
+<h6>🩷 0.1 🩷 (! Beta I !)</h6>
 </div>
 
 Welcome to olive! Olive is a **pure julia** notebook editor built on the back of multiple dispatch. Through multiple dispatch, olive is able to change functionality entirely by simply having new methods. Using extensions, olive can edit **any** file. Among other things, olive features ...
