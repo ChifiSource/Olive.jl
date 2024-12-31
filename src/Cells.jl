@@ -63,6 +63,10 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         return
     end
     pos = findfirst(c -> c.id == cell.id, cells)
+    if isnothing(pos)
+        olive_notify!(cm, "the cell was not found -- your client might be bugged, try refreshing the page !")
+        return
+    end
     remove!(cm, "cellcontainer$(cell.id)")
     deleteat!(cells, pos)
     if pos == 1
@@ -323,9 +327,7 @@ olive_save(cells, filecell) # saves `cells` to "myfolder/myjl.jl"
 ```
 """
 function olive_save(p::Project{<:Any}, pe::ProjectExport{<:Any})
-    open(p.data[:path], "w") do io
-        [write(io, string(cell.source) * "\n") for cell in p.data[:cells]]
-    end
+    IPyCells.save(p.data[:cells], p.data[:path])
     nothing
 end
 #==output[code]
@@ -334,6 +336,11 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:jl})
     IPyCells.save(p.data[:cells], p.data[:path])
+    nothing
+end
+
+function olive_save(p::Project{<:Any}, pe::ProjectExport{:raw})
+    IPyCells.save(p.data[:cells], p.data[:path], raw = true)
     nothing
 end
 #==output[code]
@@ -1955,7 +1962,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function string(cell::Cell{:module})
-    if cell.source != ""
+    if cell.outputs != ""
         return(*(cell.source,
         "\n#==output[$(typeof(cell).parameters[1])]\n$(string(cell.outputs))\n==#\n#==|||==#\n"))::String
     end
@@ -1991,6 +1998,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     olive_notify!(cm, "module $modname added", color = "red")
     set_text!(cm, "cell$(cell.id)out", modname)
     cell.outputs = modname
+    cell.source = modname
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
