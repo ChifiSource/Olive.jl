@@ -745,7 +745,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     sidebox = interior[:children]["cellside$(cell.id)"]
-    sidebox[:children] = Vector{AbstractComponent}([a("unknown", text = "$(cell.type)", align = "center")])
+    sidebox[:children] = Vector{AbstractComponent}([a("unknown", text = "$(typeof(cell).parameters[1])", align = "center")])
     style!(sidebox[:children][1], "color" => "darkred")
     style!(sidebox, "background" => "transparent")
     inp = interior[:children]["cellinput$(cell.id)"]
@@ -967,7 +967,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
         on(cm, inputbox, "paste") do cl
             push!(cl.changes, """
             event.preventDefault();
-            var text = e.clipboardData.getData('text/plain');
+            var text = event.clipboardData.getData('text/plain');
             document.execCommand('insertText', false, text);
             """)
         end
@@ -1893,7 +1893,7 @@ inputcell_style (generic function with 1 method)
 function string(cell::Cell{:include})
     if cell.source != ""
         return(*("include(\"$(cell.source)\")",
-        "\n#==output[$(cell.type)]\n$(string(cell.outputs))\n==#\n#==|||==#\n"))::String
+        "\n#==output[$(typeof(cell).parameters[1])]\n$(string(cell.outputs))\n==#\n#==|||==#\n"))::String
     end
     ""::String
 end
@@ -1944,7 +1944,7 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function make_module_cells(proj::Project{:module}, cell::Cell{:module})
     src = join([begin
-    """$(cell.source)\n#==\n$(cell.type)/$(cell.outputs)\n==#\n#--\n""" 
+    """$(cell.source)\n#==\n$(typeof(cell).parameters[1])/$(cell.outputs)\n==#\n#--\n""" 
     end for cell in proj[:cells]])
     modname = cell.outputs
     cell.source = """module $modname\n$src\nend"""
@@ -1957,7 +1957,7 @@ inputcell_style (generic function with 1 method)
 function string(cell::Cell{:module})
     if cell.source != ""
         return(*(cell.source,
-        "\n#==output[$(cell.type)]\n$(string(cell.outputs))\n==#\n#==|||==#\n"))::String
+        "\n#==output[$(typeof(cell).parameters[1])]\n$(string(cell.outputs))\n==#\n#==|||==#\n"))::String
     end
     ""::String
 end

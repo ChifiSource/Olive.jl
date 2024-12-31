@@ -291,7 +291,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
         tm = OliveHighlighters.TextStyleModifier("")
         OliveHighlighters.highlight_julia!(tm)
         tomltm = OliveHighlighters.TextStyleModifier("")
-        toml_style!(tomltm)
+        OliveHighlighters.toml_style!(tomltm)
         mdtm = OliveHighlighters.TextStyleModifier("")
         OliveHighlighters.markdown_style!(mdtm)
         dic = Dict{String, Dict{<:Any, <:Any}}()

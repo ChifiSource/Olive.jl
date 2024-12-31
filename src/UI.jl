@@ -162,8 +162,9 @@ function olivesheet()
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
     inputcell_style(), bdy, cellside_style(), filec_style(), pr,
-    Style("progress::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
-    Style("progress::-webkit-progress-bar", "background-color" => "whitesmoke"))
+    Style("::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
+    Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
+    Style("progress", "-webkit-appearance" => "none"))
     st
 end
 #==output[code]
@@ -298,6 +299,9 @@ function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::St
     end
     newcells = directory_cells(string(path), pwd = true)
     pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
+    if isnothing(pwddi)
+        return
+    end
     if path != env.directories[pwddi].uri
         newcells = vcat([Cell("retdir", "")], newcells)
     end
@@ -534,6 +538,7 @@ but could be useful for extensions.
 function check!(p::Project{<:Any})
 
 end
+
 #==output[code]
 UndefVarError: Cell not defined 
 ==#

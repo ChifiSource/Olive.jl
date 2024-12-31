@@ -36,10 +36,6 @@ Function through which `Olive` is extended. In order to add new functionality, s
 """
 function build end
 
-#==
-code/none
-==#
-#--
 global evalin(ex::Any) = begin
     Main.eval(ex)
 end
@@ -130,10 +126,10 @@ function verify_client!(c::Connection)
         olivecover::Component{:div} = div("topdiv", align = "center")
         logbutt = button("requestaccess", text = "request access")
         on(c, logbutt, "click") do cm::ComponentModifier
-            c[:Logger].log(" someone is trying to login to olive! is this you?")
+            log(c[:Logger], " someone is trying to login to olive! is this you?")
             y = readline()
             if y == "y"
-                c[:Logger].log(" okay, logging in as root.")
+                log(c[:Logger], " okay, logging in as root.")
                 key = ToolipsSession.gen_ref(16)
                 push!(c[:OliveCore].client_keys, [key] => c[:OliveCore].data["root"])
                 redirect!(cm, "/?key=$(key)")
@@ -365,9 +361,21 @@ end
 ````
 """
 function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!)
-    uname::String = c[:OliveCore].data["root"]
+    if get_method(c) == "post"
+        return
+    end
+    write!(c, Components.DOCTYPE())
+    uname::String = ""
     if key
         uname = verify_client!(c)
+    else
+        if ~(get_ip(c) in keys(c[:OliveCore].names))
+            throw("""You have an incorrectly configured `Olive` server... `key` is set to false, 
+            but there is no loader loading your users into keys. The reason you would have `key` off is to 
+            add your own authentication. You will need to setup the client's IP in `OliveCore.names` before calling `make_session`, 
+            this is the exact check you failed; `~(get_ip(c) in keys(c[:OliveCore].names))`""")
+        end
+        uname = getname(c)
     end
     # check for environment, if none load.
     envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
@@ -393,7 +401,6 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
             if length(env.projects) > 0
                 window::Component{:div} = olmod.build(c, cm2, env.projects[1])
                 append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
-                focus!(cm2, "cell$(env.projects[1].data[:cells][1].id)")
                 p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
                 if ~(isnothing(p2i))
                     style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
@@ -450,7 +457,7 @@ olive_server = Olive.start()
 olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
-function start(IP::Toolips.IP4 = "127.0.0.1":8000, path::String = replace(homedir(), "\\" => "/"))
+function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"))
     ollogger::Toolips.Logger = Toolips.Logger()
     rootname::String = ""
     if ~(isdir("$path/olive"))
@@ -589,14 +596,14 @@ Olive.restore_defaults!(olive_server)
 ```
 """
 function setup_olive(logger::Toolips.Logger, path::String)
-    logger.log("welcome to olive! to set up olive, please provide a name.")
+    log(logger, "welcome to olive! to set up olive, please provide a name.")
     print("name yourself: ")
     username::String = readline()
-    logger.log("creating $username's `olive` ...")
+    log(logger, "creating $username's `olive` ...")
     create_project(replace(path, "\\" => "/"))
     config::Dict{String, Any} = TOML.parse(read(
     "$path/olive/Project.toml",String))
-    logger.log("creating user configuration")
+    log(logger, "creating user configuration")
     users::Dict{String, Any} = Dict{String, Any}(
     username => Dict{String, Vector{String}}(
     "group" => ["all", "root"])
@@ -607,11 +614,11 @@ function setup_olive(logger::Toolips.Logger, path::String)
     open("$path/olive/Project.toml", "w") do io
         TOML.print(io, config)
     end
-    logger.log("installing `olive` dependencies.")
+    log(logger, "installing `olive` dependencies.")
     Pkg.activate("$path/olive")
     Pkg.add("Pkg")
     Pkg.add("Olive")
-    logger.log("olive setup completed successfully")
+    log(logger, "olive setup completed successfully")
 end
 SES = ToolipsSession.Session()
 #==
