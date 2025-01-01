@@ -1916,7 +1916,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
-    inp[:children]["cell$(cell.id)"][:text] = cell.outputs
+    inp[:children]["cell$(cell.id)"][:text] = cell.source
     style!(inp[:children]["cell$(cell.id)"], "color" => "darkred")
     style!(interior[:children]["cellside$(cell.id)"],
     "background-color" => "red")
@@ -1949,22 +1949,19 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function make_module_cells(proj::Project{:module}, cell::Cell{:module})
-    src = join([begin
+function make_module_cells(cells::Vector{Cell{<:Any}})
+    join([begin
     """$(cell.source)\n#==\n$(typeof(cell).parameters[1])/$(cell.outputs)\n==#\n#--\n""" 
     end for cell in proj[:cells]])
-    modname = cell.outputs
-    cell.source = """module $modname\n$src\nend"""
-    cell.outputs = modname
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function string(cell::Cell{:module})
-    if cell.outputs != ""
-        return(*(cell.source,
-        "\n#==output[$(typeof(cell).parameters[1])]\n$(string(cell.outputs))\n==#\n#==|||==#\n"))::String
+    if cell.source != ""
+        return(*("module $(cell.source)\n", make_module_cells(cell.outputs),
+        "\n#==output[$(typeof(cell).parameters[1])]\n$(string(cell.source))\n==#\n#==|||==#\n"))::String
     end
     ""::String
 end
@@ -1975,13 +1972,13 @@ inputcell_style (generic function with 1 method)
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
-    if length(findall(proj -> proj.id == cell.outputs, projects)) > 0
-        modname = cell.outputs
+    if length(findall(proj -> proj.id == cell.source, projects)) > 0
+        modname = cell.source
         proj = projects[modname]
         make_module_cells(proj, cell)
         return
     elseif contains(cell.source, "module")
-        new_cells = read_module_cells(cell.source)
+        new_cells = read_module_cells(cell.outputs)
     else
         new_cells = Vector{Cell}([Cell("code", "")])
     end
@@ -1997,7 +1994,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     open_project(c, cm, inclproj, tab)
     olive_notify!(cm, "module $modname added", color = "red")
     set_text!(cm, "cell$(cell.id)out", modname)
-    cell.outputs = modname
+    cell.outputs = inclproj[:cells]
     cell.source = modname
 end
 #==output[code]
