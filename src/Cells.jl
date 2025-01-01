@@ -1873,7 +1873,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
             fcell = Cell("jl", fname, fullpath)
             new_cells = olive_read(fcell)
             inclproj = add_to_session(c, new_cells, cm, fname, 
-            env.pwd, type = "include")
+            fullpath, type = "include")
             inclproj.data[:mod] = proj[:mod]
             cell.outputs = inclproj.id
             olive_notify!(cm, "file $fname included", color = "darkgreen")
