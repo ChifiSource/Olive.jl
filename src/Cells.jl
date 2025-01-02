@@ -957,6 +957,7 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
     inside::Component{:div} = Components.textdiv("cell$(cell.id)",
     text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"),
     "class" => "input_cell", "spellcheck" => false)
+    Components.textdiv_caret_tracker!(inside)
     style!(inside, "border-top-left-radius" => 0px)
     if highlight
         highlight_box::Component{:div} = div("cellhighlight$(cell.id)",
@@ -1011,7 +1012,10 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     interiorbox::Component{:div} = div("cellinterior$(cell.id)")
     inputbox::Component{:div} = build_base_input(c, cm, cell, proj,
     highlight = highlight)
-    output::Component{:div} = div("cell$(cell.id)out", class = "output_cell", text = cell.outputs)
+    output::Component{:div} = div("cell$(cell.id)out", class = "output_cell")
+    if typeof(cell.outputs) == String
+        output[:text] = cell.outputs
+    end
     if sidebox
         sidebox::Component{:div} = div("cellside$(cell.id)", class = "cellside")
         cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
@@ -1877,7 +1881,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
             inclproj.data[:mod] = proj[:mod]
             cell.outputs = inclproj.id
             olive_notify!(cm, "file $fname included", color = "darkgreen")
-            set_text!(cm, "cell$(cell.id)out", fname)
         end
     end
 end
@@ -1910,13 +1913,18 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     proj::Project{<:Any})
-    cells = proj[:cells]
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = false)
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
-    inp[:children]["cell$(cell.id)"][:text] = cell.source
+    if typeof(cell.outputs) == String
+        inp[:children]["cell$(cell.id)"][:text] = cell.outputs
+        builtcell[:children]["cell$(cell.id)out"][:text] = cell.outputs
+    else
+        inp[:children]["cell$(cell.id)"][:text] = cell.outputs[1]
+        builtcell[:children]["cell$(cell.id)out"][:text] = cell.outputs[1]
+    end
     style!(inp[:children]["cell$(cell.id)"], "color" => "darkred")
     style!(interior[:children]["cellside$(cell.id)"],
     "background-color" => "red")
@@ -1950,9 +1958,9 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function make_module_cells(cells::Vector{Cell{<:Any}})
-    join([begin
+    join((begin
     """$(cell.source)\n#==\n$(typeof(cell).parameters[1])/$(cell.outputs)\n==#\n#--\n""" 
-    end for cell in proj[:cells]])
+    end for cell in cells))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1960,8 +1968,8 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function string(cell::Cell{:module})
     if cell.source != ""
-        return(*("module $(cell.source)\n", make_module_cells(cell.outputs),
-        "\n#==output[$(typeof(cell).parameters[1])]\n$(string(cell.source))\n==#\n#==|||==#\n"))::String
+        return(*("module $(cell.outputs[1])\n", make_module_cells(cell.outputs[2]), "\nend\n",
+        "\n#==output[$(typeof(cell).parameters[1])]\n$(string(cell.outputs[1]))\n==#\n#==|||==#\n"))::String
     end
     ""::String
 end
@@ -1973,15 +1981,14 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     proj::Project{<:Any})
     projects = c[:OliveCore].open[getname(c)].projects
     if length(findall(proj -> proj.id == cell.source, projects)) > 0
-        modname = cell.source
+        modname = cell.outputs[1]
         proj = projects[modname]
-        make_module_cells(proj, cell)
-        return
     elseif contains(cell.source, "module")
-        new_cells = read_module_cells(cell.outputs)
+        new_cells = read_module_cells(cell.source)
     else
         new_cells = Vector{Cell}([Cell("code", "")])
     end
+    @warn new_cells
     modname = cm["cell$(cell.id)"]["text"]
     modstr = olive_module(modname, proj[:env])
     newmod = proj.data[:mod].evalin(Meta.parse(modstr))
@@ -1993,21 +2000,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     tab = build_tab(c, inclproj)
     open_project(c, cm, inclproj, tab)
     olive_notify!(cm, "module $modname added", color = "red")
-    set_text!(cm, "cell$(cell.id)out", modname)
-    cell.outputs = inclproj[:cells]
-    cell.source = modname
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:module},
-    proj::Project{<:Any})
-    cell.source = cm["cell$(cell.id)"]["text"]
-    tm = OliveHighlighters.TextStyleModifier(cell.source)
-    OliveHighlighters.julia_block!(tm)
-    set_text!(cm, "cellhighlight$(cell.id)", string(tm))
-    OliveHighlighters.clear!(tm)
+    cell.outputs = modname => inclproj[:cells]
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

@@ -386,7 +386,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
      # setup base UI
     bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env)
-    script!(c, "load", type = "Timeout", time = 350) do cm::ComponentModifier
+    script!(c, "load", type = "Timeout", time = 50) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
         next!(c, cm, loadicondiv) do cm2::ComponentModifier
@@ -459,6 +459,10 @@ olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 """
 function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"))
     ollogger::Toolips.Logger = Toolips.Logger()
+    path = replace(path, "\\" => "/")
+    if path[end] == '/'
+        path = path[path:end - 1]
+    end
     rootname::String = ""
     if ~(isdir("$path/olive"))
         setup_olive(ollogger, path)
@@ -600,7 +604,7 @@ function setup_olive(logger::Toolips.Logger, path::String)
     print("name yourself: ")
     username::String = readline()
     log(logger, "creating $username's `olive` ...")
-    create_project(replace(path, "\\" => "/"))
+    create_project(path)
     config::Dict{String, Any} = TOML.parse(read(
     "$path/olive/Project.toml",String))
     log(logger, "creating user configuration")

@@ -679,12 +679,14 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function create_project(homedir::String = homedir(), olivedir::String = "olive")
+    path::String = pwd()
     try
         cd(homedir)
-        Pkg.generate("olive")
+        Pkg.generate(olivedir)
     catch
         throw("unable to access your applications directory.")
     end
+    cd(path)
     open("$homedir/$olivedir/src/olive.jl", "w") do o
         write(o,
         """\"""
