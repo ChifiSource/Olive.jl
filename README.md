@@ -36,9 +36,9 @@ Welcome to olive! Olive is a **pure julia** notebook editor built on the back of
    - [tech stack](#tech-stack)
 ---
 ### get started
-- this overview corresponds to `Olive` **0.0.92**, subsequent versions may vary slightly.
-- Keep in mind this version of Olive (while functional) is still a **work in progress** build. Thank you for reporting bugs to the issues page!
-  
+- this overview corresponds to `Olive` **0.1**
+- welcome to `Olive` **beta I**
+
 <div align="center">
    <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/getstarted1.png"></img>
 </div>
