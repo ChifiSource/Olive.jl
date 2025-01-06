@@ -12,17 +12,17 @@ This file creates the basis for Olive.jl cells then builds olive cell types
 #==|||==#
 function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
-    cells = proj[:cells]
     windowname::String = proj.id
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
-    pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    cellid::String = cell.id
+    pos = findfirst(lcell -> lcell.id == cellid, cells)
     if pos != 1
         switchcell = cells[pos - 1]
         remove!(cm2, "cellcontainer$(switchcell.id)")
-        remove!(cm2, "cellcontainer$(cell.id)")
+        remove!(cm2, "cellcontainer$cellid")
         ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, switchcell, proj))
         ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, cell, proj))
-        focus!(cm2, "cell$(cell.id)")
+        focus!(cm2, "cell$cellid")
         cells[pos] = switchcell
         cells[pos - 1] = cell
     else
@@ -35,17 +35,17 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
-    cells = proj[:cells]
     windowname::String = proj.id
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
-    pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    cellid::String = cell.id
+    pos = findfirst(lcell -> lcell.id == cellid, cells)
     if pos != length(cells)
         switchcell = cells[pos + 1]
         remove!(cm, "cellcontainer$(switchcell.id)")
-        remove!(cm, "cellcontainer$(cell.id)")
+        remove!(cm, "cellcontainer$(cellid)")
         ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, proj))
         ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, proj))
-        focus!(cm, "cell$(cell.id)")
+        focus!(cm, "cell$(cellid)")
         cells[pos] = switchcell
         cells[pos + 1] = cell
     else
@@ -62,12 +62,13 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         olive_notify!(cm, "you cannot the last cell in the project", color = "red")
         return
     end
-    pos = findfirst(c -> c.id == cell.id, cells)
+    cellid::String = cell.id
+    pos = findfirst(c -> c.id == cellid, cells)
     if isnothing(pos)
         olive_notify!(cm, "the cell was not found -- your client might be bugged, try refreshing the page !")
         return
     end
-    remove!(cm, "cellcontainer$(cell.id)")
+    remove!(cm, "cellcontainer$(cellid)")
     deleteat!(cells, pos)
     if pos == 1
         focus!(cm, "cell$(cells[pos + 1].id)")
@@ -142,9 +143,10 @@ This is a callable build function that can be used to create a base file cell.
 ```
 """
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; binding::Bool = true)
-    hiddencell::Component{:div} = div("cell$(cell.id)")
+    cellid::String = cell.id
+    hiddencell::Component{:div} = div("cell$cellid")
     hiddencell["class"] = "file-cell"
-    name::Component{:a} = a("cell$(cell.id)label", text = cell.source)
+    name::Component{:a} = a("cell$(cellid)label", text = cell.source)
     outputfmt::String = "b"
     fs::Number = filesize(cell.outputs)
     if fs > Int64(1e+9)
@@ -163,10 +165,10 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
             add_to_session(c, cs, cm, cell.source, cell.outputs)
         end
     end
-    finfo::Component{:a} = a("cell$(cell.id)info", text =  string(fs) * outputfmt)
+    finfo::Component{:a} = a("cell$(cellid)info", text =  string(fs) * outputfmt)
     style!(finfo, "color" => "white", "font-weight" => "bold", "margin-left" => 15percent)
-    delbutton::Component{:span} = topbar_icon("$(cell.id)expand", "cancel")
-    copyb::Component{:span} = topbar_icon("copb$(cell.id)", "copy")
+    delbutton::Component{:span} = topbar_icon("$(cellid)expand", "cancel")
+    copyb::Component{:span} = topbar_icon("copb$(cellid)", "copy")
     on(c, delbutton, "click") do cm::ComponentModifier
         rm(cell.outputs)
         olive_notify!(cm, "file $(cell.outputs) deleted", color = "red")
@@ -185,7 +187,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
         end
         insert!(cm, "pwdmain", 2, built)
     end
-    movbutton::Component{:span} = topbar_icon("$(cell.id)move", "drive_file_move")
+    movbutton::Component{:span} = topbar_icon("$(cellid)move", "drive_file_move")
     on(c, movbutton, "click") do cm::ComponentModifier
         switch_work_dir!(c, cm, d.uri)
         splt = split(cell.outputs, "/")
@@ -200,7 +202,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
         end
         insert!(cm, "pwdmain", 2, built)
     end
-    editbutton::Component{:span} = topbar_icon("$(cell.id)edit", "edit")
+    editbutton::Component{:span} = topbar_icon("$(cellid)edit", "edit")
     on(c, editbutton, "click") do cm
         ToolipsSession.bind(c, cm, name, "Enter") do cm2::ComponentModifier
             fname = replace(cm2[name]["text"], "\n" => "")
@@ -408,20 +410,20 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool = true)
-    container = div("cellcontainer$(cell.id)")
-    style!(container, "padding" => 0px)
-    style!(container, "border-radius" => 0px)
+    cellid::String = cell.id
+    container = div("cellcontainer$(cellid)")
+    style!(container, "padding" => 0px, "border-radius" => 0px, 
+    "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px, 
+    "border-bottom" => "2px solid #3b444b", "width" => 100percent)
     filecell = build_base_cell(c, cell, d, binding = false)
-    cdto = topbar_icon("$(cell.id)cd", "file_open")
+    cdto = topbar_icon("$(cellid)cd", "file_open")
     on(c, cdto, "click") do cm::ComponentModifier
         switch_work_dir!(c, cm, cell.outputs * "/" * cell.source)
     end
     style!(cdto, "font-size" => 17pt, "color" => "white")
     filecell[:children] = vcat(cdto, filecell[:children][4:5])
     filecell[:ex] = "0"
-    childbox = div("child$(cell.id)")
-    style!(container, "padding" => 0px, "margin-bottom" => 0px, "overflow" => "visible", "border-radius" => 0px, 
-    "border-bottom" => "2px solid #3b444b", "width" => 100percent)
+    childbox = div("child$(cellid)")
     style!(childbox, "opacity" => 0percent, "border-left" => "10px solid", "border-radius" => 0px,
     "border-color" => "#18191A", "height" => 0percent,  "background-color" => "#3b444b",
     "transition" => "600ms", "padding" => 0px, "overflow" => "visible", "pointer-events" => "none")
@@ -749,15 +751,16 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = false)
-    km = cell_bind!(c, cell, proj)
-    interior = builtcell[:children]["cellinterior$(cell.id)"]
-    sidebox = interior[:children]["cellside$(cell.id)"]
+    km::ToolipsSession.KeyMap = cell_bind!(c, cell, proj)
+    cellid::String = cell.id
+    interior = builtcell[:children]["cellinterior$cellid"]
+    sidebox = interior[:children]["cellside$cellid"]
     sidebox[:children] = Vector{AbstractComponent}([a("unknown", text = "$(typeof(cell).parameters[1])", align = "center")])
     style!(sidebox[:children][1], "color" => "darkred")
     style!(sidebox, "background" => "transparent")
-    inp = interior[:children]["cellinput$(cell.id)"]
-    ToolipsSession.bind(c, cm, inp[:children]["cell$(cell.id)"], km)
-    style!(inp[:children]["cell$(cell.id)"], "color" => "black")
+    inp = interior[:children]["cellinput$cellid"]
+    ToolipsSession.bind(c, cm, inp[:children]["cell$cellid"], km)
+    style!(inp[:children]["cell$(cellid)"], "color" => "black")
     builtcell::Component{:div}
 end
 #==output[code]
@@ -804,8 +807,9 @@ end
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells = proj[:cells]
-    pos = findfirst(lcell -> lcell.id == cell.id, cells)
-    cell.source = cm["cell$(cell.id)"]["text"]
+    cellid::String = cell.id
+    pos = findfirst(lcell -> lcell.id == cellid, cells)
+    cell.source = cm["cell$(cellid)"]["text"]
     if pos != length(cells)
         focus!(cm, "cell$(cells[pos + 1].id)")
     else
@@ -822,8 +826,9 @@ inputcell_style (generic function with 1 method)
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
     proj::Project{<:Any})
     cells = proj[:cells]
-    pos = findfirst(lcell -> lcell.id == cell.id, cells)
-    cell.source = cm["cell$(cell.id)"]["text"]
+    cellid::String = cell.id
+    pos = findfirst(lcell -> lcell.id == cellid, cells)
+    cell.source = cm["cell$(cellid)"]["text"]
     if pos != length(cells)
         focus!(cm, "cell$(cells[pos + 1].id)")
     else
@@ -832,7 +837,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
         ToolipsSession.append!(cm, proj.id, build(c, cm, new_cell, proj))
         focus!(cm, "cell$(new_cell.id)")
     end
-    set_text!(cm, "cell$(cell.id)out", "<sep></sep>")
+    set_text!(cm, "cell$(cellid)out", "<sep></sep>")
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -914,6 +919,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         cell_delete!(c, cm2, cell, cells)
     end
     ToolipsSession.bind(km, keybindings["evaluate"]) do cm2::ComponentModifier
+        cellid::String = cell.id
         icon = olive_loadicon()
         icon.name = "load$(cell.id)"
         icon["width"] = "16"
@@ -952,15 +958,16 @@ This function builds the base input box of a standard cell with or without highl
 """
 function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any}; highlight::Bool = false)
+    cellid::String = cell.id
     windowname::String = proj.id
-    inputbox::Component{:div} = div("cellinput$(cell.id)")
-    inside::Component{:div} = Components.textdiv("cell$(cell.id)",
+    inputbox::Component{:div} = div("cellinput$(cellid)")
+    inside::Component{:div} = Components.textdiv("cell$(cellid)",
     text = replace(cell.source, "\n" => "</br>", " " => "&nbsp;"),
     "class" => "input_cell", "spellcheck" => false)
     Components.textdiv_caret_tracker!(inside)
     style!(inside, "border-top-left-radius" => 0px)
     if highlight
-        highlight_box::Component{:div} = div("cellhighlight$(cell.id)",
+        highlight_box::Component{:div} = div("cellhighlight$(cellid)",
         text = "", class = "input_cell")
         style!(highlight_box, "position" => "absolute !important",
         "background" => "transparent", "z-index" => "5", "padding" => 20px,
@@ -1006,20 +1013,21 @@ This function builds a base `Cell` which comes pre-binded using `cell_bind!`. Th
 function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any}; highlight::Bool = false,
     sidebox::Bool = false)
+    cellid::String = cell.id
     windowname::String = proj.id
-    outside::Component{:div} = div("cellcontainer$(cell.id)", class = "cell")
+    outside::Component{:div} = div("cellcontainer$(cellid)", class = "cell")
     style!(outside, "transition" => 2seconds, "width" => 106percent)
-    interiorbox::Component{:div} = div("cellinterior$(cell.id)")
+    interiorbox::Component{:div} = div("cellinterior$(cellid)")
     inputbox::Component{:div} = build_base_input(c, cm, cell, proj,
     highlight = highlight)
-    output::Component{:div} = div("cell$(cell.id)out", class = "output_cell")
+    output::Component{:div} = div("cell$(cellid)out", class = "output_cell")
     if typeof(cell.outputs) == String
         output[:text] = cell.outputs
     end
     if sidebox
-        sidebox::Component{:div} = div("cellside$(cell.id)", class = "cellside")
-        cell_drag = topbar_icon("cell$(cell.id)drag", "drag_indicator")
-        cell_run = topbar_icon("cell$(cell.id)drag", "play_arrow")
+        sidebox::Component{:div} = div("cellside$(cellid)", class = "cellside")
+        cell_drag = topbar_icon("cell$(cellid)drag", "drag_indicator")
+        cell_run = topbar_icon("cell$(cellid)drag", "play_arrow")
         on(c, cell_run, "click") do cm2::ComponentModifier
             evaluate(c, cm2, cell, proj)
         end

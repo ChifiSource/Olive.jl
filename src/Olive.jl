@@ -138,11 +138,11 @@ function verify_client!(c::Connection)
         push!(olivecover, coverimg,
         h2("mustconfirm", text = "request access (no key)"), logbutt)
         write!(c, olivecover)
-        return
+        return("dead")
     end
     if ~(args[:key] in keys(c[:OliveCore].client_keys))
         write!(c, "bad key.")
-        return
+        return("dead")
     end
     uname = c[:OliveCore].client_keys[args[:key]]
     if ~(get_ip(c) in keys(c[:OliveCore].names))
@@ -366,6 +366,9 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
     write!(c, Components.DOCTYPE())
     uname::String = ""
+    if uname == "dead"
+        return
+    end
     if key
         uname = verify_client!(c)
     else
