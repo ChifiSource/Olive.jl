@@ -16,6 +16,7 @@ Welcome to olive! Olive is a **pure julia** notebook editor built on the back of
 ###### map
 - [get started](#get-started)
    - [getting olive](#getting-olive)
+   - [documentation](#docs)
    - [explanation](#explanation)
 - [user interface](#user-interface)
    - [session](#session)
@@ -81,6 +82,9 @@ using Olive
 Olive.start(IP, PORT, path = startpath)
 ```
 The `Olive.start` method also returns a `Toolips.WebServer`, this being the server that contains your entire `Olive` session. This provides an easy avenue to introspect and work with `Olive`, especially if you know what you are doing. There is more information on working with this server type in the [deploying olive](#deploying-olive) portion of this `README`.
+#### docs
+This README includes a brief overview of `Olive`'s basic usage; for more information `Olive` ensures that all doc-strings are easily browse-able. All exports are listed in the doc-string for `Olive`. Beyond that, there is the `ChifiDocs` documentation:
+- [chifidocs]()
 #### explanation
 Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method definitions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
 
