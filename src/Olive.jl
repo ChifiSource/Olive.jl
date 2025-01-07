@@ -26,25 +26,30 @@ using TOML
 session = Session(["/"])
 
 """
-# Olive
----
-## build
-The `build` functions in `Olive` denote a translation between an `Olive` type and the `Olive` UI. This is the primary 
-Function through which `Olive` is extended. In order to add new functionality, simply add new methods to this function by 
-**explicitly** importing it and writing a new method. In most cases, the return from a `build` `Function` will be a `Toolips.Servable`. 
-### methods
+```julia
+build(c::AbstractConnection, ...) -> ::AbstractComponent
+```
+The `build` function is used as the translation layer between the
+    `Olive` back-end and front-end. The client is HTML, these functions build 
+    an HTML representation of a given parametric type. New cells, directories, 
+    and projects can easily be created by extending this function with new methods.
+```julia
+# extensible methods for build:
+
+```
+For example, the `:code` cell is added to `Olive` using the `Method` 
+`build(::Connection, ::ComponentModifier, ::Cell{:code}, ::Project{<:Any})`.
 """
 function build end
 
 global evalin(ex::Any) = begin
     Main.eval(ex)
 end
-export evalin
 #==
 code/none
 ==#
 #--
-"""
+"""export evalin
 ### Olive 
 ```julia
 olive_module(modname::String, environment::String) -> ::String
@@ -276,8 +281,8 @@ From here, we would need to build out the **entire** `Olive` UI. That being said
 to look at this Function (line 274 of Olive.jl) to get an idea of how it works, and how one might 
 extend `Olive` using a new `Environment` type.
 """
-function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon())
-    write!(c, olivesheet())
+function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET)
+    write!(c, sheet)
     olmod::Module = c[:OliveCore].olmod
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
@@ -364,7 +369,8 @@ function customstart()
 end
 ````
 """
-function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon())
+function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon(), 
+    sheet = olivesheet())
     if get_method(c) == "post"
         return
     end
@@ -392,7 +398,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
         env = c[:OliveCore].open[getname(c)]
     end
      # setup base UI
-    bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env, icon = icon)
+    bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env, icon = icon, sheet = sheet)
     script!(c, "load", type = "Timeout", time = 50) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
@@ -636,7 +642,7 @@ SES = ToolipsSession.Session()
 code/none
 ==#
 #--
-export CORE, main, icons, mainicon, make_session, SES, build
+export CORE, main, icons, mainicon, make_session, SES, build, evalin
 #==
 code/none
 ==#

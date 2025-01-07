@@ -158,15 +158,23 @@ function olivesheet()
     st = sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
     pr = Style("pre", "background" => "transparent")
+    topbar_style = style("div.topbar", "border-color" => "black", 
+    "border-radius" => "5px", "background-color" => "white", "transition" => 500ms, 
+    "border-style" => "solid")
+    # push:
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
     inputcell_style(), bdy, cellside_style(), filec_style(), pr,
     Style("::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
-    Style("progress", "-webkit-appearance" => "none"))
+    Style("progress", "-webkit-appearance" => "none"), topbar_style)
     st
 end
+
+const DEFAULT_SHEET = olivesheet()
+compress!(DEFAULT_SHEET)
+
 #==output[code]
 olivesheet (generic function with 1 method)
 ==#
@@ -444,14 +452,13 @@ UndefVarError: ComponentModifier not defined
 ==#
 #==|||==#
 function topbar(c::Connection)
-    topbar = div("menubar")
+    topbar = div("menubar", class = "topbar")
     leftmenu = span("leftmenu", align = "left")
     style!(leftmenu, "display" => "inline-block")
     rightmenu = span("rightmenu", align = "right")
     style!(rightmenu, "display" => "inline-block", "float" => "right")
-    style!(topbar, "border-style" => "solid", "border-color" => "black",
-    "border-radius" => "5px", "overflow" =>  "hidden", "position" => "sticky",
-    "top" => 0percent, "z-index" => "7", "background-color" => "white", "transition" => "500ms")
+    style!(topbar, "overflow" =>  "hidden", "position" => "sticky",
+    "top" => 0percent, "z-index" => "7")
     tabmenu = div("tabmenu", align = "center")
     style!(tabmenu, "display" => "inline-block")
     push!(leftmenu, explorer_icon(c))
