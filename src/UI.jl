@@ -139,9 +139,9 @@ function sheet(name::String,p::Pair{String, Any} ...;
     tabs = default_tabstyle()
     h1s = Style("h1", "color" => "#754679")
     h2s = Style("h2", "color" => "#797ef6")
-    h3s = Style("h3", "color" => "#DDD6DD")
-    h4s = Style("h4", "color" => "#dddddd")
-    h5s = Style("h5", "color" => "#daddad")
+    h3s = Style("h3", "color" => "#241124")
+    h4s = Style("h4", "color" => "#292828")
+    h5s = Style("h5", "color" => "#851576")
     scrollbars = Style("::-webkit-scrollbar", "width" => "5px")
     scrtrack = Style("::-webkit-scrollbar-track", "background" => "transparent")
     scrthumb = Style("::-webkit-scrollbar-thumb", "background" => "#797ef6",
@@ -160,7 +160,14 @@ function olivesheet()
     pr = Style("pre", "background" => "transparent")
     topbar_style = style("div.topbar", "border-color" => "black", 
     "border-radius" => "5px", "background-color" => "white", "transition" => 500ms, 
-    "border-style" => "solid")
+    "border-style" => "solid", "top" => 0percent)
+    tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
+    "border-style" => "solid", "background-color" => "gray")
+    tabopen_style = style("div.tabopen", 
+    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
+    "border-style" => "solid", "background-color" => "white")
+    tablabel = style("a.tablabel", "font-size"  => 13pt, "color" => "#A2646F", 
+    "font-weight" => "bold")
     # push:
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
@@ -168,7 +175,8 @@ function olivesheet()
     inputcell_style(), bdy, cellside_style(), filec_style(), pr,
     Style("::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
-    Style("progress", "-webkit-appearance" => "none"), topbar_style)
+    Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
+    tabopen_style, tablabel)
     st
 end
 
@@ -457,8 +465,7 @@ function topbar(c::Connection)
     style!(leftmenu, "display" => "inline-block")
     rightmenu = span("rightmenu", align = "right")
     style!(rightmenu, "display" => "inline-block", "float" => "right")
-    style!(topbar, "overflow" =>  "hidden", "position" => "sticky",
-    "top" => 0percent, "z-index" => "7")
+    style!(topbar, "overflow" =>  "hidden", "position" => "sticky", "z-index" => "7")
     tabmenu = div("tabmenu", align = "center")
     style!(tabmenu, "display" => "inline-block")
     push!(leftmenu, explorer_icon(c))
@@ -478,15 +485,6 @@ function topbar_icon(name::String, icon::String)
 end
 #==output[code]
 topbar_icon (generic function with 1 method)
-==#
-#==|||==#
-function olive_body(c::Connection)
-    olivebody = body("olivebody")
-    style!(olivebody, "overflow-x" => "hidden", "transition" => ".8s")
-    olivebody::Component{:body}
-end
-#==output[code]
-UndefVarError: Connection not defined
 ==#
 #==|||==#
 function olive_main()
@@ -682,6 +680,7 @@ This function is called on a project whenever its tab is minimized.
 """
 function style_tab_closed!(cm::ComponentModifier, proj::Project{<:Any})
     style!(cm, """tab$(proj.id)""", "background-color" => "lightgray")
+    cm["tab$(proj.id)"] = "class" => "tabclosed"
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -947,19 +946,17 @@ Creates a tab for the project, including its controls. These tabs are then provi
 """
 function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     fname = p.id
-    tabbody = div("tab$(fname)")
+    tabbody = div("tab$(fname)", class = "tabopen")
     style!(tabbody, "border-bottom-right-radius" => 0px,
     "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
+    "margin-bottom" => "0px", "cursor" => "pointer",
     "margin-left" => 0px, "transition" => 1seconds)
     if(hidden)
-        style!(tabbody, "background-color" => "gray")
+        tabbody[:class] = "tabclosed"
     end
-    tablabel = a("tablabel$(fname)", text = p.name)
-    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "#A2646F", "transition" => "250ms", 
-    "padding-right" => 5px)
+    tablabel = a("tablabel$(fname)", text = p.name, class = "tablabel")
+    style!(tablabel, "margin-right" => 5px,
+    "transition" => "250ms", "padding-right" => 5px)
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
         projects = c[:OliveCore].open[getname(c)].projects
