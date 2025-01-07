@@ -120,7 +120,11 @@ verify_clienty!(c::Connection) -> ::String
 Verifies an incoming client, registers keys to names. Returns the username of the current `Connection`.
 """
 function verify_client!(c::Connection)
+    ip::String = get_ip(c)
     args = get_args(c)
+    if ip in keys(c[:OliveCore].names)
+        return(c[:OliveCore].names[ip])::String
+    end
     if ~(:key in keys(args))
         coverimg::Component{:img} = olive_cover()
         olivecover::Component{:div} = div("topdiv", align = "center")
@@ -145,8 +149,8 @@ function verify_client!(c::Connection)
         return("dead")
     end
     uname = c[:OliveCore].client_keys[args[:key]]
-    if ~(get_ip(c) in keys(c[:OliveCore].names))
-        push!(c[:OliveCore].names, get_ip(c) => uname)
+    if ~(ip in keys(c[:OliveCore].names))
+        push!(c[:OliveCore].names, ip => uname)
     end
     uname::String
 end
@@ -272,7 +276,7 @@ From here, we would need to build out the **entire** `Olive` UI. That being said
 to look at this Function (line 274 of Olive.jl) to get an idea of how it works, and how one might 
 extend `Olive` using a new `Environment` type.
 """
-function build(c::Connection, env::Environment{<:Any})
+function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon())
     write!(c, olivesheet())
     olmod::Module = c[:OliveCore].olmod
     notifier::Component{:div} = olive_notific()
@@ -314,7 +318,7 @@ function build(c::Connection, env::Environment{<:Any})
     push!(pane_container_two, pane_two_tabs, pane_two)
     loadicondiv::Component{:div} = div("loaddiv", align = "center")
     style!(loadicondiv, "padding" => 10percent, "transition" => "1.5s")
-    push!(loadicondiv, olive_loadicon())
+    push!(loadicondiv, icon)
     push!(pane_one, loadicondiv)
     push!(olivemain, pane_container_one, pane_container_two)
     style!(olivemain, "overflow-x" => "hidden", "position" => "relative",
@@ -360,17 +364,17 @@ function customstart()
 end
 ````
 """
-function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!)
+function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon())
     if get_method(c) == "post"
         return
     end
     write!(c, Components.DOCTYPE())
     uname::String = ""
-    if uname == "dead"
-        return
-    end
     if key
         uname = verify_client!(c)
+        if uname == "dead"
+            return
+        end
     else
         if ~(get_ip(c) in keys(c[:OliveCore].names))
             throw("""You have an incorrectly configured `Olive` server... `key` is set to false, 
@@ -388,7 +392,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
         env = c[:OliveCore].open[getname(c)]
     end
      # setup base UI
-    bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env)
+    bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env, icon = icon)
     script!(c, "load", type = "Timeout", time = 50) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
