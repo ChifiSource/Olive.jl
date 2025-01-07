@@ -3,14 +3,14 @@
 <h6>🩷 0.1 🩷 (! Beta I !)</h6>
 </div>
 
-Welcome to olive! Olive is a **pure julia** notebook editor built on the back of multiple dispatch. Through multiple dispatch, olive is able to change functionality entirely by simply having new methods. Using extensions, olive can edit **any** file. Among other things, olive features ...
+Welcome to olive! Olive is a **pure julia** **parametric** notebook editor built on the back of Julia's **multiple dispatch**. `Olive` is able to load new features by loading new methods for its functions.
 - regular **julia modules**
-- *parametric* **extension** loading
+- *parametric* **extensions** loading for **everything**
 - **tabbing** notebooks
 - **customizable** *everything*
-- reading of pluto, julia, olive, **and** ipython notebooks
+- reading of pluto, julia, olive, **and** ipython notebooks -- saving to `Olive`, raw Julia, and IPython notebooks.
 - a full **file-browser**
-- **deployability**
+- **deployable**
 - and a **two-pane** design.
 
 ###### map
