@@ -290,7 +290,9 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     ui_explorer::Component{:div} = projectexplorer()
     ui_settings::Component{:div} = settings_menu(c)
     ui_explorer[:children] = Vector{Servable}([begin
-        compress!(olmod.build(c, d))
+        comp = olmod.build(c, d)
+        compress!(comp)
+        comp::Component{:div}
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
     olivemain["pane"] = "1"

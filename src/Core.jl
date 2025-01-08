@@ -471,7 +471,7 @@ function build(c::Connection, dir::Directory{<:Any})
     dircell::Cell{:dir} = Cell{:dir}(string(nsplit[length(nsplit)]),
     string(join(nsplit[1:length(nsplit) - 1], "/")))
     builtcell::Component{:div} = build(c, dircell, dir)
- #==   if "Project.toml" in readdir(dir.uri)
+    if "Project.toml" in readdir(dir.uri)
         toml_cats = TOML.parse(read(dir.uri * "/Project.toml",
         String))
         if "name" in keys(toml_cats)
@@ -480,7 +480,7 @@ function build(c::Connection, dir::Directory{<:Any})
         if "type" in keys(toml_cats)
             
         end
-    end ==#
+    end
     savebutton = topbar_icon("$(dircell.id)sa", "save")
     dirs = c[:OliveCore].open[getname(c)].directories
     builtname::String = builtcell.name

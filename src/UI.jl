@@ -181,7 +181,7 @@ function olivesheet()
     settings = style("div.settings", "opacity" => "0 !important",  "height" => "0px !important",
     "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky")
     settings_exp = style("div.settings-expanded", "opacity" => "1 !important",
-            "height" => "80% !important", "padding" => 10px, "transition" => 1s)
+            "height" => "90% !important", "padding" => 10px, "transition" => 1s)
     # push:
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
