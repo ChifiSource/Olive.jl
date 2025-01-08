@@ -78,6 +78,7 @@ function iconstyle()
     s:"hover":["color" => "orange", "transform" => "scale(1.06)"]
     s
 end
+
 #==output[code]
 iconstyle (generic function with 1 method)
 ==#
@@ -119,7 +120,7 @@ default_pstyle(; textsize = 12pt) = Style("p",
 
 function default_sectionstyle(;padding::Any = 30px,
     radius::Any = 10px)
-    Style("section", "padding" => "30px", "border-color" => "#754679",
+    Style("section", "border-color" => "#754679",
     "border-width" => "2px", "border-radius" => 10px, "border-style" => "solid",
     "transition" => 1seconds)::Style
 end
@@ -160,7 +161,7 @@ function olivesheet()
     pr = Style("pre", "background" => "transparent")
     topbar_style = style("div.topbar", "border-color" => "black", 
     "border-radius" => "5px", "background-color" => "white", "transition" => 500ms, 
-    "border-style" => "solid", "top" => 0percent)
+    "border-style" => "solid", "top" => 0percent, "position" => "sticky")
     tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
     "border-style" => "solid", "background-color" => "gray")
     tabopen_style = style("div.tabopen", 
@@ -168,6 +169,19 @@ function olivesheet()
     "border-style" => "solid", "background-color" => "white")
     tablabel = style("a.tablabel", "font-size"  => 13pt, "color" => "#A2646F", 
     "font-weight" => "bold")
+    p_explorer = style("div.pexplorer", "opacity" => 0percent, 
+    "position" => "absolute",
+    "z-index" => "1", "top" => "0", "overflow" => "visible",
+    "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
+     "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px, 
+     "overflow-y" => "visible")
+    p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
+    "opacity" => 100percent, "overflow-y" => "scroll")
+    icon_selected = style(".material-icons-selected", "color" => "lightblue")
+    settings = style("div.settings", "opacity" => "0 !important",  "height" => "0px !important",
+    "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky")
+    settings_exp = style("div.settings-expanded", "opacity" => "1 !important",
+            "height" => "80% !important", "padding" => 10px, "transition" => 1s)
     # push:
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
@@ -176,27 +190,18 @@ function olivesheet()
     Style("::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
-    tabopen_style, tablabel)
+    tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp)
     st
 end
 
-const DEFAULT_SHEET = olivesheet()
-compress!(DEFAULT_SHEET)
+const DEFAULT_SHEET = compress!(olivesheet())
 
 #==output[code]
 olivesheet (generic function with 1 method)
 ==#
 #==|||==#
 function projectexplorer()
-    pexplore = div("projectexplorer")
-    style!(pexplore, "opacity" => 0percent, 
-    "position" => "absolute",
-    "z-index" => "1", "top" => "0", "overflow" => "visible",
-    "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
-     "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px)
-     projpreview = div("pinfo")
-     style!(projpreview, "display" => "flex")
-    pexplore
+    div("projectexplorer", class = "pexplorer")
 end
 #==output[code]
 projectexplorer (generic function with 1 method)
@@ -207,24 +212,21 @@ function explorer_icon(c::Connection)
     on(c, explorericon, "click") do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
             cm["settingsmenu"] =  "open" => "0"
-            style!(cm, "settingicon", "transform" => "rotate(0deg)",
-            "color" => "black")
-            style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
-            style!(cm, "projectexplorer", "width" => "500px", "opacity" => 100percent,
-            "overflow-y" => "scroll")
+            cm["settingicon"] = "class" => "material-icons"
+            cm["settingsmenu"] = "class" => "settings"
+            cm["projectexplorer"] = "class" => "pexplorer pexplorer-open"
             style!(cm, "olivemain", "margin-left" => "500px")
-            style!(cm, explorericon, "color" => "lightblue")
+            cm["explorerico"] = "class" => "material-icons material-icons-selected"
             style!(cm, "menubar", "border-bottom-left-radius" => 0px)
             set_text!(cm, explorericon, "folder_open")
             cm["olivemain"] = "ex" => "1"
             return
         else
-            style!(cm, "projectexplorer", "width" => "0px", 
-            "overflow-y" => "hidden", "opacity" => 0percent)
+            cm["projectexplorer"] = "class" => "pexplorer"
             style!(cm, "menubar", "border-bottom-left-radius" => 5px)
             style!(cm, "olivemain", "margin-left" => "0px")
             set_text!(cm, explorericon, "drive_file_move_rtl")
-            style!(cm, explorericon, "color" => "black")
+            cm["explorerico"] = "class" => "material-icons"
             cm["olivemain"] = "ex" => "0"
         end
     end
@@ -235,10 +237,7 @@ UndefVarError: ComponentModifier not defined
 ==#
 #==|||==#
 function settings_menu(c::Connection)
-    mainmenu = section("settingsmenu", open = "0")
-    style!(mainmenu, "opacity" => 0percent,  "height" => 0percent,
-    "overflow-y" => "scroll", "padding" => 0px)
-    mainmenu::Component{:section}
+    div("settingsmenu", open = "0", class = "settings")::Component{:div}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -432,24 +431,23 @@ olive_notific (generic function with 1 method)
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
     on(c, settingicon, "click") do cm::ComponentModifier
-        style!(cm, "projectexplorer", "width" => "0px", 
-        "overflow-y" => "hidden")
+        cm["projectexplorer"] = "class" => "pexplorer"
         style!(cm, "olivemain", "margin-left" => "0px")
         set_text!(cm, "explorerico", "drive_file_move_rtl")
-        style!(cm, "explorerico", "color" => "black")
+        cm["explorerico"] = "class" => "material-icons"
         cm["olivemain"] = "ex" => "0"
         if cm["settingsmenu"]["open"] == "0"
-            style!(cm, settingicon, "transform" => "rotate(-180deg)",
-            "color" => "lightblue")
-            style!(cm, "settingsmenu", "opacity" => 100percent,
-            "height" => 50percent)
+            style!(cm, "settingicon", "transform" => "rotate(-180deg)")
+            cm["settingicon"] = "class" => "material-icons material-icons-selected"
+            cm["settingsmenu"] = "class" => "settings-expanded"
             cm["settingsmenu"] = "open" => "1"
             return
         end
         cm["settingsmenu"] =  "open" => "0"
-        style!(cm, settingicon, "transform" => "rotate(0deg)",
-        "color" => "black")
-        style!(cm, "settingsmenu", "opacity" => 0percent, "height" => 0percent)
+        style!(cm, "settingicon", "transform" => "rotate(0deg)")
+        cm["settingicon"] = "class" => "material-icons"
+        cm["settingsmenu"] = "class" => "settings"
+        cm["settingsmenu"] = "open" => "0"
         save_settings!(c)
         olive_notify!(cm, "settings saved", color = "green")
     end

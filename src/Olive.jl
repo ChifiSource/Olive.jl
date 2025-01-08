@@ -4,10 +4,11 @@ Created in February, 2022 by
 by team
 [toolips](https://github.com/orgs/ChifiSource/teams/toolips)
 This software is MIT-licensed.
-#### | olive | - | pure julia notebook IDE
-Welcome to olive! olive is an integrated development environment written in
-julia and for other languages and data editing. Crucially, olive is abstract
-    in definition and allows for the creation of unique types for names.
+#### | olive | - | pure julia parametric notebook IDE
+Welcome to olive! olive is an *integrated notebook development environment* for Julia with unparalleled extensibility.
+```julia
+using Olive; Olive.start()
+```
 """
 module Olive
 import Base: write, display, getindex, setindex!, string, showerror
@@ -286,12 +287,10 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     olmod::Module = c[:OliveCore].olmod
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
-    style!(ui_topbar, "position" => "sticky")
     ui_explorer::Component{:div} = projectexplorer()
-    ui_settings::Component{:section} = settings_menu(c)
-    style!(ui_settings, "position" => "sticky")
+    ui_settings::Component{:div} = settings_menu(c)
     ui_explorer[:children] = Vector{Servable}([begin
-        olmod.build(c, d)
+        compress!(olmod.build(c, d))
     end for d in env.directories])
     olivemain::Component{:div} = olive_main()
     olivemain["pane"] = "1"
