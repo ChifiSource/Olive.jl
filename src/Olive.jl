@@ -644,7 +644,7 @@ olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon])
 code/none
 ==#
 #--
-export CORE, main, olive_routes, SES, build, evalin
+export CORE, olive_routes, SES, build, evalin
 #==
 code/none
 ==#
