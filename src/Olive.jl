@@ -639,11 +639,12 @@ function setup_olive(logger::Toolips.Logger, path::String)
     log(logger, "olive setup completed successfully")
 end
 SES = ToolipsSession.Session()
+olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon])
 #==
 code/none
 ==#
 #--
-export CORE, main, icons, mainicon, make_session, SES, build, evalin
+export CORE, main, olive_routes, SES, build, evalin
 #==
 code/none
 ==#
