@@ -798,7 +798,7 @@ mutable struct OliveCore <: Toolips.AbstractExtension
     client_keys::Dict{String, String}
     function OliveCore(mod::String)
         data = Dict{Symbol, Any}()
-        m = eval(Meta.parse("module $mod end"))
+        m = eval(Meta.parse("module $mod build = nothing end"))
         m.build = build
         open = Vector{Environment}()
         pool = Vector{String}()
