@@ -1240,7 +1240,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     standard_out = replace(read(p, String), "\n" => "<br>")
     # output
     outp::String = ""
-    od = OliveDisplay()
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
@@ -1249,14 +1248,14 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         end
     end for m in methods(on_code_evaluate)]
     if typeof(ret) <: Exception
-        Base.showerror(od.io, ret)
-        outp = replace(String(od.io.data), "\n" => "</br>")
+        Base.showerror(ODISPLAY.io, ret)
+        outp = replace(String(ODISPLAY.io.data), "\n" => "</br>")
     elseif ~(isnothing(ret)) && length(standard_out) > 0
-        display(od, MIME"olive"(), ret)
-        outp = standard_out * "</br>" * String(od.io.data)
+        display(ODISPLAY, MIME"olive"(), ret)
+        outp = standard_out * "</br>" * String(ODISPLAY.io.data)
     elseif ~(isnothing(ret)) && length(standard_out) == 0
-        display(od, MIME"olive"(), ret)
-        outp = String(od.io.data)
+        display(ODISPLAY, MIME"olive"(), ret)
+        outp = String(ODISPLAY.io.data)
     else
         outp = standard_out
     end

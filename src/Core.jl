@@ -1,3 +1,21 @@
+#===
+Core.jl
+---
+- Extensions
+- `save_settings`
+- `onsave`
+- Directory
+- directory build functions
+- Project
+- `create_project`
+- build functions for projects
+- `Environment`
+- `OliveCore`
+- `source_module(::OliveCore)`
+- load_extensions!(oc::OliveCore)
+- `OliveLogger`
+- `OliveDisplay`
+===#
 #==output[filemap]
 ==#
 #==|||==#
@@ -144,8 +162,9 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
 #==output[code]
 ==#
 #==|||==#
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
-    # load default key-bindings (if non-existent)
+
+function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
+    # cell bindings
     if ~("keybindings" in keys(c[:OliveCore].client_data[getname(c)]))
         push!(c[:OliveCore].client_data[getname(c)],
         "keybindings" => Dict{String, Any}(
@@ -203,25 +222,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:keybinds}) = begin
         newkeymain
     end for keybinding in c[:OliveCore].client_data[getname(c)]["keybindings"]]))
     append!(om, "settingsmenu", keybind_drop)
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:styles}) = begin
-    if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
-        push!(c[:OliveCore].client_data[getname(c)],
-        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
-        "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
-        "m" => "module"))
-    end
-    creatorkeysdropd = containersection(c, "creatorkeys", text = "creator keys")
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begin
+    # creator keys
     if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
         push!(c[:OliveCore].client_data[getname(c)],
         "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
@@ -282,11 +283,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:creatorkeys}) = begi
     push!(creatorkeysmen, newsection)
     append!(om, "settingsmenu", creatorkeysdropd)
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = begin
+
+function load_style_settings(c::Connection, om::AbstractComponentModifier)
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
         tm = OliveHighlighters.TextStyleModifier("")
         OliveHighlighters.highlight_julia!(tm)
@@ -354,6 +352,11 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:highlightstyler}) = 
     end
     push!(sect, Component{:sep}("highsep"), updatebutton)
     append!(om, "settingsmenu", container)
+end
+
+build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
+    load_keybinds_settings(c, om)
+    load_style_settings(c, om)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -447,24 +450,11 @@ end
 #==output[code]
 ==#
 #==|||==#
+#===
+DIRECTORY BUILD FUNCTIONS
+===#
 """
-```julia
-build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Component{:div}
-```
-------------------
-The base `Directory` build function. This function can be extended to add new directory types to `Olive`.
 
-Here are some other **important** functions to look at for a `Directory`:
-- create_new!
-- work_preview
-The nature of file `Cell` functions can also be altered by changing 
-their `build` or `evaluate` dispatch using a directory type. 
-(for more information view this this documentation):
-- `build(::Connection, ::Cell{<:Any}, ::Directory{<:Any})`
-#### example
-```example
-
-```
 """
 function build(c::Connection, dir::Directory{<:Any})
     nsplit::Vector{SubString} = split(dir.uri, "/")
@@ -872,6 +862,8 @@ mutable struct OliveDisplay <: AbstractDisplay
     io::IOBuffer
     OliveDisplay() = new(IOBuffer())::OliveDisplay
 end
+
+ODISPLAY = OliveDisplay()
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#

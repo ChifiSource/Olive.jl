@@ -182,6 +182,9 @@ function olivesheet()
     "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky")
     settings_exp = style("div.settings-expanded", "opacity" => "1 !important",
             "height" => "90% !important", "padding" => 10px, "transition" => 1s)
+    section_container = style("section.outers", "background-color" => "white", "padding" => 3px, "transition" => 1seconds)
+    section_container_labels = style(".containerlabels", "display" => "inline-block", "color" => "#333333", 
+    "font-weight" => "bold")
     # push:
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
@@ -262,10 +265,8 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
     text::String = name, fillto::Int64 = 60)
     arrow = topbar_icon("$name-expander", "expand_more")
     style!(arrow, "color" => "darkgray", "font-size" => 17pt)
-    outersection = section("outer$name", ex = "0")
-    heading = Component{Symbol("h$level")}("$name-heading", text = text)
-    style!(outersection, "padding" => 3px, "transition" => 1seconds)
-    style!(heading, "display" => "inline-block")
+    outersection = section("outer$name", ex = "0", class = "outers")
+    heading = Component{Symbol("h$level")}("$name-heading", text = text, class = "containerlabels")
     upperdiv = div("$name-upper")
     push!(upperdiv, heading, arrow, Component{:sep}("sep$name"))
     push!(outersection, upperdiv)
@@ -383,6 +384,16 @@ function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExten
         print(e)
         olive_notify!(cm, "failed to create $finalname !", color = "red")
     end
+end
+#==output[code]
+UndefVarError: Connection not defined
+==#
+#==|||==#
+function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:directory}, path::String, finalname::String)
+    path = path * "/" * finalname
+    mkdir(path)
+    olive_notify!(cm, "created directory", color = "darkgreen")
+    switch_work_dir!(c, cm, path)
 end
 #==output[code]
 UndefVarError: Connection not defined
