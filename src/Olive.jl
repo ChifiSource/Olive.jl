@@ -387,7 +387,8 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
             throw("""You have an incorrectly configured `Olive` server... `key` is set to false, 
             but there is no loader loading your users into keys. The reason you would have `key` off is to 
             add your own authentication. You will need to setup the client's IP in `OliveCore.names` before calling `make_session`, 
-            this is the exact check you failed; `~(get_ip(c) in keys(c[:OliveCore].names))`""")
+            this is the exact check you failed; `~(get_ip(c) in keys(c[:OliveCore].names))`. If you are going to disable 
+            `Olive` authentication, then you need to setup the client's environment in the route above this one.""")
         end
         uname = getname(c)
     end
@@ -400,7 +401,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
      # setup base UI
     bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env, icon = icon, sheet = sheet)
-    script!(c, "load", type = "Timeout", time = 50) do cm::ComponentModifier
+    on(c, 1) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
         next!(c, cm, loadicondiv) do cm2::ComponentModifier

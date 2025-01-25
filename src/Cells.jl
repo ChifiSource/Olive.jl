@@ -924,7 +924,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         icon.name = "load$(cell.id)"
         icon["width"] = "16"
         append!(cm2, "cellside$(cell.id)", icon)
-        script!(c, cm2, type = "Timeout") do cm::ComponentModifier
+        on(c, cm2, 100) do cm::ComponentModifier
             evaluate(c, cm, cell, proj)
             remove!(cm, "load$(cell.id)")
         end
@@ -1262,6 +1262,14 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     set_text!(cm, "cell$(cell.id)out", outp)
     cell.outputs = outp
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
+    if isnothing(pos)
+        @warn "olive cell error:"
+        @info "cell $(pos) $(cell.id)"
+        @info "$(length(cells))"
+        @info join("$(cell.id)|" for cell in cells)
+        olive_notify!(cm, "cell error! check the terminal for more details...", color = "red")
+        return
+    end
     if pos == length(cells)
         new_cell = Cell("code", "", id = ToolipsSession.gen_ref(4))
         push!(cells, new_cell)

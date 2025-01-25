@@ -174,9 +174,9 @@ function olivesheet()
     "z-index" => "1", "top" => "0", "overflow" => "visible",
     "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
      "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px, 
-     "overflow-y" => "visible")
+     "overflow-y" => "visible", "pointer-events" => "none")
     p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
-    "opacity" => 100percent, "overflow-y" => "scroll")
+    "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
     icon_selected = style(".material-icons-selected", "color" => "lightblue")
     settings = style("div.settings", "opacity" => "0 !important",  "height" => "0px !important",
     "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky")
@@ -193,7 +193,8 @@ function olivesheet()
     Style("::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
-    tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp)
+    tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
+    section_container_labels)
     st
 end
 
