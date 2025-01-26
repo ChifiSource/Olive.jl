@@ -161,38 +161,40 @@ function olivesheet()
     pr = Style("pre", "background" => "transparent")
     # topbar:
     topbar_style = style("div.topbar", "border-color" => "black", 
-    "border-radius" => "5px", "background-color" => "white", "transition" => 500ms, 
-    "border-style" => "solid", "top" => 0percent, "position" => "sticky")
+        "border-radius" => "5px", "background-color" => "white", "transition" => 500ms, 
+        "border-style" => "solid", "top" => 0percent, "position" => "sticky")
     #tabs:
     tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "background-color" => "gray")
+        "border-style" => "solid", "background-color" => "gray", "border-width" => 2px, "border-color" => "#333333", 
+        "border-bottom" => 0px, "border-style" => "solid", "background-color" => "lightgray", "border-bottom-right-radius" => 0px, 
+        "border-bottom-left-radius" => 0px, "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer", 
+        "margin-left" => 0px, "transition" => 1seconds)
     tabopen_style = style("div.tabopen", 
-    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "background-color" => "white", "border-bottom-right-radius" => 0px, "border-bottom-left-radius" => 0px, 
-    "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px, "transition" => 1seconds)
+        "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
+        "border-style" => "solid", "background-color" => "white", "border-bottom-right-radius" => 0px, "border-bottom-left-radius" => 0px, 
+        "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer",
+        "margin-left" => 0px, "transition" => 1seconds)
     tablabel = style("a.tablabel", "font-size"  => 13pt, "color" => "#A2646F", 
-    "font-weight" => "bold", "margin-right" => 5px,
-    "transition" => "250ms", "padding-right" => 5px)
+        "font-weight" => "bold", "margin-right" => 5px,
+        "transition" => "250ms", "padding-right" => 5px)
     tab_icon = style("span.tablabel", "font-size"  => 17pt, "cursor" => "pointer",
-    "font-family" => "'Material Icons'", "font-weight" => "normal",
-    "font-style" => "normal", "display" => "inline-block")
+        "font-family" => "'Material Icons'", "font-weight" => "normal",
+        "font-style" => "normal", "display" => "inline-block")
     tab_icon:"hover":["transform" => "scale(1.01)", "color" => "darkgray"]
     # project explorer:
     p_explorer = style("div.pexplorer", "opacity" => 0percent, 
-    "position" => "absolute",
-    "z-index" => "1", "top" => "0", "overflow" => "visible",
-    "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
-     "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px, 
-     "overflow-y" => "visible", "pointer-events" => "none")
+        "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
+        "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
+        "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px, 
+        "overflow-y" => "visible", "pointer-events" => "none")
     p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
-    "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
+        "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
     icon_selected = style(".material-icons-selected", "color" => "lightblue")
     # settings:
     settings = style("div.settings", "opacity" => "0 !important",  "height" => "0px !important",
-    "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky")
+    "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky", "pointer-events" => "none")
     settings_exp = style("div.settings-expanded", "opacity" => "1 !important",
-            "height" => "90% !important", "padding" => 10px, "transition" => 1s)
+        "height" => "90% !important", "padding" => 10px, "transition" => 1s, "pointer-events" => "auto")
     # container sections:
     section_container = style("section.outers", "background-color" => "white", "padding" => 3px, "transition" => 1seconds)
     section_container_labels = style(".containerlabels", "display" => "inline-block", "color" => "#333333", 
@@ -210,7 +212,11 @@ function olivesheet()
     st
 end
 
-const DEFAULT_SHEET = compress!(olivesheet())
+const DEFAULT_SHEET = begin
+    new_sheet = olivesheet()
+    compress!(new_sheet)
+    new_sheet::Component{:sheet}
+end
 
 #==output[code]
 olivesheet (generic function with 1 method)
@@ -700,7 +706,6 @@ This function is called on a project whenever its tab is minimized.
 ```
 """
 function style_tab_closed!(cm::ComponentModifier, proj::Project{<:Any})
-    style!(cm, """tab$(proj.id)""", "background-color" => "lightgray")
     cm["tab$(proj.id)"] = "class" => "tabclosed"
 end
 #==output[code]
@@ -912,7 +917,7 @@ This is the function `Olive` uses to close the project in the UI.
 ```
 """
 function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Project{<:Any})
-    name = proj.id
+    name::String = proj.id
     projs = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
     set_children!(cm2, "pane_$(proj.data[:pane])", Vector{Servable}())
@@ -927,7 +932,7 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
             lpjn = lastproj.id
             remove!(cm2, lpjn)
             remove!(cm2, "tab$lpjn")
-            lastproj.data[:pane] = "one"
+            lastproj.data[:pane]::String = "one"
             append!(cm2, "pane_one_tabs", build_tab(c, lastproj))
                         set_children!(cm2, "pane_one", Vector{Servable}([
                 Base.invokelatest(c[:OliveCore].olmod.build, c, cm2, lastproj
@@ -980,7 +985,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         end  for e in inpane]
         projbuild::Component{:div} = build(c, cm, p)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
-        style!(cm, tabbody, "background-color" => "white")
+        cm["tab$(fname)"] = :class => "tabopen"
     end
     on(c, tabbody, "dblclick") do cm::ComponentModifier
         if "$(fname)dec" in cm

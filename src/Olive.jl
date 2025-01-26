@@ -15,7 +15,7 @@ import Base: write, display, getindex, setindex!, string, showerror
 using Toolips
 using Toolips.Components
 import Toolips.Components: Servable
-import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier, AbstractComponentModifier, on_start
+import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier, AbstractComponentModifier, on_start, Route
 using ToolipsSession
 import ToolipsSession: KeyMap
 using IPyCells
@@ -371,7 +371,7 @@ end
 ````
 """
 function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon(), 
-    sheet = olivesheet())
+    sheet = DEFAULT_SHEET)
     if get_method(c) == "post"
         return
     end
@@ -401,7 +401,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
      # setup base UI
     bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env, icon = icon, sheet = sheet)
-    on(c, 1) do cm::ComponentModifier
+    on(c, 100) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
         next!(c, cm, loadicondiv) do cm2::ComponentModifier
@@ -430,23 +430,23 @@ end
 code/none
 ==#
 #--
-main = route(make_session, "/")
+main::Route{Connection} = route(make_session, "/")
 #==
 code/none
 ==#
 #--
-fourofour = route("404") do c::Connection
+fourofour::Route{Connection} = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
 end
 #==
 code/none
 ==#
 #--
-icons = route("/MaterialIcons.otf") do c::Connection
+icons::Route{Connection} = route("/MaterialIcons.otf") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/fonts/MaterialIcons.otf"))
 end
-mainicon = route("/favicon.ico") do c::Connection
+mainicon::Route{Connection} = route("/favicon.ico") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/images/favicon.ico"))
 end
