@@ -75,7 +75,7 @@ function iconstyle()
     "font-size" => "100pt", "transition" => ".4s", "line-height" => "1",
     "text-transform" => "none", "letter-spacing" => "normal",
     "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
-    s:"hover":["color" => "orange", "transform" => "scale(1.06)"]
+    s:"hover":["color" => "#fc8208", "transform" => "scale(1.03)"]
     s
 end
 
@@ -159,16 +159,26 @@ function olivesheet()
     st = sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
     pr = Style("pre", "background" => "transparent")
+    # topbar:
     topbar_style = style("div.topbar", "border-color" => "black", 
     "border-radius" => "5px", "background-color" => "white", "transition" => 500ms, 
     "border-style" => "solid", "top" => 0percent, "position" => "sticky")
+    #tabs:
     tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
     "border-style" => "solid", "background-color" => "gray")
     tabopen_style = style("div.tabopen", 
     "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "background-color" => "white")
+    "border-style" => "solid", "background-color" => "white", "border-bottom-right-radius" => 0px, "border-bottom-left-radius" => 0px, 
+    "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer",
+    "margin-left" => 0px, "transition" => 1seconds)
     tablabel = style("a.tablabel", "font-size"  => 13pt, "color" => "#A2646F", 
-    "font-weight" => "bold")
+    "font-weight" => "bold", "margin-right" => 5px,
+    "transition" => "250ms", "padding-right" => 5px)
+    tab_icon = style("span.tablabel", "font-size"  => 17pt, "cursor" => "pointer",
+    "font-family" => "'Material Icons'", "font-weight" => "normal",
+    "font-style" => "normal", "display" => "inline-block")
+    tab_icon:"hover":["transform" => "scale(1.01)", "color" => "darkgray"]
+    # project explorer:
     p_explorer = style("div.pexplorer", "opacity" => 0percent, 
     "position" => "absolute",
     "z-index" => "1", "top" => "0", "overflow" => "visible",
@@ -178,10 +188,12 @@ function olivesheet()
     p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
     "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
     icon_selected = style(".material-icons-selected", "color" => "lightblue")
+    # settings:
     settings = style("div.settings", "opacity" => "0 !important",  "height" => "0px !important",
     "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky")
     settings_exp = style("div.settings-expanded", "opacity" => "1 !important",
             "height" => "90% !important", "padding" => 10px, "transition" => 1s)
+    # container sections:
     section_container = style("section.outers", "background-color" => "white", "padding" => 3px, "transition" => 1seconds)
     section_container_labels = style(".containerlabels", "display" => "inline-block", "color" => "#333333", 
     "font-weight" => "bold")
@@ -194,7 +206,7 @@ function olivesheet()
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
-    section_container_labels)
+    section_container_labels, tab_icon)
     st
 end
 
@@ -538,10 +550,9 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-### Olive UI
-````
+```julia
 check!(p::Project{<:Any}) -> ::Nothing
-````
+```
 `check!` is an open-ended function that is called whenever a 
 `Project` is loaded. For this base `Project`, this does absolutely nothing, 
 but could be useful for extensions.
@@ -551,7 +562,7 @@ but could be useful for extensions.
 ```
 """
 function check!(p::Project{<:Any})
-
+    nothing::Nothing
 end
 
 #==output[code]
@@ -576,20 +587,20 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
     all_paths = (begin
-    if :path in keys(project.data)
-        project[:path]
-    end
+        if :path in keys(project.data)
+            project[:path]
+        end
     end for project in c[:OliveCore].open[getname(c)].projects)
     cldata = c[:OliveCore].client_data[getname(c)]
     if ~("recents" in keys(cldata))
-        cldata["recents"] = Vector{String}()
+        cldata["recents"]::Vector{String} = Vector{String}()
     end
-    recents = cldata["recents"]
+    recents::Vector{String} = cldata["recents"]
     if ~(fpath in recents)
         push!(cldata["recents"], fpath)
     end
     if length(recents) > 5
-        cldata["recents"] = recents[2:6]
+        cldata["recents"]::Vector{String} = recents[2:6]
     end
     if fpath in all_paths
         n_open = length(findall(path -> path == fpath, all_paths))
@@ -641,19 +652,19 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
     proj.data[:pane] = "one"
     inpane2 = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
     if length(inpane2) == 0
-        proj.data[:pane] = "one"
+        proj.data[:pane]::String = "one"
         set_children!(cm, "pane_one", [projbuild])
         append!(cm, "pane_one_tabs", tab)
         [begin
-        if pro.id != proj.id
-            style_tab_closed!(cm, pro)
-        end
+            if pro.id != proj.id
+                style_tab_closed!(cm, pro)
+            end
         end  for pro in projects]
         return
     end
     if(cm["olivemain"]["pane"] == "1")
         inpane = findall(p::Project{<:Any} -> p[:pane] == "one", projects)
-        proj.data[:pane] = "one"
+        proj.data[:pane]::String = "one"
         append!(cm, "pane_one", projbuild)
         append!(cm, "pane_one_tabs", tab)
         [begin
@@ -662,7 +673,7 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
         end
         end  for p in inpane]
     else
-        proj.data[:pane] = "two"
+        proj.data[:pane]::String = "two"
         append!(cm, "pane_two", projbuild)
         append!(cm, "pane_two_tabs", tab)
         [begin
@@ -723,14 +734,14 @@ This function is called on a project whenever its tab is minimized.
 ```
 """
 function switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any})
-    projects = c[:OliveCore].open[getname(c)].projects
-    name = proj.id
-    if proj.data[:pane] == "one"
+    projects::Vector = c[:OliveCore].open[getname(c)].projects
+    name::String = proj.id
+    if proj.data[:pane]::String == "one"
         pane = "two"
     else
         pane = "one"
     end
-    proj.data[:pane] = pane
+    proj.data[:pane]::String = pane
     inpane = findall(p::Project{<:Any} -> p[:pane] == proj[:pane], projects)
     [begin
     if projects[e].id != proj.id 
@@ -756,30 +767,29 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-### Olive UI
-````
+```julia
 tab_controls(c::Connection, p::Project{<:Any}) -> ::Component{:div}
-````
+```
 Returns the default set of tab controls for a `Project`.
-#### example
+
 ```
 
 ```
 """
 function tab_controls(c::Connection, p::Project{<:Any})
-    fname = p.id
-    closebutton = topbar_icon("$(fname)close", "close")
+    fname::String = p.id
+    closebutton::Component{:span} = span("$(fname)close", text = "close", class = "tablabel")
     on(c, closebutton, "click") do cm2::ComponentModifier
         close_project(c, cm2, p)
     end
-    restartbutton = topbar_icon("$(fname)restart", "restart_alt")
+    restartbutton::Component{:span} = span("$(fname)restart", text = "restart_alt", class = "tablabel")
     on(c, restartbutton, "click") do cm2::ComponentModifier
         new_name = string(split(fname, ".")[1])
         delete!(p.data, :mod)
         source_module!(c, p, new_name)
         olive_notify!(cm2, "module for $(fname) re-sourced")
     end
-    add_button = topbar_icon("$(fname)add", "add_circle")
+    add_button::Component{:span} = span("$(fname)add", text = "add_circle", class = "tablabel")
     on(c, add_button, "click") do cm2::ComponentModifier
         cells = p[:cells]
         new_cell = Cell("creator", "")
@@ -787,20 +797,16 @@ function tab_controls(c::Connection, p::Project{<:Any})
         append!(cm2, fname, build(c, cm2, new_cell, p))
         focus!(cm2, "cell$(new_cell.id)")
     end
-    runall_button = topbar_icon("$(fname)run", "start")
+    runall_button::Component{:span} = span("$(fname)run", text = "start", class = "tablabel")
     on(c, runall_button, "click") do cm2::ComponentModifier
         step_evaluate(c, cm2, p)
     end
-    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
+    switchpane_button::Component{:span} = span("$(fname)switch", text = "compare_arrows", class = "tablabel")
     on(c, switchpane_button, "click") do cm2::ComponentModifier
         switch_pane!(c, cm2, p)
     end
     style!(closebutton, "font-size"  => 17pt, "color" => "red")
-    style!(restartbutton, "font-size"  => 17pt, "color" => "darkgray")
-    style!(switchpane_button, "font-size"  => 17pt, "color" => "darkgray")
-    style!(add_button, "font-size"  => 17pt, "color" => "darkgray")
-    style!(runall_button, "font-size"  => 17pt, "color" => "darkgray")
-    [add_button, switchpane_button, restartbutton, runall_button, closebutton]
+    return([add_button, switchpane_button, restartbutton, runall_button, closebutton])::Vector{<:AbstractComponent}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -884,7 +890,7 @@ function step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Proje
     e += 1
     script!(c, cm, type = "Timeout") do cm2::ComponentModifier
         evaluate(c, cm2, proj.data[:cells][e], proj)
-        if e == length(proj.data[:cells])
+        if e == length(proj.data[:cells]) - 1
             return
         end
         step_evaluate(c, cm2, proj, e)
@@ -934,7 +940,8 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     push!(c[:OliveCore].pool, proj.id)
     deleteat!(projs, pos)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
-    [proj[:mod].feld = nothing for feld in names(proj[:mod])]
+    mod = proj[:mod]
+    [getfield(mod, feld) = nothing for feld in names(mod)]
     proj[:mod].evalin(Meta.parse("Base.GC.gc(true)"))
     Base.GC.gc()
 end
@@ -955,49 +962,45 @@ Creates a tab for the project, including its controls. These tabs are then provi
 ```
 """
 function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
-    fname = p.id
-    tabbody = div("tab$(fname)", class = "tabopen")
-    style!(tabbody, "border-bottom-right-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px, "transition" => 1seconds)
+    fname::String = p.id
+    tabbody::Component{:div} = div("tab$(fname)", class = "tabopen")
     if(hidden)
-        tabbody[:class] = "tabclosed"
+        tabbody[:class]::String = "tabclosed"
     end
-    tablabel = a("tablabel$(fname)", text = p.name, class = "tablabel")
-    style!(tablabel, "margin-right" => 5px,
-    "transition" => "250ms", "padding-right" => 5px)
+    tablabel::Component{:a} = a("tablabel$(fname)", text = p.name, class = "tablabel")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].open[getname(c)].projects
+        projects::Vector{Project{<:Any}} = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
                 style_tab_closed!(cm, projects[e])
             end
+            nothing
         end  for e in inpane]
-        projbuild = build(c, cm, p)
+        projbuild::Component{:div} = build(c, cm, p)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         style!(cm, tabbody, "background-color" => "white")
     end
     on(c, tabbody, "dblclick") do cm::ComponentModifier
-        if ~("$(fname)close" in keys(cm.rootc))
-            decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
-                remove!(cm2, "$(fname)close")
-                remove!(cm2, "$(fname)add")
-                remove!(cm2, "$(fname)restart")
-                remove!(cm2, "$(fname)run")
-                remove!(cm2, "$(fname)switch")
-                remove!(cm2, decollapse_button)
-            end
-            style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
-            controls = tab_controls(c, p)
-            insert!(controls, 1, decollapse_button)
-            [append!(cm, tabbody, serv) for serv in controls]
+        if "$(fname)dec" in cm
+            return
         end
+        decollapse_button::Component{:span} = span("$(fname)dec", text = "arrow_left", class = "tablabel")
+        on(c, decollapse_button, "click") do cm2::ComponentModifier
+            remove!(cm2, "$(fname)close")
+            remove!(cm2, "$(fname)add")
+            remove!(cm2, "$(fname)restart")
+            remove!(cm2, "$(fname)run")
+            remove!(cm2, "$(fname)switch")
+            remove!(cm2, decollapse_button)
+        end
+        style!(decollapse_button, "color" => "blue")
+        controls::Vector{<:AbstractComponent} = tab_controls(c, p)
+        insert!(controls, 1, decollapse_button)
+        [begin append!(cm, tabbody, serv); nothing end for serv in controls]
     end
-    tabbody
+    tabbody::Component{:div}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
