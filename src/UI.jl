@@ -538,7 +538,7 @@ use external dependencies.
 ```
 """
 function source_module!(c::Connection, p::Project{<:Any}, name::String)
-    openmods = c[:OliveCore].pool
+    openmods::Vector{Module} = c[:OliveCore].pool
     if length(openmods) > 0
         name = openmods[1]
         deleteat!(openmods, 1)

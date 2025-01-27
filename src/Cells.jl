@@ -523,7 +523,7 @@ end
 function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::ComponentModifier)
     projpath = c[:OliveCore].open[getname(c)].pwd
     if :path in keys(p.data)
-        projpath = p[:path]
+        projpath::String = p[:path]
     end
     switch_work_dir!(c, cm, projpath)
     save_split = split(projpath, "/")
@@ -1415,19 +1415,19 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     proj::Project{<:Any})
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = false, highlight = false)
-    km = cell_bind!(c, cell, proj)
-    interior = builtcell[:children]["cellinterior$(cell.id)"]
-    inp = interior[:children]["cellinput$(cell.id)"]
-    getstarted = div("getstarted$(cell.id)", contenteditable = true)
+    km::ToolipsSession.KeyMap = cell_bind!(c, cell, proj)
+    interior::Component{:div} = builtcell[:children]["cellinterior$(cell.id)"]
+    inp::Component{:div} = interior[:children]["cellinput$(cell.id)"]
+    getstarted::Component{:div} = div("getstarted$(cell.id)", contenteditable = true)
     style!(getstarted, "padding" => 8px, "margin-top" => 0px, "overflow" => "visible")
-    runl = tmd("runl", """- use `shift` + `enter` to use this project\n- use `ctrl` + `shift` + `enter` to take a tour of olive !""")
+    runl::Component{:div} = tmd("runl", """- use `shift` + `enter` to use this project""")
     push!(getstarted, runl)
-    dir = Directory("~/")
+    dir::Directory{<:Any} = Directory("~/")
     if "recents" in keys(c[:OliveCore].client_data[getname(c)])
-        recent_box = section("recents")
+        recent_box::Component{:section} = section("recents")
         style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow-x" => "visible")
         recent_box[:children] = [begin
-            psplit = split(recent_p, "/")
+            psplit::Vector{SubString} = split(recent_p, "/")
             ftypesplit = split(psplit[length(psplit)], ".")
             if length(ftypesplit) > 1
                 build(c, Cell{Symbol(ftypesplit[2])}(string(ftypesplit[1]), recent_p), dir)
@@ -1440,26 +1440,20 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     ToolipsSession.bind(c, cm, inp[:children]["cell$(cell.id)"], km)
     style!(inp[:children]["cell$(cell.id)"], "color" => "black", "border-left" => "6px solid pink", 
     "border-top-left-radius" => 8px, "border-bottom-left-radius" => 8px, "margin-bottom" => 0px)
-    inp[:children]["cell$(cell.id)"][:text] = ""
-    inp[:children]["cell$(cell.id)"][:children] = [olive_motd(), getstarted]
+    inp[:children]["cell$(cell.id)"][:text]::String = ""
+    inp[:children]["cell$(cell.id)"][:children]::Vector{<:AbstractComponent} = [olive_motd(), getstarted]
     builtcell::Component{:div}
 end
 
-function change_gs(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted}, proj::Project{<:Any})
-    proj.data[:cells]::Vector{IPyCells.Cell{<:Any}} = Vector{IPyCells.Cell{<:Any}}([Cell{:code}("")])
-    new_cell::Cell{:code} = proj.data[:cells][1]
-    remove!(cm, "cellcontainer$(cell.id)")
-    append!(cm, proj.id, build(c, cm, new_cell, proj))
-    olive_notify!(cm, "use ctrl + shift + S to name your project!", color = "blue")
-    focus!(cm, "cell$(new_cell.id)")
-end
 
 function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
     km = ToolipsSession.KeyMap()
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     ToolipsSession.bind(km, keybindings["evaluate"]) do cm::ComponentModifier
-        change_gs(c, cm, cell, proj)
+        set_children!(cm, proj.id, build(c, cm, new_cell, proj))
+        olive_notify!(cm, "use ctrl + shift + S to name your project!", color = "blue")
+        focus!(cm, "cell$(new_cell.id)")
     end
     ToolipsSession.bind(km, keybindings["new"]) do cm::ComponentModifier
         olive_notify!(cm, 
@@ -1897,8 +1891,8 @@ inputcell_style (generic function with 1 method)
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     txt = cm["cell$(cell.id)"]["text"]
-    tm = OliveHighlighters.TextStyleModifier(txt)
-    OliveHighlighters.julia_block!(tm)
+    new_a = a(text = txt)
+    style!(new_a, "color" => "#fffdd0")
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
     OliveHighlighters.clear!(tm)
 end
@@ -2012,22 +2006,8 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function build(c::Connection, cell::Cell{:setup})
-    maincell = section("cell$(cell.id)", align = "center")
-    push!(maincell, olive_cover())
-    push!(maincell, h1("setupheading", text = "welcome !"))
-    push!(maincell, p("setuptext", text = """Olive requires a home directory
-    in order to store your configuration, please select a home directory
-    in the cell below. Olive will create a `/olive` directory in the chosen
-    directory."""))
-    maincell
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function build_returner(c::Connection, path::String)
-    returner_div = div("returner")
+    returner_div::Component{:div} = div("returner")
     style!(returner_div, "background-color" => "red", "cursor" => "pointer")
     push!(returner_div, a("returnerbutt", text = "..."))
     on(c, returner_div, "click") do cm::ComponentModifier
@@ -2038,7 +2018,7 @@ function build_returner(c::Connection, path::String)
         build_returner(c, path),
         [build_comp(c, path, f) for f in readdir(path)]))::Vector{AbstractComponent})
     end
-    returner_div
+    returner_div::Component{:div}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -2057,7 +2037,7 @@ function build_comp(c::Connection, path::String, dir::String)
         end
         return(maincomp)::Component{:div}
     end
-    maincomp = div("$dir")
+    maincomp::Component{:div} = div("$dir")
     push!(maincomp, a("$dir-a", text = dir))
     maincomp::Component{:div}
 end
@@ -2066,15 +2046,15 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function build(c::Connection, cell::Cell{:dirselect})
-    selector_indicator = h4("selector", text = cell.source)
-    path = cell.source
-    filebox = section("filebox")
+    selector_indicator::Component{:h4} = h4("selector", text = cell.source)
+    path::String = cell.source
+    filebox::Component{:section} = section("filebox")
     style!(filebox, "height" => 40percent, "overflow-y" => "scroll")
-    filebox[:children] = vcat(Vector{AbstractComponent}([build_returner(c, path)]),
+    filebox[:children]::Vector{AbstractComponent} = vcat(Vector{AbstractComponent}([build_returner(c, path)]),
     Vector{AbstractComponent}([build_comp(c, path, f) for f in readdir(path)]))
-    cellover = div("dirselectover")
+    cellover::Component{:div} = div("dirselectover")
     push!(cellover, selector_indicator, filebox)
-    cellover
+    cellover::Component{:div}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
