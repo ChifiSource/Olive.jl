@@ -848,12 +848,8 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-OliveLogger() = Logger(Dict{Any, Crayon}(
-    1 => Crayon(foreground = :blue),
-    2 => Crayon(foreground = :magenta),
-    3 => Crayon(foreground = :red),
-         :time_crayon => Crayon(foreground = :blue),
-        :message_crayon => Crayon(foreground = :light_magenta, bold = true)), writeat = 0, prefix = "🫒 olive> ")
+OliveLogger() = Toolips.Logger("🫒 olive> ", Crayon(foreground = :blue), Crayon(foreground = :magenta), 
+    Crayon(foreground = :red), prefix_crayon = Crayon(foreground = :light_magenta, bold = true))
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -863,7 +859,6 @@ mutable struct OliveDisplay <: AbstractDisplay
     OliveDisplay() = new(IOBuffer())::OliveDisplay
 end
 
-ODISPLAY = OliveDisplay()
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -890,6 +885,13 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function display(d::OliveDisplay, m::MIME"text/html", o::Any)
     show(d.io, m, o)
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+function display(d::OliveDisplay, err::Exception)
+    write(d.io, string(err))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

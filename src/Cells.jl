@@ -1218,28 +1218,18 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
-    window = proj.id
-    cells = proj[:cells]
+    window::String = proj.id
+    cells::Vector{Cell} = proj[:cells]
     # get code
-    testdiv = cm["cell$(cell.id)"]
-    cell.source = cm["cell$(cell.id)"]["text"]
+    cell.source::String = cm["cell$(cell.id)"]["text"]
     execcode::String = *("begin\n", cell.source, "\nend\n")
     ret::Any = ""
-    p = Pipe()
-    err = Pipe()
-    standard_out::String = ""
-    redirect_stdio(stdout = p, stderr = err) do
-        try
-            ret = proj[:mod].evalin(Meta.parse(execcode))
-        catch e
-            ret = e
-        end
+    try
+        ret = proj[:mod].evalin(Meta.parse(execcode))
+    catch e
+        ret = e
     end
-    close(err)
-    close(Base.pipe_writer(p))
-    standard_out = replace(read(p, String), "\n" => "<br>")
     # output
-    outp::String = ""
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
@@ -1247,18 +1237,22 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             on_code_evaluate(c, cm, ext, cell, proj)
         end
     end for m in methods(on_code_evaluate)]
-    if typeof(ret) <: Exception
-        Base.showerror(ODISPLAY.io, ret)
-        outp = replace(String(ODISPLAY.io.data), "\n" => "</br>")
-    elseif ~(isnothing(ret)) && length(standard_out) > 0
-        display(ODISPLAY, MIME"olive"(), ret)
-        outp = standard_out * "</br>" * String(ODISPLAY.io.data)
-    elseif ~(isnothing(ret)) && length(standard_out) == 0
-        display(ODISPLAY, MIME"olive"(), ret)
-        outp = String(ODISPLAY.io.data)
-    else
+    outp::String = ""
+    standard_out::String = proj[:mod].STDO
+    active_display::OliveDisplay = OliveDisplay()
+    if length(standard_out) > 0
         outp = standard_out
     end
+    if typeof(ret) <: Exception
+        display(active_display, ret)
+        outp = replace(String(active_display.io.data), "\n" => "</br>")
+    elseif ~(isnothing(ret))
+        display(active_display, MIME"olive"(), ret)
+        outp = outp * "</br>" * String(active_display.io.data)
+    elseif isnothing(ret)
+        outp = standard_out
+    end
+    proj[:mod].STDO = ""
     set_text!(cm, "cell$(cell.id)out", outp)
     cell.outputs = outp
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
@@ -1271,13 +1265,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         return
     end
     if pos == length(cells)
-        new_cell = Cell("code", "", id = ToolipsSession.gen_ref(4))
+        new_cell::Cell{:code} = Cell("code", "", id = ToolipsSession.gen_ref(4))
         push!(cells, new_cell)
         append!(cm, window, build(c, cm, new_cell, proj))
         focus!(cm, "cell$(new_cell.id)")
-        return
-    else
-        new_cell = cells[pos + 1]
     end
 end
 #==output[code]

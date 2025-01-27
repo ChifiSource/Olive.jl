@@ -24,8 +24,6 @@ using Pkg
 using OliveHighlighters
 using TOML
 
-session = Session(["/"])
-
 """
 ```julia
 build(c::AbstractConnection, ...) -> ::AbstractComponent
@@ -67,11 +65,19 @@ function olive_module(modname::String, environment::String)
     baremodule $(modname)
     using Pkg
     using Base
+    import Base: println, print
+    global STDO::String = ""
+
     eval(e::Any) = Core.eval($(modname), e)
     function evalin(ex::Any)
             Pkg.activate("$environment")
             ret = eval(ex)
     end
+    Base.delete_method(methods(println)[3])
+    Base.delete_method(methods(print)[29])
+    
+    println(x::Any ...) = $modname.STDO = $modname.STDO * join(string(x) for x in x) * "</br>"; nothing
+    print(x::Any ...) = $modname.STDO = $modname.STDO * join(string(x) for x in x); nothing
     end
     """
 end
@@ -473,7 +479,7 @@ olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
 function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"))
-    ollogger::Toolips.Logger = Toolips.Logger()
+    ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'
         path = path[path:end - 1]
@@ -514,7 +520,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         key = ToolipsSession.gen_ref(16)
         push!(CORE.client_keys, key => rootname)
         log(ollogger,
-            "link for $(rootname): http://$(string(IP))/?key=$key", 2)
+            "\nlink for $(rootname): http://$(string(IP))/?key=$key", 2)
     end
 end
 #==
@@ -640,12 +646,13 @@ function setup_olive(logger::Toolips.Logger, path::String)
     log(logger, "olive setup completed successfully")
 end
 SES = ToolipsSession.Session()
+LOGGER = OliveLogger()
 olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon])
 #==
 code/none
 ==#
 #--
-export CORE, olive_routes, SES, build, evalin
+export CORE, olive_routes, SES, build, evalin, LOGGER
 #==
 code/none
 ==#
