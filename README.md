@@ -29,7 +29,6 @@ Welcome to olive! Olive is a **pure julia** **parametric** notebook editor built
 - [creating extensions](#creating-extensions)
    - [documentation](#documentation)
 - [deploying olive](#deploying-olive)
-   - [`0.0.9`deployment status](#status)
    - [creating an olive server](#creating-a-server)
    - [olive servers](#olive-servers)
 - [contributing](#contributing)
@@ -264,11 +263,12 @@ When submitting issues or pull-requests for Olive, it is important to make sure 
 I appreciate those who are interested to take some time to look into the tech-stack used to create this project. I created a lot of these, and it took a lot of time.
 
 **toolips packages**
+- [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl) - Templating framework for web-development.
 - [Toolips](https://github.com/ChifiSource/Toolips.jl) - Base web-development framework.
-- [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) - Fullstack callbacks.
+- [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) - Fullstack callbacks for the `Toolips` framework.
 
 **other packages**
 - [OliveHighlighters](https://github.com/OliveHighlighters.jl) Provides `ToolipsServables`-based syntax highlighting.
 - [IPyCells](https://github.com/ChifiSource/IPyCells.jl) Provides the parametric cell structures for the back-end, as well as the Julia/IPython readers/writers
-- [Pkg]() Used to manage Julia dependencies and virtual environments.
-- [TOML]() Used to manage environment information, save settings, and read TOML into cells.
+- [Pkg](https://github.com/JuliaLang/Pkg.jl) Used to manage Julia dependencies and virtual environments.
+- [TOML](https://github.com/JuliaLang/TOML.jl) Used to manage environment information, save settings, and read TOML into cells.
