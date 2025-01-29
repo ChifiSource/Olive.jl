@@ -186,13 +186,14 @@ function olivesheet()
         "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
         "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
         "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px, 
-        "overflow-y" => "visible", "pointer-events" => "none")
+        "overflow-y" => "visible", "pointer-events" => "none", "padding" => 5px)
     p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
         "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
     icon_selected = style(".material-icons-selected", "color" => "lightblue")
     # settings:
     settings = style("div.settings", "opacity" => "0 !important",  "height" => "0px !important",
-    "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky", "pointer-events" => "none")
+    "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky", 
+    "pointer-events" => "none ! important")
     settings_exp = style("div.settings-expanded", "opacity" => "1 !important",
         "height" => "90% !important", "padding" => 10px, "transition" => 1s, "pointer-events" => "auto")
     # container sections:
@@ -209,7 +210,7 @@ function olivesheet()
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
     section_container_labels, tab_icon)
-    st
+    st::Component{:sheet}
 end
 
 const DEFAULT_SHEET = begin
@@ -538,7 +539,7 @@ use external dependencies.
 ```
 """
 function source_module!(c::Connection, p::Project{<:Any}, name::String)
-    openmods::Vector{Module} = c[:OliveCore].pool
+    openmods::Vector{String} = c[:OliveCore].pool
     if length(openmods) > 0
         name = openmods[1]
         deleteat!(openmods, 1)
@@ -546,7 +547,7 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String)
         name = replace(ToolipsSession.gen_ref(10),
     [string(dig) => "" for dig in digits(1234567890)] ...)
     end
-    modstr = olive_module(name, p[:env])
+    modstr::String = olive_module(name, p[:env])
     Main.evalin(Meta.parse(modstr))
     mod::Module = getfield(Main, Symbol(name))
     push!(p.data, :mod => mod)

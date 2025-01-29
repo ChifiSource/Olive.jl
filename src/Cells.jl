@@ -1426,15 +1426,15 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     if "recents" in keys(c[:OliveCore].client_data[getname(c)])
         recent_box::Component{:section} = section("recents")
         style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow-x" => "visible")
-        recent_box[:children] = [begin
+        recent_box[:children]::Vector{AbstractComponent} = [begin
             psplit::Vector{SubString} = split(recent_p, "/")
-            ftypesplit = split(psplit[length(psplit)], ".")
+            ftypesplit::Vector{SubString} = split(psplit[length(psplit)], ".")
             if length(ftypesplit) > 1
                 build(c, Cell{Symbol(ftypesplit[2])}(string(ftypesplit[1]), recent_p), dir)
             else
                 build(c, Cell{:none}(string(ftypesplit[1]), recent_p), dir)
             end
-        end for recent_p in c[:OliveCore].client_data[getname(c)]["recents"]]
+        end for recent_p in c[:OliveCore].client_data[getname(c)]["recents"]::Vector{String}]
         push!(getstarted, h4("recentl", text = "recent files"), recent_box)
     end
     ToolipsSession.bind(c, cm, inp[:children]["cell$(cell.id)"], km)
@@ -1448,18 +1448,21 @@ end
 
 function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
-    km = ToolipsSession.KeyMap()
+    km::ToolipsSession.KeyMap = ToolipsSession.KeyMap()
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
+    projid::String = proj.id
     ToolipsSession.bind(km, keybindings["evaluate"]) do cm::ComponentModifier
-        set_children!(cm, proj.id, build(c, cm, new_cell, proj))
-        olive_notify!(cm, "use ctrl + shift + S to name your project!", color = "blue")
-        focus!(cm, "cell$(new_cell.id)")
-    end
-    ToolipsSession.bind(km, keybindings["new"]) do cm::ComponentModifier
-        olive_notify!(cm, 
-        "tour mode is not yet implemented -- this feature will be added in Olive 0.0.93", color = "darkred")
+        new_cell::Cell{:code} = Cell{:code}()
+        proj.data[:cells]::Vector{Cell{<:Any}} = Vector{Cell{<:Any}}([new_cell])
+        evaluate_get_started(c, cm, projid, build(c, cm, new_cell, proj))
     end
     km::KeyMap
+end
+
+function evaluate_get_started(c::AbstractConnection, cm::ComponentModifier, projid::String, new_cell::AbstractComponent)
+    set_children!(cm, projid, [new_cell])
+    olive_notify!(cm, "use ctrl + shift + S to name your project!", color = "blue")
+    focus!(cm, new_cell)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
