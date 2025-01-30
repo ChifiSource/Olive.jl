@@ -190,9 +190,7 @@ function load_default_project!(c::Connection)
     cells = Vector{Cell}([Cell("getstarted", "")])
     env::Environment = Environment(name)
     env.pwd::String = oc.data["wd"]
-    if "directories" in keys(oc.client_data[name])
-        env.directories = Vector{Directory}([Directory(uri, dirtype = "saved") for uri in oc.client_data[name]["directories"]])
-    end
+    env.directories = get_group(c).directories
     pwd_direc::Directory{:pwd} = Directory(env.pwd, dirtype = "pwd")
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :pane => "one", :env => " ")
@@ -204,12 +202,6 @@ function load_default_project!(c::Connection)
     myproj::Project{<:Any} = Project{:olive}("get started", projdict)
     oc.olmod.Olive.source_module!(c, myproj, sourced_path)
     insert!(env.directories, 1, pwd_direc)
-    if oc.data["root"] == name
-        if "home" in keys(oc.data)
-            home_direc::Directory{:home} = Directory(oc.data["home"], dirtype = "home")
-            insert!(env.directories, 2, home_direc)
-        end
-    end
     push!(env.projects, myproj)
     push!(oc.open, env)
     env::Environment

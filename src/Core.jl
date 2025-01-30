@@ -780,7 +780,7 @@ inputcell_style (generic function with 1 method)
 getindex(e::Vector{Environment}, name::String) = begin
     pos = findfirst(env::Environment -> env.name == name, e)
     if isnothing(pos)
-        throw(KeyError("Environment for $name not found."))
+        throw(KeyError("Environment $name not found."))
     end
     e[pos]::Environment
 end
@@ -796,6 +796,19 @@ mutable struct Group
     function Group(name::String)
         new(name, Vector{Symbol}(), Vector{Directory}(), Vector{Symbol}())
     end
+end
+
+getindex(e::Vector{Group}, name::String) = begin
+    pos = findfirst(env::Group -> env.name == name, e)
+    if isnothing(pos)
+        throw(KeyError("Group $name not found."))
+    end
+    e[pos]::Group
+end
+
+function get_group(c)
+    group::String = c[:OliveCore].client_data[getname(c)]["group"]
+    c[:OliveCore].data["groups"][group]
 end
 
 mutable struct OliveCore <: Toolips.AbstractExtension
