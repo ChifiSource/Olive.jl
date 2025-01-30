@@ -507,10 +507,10 @@ UndefVarError: Connection not defined
 ==#
 #==|||==#
 function topbar_icon(name::String, icon::String)
-    ico = span(name, class = "material-icons", text = icon,
+    ico::Component{:span} = span(name, class = "material-icons", text = icon,
      margin = "15px")
      style!(ico, "font-size" => "35pt")
-     ico
+     ico::Component{:span}
 end
 #==output[code]
 topbar_icon (generic function with 1 method)

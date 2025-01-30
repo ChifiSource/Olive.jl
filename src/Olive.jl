@@ -189,7 +189,7 @@ function load_default_project!(c::Connection)
     oc::OliveCore = c[:OliveCore]
     cells = Vector{Cell}([Cell("getstarted", "")])
     env::Environment = Environment(name)
-    env.pwd = oc.data["wd"]
+    env.pwd::String = oc.data["wd"]
     if "directories" in keys(oc.client_data[name])
         env.directories = Vector{Directory}([Directory(uri, dirtype = "saved") for uri in oc.client_data[name]["directories"]])
     end
@@ -222,7 +222,6 @@ code/none
 ```julia
 build(c::Connection, env::Environment{<:Any}) -> ::Environment
 ```
----
 The `build` function for an `Olive` `Environment` assembles the various components 
 which compose `Olive` into the `Olive` page. That being said, simply changing the loaded 
 environment can alter how `Olive` loads entirely.
@@ -470,12 +469,10 @@ CORE::OliveCore = OliveCore("olive")
 """
 ### Olive 
 ```julia
-start(IP::String = "127.0.0.1", PORT::Integer = 8000; path::String = homedir(), hostname::String = IP, warm::Bool = true) -> ::Toolips.WebServer
+start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/")) -> ::ParametricProcesses.ProcessManager
 ```
-------------------
 Starts your `Olive` server! This function puts together your `Olive` server and sources your `olive` home.  `path` is used to denote a path to run `Olive` from.
 `warm` determines whether or not `Olive` should "warm up" your `Toolips` server by precompiling and invoking it.
-#### example
 ```
 using Olive
 
@@ -500,8 +497,19 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         CORE.data = config["olive"]
         rootname = CORE.data["root"]
         CORE.client_data = config["oliveusers"]
-        CORE.data["home"] = path * "/olive"
-        CORE.data["wd"] = pwd()
+        CORE.data["home"]::String = path * "/olive"
+        groups::Vector{Group} = Vector{Group}()
+        push!(CORE.data, "wd" => pwd(), "groups" => groups)
+        for group in config["groups"]
+            name::String = group[1]
+            log(ollogger, "loading group: $name)")
+            newg = Group(name)
+            data = group[2]
+            newg.cells = [Symbol(s) for s in data["cells"]]
+            newg.load_extensions = [Symbol(s) for s in data["load"]]
+            newg.directories = [Directory(uri, dirtype = t) for (uri, t) in zip(data["uris"], data["dirs"])]
+            push!(groups, newg)
+        end
     catch e
         throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
         log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
@@ -520,10 +528,9 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         log(ollogger, "olive extensions failed to load.", 3)
         showerror(stdout, e)
     end
-    rs::Vector{AbstractRoute} = Vector{Toolips.Route}([fourofour, main, icons, mainicon])
     start!(Olive, IP)
     if rootname != ""
-        key = ToolipsSession.gen_ref(16)
+        key::String = ToolipsSession.gen_ref(16)
         push!(CORE.client_keys, key => rootname)
         log(ollogger,
             "\nlink for $(rootname): http://$(string(IP))/?key=$key", 2)
@@ -599,8 +606,7 @@ function restore_defaults!(server)
     "$path/Project.toml",String))
     users::Dict{String, Any} = Dict{String, Any}(
         username => Dict{String, Vector{String}}(
-        "group" => ["all", "root"])
-        )
+        "group" => "root"))
     push!(config,
         "olive" => Dict{String, String}("root" => username),
         "oliveusers" => users)
@@ -611,13 +617,11 @@ function restore_defaults!(server)
 end
 
 """
-### Olive 
 ```julia
 setup_olive(logger::Toolips.Logger, path::String) -> ::Nothing
 ```
 ---
 Creates the default `olive` home environment and `olive` home
-#### example
 ```
 using Olive
 
@@ -633,15 +637,19 @@ function setup_olive(logger::Toolips.Logger, path::String)
     log(logger, "creating $username's `olive` ...")
     create_project(path)
     config::Dict{String, Any} = TOML.parse(read(
-    "$path/olive/Project.toml",String))
+        "$path/olive/Project.toml",String))
     log(logger, "creating user configuration")
+    # users
     users::Dict{String, Any} = Dict{String, Any}(
-    username => Dict{String, Vector{String}}(
-    "group" => ["all", "root"])
-    )
+        username => Dict{String, String}("group" => "root"))
+    # groups
+    root_group_data = Dict{String, Vector}("cells" => ["code", "markdown"], "uris" => ["$path/olive"], 
+    "dirs" => ["home"],
+    "load" => ["olivebase"])
+    groups = Dict{String, Dict{String, Vector}}("root" => root_group_data)
     push!(config,
-    "olive" => Dict{String, String}("root" => username),
-    "oliveusers" => users)
+    "olive" => Dict{String, String}("home" => "$path/olive", "root" => username, "defaultgroup" => "all"),
+    "oliveusers" => users, "groups" => groups)
     open("$path/olive/Project.toml", "w") do io
         TOML.print(io, config)
     end

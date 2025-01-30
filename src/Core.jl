@@ -788,6 +788,16 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+mutable struct Group
+    name::String
+    cells::Vector{Symbol}
+    directories::Vector{Directory}
+    load_extensions::Vector{Symbol}
+    function Group(name::String)
+        new(name, Vector{Symbol}(), Vector{Directory}(), Vector{Symbol}())
+    end
+end
+
 mutable struct OliveCore <: Toolips.AbstractExtension
     olmod::Module
     data::Dict{String, Any}
@@ -797,15 +807,15 @@ mutable struct OliveCore <: Toolips.AbstractExtension
     pool::Vector{String}
     client_keys::Dict{String, String}
     function OliveCore(mod::String)
-        data = Dict{Symbol, Any}()
+        data::Dict{Symbol, Any} = Dict{Symbol, Any}()
         m = eval(Meta.parse("module $mod build = nothing end"))
         m.build = build
-        open = Vector{Environment}()
-        pool = Vector{String}()
+        open::Vector{Environment} = Vector{Environment}()
+        pool::Vector{String} = Vector{String}()
         client_data = Dict{String, Dict{String, Any}}()
         client_keys::Dict{String, String} = Dict{String, String}()
         new(m, data, Dict{String, String}(),
-        client_data, open, pool, client_keys)
+        client_data, open, pool, client_keys)::OliveCore
     end
 end
 
