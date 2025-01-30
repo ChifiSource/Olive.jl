@@ -600,7 +600,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     end for project in c[:OliveCore].open[getname(c)].projects)
     cldata = c[:OliveCore].client_data[getname(c)]
     if ~("recents" in keys(cldata))
-        cldata["recents"]::Vector{String} = Vector{String}()
+        push!(cldata, "recents" => Vector{String}())
     end
     recents::Vector{String} = cldata["recents"]
     if ~(fpath in recents)

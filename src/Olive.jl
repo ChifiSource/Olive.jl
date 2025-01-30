@@ -67,7 +67,7 @@ function olive_module(modname::String, environment::String)
     using Base
     import Base: println, print
     global STDO::String = ""
-
+    Main = nothing
     eval(e::Any) = Core.eval($(modname), e)
     function evalin(ex::Any)
             Pkg.activate("$environment")
@@ -502,7 +502,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(CORE.data, "wd" => pwd(), "groups" => groups)
         for group in config["groups"]
             name::String = group[1]
-            log(ollogger, "loading group: $name)")
+            log(ollogger, "loading group: $name")
             newg = Group(name)
             data = group[2]
             newg.cells = [Symbol(s) for s in data["cells"]]
