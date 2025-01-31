@@ -1090,11 +1090,13 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
+    maincell::Component{:div} = inp[:children]["cell$(cell.id)"]
+    Components.textdiv_caret_tracker!(maincell)
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     sideb = interior[:children]["cellside$(cell.id)"]
     style!(sideb, "background-color" => "pink")
     OliveHighlighters.clear!(tm)
-    ToolipsSession.bind(c, cm, inp[:children]["cell$(cell.id)"], km, on = :down)
+    ToolipsSession.bind(c, cm, maincell, km, on = :down)
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
@@ -1197,16 +1199,33 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
-    curr = cm["cell$(cell.id)"]["text"]
+    callback_comp::Component = cm["cell$(cell.id)"]
+    curr::String = callback_comp["text"]
+    cursor_pos::Int64 = parse(Int64, callback_comp["caret"])
     [begin
-    xtname = m.sig.parameters[4]
-    if xtname != OliveExtension{<:Any}
-        ext = xtname()
-        on_code_highlight(c, cm, ext, cell, proj)
+        xtname = m.sig.parameters[4]
+        if xtname != OliveExtension{<:Any}
+            ext = xtname()
+            on_code_highlight(c, cm, ext, cell, proj)
+        end
+        nothing
+    end for m in methods(on_code_highlight)]::Vector{Nothing}
+    n::Int64 = length(curr)
+    if n > 2
+        last_n = findlast("\n", curr)
+        if ~(isnothing(last_n))
+            last_n = minimum(last_n)
+            # TODO get last line, check for indent key-words, pre-indentation, and `end`.
+            if last_n == cursor_pos + 2 #<br> is replaced, so `\n` is shorter by 2. Plus, JS index starts at 0
+                curr = curr[1:last_n - 1] * "<br>&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n:length(curr)]
+                set_text!(cm, "cell$(cell.id)", curr)
+                focus!(cm, "cell$(cell.id)")
+                Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4)
+            end
+        end
     end
-    end for m in methods(on_code_highlight)]
     cell.source = replace(curr, "<div>" => "", "<br>" => "\n", "&nbsp;" => " ")
-    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
+    tm::TextStyleModifier = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
     OliveHighlighters.set_text!(tm, cell.source)
     OliveHighlighters.mark_julia!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
