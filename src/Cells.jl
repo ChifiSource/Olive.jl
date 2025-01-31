@@ -1099,34 +1099,30 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     style!(sideb, "background-color" => "pink")
     OliveHighlighters.clear!(tm)
     ToolipsSession.bind(c, cm, maincell, km, on = :down)
-    ToolipsSession.bind(c, cm, maincell, "Enter", on = :up, prevent_default = true) do cm::ComponentModifier
+    ToolipsSession.bind(c, cm, maincell, "Enter", on = :up) do cm::ComponentModifier
         callback_comp::Component = cm["cell$(cell.id)"]
         curr::String = callback_comp["text"]
         cursor_pos::Int64 = parse(Int64, callback_comp["caret"])
         n::Int64 = length(curr)
         last_n = cursor_pos
         previous_line_i = findprev("\n", curr, last_n)
+        @info previous_line_i
         if isnothing(previous_line_i)
+            @info curr
+            @warn last_n
             previous_line_i = 1
         else
             previous_line_i = minimum(previous_line_i) + 1
         end
         line_slice = curr[previous_line_i:last_n]
-        @info line_slice
         contains_indent::Bool = ~isnothing(findfirst(x -> contains(line_slice, x), indent_after))
-        @warn contains_indent
         # TODO get last line, check for indent key-words, pre-indentation, and `end`.
         #<br> is replaced, so `\n` is shorter by 2. Plus, JS index starts at 0
         if contains_indent
-            @info "inserted new line indent"
             cell.source = curr[1:last_n] * "\n&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:length(curr)]
             set_text!(cm, "cell$(cell.id)", cell.source)
             focus!(cm, "cell$(cell.id)")
-            Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 2)
-        else
-            cell.source = curr[begin:cursor_pos] * "\n" * curr[cursor_pos:end]
-            set_text!(cm, "cell$(cell.id)", cell.source)
-            Components.set_textdiv_cursor!(cm, "cell$(cell.id)", cursor_pos + 4)
+            Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4)
         end
     end
     [begin
