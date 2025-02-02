@@ -200,6 +200,8 @@ function olivesheet()
     section_container = style("section.outers", "background-color" => "white", "padding" => 3px, "transition" => 1seconds)
     section_container_labels = style(".containerlabels", "display" => "inline-block", "color" => "#333333", 
     "font-weight" => "bold")
+    # cells:
+    output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
     # push:
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
@@ -209,7 +211,7 @@ function olivesheet()
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
-    section_container_labels, tab_icon)
+    section_container_labels, tab_icon, output_style)
     st::Component{:sheet}
 end
 
@@ -772,6 +774,11 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+re_source!(c::Connection, p::Project{<:Any}) = begin
+    new_name = p.id
+    delete!(p.data, :mod)
+    source_module!(c, p, new_name)
+end
 """
 ```julia
 tab_controls(c::Connection, p::Project{<:Any}) -> ::Component{:div}
@@ -790,9 +797,7 @@ function tab_controls(c::Connection, p::Project{<:Any})
     end
     restartbutton::Component{:span} = span("$(fname)restart", text = "restart_alt", class = "tablabel")
     on(c, restartbutton, "click") do cm2::ComponentModifier
-        new_name = string(split(fname, ".")[1])
-        delete!(p.data, :mod)
-        source_module!(c, p, new_name)
+        re_source!(c, p)
         olive_notify!(cm2, "module for $(fname) re-sourced")
     end
     add_button::Component{:span} = span("$(fname)add", text = "add_circle", class = "tablabel")
@@ -919,7 +924,7 @@ This is the function `Olive` uses to close the project in the UI.
 """
 function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Project{<:Any})
     name::String = proj.id
-    projs = c[:OliveCore].open[getname(c)].projects
+    projs::Vector{Project} = c[:OliveCore].open[getname(c)].projects
     n_projects::Int64 = length(projs)
     set_children!(cm2, "pane_$(proj.data[:pane])", Vector{Servable}())
     remove!(cm2, "tab$(name)")
@@ -944,11 +949,17 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     pos = findfirst(pro -> pro.id == proj.id,
     projs)
     push!(c[:OliveCore].pool, proj.id)
-    deleteat!(projs, pos)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
+    empty_module!(c, proj)
+    deleteat!(projs, pos)
+    proj = nothing
+    nothing::Nothing
+end
+
+function empty_module!(c::Connection, proj::Project{<:Any})
+    push!(c[:OliveCore].pool, proj.id)
     mod = proj[:mod]
-    [getfield(mod, feld) = nothing for feld in names(mod)]
-    proj[:mod].evalin(Meta.parse("Base.GC.gc(true)"))
+    re_source!(c, proj)
     Base.GC.gc()
 end
 #==output[code]

@@ -404,7 +404,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
      # setup base UI
     bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env, icon = icon, sheet = sheet)
-    on(c, 100) do cm::ComponentModifier
+    on(c, 10) do cm::ComponentModifier
         load_extensions!(c, cm, olmod)
         style!(cm, "loaddiv", "opacity" => 0percent)
         next!(c, cm, loadicondiv) do cm2::ComponentModifier
@@ -489,7 +489,9 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         CORE.data = config["olive"]
         rootname = CORE.data["root"]
         CORE.client_data = config["oliveusers"]
-        CORE.data["home"]::String = path * "/olive"
+        if ~haskey(CORE.data, "home")
+            push!(CORE.data, "home" => path * "/olive")
+        end
         groups::Vector{Group} = Vector{Group}()
         push!(CORE.data, "wd" => pwd(), "groups" => groups)
         for group in config["groups"]

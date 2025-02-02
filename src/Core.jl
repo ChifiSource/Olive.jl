@@ -902,6 +902,23 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
         end
     end
 end
+
+function display(d::OliveDisplay, m::MIME{:olive}, o::Number)
+    write(d.io, string(o))
+end
+
+function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractString)
+    write(d.io, "\"o\"")
+end
+
+function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractDict)
+    write(d.io, string(o))
+end
+
+function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractVector)
+    write(d.io, "Vector x$(length(o)):" * string(o[1:5]) * " ...")
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#

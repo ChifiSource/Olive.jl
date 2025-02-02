@@ -935,7 +935,6 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     ToolipsSession.bind(km, keybindings["focusdown"]) do cm::ComponentModifier
         focus_down!(c, cm, cell, proj)
     end
-
     km::KeyMap
 end
 indent_after = ("begin", "function", "struct")
@@ -1102,9 +1101,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     ToolipsSession.bind(c, cm, maincell, "Enter", on = :up) do cm::ComponentModifier
         callback_comp::Component = cm["cell$(cell.id)"]
         curr::String = callback_comp["text"]
-        cursor_pos::Int64 = parse(Int64, callback_comp["caret"])
+        last_n::Int64 = parse(Int64, callback_comp["caret"])
         n::Int64 = length(curr)
-        last_n = cursor_pos
         previous_line_i = findprev("\n", curr, last_n)
         @info previous_line_i
         if isnothing(previous_line_i)
@@ -1270,6 +1268,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             on_code_evaluate(c, cm, ext, cell, proj)
         end
     end for m in methods(on_code_evaluate)]
+    # we do this again, in case a code cell extension changes the output
+    projects = c[:OliveCore].open[getname(c)].projects
+    projpos = findfirst(p -> p.id == window, projects)
+    proj = projects[projpos]
     outp::String = ""
     standard_out::String = proj[:mod].STDO
     active_display::OliveDisplay = OliveDisplay()
@@ -1455,6 +1457,18 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     style!(getstarted, "padding" => 8px, "margin-top" => 0px, "overflow" => "visible")
     runl::Component{:div} = tmd("runl", """- use `shift` + `enter` to use this project""")
     push!(getstarted, runl)
+    buttons_box::Component{:div} = div("buttons_box")
+    issues_button::Component{:button} = button("issues_button", text = "report issues or suggest improvements")
+    style!(issues_button, "font-weight" => "bold", "cursor" => "pointer", "margin-left" => 3px)
+    on(issues_button, "click") do cl::ClientModifier
+        redirect!(cl, "https://github.com/ChifiSource/Olive.jl/issues", new_tab = true)
+    end
+    doc_button::Component{:button} = button("doc_button", text = "documentation")
+    style!(doc_button, "font-weight" => "bold", "cursor" => "pointer")
+    on(doc_button, "click") do cl::ClientModifier
+        redirect!(cl, "https://chifidocs.com/olive", new_tab = true)
+    end
+    push!(buttons_box, issues_button, doc_button)
     dir::Directory{<:Any} = Directory("~/")
     if "recents" in keys(c[:OliveCore].client_data[getname(c)])
         recent_box::Component{:section} = section("recents")
@@ -1474,7 +1488,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     style!(inp[:children]["cell$(cell.id)"], "color" => "black", "border-left" => "6px solid pink", 
     "border-top-left-radius" => 8px, "border-bottom-left-radius" => 8px, "margin-bottom" => 0px)
     inp[:children]["cell$(cell.id)"][:text]::String = ""
-    inp[:children]["cell$(cell.id)"][:children]::Vector{<:AbstractComponent} = [olive_motd(), getstarted]
+    inp[:children]["cell$(cell.id)"][:children]::Vector{<:AbstractComponent} = [olive_motd(), buttons_box, getstarted]
     builtcell::Component{:div}
 end
 
