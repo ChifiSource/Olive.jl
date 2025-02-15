@@ -130,18 +130,16 @@ include/none
 ==#
 #--
 """
-### Olive
 ```julia
-verify_clienty!(c::Connection) -> ::String
+verify_client!(c::Connection) -> ::String
 ```
-------------------
 Verifies an incoming client, registers keys to names. Returns the username of the current `Connection`.
 """
 function verify_client!(c::Connection)
     ip::String = get_ip(c)
     args = get_args(c)
     if ip in keys(c[:OliveCore].names)
-        return(c[:OliveCore].names[ip])::String
+        return(c[:OliveCore].names[ip], args)
     end
     if ~(:key in keys(args))
         coverimg::Component{:img} = olive_cover()
@@ -160,17 +158,17 @@ function verify_client!(c::Connection)
         push!(olivecover, coverimg,
         h2("mustconfirm", text = "request access (no key)"), logbutt)
         write!(c, olivecover)
-        return("dead")
+        return("dead", args)
     end
     if ~(args[:key] in keys(c[:OliveCore].client_keys))
         write!(c, "bad key.")
-        return("dead")
+        return("dead", args)
     end
     uname = c[:OliveCore].client_keys[args[:key]]
     if ~(ip in keys(c[:OliveCore].names))
         push!(c[:OliveCore].names, ip => uname)
     end
-    uname::String
+    return(uname, args)
 end
 #==
 code/none
@@ -181,7 +179,6 @@ code/none
 ```julia
 load_default_project!(c::Connection) -> ::Environment
 ```
----
 Creates the default `Olive` environment with the `getstarted` project.
 """
 function load_default_project!(c::Connection)
@@ -326,7 +323,7 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     push!(pane_container_one, pane_one_tabs, pane_one)
     push!(pane_container_two, pane_two_tabs, pane_two)
     loadicondiv::Component{:div} = div("loaddiv", align = "center")
-    style!(loadicondiv, "padding" => 10percent, "transition" => "1.5s")
+    style!(loadicondiv, "padding" => 10percent, "transition" => 400ms)
     push!(loadicondiv, icon)
     push!(pane_one, loadicondiv)
     push!(olivemain, pane_container_one, pane_container_two)
@@ -380,8 +377,10 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
     write!(c, Components.DOCTYPE())
     uname::String = ""
+    args = nothing
     if key
-        uname = verify_client!(c)
+        unameargs = verify_client!(c)
+        uname, args = unameargs[1], unameargs[2]
         if uname == "dead"
             return
         end
@@ -402,6 +401,10 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     else
         env = c[:OliveCore].open[getname(c)]
     end
+    navigate_to = nothing
+    if haskey(args, :heading)
+        navigate_to = args[:heading]
+    end
      # setup base UI
     bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env, icon = icon, sheet = sheet)
     on(c, 10) do cm::ComponentModifier
@@ -417,13 +420,31 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
                 end
             end for proj in env.projects]
             if length(env.projects) > 0
-                window::Component{:div} = olmod.build(c, cm2, env.projects[1])
-                append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
+                p1i = findfirst(proj -> proj[:pane] == "one", env.projects)
+                if ~(isnothing(p1i))
+                    selected_proj = env.projects[1]
+                    window::Component{:div} = olmod.build(c, cm2, env.projects[1])
+                    append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
+                    if ~(isnothing(navigate_to))
+                        @info "navigating to"
+                        filtered_mds = filter(cell -> typeof(cell) == Cell{:markdown}, selected_proj[:cells])
+                        found = findfirst(cell -> contains(cell.source, "# $navigate_to"), filtered_mds)
+                        if ~(isnothing(found))
+                            @info "scrolling"
+                            cellid = selected_proj[:cells][found]
+                            scroll_to!(cm, "cell$cellid")
+                        else
+                            @info join("$(typeof(c)) $(c.source)" for c in selected_proj[:cells])
+                        end
+                    end
+                end
                 p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
                 if ~(isnothing(p2i))
                     style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
                     append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[1]))
                 end
+            else
+                # TODO default project here
             end
         end
     end

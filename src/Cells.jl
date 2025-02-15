@@ -1499,6 +1499,7 @@ function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any}
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     projid::String = proj.id
     ToolipsSession.bind(km, keybindings["evaluate"]) do cm::ComponentModifier
+        remove!(cm, "cellcontainer" * cell.id)
         new_cell::Cell{:code} = Cell{:code}()
         proj.data[:cells]::Vector{Cell{<:Any}} = Vector{Cell{<:Any}}([new_cell])
         evaluate_get_started(c, cm, projid, build(c, cm, new_cell, proj))
@@ -1507,7 +1508,7 @@ function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any}
 end
 
 function evaluate_get_started(c::AbstractConnection, cm::ComponentModifier, projid::String, new_cell::AbstractComponent)
-    set_children!(cm, projid, [new_cell])
+    append!(cm, projid, new_cell)
     olive_notify!(cm, "use ctrl + shift + S to name your project!", color = "blue")
     focus!(cm, new_cell)
 end
