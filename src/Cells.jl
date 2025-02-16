@@ -1969,8 +1969,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
-    if typeof(cell.outputs) != String
-        inp[:children]["cell$(cell.id)"][:text] = cell.outputs
+    if typeof(cell.outputs) == String && cell.outputs != ""
+        name = replace(cell.outputs, "\n" => "", " " => "")
+        cell.outputs = read_module_cells(cell.source)
+        cell.source = name
+        inp[:children]["cell$(cell.id)"][:text] = cell.source
+        builtcell[:children]["cell$(cell.id)out"][:text] = cell.source
+    else
+        inp[:children]["cell$(cell.id)"][:text] = cell.source
         builtcell[:children]["cell$(cell.id)out"][:text] = cell.source
     end
     style!(inp[:children]["cell$(cell.id)"], "color" => "darkred")
@@ -2039,7 +2045,8 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     @warn new_cells
     modname = cm["cell$(cell.id)"]["text"]
     cell.source = modname
-    modstr = olive_module(modname, proj[:env])
+    modstr = "begin\n" * olive_module(modname, proj[:env]) * "\nend"
+    @info modstr
     newmod = proj.data[:mod].evalin(Meta.parse(modstr))
     projdict = Dict{Symbol, Any}(:cells => new_cells, :env => proj[:env], 
     :mod => newmod)

@@ -77,11 +77,11 @@ function olive_module(modname::String, environment::String)
     Base.delete_method(methods(print)[29])
     
     println(x::Any ...) = begin
-        $modname.STDO = $modname.STDO * join(string(x) for x in x) * "</br>"
+        $modname.STDO=$modname.STDO*join(string(x) for x in x)*"</br>"
         return(nothing)::Nothing
     end
     print(x::Any ...) = begin
-        $modname.STDO = $modname.STDO * join(string(x) for x in x)
+        $modname.STDO=$modname.STDO*join(string(x) for x in x)
         return(nothing)::Nothing
     end
     end
