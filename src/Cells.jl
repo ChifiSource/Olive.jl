@@ -1969,12 +1969,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     km = cell_bind!(c, cell, proj)
     interior = builtcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
-    if typeof(cell.outputs) == String
+    if typeof(cell.outputs) != String
         inp[:children]["cell$(cell.id)"][:text] = cell.outputs
-        builtcell[:children]["cell$(cell.id)out"][:text] = cell.outputs
-    else
-        inp[:children]["cell$(cell.id)"][:text] = cell.outputs[1]
-        builtcell[:children]["cell$(cell.id)out"][:text] = cell.outputs[1]
+        builtcell[:children]["cell$(cell.id)out"][:text] = cell.source
     end
     style!(inp[:children]["cell$(cell.id)"], "color" => "darkred")
     style!(interior[:children]["cellside$(cell.id)"],
@@ -2019,8 +2016,8 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function string(cell::Cell{:module})
     if cell.source != ""
-        return(*("module $(cell.outputs[1])\n", make_module_cells(cell.outputs[2]), "\nend\n",
-        "\n#==output[$(typeof(cell).parameters[1])]\n$(string(cell.outputs[1]))\n==#\n#==|||==#\n"))::String
+        return(*("module $(cell.source)\n", make_module_cells(cell.outputs), "\nend\n",
+        "\n#==output[$(typeof(cell).parameters[1])]\n$(cell.source)\n==#\n#==|||==#\n"))::String
     end
     ""::String
 end
@@ -2041,17 +2038,21 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     end
     @warn new_cells
     modname = cm["cell$(cell.id)"]["text"]
+    cell.source = modname
     modstr = olive_module(modname, proj[:env])
     newmod = proj.data[:mod].evalin(Meta.parse(modstr))
     projdict = Dict{Symbol, Any}(:cells => new_cells, :env => proj[:env], 
-    :path => proj[:path], :mod => newmod)
+    :mod => newmod)
+    if haskey(proj.data, :path)
+        :path => proj[:path]
+    end
     inclproj = Project{:module}(modname, projdict)
     inclproj.id = modname
     push!(c[:OliveCore].open[getname(c)].projects, inclproj)
     tab = build_tab(c, inclproj)
     open_project(c, cm, inclproj, tab)
     olive_notify!(cm, "module $modname added", color = "red")
-    cell.outputs = modname => inclproj[:cells]
+    cell.outputs = inclproj[:cells]
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
