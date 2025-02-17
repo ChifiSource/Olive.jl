@@ -170,13 +170,13 @@ function olivesheet()
         "border-bottom-left-radius" => 0px, "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer", 
         "margin-left" => 0px, "transition" => 1seconds)
     tabopen_style = style("div.tabopen", 
-        "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
+        "border-width" => 2px, "border-color" => "#333333", "border-bottom" => "0px solid white",
         "border-style" => "solid", "background-color" => "white", "border-bottom-right-radius" => 0px, "border-bottom-left-radius" => 0px, 
         "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer",
-        "margin-left" => 0px, "transition" => 1seconds)
+        "margin-left" => 0px, "transition" => 1seconds, "border-radius" => 8px)
     tablabel = style("a.tablabel", "font-size"  => 13pt, "color" => "#A2646F", 
         "font-weight" => "bold", "margin-right" => 5px,
-        "transition" => "250ms", "padding-right" => 5px)
+        "transition" => "250ms", "padding-right" => 5px, "user-select" => "none")
     tab_icon = style("span.tablabel", "font-size"  => 17pt, "cursor" => "pointer",
         "font-family" => "'Material Icons'", "font-weight" => "normal",
         "font-style" => "normal", "display" => "inline-block")
@@ -371,7 +371,7 @@ function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExten
     projdata = Dict{Symbol, Any}(:cells => Vector{Cell}([Cell("code", "")]), 
     :env => c[:OliveCore].data["home"], :path => path * "/" * finalname)
     newproj = Project{:olive}(finalname, projdata)
-    source_module!(c, newproj, "new")
+    source_module!(c, newproj)
     projtab = build_tab(c, newproj)
     open_project(c, cm, newproj, projtab)
 end
@@ -540,7 +540,7 @@ use external dependencies.
 
 ```
 """
-function source_module!(c::Connection, p::Project{<:Any}, name::String)
+function source_module!(c::Connection, p::Project{<:Any}, name::String = p.id)
     openmods::Vector{String} = c[:OliveCore].pool
     if length(openmods) > 0
         name = openmods[1]
@@ -552,7 +552,7 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String)
     modstr::String = olive_module(name, p[:env])
     Main.evalin(Meta.parse(modstr))
     mod::Module = getfield(Main, Symbol(name))
-    push!(p.data, :mod => mod)
+    push!(p.data, :mod => mod, :modid => name)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -632,7 +632,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     end
     @async save_settings!(c)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
-    c[:OliveCore].olmod.Olive.source_module!(c, myproj, source)
+    c[:OliveCore].olmod.Olive.source_module!(c, myproj)
     c[:OliveCore].olmod.Olive.check!(myproj)
     push!(c[:OliveCore].open[getname(c)].projects, myproj)
     tab::Component{:div} = build_tab(c, myproj)
@@ -775,9 +775,8 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 re_source!(c::Connection, p::Project{<:Any}) = begin
-    new_name = p.id
     delete!(p.data, :mod)
-    source_module!(c, p, new_name)
+    source_module!(c, p)
 end
 """
 ```julia

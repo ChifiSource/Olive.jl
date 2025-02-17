@@ -2042,19 +2042,16 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     else
         new_cells = Vector{Cell}([Cell("code", "")])
     end
-    @warn new_cells
     modname = cm["cell$(cell.id)"]["text"]
     cell.source = modname
-    modstr = "begin\n" * olive_module(modname, proj[:env]) * "\nend"
-    @info modstr
-    newmod = proj.data[:mod].evalin(Meta.parse(modstr))
-    projdict = Dict{Symbol, Any}(:cells => new_cells, :env => proj[:env], 
-    :mod => newmod)
+    projdict = Dict{Symbol, Any}(:cells => new_cells, :env => proj[:env])
     if haskey(proj.data, :path)
         :path => proj[:path]
     end
     inclproj = Project{:module}(modname, projdict)
-    inclproj.id = modname
+    source_module!(c, inclproj)
+    proj.data[:mod].evalin(Meta.parse("$modname = nothing"))
+    Main.evalin(Meta.parse("$(proj.data[:modid]).$modname = $(inclproj.data[:modid])"))
     push!(c[:OliveCore].open[getname(c)].projects, inclproj)
     tab = build_tab(c, inclproj)
     open_project(c, cm, inclproj, tab)
