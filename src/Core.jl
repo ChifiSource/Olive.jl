@@ -747,10 +747,7 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     retvs = Vector{Servable}([begin
        c[:OliveCore].olmod.build(c, cm, cell, p)::Component{<:Any}
     end for cell in frstcells])
-    proj_window::Component{:div} = div(p.id)
-    proj_window[:children] = retvs
-    style!(proj_window, "overflow-y" => "scroll", "overflow-x" => "hidden", "padding" => 7px)
-    proj_window::Component{:div}
+    div(p.id, children = retvs, class = "projectwindow")::Component{:div}
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

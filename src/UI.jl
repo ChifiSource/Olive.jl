@@ -74,7 +74,7 @@ function iconstyle()
     "wewbkit-font-smoothing" => "antialiased", "text-rendering" => "optimizeLegibility",
     "font-size" => "100pt", "transition" => ".4s", "line-height" => "1",
     "text-transform" => "none", "letter-spacing" => "normal",
-    "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
+    "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr", "user-select" => "none")
     s:"hover":["color" => "#fc8208", "transform" => "scale(1.03)"]
     s
 end
@@ -181,6 +181,8 @@ function olivesheet()
         "font-family" => "'Material Icons'", "font-weight" => "normal",
         "font-style" => "normal", "display" => "inline-block")
     tab_icon:"hover":["transform" => "scale(1.01)", "color" => "darkgray"]
+    # projects:
+    project_window = Style("div.projectwindow", "overflow-y" => "scroll", "overflow-x" => "hidden", "padding" => 7px)
     # project explorer:
     p_explorer = style("div.pexplorer", "opacity" => 0percent, 
         "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
@@ -200,6 +202,18 @@ function olivesheet()
     section_container = style("section.outers", "background-color" => "white", "padding" => 3px, "transition" => 1seconds)
     section_container_labels = style(".containerlabels", "display" => "inline-block", "color" => "#333333", 
     "font-weight" => "bold")
+    section_innerc = style("div.inner-closed", "opacity" => 0percent, "height" => 0percent, 
+    "padding" => 0px, "transition" => 500ms, "pointer-events" => "none")
+    section_innero = style("div.inner-open", "opacity" => 100percent, "height" => 70percent, 
+            "pointer-events" => "auto", "padding" => 5px, "transition" => 500ms, "overflow-x" => "hidden")
+    container_arrow = Style(".containerarrow", "cursor" => "pointer",
+    "font-family" => "'Material Icons'", "font-weight" => "normal",
+    "font-style" => "normal", "display" => "inline-block", "line-height" => "1",
+    "wewbkit-font-smoothing" => "antialiased", "text-rendering" => "optimizeLegibility",
+    "font-size" => "100pt", "transition" => ".4s", "line-height" => "1",
+    "text-transform" => "none", "letter-spacing" => "normal", "user-select" => "none",
+    "color" => "darkgray",
+    "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
     # cells:
     output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
     # push:
@@ -211,7 +225,7 @@ function olivesheet()
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
-    section_container_labels, tab_icon, output_style)
+    section_container_labels, section_innerc, section_innero, container_arrow, tab_icon, output_style, project_window)
     st::Component{:sheet}
 end
 
@@ -285,27 +299,21 @@ This function creates a simple `Olive`-styled collapsible container.
 """
 function containersection(c::Connection, name::String, level::Int64 = 3;
     text::String = name, fillto::Int64 = 60)
-    arrow = topbar_icon("$name-expander", "expand_more")
-    style!(arrow, "color" => "darkgray", "font-size" => 17pt)
-    outersection = section("outer$name", ex = "0", class = "outers")
-    heading = Component{Symbol("h$level")}("$name-heading", text = text, class = "containerlabels")
-    upperdiv = div("$name-upper")
+    arrow::Component{:span} = topbar_icon("$name-expander", "expand_more")
+    arrow[:class] = "containerarrow"
+    outersection::Component{:section} = section("outer$name", ex = "0", class = "outers")
+    heading::Component{<:Any} = Component{Symbol("h$level")}("$name-heading", text = text, class = "containerlabels")
+    upperdiv::Component{:div} = div("$name-upper")
     push!(upperdiv, heading, arrow, Component{:sep}("sep$name"))
     push!(outersection, upperdiv)
-    innersection = div("$name")
-    style!(innersection, "opacity" => 0percent, "height" => 0percent, 
-    "padding" => 0px, "transition" => 1seconds, "pointer-events" => "none")
+    innersection::Component{:div} = div("$name", class = "inner-closed")
     on(c, arrow, "click") do cm::ComponentModifier
         if cm[outersection]["ex"] == "0"
-            style!(cm, innersection, "opacity" => 100percent, "height" => "$fillto%", 
-            "pointer-events" => "auto")
-            style!(cm, arrow, "color" => "darkpink")
+            cm[name] = "class" => "inner-open"
             cm[outersection] = "ex" => "1"
             return
         end
-        style!(cm, innersection, "opacity" => 0percent, "height" => 0percent, 
-        "pointer-events" => "none")
-        style!(cm, arrow, "color" => "darkgray")
+        cm[name] = "class" => "inner-closed"
         cm[outersection] = "ex" => "0"
     end
     push!(outersection, innersection)
