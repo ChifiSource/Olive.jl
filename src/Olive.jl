@@ -14,7 +14,7 @@ module Olive
 import Base: write, display, getindex, setindex!, string, showerror
 using Toolips
 using Toolips.Components
-import Toolips.Components: Servable
+import Toolips.Components: Servable, ServerTemplate
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier, AbstractComponentModifier, on_start, Route
 using ToolipsSession
 import ToolipsSession: KeyMap
@@ -480,7 +480,6 @@ code/none
 #--
 CORE::OliveCore = OliveCore("olive")
 """
-### Olive 
 ```julia
 start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/")) -> ::ParametricProcesses.ProcessManager
 ```
@@ -556,14 +555,15 @@ code/none
 ==#
 #--
 """
-### StartError{E <: Exception}
+```julia
+StartError{E <: Exception} <: Exception
+```
 - on::**String**
 - cause**::E**
 - message**::String**
 
 The `StartError` is used to articulate problems with `Olive` starting, such as bad configurations or home 
 modules.
-##### example
 ```example
 try
     source_module!(oc)
@@ -571,9 +571,9 @@ catch e
     throw(StartError(e, " module load", "Failed to source olive home module."))
 end
 ```
-------------------
-##### constructors
-- `StartError(cause::Exception, on::String, message::String = "")`
+```julia
+StartError(cause::Exception, on::String, message::String = "")
+```
 """
 struct StartError{E <: Exception} <: Exception
     on::String
@@ -595,13 +595,10 @@ code/none
 ==#
 #--
 """
-### Olive 
 ```julia
 restore_defaults!(server::Toolips.WebServer) -> ::Nothing
 ```
----
 Restores `Olive` server and client settings to defaults.
-#### example
 ```
 using Olive
 
@@ -635,8 +632,7 @@ end
 ```julia
 setup_olive(logger::Toolips.Logger, path::String) -> ::Nothing
 ```
----
-Creates the default `olive` home environment and `olive` home
+Creates the default `olive` home environment and `olive` home.
 ```
 using Olive
 
@@ -677,6 +673,36 @@ end
 SES = ToolipsSession.Session()
 LOGGER = OliveLogger()
 olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon])
+
+"""
+```julia
+create(t::Type{<:Any}, name::String, args ...) -> ::Nothing
+```
+The `create` function is used to create `Olive` projects from templates. 
+    This includes deployable `Olive` servers and `Olive` extensions.
+```julia
+create(t::Type{Toolips.ServerTemplate}, name::String)
+create(t::Type{OliveExtension}, name::String)
+```
+The two dispatches provided by `Olive` take `Olive.WebServer` or `Olive.OliveExtension`.
+    Providing `Olive.WebServer` will create a new public-facing `Olive` server, intended to 
+    be modified to serve users. The `OliveExtension` dispatch will create a new `OliveExtension` 
+    template.
+```julia
+using Olive
+create_new(Olive.WebServer, "MyOliveServer")
+create_new(Olive.OliveExtension, "OliveAdvancedCells")
+```
+- See also: `start`, `Toolips`, `Olive`, `OliveCore`
+"""
+function create(t::Type{Toolips.ServerTemplate}, name::String)
+
+end
+
+function create(t::Type{OliveExtension}, name::String)
+    
+end
+
 #==
 code/none
 ==#

@@ -144,8 +144,7 @@ This is a callable build function that can be used to create a base file cell.
 """
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; binding::Bool = true)
     cellid::String = cell.id
-    hiddencell::Component{:div} = div("cell$cellid")
-    hiddencell["class"] = "file-cell"
+    hiddencell::Component{:div} = div("cell$cellid", class = "file-cell")
     name::Component{:a} = a("cell$(cellid)label", text = cell.source)
     outputfmt::String = "b"
     fs::Number = filesize(cell.outputs)
@@ -170,9 +169,12 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     delbutton::Component{:span} = topbar_icon("$(cellid)expand", "cancel")
     copyb::Component{:span} = topbar_icon("copb$(cellid)", "copy")
     on(c, delbutton, "click") do cm::ComponentModifier
-        rm(cell.outputs)
-        olive_notify!(cm, "file $(cell.outputs) deleted", color = "red")
-        remove!(cm, hiddencell)
+        new_dialog = olive_confirm_dialog(c, "delete file $(cell.outputs)?") do cm::ComponentModifier
+            rm(cell.outputs)
+            olive_notify!(cm, "file $(cell.outputs) deleted", color = "red")
+            remove!(cm, hiddencell)
+        end
+        append!(cm, "mainbody", new_dialog)
     end
     on(c, copyb, "click") do cm::ComponentModifier
         splt = split(cell.outputs, "/")
@@ -206,20 +208,23 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     on(c, editbutton, "click") do cm
         ToolipsSession.bind(c, cm, name, "Enter") do cm2::ComponentModifier
             fname = replace(cm2[name]["text"], "\n" => "")
-            ps = split(cell.outputs, "/")
-            nps = ps[1:length(ps) - 1]
-            push!(nps, SubString(fname))
-            joined = join(nps, "/")
-            newfd = read(cell.outputs, String)
-            rm(cell.outputs)
-            open(joined, "w") do o::IO
-                write(o, newfd)
+            new_dialog = olive_confirm_dialog(c, "rename file $(cell.outputs) to $(fname)?") do cm::ComponentModifier
+                ps = split(cell.outputs, "/")
+                nps = ps[1:length(ps) - 1]
+                push!(nps, SubString(fname))
+                joined = join(nps, "/")
+                newfd = read(cell.outputs, String)
+                rm(cell.outputs)
+                open(joined, "w") do o::IO
+                    write(o, newfd)
+                end
+                cell.outputs = joined
+                cell.source = fname
+                olive_notify!(cm, "file renamed", color = "green")
+                cm2[name] = "contenteditable" => "false"
+                set_text!(cm, name, fname)
             end
-            cell.outputs = joined
-            cell.source = fname
-            olive_notify!(cm2, "file renamed", color = "green")
-            cm2[name] = "contenteditable" => "false"
-            set_text!(cm2, name, fname)
+            append!(cm2, "mainbody", new_dialog)
         end
         cm[name] = "contenteditable" => "true"
         set_text!(cm, name, "")

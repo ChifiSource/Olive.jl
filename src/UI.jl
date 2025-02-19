@@ -164,11 +164,11 @@ function olivesheet()
         "border-radius" => "5px", "background-color" => "white", "transition" => 500ms, 
         "border-style" => "solid", "top" => 0percent, "position" => "sticky")
     #tabs:
-    tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
+    tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333",
         "border-style" => "solid", "background-color" => "gray", "border-width" => 2px, "border-color" => "#333333", 
         "border-bottom" => 0px, "border-style" => "solid", "background-color" => "lightgray", "border-bottom-right-radius" => 0px, 
         "border-bottom-left-radius" => 0px, "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer", 
-        "margin-left" => 0px, "transition" => 1seconds)
+        "margin-left" => 0px, "transition" => 1seconds, "border-bottom" => "0px solid white")
     tabopen_style = style("div.tabopen", 
         "border-width" => 2px, "border-color" => "#333333", "border-bottom" => "0px solid white",
         "border-style" => "solid", "background-color" => "white", "border-bottom-right-radius" => 0px, "border-bottom-left-radius" => 0px, 
@@ -210,7 +210,7 @@ function olivesheet()
     "font-family" => "'Material Icons'", "font-weight" => "normal",
     "font-style" => "normal", "display" => "inline-block", "line-height" => "1",
     "wewbkit-font-smoothing" => "antialiased", "text-rendering" => "optimizeLegibility",
-    "font-size" => "100pt", "transition" => ".4s", "line-height" => "1",
+    "font-size" => "10pt", "transition" => ".4s", "line-height" => "1",
     "text-transform" => "none", "letter-spacing" => "normal", "user-select" => "none",
     "color" => "darkgray",
     "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
@@ -1143,7 +1143,6 @@ function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{
     save_split = split(p.name, ".")
     if ~(:path in keys(p.data))
         save_project_as(c, cm2, p)
-        style!(cm2, "tablabel$(p.id)", "border-right" => "0px solid")
         return
     end
     if length(save_split) < 2
@@ -1162,7 +1161,6 @@ function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{
     else
         olive_notify!(cm2, "file $(p.name) failed to save.", color = "red")
     end
-    style!(cm2, "tablabel$(p.id)", "border-right" => "0px solid")
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1180,8 +1178,16 @@ Saves a project to a new path.
 ```
 """
 function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Project{<:Any})
-    creatorcell = Cell("creator", "", "save")
-    style!(cm, "projectexplorer", "opacity" => 100percent)
+    creatorcell::Cell{:creator} = Cell("creator", "", "save")
+    cm["settingsmenu"] =  "open" => "0"
+    cm["settingicon"] = "class" => "material-icons"
+    cm["settingsmenu"] = "class" => "settings"
+    cm["projectexplorer"] = "class" => "pexplorer pexplorer-open"
+    style!(cm, "olivemain", "margin-left" => "500px")
+    cm["explorerico"] = "class" => "material-icons material-icons-selected"
+    style!(cm, "menubar", "border-bottom-left-radius" => 0px)
+    set_text!(cm, "explorerico", "folder_open")
+    cm["olivemain"] = "ex" => "1"
     insert!(cm, "pwdmain", 2, build(c, creatorcell, p, cm))
 end
 #==output[code]
@@ -1208,6 +1214,26 @@ end
 olive_cover (generic function with 1 method)
 ==#
 #==|||==#
+function olive_confirm_dialog(f::Function, c::AbstractConnection, message::String)
+    dialog_text = p("dialog-text", text = message)
+    style!(dialog_text, "max-width" => 15percent, "font-size" => 14pt, "font-weight" => "bold")
+    okbutton = button("okdialog", text = "ok")
+    cancel_button = button("canceldialog", text = "cancel")
+    button_box = div("buttondialog", align = "right", children = [cancel_button, okbutton])
+    on(cancel_button, "click") do cm::ClientModifier
+        remove!(cm, "confirm-dialog")
+    end
+    on(c, okbutton, "click") do cm::ComponentModifier
+        f(cm)
+        remove!(cm, "confirm-dialog")
+    end
+    confirm_dialog = div("confirm-dialog", children = [dialog_text, button_box])
+    style!(confirm_dialog, "background-color" => "white", "border" => "3px solid #333333", "padding" => 15px, 
+    "position" => "absolute", "width" => 30percent, "height" => 20percent, "top" => 25percent, "left" => 35percent, 
+    "overflow-x" => "hidden", "overflow-y" => "hidden")
+    confirm_dialog::Component{:div}
+end
+
 include("Cells.jl")
 #==output[code]
 SystemError: opening file "/home/emmac/dev/toolips/Olive/Cells.jl": No such file or directory
