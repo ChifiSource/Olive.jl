@@ -378,13 +378,11 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-### Olive UI
-````
+```
 create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
-````
+```
 Creates a new project from a given template. Each method for this function will 
 create a new button inside of the **create** menu in the **inspector**.
-#### example
 ```
 
 ```
@@ -434,7 +432,7 @@ UndefVarError: Connection not defined
 ==#
 #==|||==#
 function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:directory}, path::String, finalname::String)
-    path = path * "/" * finalname
+    path = path * "/" * replace(finalname, ".directory" => "")
     mkdir(path)
     olive_notify!(cm, "created directory", color = "darkgreen")
     switch_work_dir!(c, cm, path)
