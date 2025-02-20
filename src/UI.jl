@@ -159,21 +159,27 @@ function olivesheet()
     st = sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
     pr = Style("pre", "background" => "transparent")
+    # fadeup:
+    fade_upanim = keyframes("fadeup")
+    keyframes!(fade_upanim, 0percent, "opacity" => 0percent, "transform" => translateY(5percent))
+    keyframes!(fade_upanim, 100percent, "opacity" => 100percent, "transform" => translateY(0percent))
     # topbar:
     topbar_style = style("div.topbar", "border-color" => "black", 
         "border-radius" => "5px", "background-color" => "white", "transition" => 500ms, 
-        "border-style" => "solid", "top" => 0percent, "position" => "sticky")
+        "border-style" => "solid", "top" => 0percent, "position" => "sticky", "animation-name" => "fadeup", "animation-duration" => 700ms)
     #tabs:
     tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333",
         "border-style" => "solid", "background-color" => "gray", "border-width" => 2px, "border-color" => "#333333", 
         "border-bottom" => 0px, "border-style" => "solid", "background-color" => "lightgray", "border-bottom-right-radius" => 0px, 
         "border-bottom-left-radius" => 0px, "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer", 
-        "margin-left" => 0px, "transition" => 1seconds, "border-bottom" => "0px solid white")
+        "margin-left" => 0px, "transition" => 1seconds, "border-bottom" => "0px solid white", 
+        "animation-name" => "fadeup", "animation-duration" => 700ms)
     tabopen_style = style("div.tabopen", 
         "border-width" => 2px, "border-color" => "#333333", "border-bottom" => "0px solid white",
         "border-style" => "solid", "background-color" => "white", "border-bottom-right-radius" => 0px, "border-bottom-left-radius" => 0px, 
         "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer",
-        "margin-left" => 0px, "transition" => 1seconds, "border-radius" => 8px)
+        "margin-left" => 0px, "transition" => 1seconds, "border-radius" => 8px, 
+        "animation-name" => "fadeup", "animation-duration" => 800ms)
     tablabel = style("a.tablabel", "font-size"  => 13pt, "color" => "#A2646F", 
         "font-weight" => "bold", "margin-right" => 5px,
         "transition" => "250ms", "padding-right" => 5px, "user-select" => "none")
@@ -182,7 +188,8 @@ function olivesheet()
         "font-style" => "normal", "display" => "inline-block")
     tab_icon:"hover":["transform" => "scale(1.01)", "color" => "darkgray"]
     # projects:
-    project_window = Style("div.projectwindow", "overflow-y" => "scroll", "overflow-x" => "hidden", "padding" => 7px)
+    project_window = Style("div.projectwindow", "overflow-y" => "scroll", "overflow-x" => "hidden", "padding" => 7px, 
+    "animation-name" => "fadeup", "animation-duration" => 850ms)
     # project explorer:
     p_explorer = style("div.pexplorer", "opacity" => 0percent, 
         "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
@@ -216,6 +223,12 @@ function olivesheet()
     "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
     # cells:
     output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
+    # dialogs:
+    dialog_box = style("div.confdialog", "background-color" => "white", "border" => "3px solid #333333", "padding" => 15px, 
+    "position" => "absolute", "width" => 50percent, "height" => 20percent, "top" => 25percent, "left" => 25percent, 
+    "overflow-x" => "hidden", "overflow-wrap" => "anywhere", "overflow-y" => "hidden", "z-index" => "15", 
+    "animation-name" => "fadeup", "animation-duration" => 850ms)
+    dialog_text = style("div.dialogtext", "font-size" => 14pt, "font-weight" => "bold")
     # push:
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
@@ -225,7 +238,8 @@ function olivesheet()
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
-    section_container_labels, section_innerc, section_innero, container_arrow, tab_icon, output_style, project_window)
+    section_container_labels, section_innerc, section_innero, container_arrow, tab_icon, output_style, project_window, 
+    dialog_box, dialog_text, fade_upanim)
     st::Component{:sheet}
 end
 
@@ -1215,11 +1229,10 @@ olive_cover (generic function with 1 method)
 ==#
 #==|||==#
 function olive_confirm_dialog(f::Function, c::AbstractConnection, message::String)
-    dialog_text = p("dialog-text", text = message)
-    style!(dialog_text, "max-width" => 15percent, "font-size" => 14pt, "font-weight" => "bold")
-    okbutton = button("okdialog", text = "ok")
-    cancel_button = button("canceldialog", text = "cancel")
-    button_box = div("buttondialog", align = "right", children = [cancel_button, okbutton])
+    dialog_text::Component{:p} = p("dialog-text", text = message, class = "dialogtext")
+    okbutton::Component{:button} = button("okdialog", text = "ok")
+    cancel_button::Component{:button} = button("canceldialog", text = "cancel")
+    button_box::Component{:div} = div("buttondialog", align = "right", children = [cancel_button, okbutton])
     on(cancel_button, "click") do cm::ClientModifier
         remove!(cm, "confirm-dialog")
     end
@@ -1227,10 +1240,7 @@ function olive_confirm_dialog(f::Function, c::AbstractConnection, message::Strin
         f(cm)
         remove!(cm, "confirm-dialog")
     end
-    confirm_dialog = div("confirm-dialog", children = [dialog_text, button_box])
-    style!(confirm_dialog, "background-color" => "white", "border" => "3px solid #333333", "padding" => 15px, 
-    "position" => "absolute", "width" => 30percent, "height" => 20percent, "top" => 25percent, "left" => 35percent, 
-    "overflow-x" => "hidden", "overflow-y" => "hidden")
+    confirm_dialog::Component{:div} = div("confirm-dialog", children = [dialog_text, button_box], class = "confdialog")
     confirm_dialog::Component{:div}
 end
 

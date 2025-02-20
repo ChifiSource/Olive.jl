@@ -14,7 +14,8 @@ module Olive
 import Base: write, display, getindex, setindex!, string, showerror
 using Toolips
 using Toolips.Components
-import Toolips.Components: Servable, ServerTemplate
+using Toolips: WebServer
+import Toolips.Components: Servable
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier, AbstractComponentModifier, on_start, Route
 using ToolipsSession
 import ToolipsSession: KeyMap
@@ -695,7 +696,7 @@ create_new(Olive.OliveExtension, "OliveAdvancedCells")
 ```
 - See also: `start`, `Toolips`, `Olive`, `OliveCore`
 """
-function create(t::Type{Toolips.ServerTemplate}, name::String)
+function create(t::Type{Toolips.WebServer}, name::String)
 
 end
 
