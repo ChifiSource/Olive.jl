@@ -499,7 +499,7 @@ end
 
 function build(f::Function, c::Connection, cell::Cell{:creator}, template::String = "jl")
     d = Directory(c[:OliveCore].open[getname(c)].pwd)
-    maincell = build_base_cell(c, cell, d, binding = false)
+    maincell::Component{:div} = build_base_cell(c, cell, d, binding = false)
     style!(maincell, "display" => "flex", "background-color" => "#64bf6a")
     namebox = Components.textdiv("new_namebox", text = cell.source)
     style!(namebox, "width" => 50percent, "border" => "1px solid", "background-color" => "white", 
@@ -1515,7 +1515,7 @@ end
 function evaluate_get_started(c::AbstractConnection, cm::ComponentModifier, projid::String, new_cell::AbstractComponent)
     append!(cm, projid, new_cell)
     olive_notify!(cm, "use ctrl + shift + S to name your project!", color = "blue")
-    focus!(cm, new_cell)
+    focus!(cm, "cell$(new_cell.id)")
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

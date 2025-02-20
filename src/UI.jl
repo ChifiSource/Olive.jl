@@ -468,7 +468,7 @@ UndefVarError: AbstractComponentModifier not defined
 ==#
 #==|||==#
 function olive_notific()
-    notifier = div("olive-notifier", align = "center")
+    notifier::Component{:div} = div("olive-notifier", align = "center")
     style!(notifier, "background-color" => "pink", "color" => "white",
     "height" => 0percent, "position" => "sticky", "opacity" => 0percent,
     "width" => 99percent, "margin-left" => 0px, "z-index" => "8",

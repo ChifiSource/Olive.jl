@@ -697,11 +697,39 @@ create_new(Olive.OliveExtension, "OliveAdvancedCells")
 - See also: `start`, `Toolips`, `Olive`, `OliveCore`
 """
 function create(t::Type{Toolips.WebServer}, name::String)
+    Toolips.Pkg.generate(name)
+    open("$name/src/$name.jl", "w") do o::IOStream
+        write(o, """module $name
+        using Olive
+        using Olive.Toolips
+        using Olive.Toolips.Components
 
+        home = route("/") do c::AbstractConnection
+            # ?(make_session) for more customization options
+            Olive.make_session(c, key = false)
+        end
+
+        function start(; ip::Toolips.IP4 = "127.0.0.1":8000)
+            Olive.routes["/"] = home
+            Olive.start()
+        end
+        end""")
+    end
+    Olive.start(path = name)
 end
 
 function create(t::Type{OliveExtension}, name::String)
-    
+    Toolips.Pkg.generate(name)
+    open("$name/src/$name.jl", "w") do o::IOStream
+        write(o, """module $name
+        # the web-development framework that powers `Olive`:
+        using Olive.Toolips
+        # Component HTML, CSS, and JavaScript templating:
+        using Olive.Toolips.Components
+        import Olive: build, OliveExtension, Cell, olive_notify!
+        
+        end""")
+    end
 end
 
 #==
