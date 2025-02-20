@@ -362,59 +362,6 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-"""
-### Olive Core
-```julia
-save_settings!(c::Connection; core::Bool = false) -> ::Nothing
-```
----
-`save_settings!` saves `OliveCore` settings for the user's `Connection`. Providing `core` 
-will also save `Olive` core settings, as well. Core settings are in 
-`OliveCore.data` whereas client settings are in `OliveCore.client_data`. 
-These correspond to the `olive` and `oliveusers` section in the `olive` home 
-`Project.toml`
-"""
-function save_settings!(c::Connection; core::Bool = false)
-    homedir = c[:OliveCore].data["home"]
-    alltoml = read("$homedir/Project.toml", String)
-    current_toml = TOML.parse(alltoml)
-    name = getname(c)
-    client_settings = deepcopy(c[:OliveCore].client_data[name])
-    [onsave(client_settings, OliveExtension{m.sig.parameters[3].parameters[1]}()) for m in methods(onsave)]
-    current_toml["oliveusers"][name] = client_settings
-    datakeys = c[:OliveCore].data
-    toml_datakeys = keys(current_toml["olive"])
-    if core
-        [begin
-            if datakey[1] in toml_datakeys
-                current_toml[datakey[1]] = datakey[2]
-            else
-                push!(current_toml, datakey[1] => datakey[2])
-            end
-        end for datakey in datakeys]
-    end
-    open("$homedir/Project.toml", "w") do io
-        TOML.print(io, current_toml)
-    end
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-"""
-### Olive Core
-```julia
-onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter}) -> ::Nothing
-```
----
-Each `onsave` `Method` is called on client data before `save_settings!`, in the case of this `Method`, 
-(:highlighter), this method removes the highlighter objects from the client data, which 
-may not be saved in TOML. This is an example of where this might be applied -- this is how we 
-can store data in memory for only a single session.
-"""
-function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
-    delete!(cd, "highlighters")
-end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -471,37 +418,43 @@ function build(c::Connection, dir::Directory{<:Any})
             
         end
     end
-    savebutton = topbar_icon("$(dircell.id)sa", "save")
-    dirs = c[:OliveCore].open[getname(c)].directories
     builtname::String = builtcell.name
-    on(c, savebutton, "click") do cm::ComponentModifier
-        pos = findfirst(d -> d.uri == dir.uri, dirs)
-        newdir = Directory(dir.uri, dirtype = "saved")
-        deleteat!(dirs, pos)
-        remove!(cm, builtname)
-        push!(dirs, newdir)
-        cdata = c[:OliveCore].client_data[getname(c)]
-        if "directories" in keys(cdata)
-            push!(cdata["directories"], newdir.uri)
-        else
-            push!(cdata, "directories" => Vector{String}([newdir.uri]))
-        end
-        save_settings!(c)
-        Pkg.gc(); Base.GC.gc(true)
-        append!(cm, "projectexplorer", build(c, newdir))
-    end
-    style!(savebutton, "color" => "white", "font-size" => 17pt)
-    rmbutton = topbar_icon("$(dircell.id)rm", "delete")
+    rmbutton::Component{:span} = topbar_icon("$(dircell.id)rm", "delete")
+    save::Component{:span} = topbar_icon("$(dircell.id)adddir", "save")
     on(c, rmbutton, "click") do cm::ComponentModifier
-        pos = findfirst(d -> d.uri == dir.uri, dirs)
-        deleteat!(dirs, pos)
-        remove!(cm, builtname)
-        olive_notify!(cm, "$(dir.uri) removed from directories.", color = "darkblue")
-        Pkg.gc(); Base.GC.gc(true)
+        path::String = dir.uri
+        group::Group = get_group(c)
+        direcs = c[:OliveCore].open[getname(c)].directories
+        inalready = findfirst(d -> d.uri == path, direcs)
+        in_group = findfirst(d -> d.uri == path, group.directories)
+        if isnothing(inalready) && isnothing(in_group)
+            remove!(cm, builtname)
+        elseif ~(isnothing(in_group))
+            deleteat!(group.directories, in_group)
+            olive_notify!(cm, "removed $(dir.uri) from saved directories, remove again to remove from instance.")
+            save_settings!(c, core = true)
+        elseif ~(isnothing(inalready))
+            deleteat!(direcs, inalready)
+            remove!(cm, builtname)
+            olive_notify!(cm, "$(dir.uri) removed from directories.", color = "darkblue")
+        end
     end
+    on(c, save, "click") do cm::ComponentModifier
+        group::Group = get_group(c)
+        in_group = findfirst(d -> d.uri == dir.uri, group.directories)
+        if ~(isnothing(in_group))
+            olive_notify!(cm, "directory already saved to user group")
+            save_settings!(c, core = true)
+            return
+        end
+        push!(group.directories, dir)
+        olive_notify!(cm, "directory saved to usergroup", color = "darkblue")
+        save_settings!(c, core = true)
+    end
+    style!(save, "color" => "white", "font-size" => 17pt)
     style!(rmbutton, "color" => "white", "font-size" => 17pt)
+    insert!(builtcell[:children][1][:children], 1, save)
     insert!(builtcell[:children][1][:children], 1, rmbutton)
-    insert!(builtcell[:children][1][:children], 2, savebutton)
     builtcell::Component{:div}
 end
 
@@ -884,6 +837,79 @@ OliveLogger() = Toolips.Logger("🫒 olive> ", Crayon(foreground = :blue), Crayo
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+
+"""
+### Olive Core
+```julia
+save_settings!(c::Connection; core::Bool = false) -> ::Nothing
+```
+---
+`save_settings!` saves `OliveCore` settings for the user's `Connection`. Providing `core` 
+will also save `Olive` core settings, as well. Core settings are in 
+`OliveCore.data` whereas client settings are in `OliveCore.client_data`. 
+These correspond to the `olive` and `oliveusers` section in the `olive` home 
+`Project.toml`
+"""
+function save_settings!(c::Connection; core::Bool = false)
+    homedir::String = c[:OliveCore].data["home"]
+    alltoml::String = read("$homedir/Project.toml", String)
+    current_toml = TOML.parse(alltoml)
+    name::String = getname(c)
+    client_settings = deepcopy(c[:OliveCore].client_data[name])
+    [onsave(client_settings, OliveExtension{m.sig.parameters[3].parameters[1]}()) for m in methods(onsave, [AbstractDict, OliveExtension{<:Any}])]
+    current_toml["oliveusers"][name] = client_settings
+    toml_datakeys = keys(current_toml["olive"])
+    data_copy = nothing
+    if core
+        data_copy = deepcopy(c[:OliveCore].data)
+        [begin
+            onsave(c[:OliveCore], data_copy, OliveExtension{m.sig.parameters[4].parameters[1]}()) 
+        end for m in methods(onsave, [OliveCore, AbstractDict, OliveExtension{<:Any}])]
+        [begin
+            if datakey[1] in toml_datakeys
+                current_toml[datakey[1]] = datakey[2]
+            else
+                push!(current_toml, datakey[1] => datakey[2])
+            end
+        end for datakey in data_copy]
+    end
+    open("$homedir/Project.toml", "w") do io
+        TOML.print(io, current_toml)
+    end
+    client_settings = nothing
+    data_copy = nothing
+    current_toml = nothing
+    nothing::Nothing
+end
+#==output[code]
+inputcell_style (generic function with 1 method)
+==#
+#==|||==#
+"""
+```julia
+onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter}) -> ::Nothing
+```
+---
+Each `onsave` `Method` is called on client data before `save_settings!`, in the case of this `Method`, 
+(:highlighter), this method removes the highlighter objects from the client data, which 
+may not be saved in TOML. This is an example of where this might be applied -- this is how we 
+can store data in memory for only a single session.
+"""
+function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
+    delete!(cd, "highlighters")
+end
+
+function onsave(core::OliveCore, copy::AbstractDict, oe::OliveExtension{:groups})
+    @info keys(copy)
+    copy["groups"] = Dict{String, Dict{String, Vector}}(begin
+        cells::Vector{String} = [string(cell) for cell in group.cells]
+        uris::Vector{String} = [string(cell.uri) for cell in group.directories]
+        dirs::Vector{String} = [string(typeof(dir).parameters[1]) for dir in group.directories]
+        load::Vector{String} = [string(ext) for ext in group.load_extensions]
+        group.name => Dict("cells" => cells, "uris" => uris, "dirs" => dirs, "load" => load)
+    end for group in copy["groups"])
+end
+
 mutable struct OliveDisplay <: AbstractDisplay
     io::IOBuffer
     OliveDisplay() = new(IOBuffer())::OliveDisplay

@@ -188,7 +188,7 @@ function load_default_project!(c::Connection)
     cells = Vector{Cell}([Cell("getstarted", "")])
     env::Environment = Environment(name)
     env.pwd::String = oc.data["wd"]
-    env.directories = get_group(c).directories
+    env.directories = copy(get_group(c).directories)
     pwd_direc::Directory{:pwd} = Directory(env.pwd, dirtype = "pwd")
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
     :pane => "one", :env => " ")
@@ -656,8 +656,7 @@ function setup_olive(logger::Toolips.Logger, path::String)
         username => Dict{String, String}("group" => "root"))
     # groups
     root_group_data = Dict{String, Vector}("cells" => ["code", "markdown"], "uris" => ["$path/olive"], 
-    "dirs" => ["home"],
-    "load" => ["olivebase"])
+    "dirs" => ["home"], "load" => ["olivebase"])
     groups = Dict{String, Dict{String, Vector}}("root" => root_group_data)
     push!(config,
     "olive" => Dict{String, String}("home" => "$path/olive", "root" => username, "defaultgroup" => "all"),

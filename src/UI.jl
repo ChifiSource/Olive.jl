@@ -455,7 +455,7 @@ long the message is displayed and `color` changes the background color of the me
 ```
 """
 function olive_notify!(cm::AbstractComponentModifier, message::String,
-    duration::Int64 = 2000;  color::String = "pink")
+    duration::Int64 = 2000;  color::String = "#333333")
     set_text!(cm, "olive-notifier", message)
     style!(cm, "olive-notifier", "height" => 2percent, "opacity" => 100percent,
     "background-color" => color)

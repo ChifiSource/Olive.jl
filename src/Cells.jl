@@ -454,23 +454,31 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
 end
 
 function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any}, bind::Bool = true)
-    filecell = build_base_cell(c, cell, d, binding = false)
+    filecell::Component{<:Any} = build_base_cell(c, cell, d, binding = false)
     filecell[:children] = filecell[:children][5:5]
     if getname(c) == c[:OliveCore].data["root"]
-        addir = topbar_icon("$(cell.id)cd", "bookmark")
+        cellid::String = cell.id
+        addir::Component{:span} = topbar_icon("$(cellid)adddir", "save")
+        cdto::Component{:span} = topbar_icon("$(cellid)cd", "file_open")
+        style!(cdto, "font-size" => 17pt, "color" => "white")
         style!(addir, "font-size" => 17pt, "color" => "white")
-        direcs = c[:OliveCore].open[getname(c)].directories
         on(c, addir, "click") do cm::ComponentModifier
+            direcs = c[:OliveCore].open[getname(c)].directories
             path::String = cell.outputs * "/" * cell.source
             inalready = findfirst(d -> d.uri == path, direcs)
             if isnothing(inalready)
                 newdir::Directory{<:Any} = Directory(path)
                 push!(direcs, newdir)
                 append!(cm, "projectexplorer", build(c, newdir))
+                olive_notify!(cm, "directory added to instance")
                 return
             end
             olive_notify!(cm, "$path is already in your project explorer!", color = "darkred")
         end
+        on(c, cdto, "click") do cm::ComponentModifier
+            switch_work_dir!(c, cm, cell.outputs * "/" * cell.source)
+        end
+        insert!(filecell[:children], 1, cdto)
         insert!(filecell[:children], 1, addir)
     end
     style!(filecell, "background-color" => "#18191A")
@@ -1507,15 +1515,16 @@ function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any}
         remove!(cm, "cellcontainer" * cell.id)
         new_cell::Cell{:code} = Cell{:code}()
         proj.data[:cells]::Vector{Cell{<:Any}} = Vector{Cell{<:Any}}([new_cell])
-        evaluate_get_started(c, cm, projid, build(c, cm, new_cell, proj))
+        evaluate_get_started(c, cm, projid, build(c, cm, new_cell, proj), new_cell.id)
     end
     km::KeyMap
 end
 
-function evaluate_get_started(c::AbstractConnection, cm::ComponentModifier, projid::String, new_cell::AbstractComponent)
+function evaluate_get_started(c::AbstractConnection, cm::ComponentModifier, projid::String, new_cell::AbstractComponent, 
+    cellid::String)
     append!(cm, projid, new_cell)
     olive_notify!(cm, "use ctrl + shift + S to name your project!", color = "blue")
-    focus!(cm, "cell$(new_cell.id)")
+    focus!(cm, "cell$cellid")
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
