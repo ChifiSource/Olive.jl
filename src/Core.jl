@@ -175,6 +175,7 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
         "copy" => ["C", "ctrl", "shift"],
         "paste" => ["V", "ctrl", "shift"],
         "cut" => ["X", "ctrl", "shift"],
+        "select" => ["F", "ctrl", "shift"],
         "new" => ["Enter", "ctrl", "shift"],
         "focusup" => ["ArrowUp", "shift"],
         "focusdown" => ["ArrowDown", "shift"],
@@ -655,7 +656,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 getindex(p::Vector{Project{<:Any}}, s::String) = begin
-    pos = findfirst(proj::Project{<:Any} -> proj.name == s, p)
+    pos = findfirst(proj::Project{<:Any} -> proj.id == s, p)
     if isnothing(pos)
         throw(KeyError("project $s not found!"))
     end
@@ -721,11 +722,13 @@ mutable struct Environment{T <: Any}
     directories::Vector{Directory}
     projects::Vector{Project}
     cells_selected::Dict{String, String}
+    cell_clipboard::Vector{Pair{String, String}}
     pwd::String
     function Environment(T::String, name::String)
         nT::Symbol = Symbol(T)
         new{nT}(name, Vector{Directory}(), 
-        Vector{Project}(), Dict{String, String}(), "")::Environment{nT}
+        Vector{Project}(), Dict{String, String}(), 
+        Vector{Pair{String, String}}(), "")::Environment{nT}
     end
     Environment(name::String) = Environment("olive", name)::Environment{:olive}
 end

@@ -929,7 +929,10 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         cell_down!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["delete"]) do cm2::ComponentModifier
-        cell_delete!(c, cm2, cell, cells)
+        style!(cm2, "cellcontainer$(cell.id)", "height" => 0percent)
+        next!(c, cm2, "cellcontainer$(cell.id)") do cm::ComponentModifier
+            cell_delete!(c, cm2, cell, cells)
+        end
     end
     ToolipsSession.bind(km, keybindings["evaluate"]) do cm2::ComponentModifier
         cellid::String = cell.id
@@ -941,6 +944,37 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             evaluate(c, cm, cell, proj)
             remove!(cm, "load$(cell.id)")
         end
+    end
+    ToolipsSession.bind(km, keybindings["copy"]) do cm2::ComponentModifier
+        env = c[:OliveCore].open[getname(c)]
+        env.cell_clipboard = [pairs(env.cells_selected) ...] 
+        message = "cell"
+        if length(env.cell_clipboard) > 1
+            message = "cells"
+        end
+        olive_notify!(cm2, "$message added to clipboard")
+    end
+    ToolipsSession.bind(km, keybindings["paste"]) do cm2::ComponentModifier
+        env = c[:OliveCore].open[getname(c)]
+        found_pos = findfirst(lcell -> lcell.id == cell.id, proj.data[:cells])
+        cells = [begin
+            old_cell = env[cell_path[2]].data[:cells][cell_path[1]]
+            new_cell = Cell{typeof(old_cell).parameters[1]}(old_cell.source, old_cell.outputs)
+            new_cell.id = Components.gen_ref(5)
+            built_cell = build(c, cm2, new_cell, proj)
+            ToolipsSession.insert!(cm2, proj.id, e + found_pos, built_cell)
+            new_cell
+        end for (e, cell_path) in enumerate(env.cell_clipboard)]
+        proj.data[:cells] = vcat(proj.data[:cells][1:found_pos], cells, proj.data[:cells][found_pos:end])
+    end
+ #   ToolipsSession.bind(km, keybindings["select"]) do cm2::ComponentModifier
+
+  #  end
+    ToolipsSession.bind(km, keybindings["open"]) do cm2::ComponentModifier
+
+    end
+    ToolipsSession.bind(km, keybindings["find"]) do cm2::ComponentModifier
+
     end
     ToolipsSession.bind(km, keybindings["new"]) do cm2::ComponentModifier
         cell_new!(c, cm2, cell, proj)
@@ -1057,7 +1091,7 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
             end
             push!(env.cells_selected, cell.id => proj.id)
             original_class_side = cm2["cellside$cellid"]["class"]
-            original_class_inp = cm2["$cellid"]["class"]
+            original_class_inp = cm2["cell$cellid"]["class"]
             cm2["cellside$(cellid)"] = "class" => "cellside selectedside"
             cm2["cell$cellid"] = "class" => "input_cell inputselected"
         end
