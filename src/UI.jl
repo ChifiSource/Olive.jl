@@ -1,6 +1,6 @@
 function inputcell_style()
     st = Style("div.input_cell", "border" => "2px solid gray", "padding" => "20px",
-    "border-radius" => 8px, "margin-top" => 30px, "transition" => 1seconds,
+    "border-radius" => 8px, "margin-top" => 30px, "transition" => 1000ms,
     "font-size" => 13pt, "letter-spacing" => 1px,
     "font-family" => """"Lucida Console", "Courier New", monospace;""",
     "line-height" => 19px, "width" => 90percent, "border-bottom-left-radius" => 0px,
@@ -14,7 +14,8 @@ end
 function cellside_style()
     st = Style("div.cellside", "display" => "inline-block",
     "border-bottom-right-radius" => 0px, "border-top-right-radius" => 0px,
-    "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px)
+    "overflow" => "hidden", "border-style" => "solid", "border-width" => 1px, 
+    "transition" => 650ms)
     st::Style
 end
 
@@ -223,6 +224,10 @@ function olivesheet()
     "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
     # cells:
     output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
+    code_side = Style("div.codeside", "background-color" => "pink")
+    output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
+    selected_side = Style("div.selectedside", "background-color" => "#485eae")
+    input_selected = style("div.inputselected", "border-color" => "#485eae")
     # dialogs:
     dialog_box = style("div.confdialog", "background-color" => "white", "border" => "3px solid #333333", "padding" => 15px, 
     "position" => "absolute", "width" => 50percent, "height" => 20percent, "top" => 25percent, "left" => 25percent, 
@@ -239,7 +244,7 @@ function olivesheet()
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
     section_container_labels, section_innerc, section_innero, container_arrow, tab_icon, output_style, project_window, 
-    dialog_box, dialog_text, fade_upanim)
+    dialog_box, dialog_text, fade_upanim, code_side, selected_side, input_selected)
     st::Component{:sheet}
 end
 
@@ -573,6 +578,7 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String = p.id)
     Main.evalin(Meta.parse(modstr))
     mod::Module = getfield(Main, Symbol(name))
     push!(p.data, :mod => mod, :modid => name)
+    nothing::Nothing
 end
 #==output[code]
 inputcell_style (generic function with 1 method)

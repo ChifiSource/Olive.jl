@@ -1040,12 +1040,27 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     end
     if sidebox
         sidebox::Component{:div} = div("cellside$(cellid)", class = "cellside")
-        cell_drag = topbar_icon("cell$(cellid)drag", "drag_indicator")
-        cell_run = topbar_icon("cell$(cellid)drag", "play_arrow")
+        cell_drag::Component{:span} = topbar_icon("cell$(cellid)drag", "drag_indicator")
+        cell_run::Component{:span} = topbar_icon("cell$(cellid)drag", "play_arrow")
         on(c, cell_run, "click") do cm2::ComponentModifier
             evaluate(c, cm2, cell, proj)
         end
-        sidebox[:class] = "cellside"
+        original_class_side = ""
+        original_class_inp = ""
+        on(c, cell_drag, "click") do cm2::ComponentModifier
+            env::Environment = CORE.open[getname(c)]
+            if cellid in keys(env.cells_selected)
+                delete!(env.cells_selected, cellid)
+                cm2["cellside$(cellid)"] = "class" => original_class_side
+                cm2["cell$cellid"] = "class" => original_class_inp
+                return
+            end
+            push!(env.cells_selected, cell.id => proj.id)
+            original_class_side = cm2["cellside$cellid"]["class"]
+            original_class_inp = cm2["$cellid"]["class"]
+            cm2["cellside$(cellid)"] = "class" => "cellside selectedside"
+            cm2["cell$cellid"] = "class" => "input_cell inputselected"
+        end
         style!(cell_drag, "color" => "white", "font-size" => 17pt)
         style!(cell_run, "color" => "white", "font-size" => 17pt)
         push!(sidebox, cell_drag, br(), cell_run)
@@ -1108,39 +1123,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     Components.textdiv_caret_tracker!(maincell)
     inp[:children]["cellhighlight$(cell.id)"][:text] = string(tm)
     sideb = interior[:children]["cellside$(cell.id)"]
-    style!(sideb, "background-color" => "pink")
+    sideb[:class] = "cellside codeside"
     OliveHighlighters.clear!(tm)
     ToolipsSession.bind(c, cm, maincell, km, on = :down)
-    ToolipsSession.bind(c, cm, maincell, "Enter", on = :up) do cm::ComponentModifier
-        callback_comp::Component = cm["cell$(cell.id)"]
-        curr::String = callback_comp["text"]
-        last_n::Int64 = parse(Int64, callback_comp["caret"])
-        n::Int64 = length(curr)
-        previous_line_i = findprev("\n", curr, last_n)
-        @info previous_line_i
-        if isnothing(previous_line_i)
-            @info curr
-            @warn last_n
-            previous_line_i = 1
-        else
-            previous_line_i = minimum(previous_line_i) + 1
-        end
-        line_slice = curr[previous_line_i:last_n]
-        contains_indent::Bool = ~isnothing(findfirst(x -> contains(line_slice, x), indent_after))
-        # TODO get last line, check for indent key-words, pre-indentation, and `end`.
-        #<br> is replaced, so `\n` is shorter by 2. Plus, JS index starts at 0
-        if contains_indent
-            cell.source = curr[1:last_n] * "\n&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:length(curr)]
-            set_text!(cm, "cell$(cell.id)", cell.source)
-            focus!(cm, "cell$(cell.id)")
-            Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4)
-        end
-    end
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
             ext = xtname()
-            on_code_build(c, cm, ext, cell, proj, builtcell)
+            on_code_build(c, cm, ext, cell, proj, builtcell, km)
         end
     end for m in methods(on_code_build)]
     builtcell::Component{:div}
@@ -1200,7 +1190,7 @@ end
 ```
 """
 function on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
-    cell::Cell{:code}, proj::Project{<:Any})
+    cell::Cell{:code}, proj::Project{<:Any}, km::ToolipsSession.KeyMap)
 
 end
 #==output[code]
@@ -1229,9 +1219,40 @@ end
 ```
 """
 function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
-    cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div})
+    cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div}, km::ToolipsSession.KeyMap)
 
 end
+
+# TODO This will be part of `Olive` auto-complete instead.
+function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{:indent}, 
+    cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div}, km::ToolipsSession.KeyMap)
+    ToolipsSession.bind(c, cm, component, "Enter", on = :up) do cm::ComponentModifier
+        callback_comp::Component = cm["cell$(cell.id)"]
+        curr::String = callback_comp["text"]
+        last_n::Int64 = parse(Int64, callback_comp["caret"])
+        n::Int64 = length(curr)
+        previous_line_i = findprev("\n", curr, last_n)
+        @info previous_line_i
+        if isnothing(previous_line_i)
+            @info curr
+            @warn last_n
+            previous_line_i = 1
+        else
+            previous_line_i = minimum(previous_line_i) + 1
+        end
+        line_slice = curr[previous_line_i:last_n]
+        contains_indent::Bool = ~isnothing(findfirst(x -> contains(line_slice, x), indent_after))
+        # TODO get last line, check for indent key-words, pre-indentation, and `end`.
+        #<br> is replaced, so `\n` is shorter by 2. Plus, JS index starts at 0
+        if contains_indent
+            cell.source = curr[1:last_n] * "\n&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:length(curr)]
+            set_text!(cm, "cell$(cell.id)", cell.source)
+            focus!(cm, "cell$(cell.id)")
+            Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4)
+        end
+    end
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#

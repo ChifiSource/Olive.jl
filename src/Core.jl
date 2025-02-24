@@ -720,11 +720,12 @@ mutable struct Environment{T <: Any}
     name::String
     directories::Vector{Directory}
     projects::Vector{Project}
+    cells_selected::Dict{String, String}
     pwd::String
     function Environment(T::String, name::String)
-        nT = Symbol(T)
+        nT::Symbol = Symbol(T)
         new{nT}(name, Vector{Directory}(), 
-        Vector{Project}(), "")::Environment{nT}
+        Vector{Project}(), Dict{String, String}(), "")::Environment{nT}
     end
     Environment(name::String) = Environment("olive", name)::Environment{:olive}
 end
