@@ -929,10 +929,13 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         cell_down!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["delete"]) do cm2::ComponentModifier
-        style!(cm2, "cellcontainer$(cell.id)", "height" => 0percent)
+        style!(cm2, "cellcontainer$(cell.id)", "transform" => translateX(-100percent))
         next!(c, cm2, "cellcontainer$(cell.id)") do cm::ComponentModifier
-            cell_delete!(c, cm2, cell, cells)
+            cell_delete!(c, cm, cell, cells)
         end
+    end
+    ToolipsSession.bind(km, keybindings["new"]) do cm2::ComponentModifier
+        cell_new!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["evaluate"]) do cm2::ComponentModifier
         cellid::String = cell.id
@@ -947,6 +950,11 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     end
     ToolipsSession.bind(km, keybindings["copy"]) do cm2::ComponentModifier
         env = c[:OliveCore].open[getname(c)]
+        if length(env.cells_selected) == 0
+            env.cell_clipboard = [cell]
+            olive_notify!(cm2, "Cell added to clipboard")
+            return
+        end
         env.cell_clipboard = [pairs(env.cells_selected) ...] 
         message = "cell"
         if length(env.cell_clipboard) > 1
@@ -976,9 +984,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     ToolipsSession.bind(km, keybindings["find"]) do cm2::ComponentModifier
 
     end
-    ToolipsSession.bind(km, keybindings["new"]) do cm2::ComponentModifier
-        cell_new!(c, cm2, cell, proj)
-    end
+
     ToolipsSession.bind(km, keybindings["focusdown"]) do cm::ComponentModifier
         focus_down!(c, cm, cell, proj)
     end
@@ -1064,7 +1070,6 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     cellid::String = cell.id
     windowname::String = proj.id
     outside::Component{:div} = div("cellcontainer$(cellid)", class = "cell")
-    style!(outside, "transition" => 2seconds, "width" => 106percent)
     interiorbox::Component{:div} = div("cellinterior$(cellid)")
     inputbox::Component{:div} = build_base_input(c, cm, cell, proj,
     highlight = highlight)
@@ -1256,7 +1261,7 @@ function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{
     cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div}, km::ToolipsSession.KeyMap)
 
 end
-
+#==
 # TODO This will be part of `Olive` auto-complete instead.
 function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{:indent}, 
     cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div}, km::ToolipsSession.KeyMap)
@@ -1286,6 +1291,7 @@ function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{
         end
     end
 end
+==#
 
 #==output[code]
 inputcell_style (generic function with 1 method)

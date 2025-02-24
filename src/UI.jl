@@ -43,11 +43,8 @@ usingcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function cell_style()
-    st::Style = Style("div.cell", "border-color" => "gray", padding = "20px",
-    "background-color" => "white", "border-top-left-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "width" => 100percent, "transition" => 1seconds)
+    st::Style = Style("div.cell", "transition" => 500ms)
     st:"focus":["border-width" => 2px, "border-color" => "magenta"]
-    fade_up()
     st::Style
 end
 #==output[code]
@@ -238,7 +235,7 @@ function olivesheet()
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
-    inputcell_style(), bdy, cellside_style(), filec_style(), pr,
+    inputcell_style(), bdy, cellside_style(), filec_style(), pr, cell_style(),
     Style("::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
