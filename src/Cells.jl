@@ -517,12 +517,17 @@ function build(f::Function, c::Connection, cell::Cell{:creator}, template::Strin
     on(c, cancelbutton, "click") do cm::ComponentModifier
         remove!(cm, maincell)
     end
+    not_this_template = Symbol(template)
+    @warn "hello?"
     opts = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
         Tsig = m.sig.parameters[4]
-        if Tsig != OliveExtension{<:Any}
+        if Tsig != OliveExtension{<:Any} && Tsig.parameters[1] != not_this_template
+            @info Tsid.parameters[1]
             Components.option("creatorkey", text = string(Tsig.parameters[1]))   
         end        
     end for m in methods(create_new)]))
+  # insert!(opts, 1, ))
+    push!(opts, Components.option("creatorkey", text = template))
     formatbox = Components.select("formatbox", opts, value = template)
     style!(formatbox, "width" => 25percent)
     on(c, savebutton, "click") do cm::ComponentModifier
@@ -533,7 +538,7 @@ function build(f::Function, c::Connection, cell::Cell{:creator}, template::Strin
     maincell
 end
 
-function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::ComponentModifier)
+function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::ComponentModifier, template::String = "jl")
     projpath = c[:OliveCore].open[getname(c)].pwd
     if :path in keys(p.data)
         projpath::String = p[:path]
@@ -552,13 +557,15 @@ function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::Compo
     on(c, cancelbutton, "click") do cm::ComponentModifier
         remove!(cm, maincell)
     end
+    not_this_template = Symbol(template)
     opts = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
         Tsig = m.sig.parameters[3]
-        if Tsig != ProjectExport{<:Any}
+        if Tsig != ProjectExport{<:Any} && Tsig.parameters[1] != not_this_template
             Components.option("creatorkey", text = string(Tsig.parameters[1]))   
         end        
     end for m in methods(olive_save)]))
-    formatbox = Components.select("formatbox", opts, value = "jl")
+    insert!(opts, 1, Components.option("creatorkey", text = template))
+    formatbox = Components.select("formatbox", opts, value = template)
     if length(nfmt) > 1
         formatbox[:value] = string(nfmt[2])
     end
@@ -1261,7 +1268,7 @@ function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{
     cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div}, km::ToolipsSession.KeyMap)
 
 end
-#==
+
 # TODO This will be part of `Olive` auto-complete instead.
 function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{:indent}, 
     cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div}, km::ToolipsSession.KeyMap)
@@ -1291,7 +1298,7 @@ function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{
         end
     end
 end
-==#
+
 
 #==output[code]
 inputcell_style (generic function with 1 method)

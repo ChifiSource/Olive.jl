@@ -1020,6 +1020,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         projbuild::Component{:div} = build(c, cm, p)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         cm["tab$(fname)"] = :class => "tabopen"
+        focus!(cm, "cell$(p[:cells][1].id)")
     end
     on(c, tabbody, "dblclick") do cm::ComponentModifier
         if "$(fname)dec" in cm
