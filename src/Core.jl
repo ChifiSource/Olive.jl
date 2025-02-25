@@ -945,7 +945,7 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::Number)
 end
 
 function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractString)
-    write(d.io, "\"o\"")
+    write(d.io, "\"$o\"")
 end
 
 function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractDict)
