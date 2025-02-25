@@ -287,27 +287,27 @@ end
 
 function load_style_settings(c::Connection, om::AbstractComponentModifier)
     if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
-        tm = OliveHighlighters.TextStyleModifier("")
-        OliveHighlighters.highlight_julia!(tm)
-        tomltm = OliveHighlighters.TextStyleModifier("")
-        OliveHighlighters.toml_style!(tomltm)
-        mdtm = OliveHighlighters.TextStyleModifier("")
-        OliveHighlighters.markdown_style!(mdtm)
+        tm::Highlighter = OliveHighlighters.Highlighter("")
+        OliveHighlighters.style_julia!(tm)
+        tomltm = OliveHighlighters.Highlighter("")
+        OliveHighlighters.style_toml!(tomltm)
+        mdtm = OliveHighlighters.Highlighter("")
+        OliveHighlighters.style_markdown!(mdtm)
         dic = Dict{String, Dict{<:Any, <:Any}}()
         push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
         push!(dic, "julia" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tm.styles),
             "toml" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tomltm.styles),
             "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
     end
-    mdtm = OliveHighlighters.TextStyleModifier("")
-    OliveHighlighters.markdown_style!(mdtm)
+    mdtm = OliveHighlighters.Highlighter("")
+    OliveHighlighters.style_markdown!(mdtm)
     push!(c[:OliveCore].client_data[getname(c)]["highlighting"], 
     "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
     if ~("highlighters" in keys(c[:OliveCore].client_data[getname(c)]))
         highlighting = c[:OliveCore].client_data[getname(c)]["highlighting"]
-        julia_highlighter = OliveHighlighters.TextStyleModifier("")
-        toml_highlighter = OliveHighlighters.TextStyleModifier("")
-        md_highlighter = OliveHighlighters.TextStyleModifier("")
+        julia_highlighter = OliveHighlighters.Highlighter("")
+        toml_highlighter = OliveHighlighters.Highlighter("")
+        md_highlighter = OliveHighlighters.Highlighter("")
         julia_highlighter.styles = Dict(begin
             Symbol(k[1]) => ["color" => k[2]]
         end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["julia"])
@@ -318,7 +318,7 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
             Symbol(k[1]) => ["color" => k[2]]
         end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["markdown"])
         push!(c[:OliveCore].client_data[getname(c)], 
-        "highlighters" => Dict{String, OliveHighlighters.TextStyleModifier}(
+        "highlighters" => Dict{String, OliveHighlighters.Highlighter}(
             "julia" => julia_highlighter, "toml" => toml_highlighter, "markdown" => md_highlighter
         ))
     end

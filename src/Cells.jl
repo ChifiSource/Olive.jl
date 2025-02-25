@@ -885,7 +885,7 @@ using Olive.ToolipsSession
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:python}, proj::Project{<:Any})
     curr = cm["cell\$(cell.id)"]["text"]
     cell.source = curr
-    tm = OliveHighlighters.TextStyleModifier(cell.source)
+    tm = OliveHighlighters.Highlighter(cell.source)
     python_block!(tm)
     set_text!(cm, "cellhighlight\$(cell.id)", string(tm))
 end
@@ -1269,37 +1269,6 @@ function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{
 
 end
 
-# TODO This will be part of `Olive` auto-complete instead.
-function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{:indent}, 
-    cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div}, km::ToolipsSession.KeyMap)
-    ToolipsSession.bind(c, cm, component, "Enter", on = :up) do cm::ComponentModifier
-        callback_comp::Component = cm["cell$(cell.id)"]
-        curr::String = callback_comp["text"]
-        last_n::Int64 = parse(Int64, callback_comp["caret"])
-        n::Int64 = length(curr)
-        previous_line_i = findprev("\n", curr, last_n)
-        @info previous_line_i
-        if isnothing(previous_line_i)
-            @info curr
-            @warn last_n
-            previous_line_i = 1
-        else
-            previous_line_i = minimum(previous_line_i) + 1
-        end
-        line_slice = curr[previous_line_i:last_n]
-        contains_indent::Bool = ~isnothing(findfirst(x -> contains(line_slice, x), indent_after))
-        # TODO get last line, check for indent key-words, pre-indentation, and `end`.
-        #<br> is replaced, so `\n` is shorter by 2. Plus, JS index starts at 0
-        if contains_indent
-            cell.source = curr[1:last_n] * "\n&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:length(curr)]
-            set_text!(cm, "cell$(cell.id)", cell.source)
-            focus!(cm, "cell$(cell.id)")
-            Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4)
-        end
-    end
-end
-
-
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -1318,7 +1287,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
         nothing
     end for m in methods(on_code_highlight)]::Vector{Nothing}
     cell.source = replace(curr, "<div>" => "", "<br>" => "\n", "&nbsp;" => " ")
-    tm::TextStyleModifier = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
+    tm::Highlighter = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
     OliveHighlighters.set_text!(tm, cell.source)
     OliveHighlighters.mark_julia!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
@@ -1593,14 +1562,6 @@ function evaluate_get_started(c::AbstractConnection, cm::ComponentModifier, proj
     append!(cm, projid, new_cell)
     olive_notify!(cm, "use ctrl + shift + S to name your project!", color = "blue")
     focus!(cm, "cell$cellid")
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function toml_block!(tm::OliveHighlighters.TextStyleModifier)
-    OliveHighlighters.mark_toml!(tm)
-    toml_style!(tm)
 end
 #==|||==#
 #==output[code]
@@ -1971,7 +1932,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     if cell.source != ""
         cell.source = replace(cell.source, "include(\"" => "", "\")" => "")
     end
-    tm = OliveHighlighters.TextStyleModifier(cell.source)
+    tm = OliveHighlighters.Highlighter(cell.source)
     OliveHighlighters.julia_block!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
     proj, sidebox = true, highlight = true)
