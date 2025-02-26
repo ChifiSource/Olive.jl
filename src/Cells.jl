@@ -58,23 +58,15 @@ inputcell_style (generic function with 1 method)
 #==|||==#
 function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
-    if length(cells) == 1
-        olive_notify!(cm, "you cannot the last cell in the project", color = "red")
-        return
-    end
     cellid::String = cell.id
-    pos = findfirst(c -> c.id == cellid, cells)
-    if isnothing(pos)
-        olive_notify!(cm, "the cell was not found -- your client might be bugged, try refreshing the page !")
-        return
-    end
-    remove!(cm, "cellcontainer$(cellid)")
-    deleteat!(cells, pos)
+    pos = findlast(tempcell::Cell{<:Any} -> tempcell.id == cellid, cells)
     if pos == 1
         focus!(cm, "cell$(cells[pos + 1].id)")
     else
         focus!(cm, "cell$(cells[pos - 1].id)")
     end
+    remove!(cm, "cellcontainer$(cellid)")
+    deleteat!(cells, pos)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -899,6 +891,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+
 """
 ##### Olive Cells
 ```
@@ -936,9 +929,18 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         cell_down!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["delete"]) do cm2::ComponentModifier
-        style!(cm2, "cellcontainer$(cell.id)", "transform" => translateX(-100percent))
-        next!(c, cm2, "cellcontainer$(cell.id)") do cm::ComponentModifier
-            cell_delete!(c, cm, cell, cells)
+        cellid::String = cell.id
+        style!(cm2, "cellcontainer$(cellid)", "transform" => translateX(-100percent))
+        deleted::Bool = false
+        if length(cells) == 1
+            olive_notify!(cm2, "you cannot the last cell in the project", color = "red")
+            return
+        end
+        on(c, cm2, 350) do cm::ComponentModifier
+            if ~ deleted
+                cell_delete!(c, cm, cell, cells)
+                deleted = true
+            end
         end
     end
     ToolipsSession.bind(km, keybindings["new"]) do cm2::ComponentModifier
@@ -958,7 +960,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     ToolipsSession.bind(km, keybindings["copy"]) do cm2::ComponentModifier
         env = c[:OliveCore].open[getname(c)]
         if length(env.cells_selected) == 0
-            env.cell_clipboard = [cell]
+            env.cell_clipboard = [cell.id => proj.id]
             olive_notify!(cm2, "Cell added to clipboard")
             return
         end
@@ -972,7 +974,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     ToolipsSession.bind(km, keybindings["paste"]) do cm2::ComponentModifier
         env = c[:OliveCore].open[getname(c)]
         found_pos = findfirst(lcell -> lcell.id == cell.id, proj.data[:cells])
-        cells = [begin
+        paste_cells = [begin
             old_cell = env[cell_path[2]].data[:cells][cell_path[1]]
             new_cell = Cell{typeof(old_cell).parameters[1]}(old_cell.source, old_cell.outputs)
             new_cell.id = Components.gen_ref(5)
@@ -980,7 +982,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             ToolipsSession.insert!(cm2, proj.id, e + found_pos, built_cell)
             new_cell
         end for (e, cell_path) in enumerate(env.cell_clipboard)]
-        proj.data[:cells] = vcat(proj.data[:cells][1:found_pos], cells, proj.data[:cells][found_pos:end])
+        proj.data[:cells] = vcat(proj.data[:cells][1:found_pos], paste_cells, proj.data[:cells][found_pos:end])
     end
  #   ToolipsSession.bind(km, keybindings["select"]) do cm2::ComponentModifier
 

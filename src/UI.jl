@@ -43,7 +43,7 @@ usingcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function cell_style()
-    st::Style = Style("div.cell", "transition" => 500ms)
+    st::Style = Style("div.cell", "transition" => 350ms)
     st:"focus":["border-width" => 2px, "border-color" => "magenta"]
     st::Style
 end
@@ -187,7 +187,7 @@ function olivesheet()
     tab_icon:"hover":["transform" => "scale(1.01)", "color" => "darkgray"]
     # projects:
     project_window = Style("div.projectwindow", "overflow-y" => "scroll", "overflow-x" => "hidden", "padding" => 7px, 
-    "animation-name" => "fadeup", "animation-duration" => 850ms)
+    "animation-name" => "fadeup", "animation-duration" => 850ms, "min-height" => 100percent)
     # project explorer:
     p_explorer = style("div.pexplorer", "opacity" => 0percent, 
         "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
@@ -196,7 +196,7 @@ function olivesheet()
         "overflow-y" => "visible", "pointer-events" => "none", "padding" => 5px)
     p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
         "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
-    icon_selected = style(".material-icons-selected", "color" => "lightblue")
+    icon_selected = style(".material-icons-selected", "color" => "lightblue", "overflow-x" => "hidden")
     # settings:
     settings = style("div.settings", "opacity" => "0 !important",  "height" => "0px !important",
     "overflow-y" => "scroll", "padding" => 0px, "transition" => 1s, "position" => "sticky", 
