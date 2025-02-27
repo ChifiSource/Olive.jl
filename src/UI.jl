@@ -231,6 +231,11 @@ function olivesheet()
     "overflow-x" => "hidden", "overflow-wrap" => "anywhere", "overflow-y" => "hidden", "z-index" => "15", 
     "animation-name" => "fadeup", "animation-duration" => 850ms)
     dialog_text = style("div.dialogtext", "font-size" => 14pt, "font-weight" => "bold")
+    # search:
+    searchboxes = style("div.searchboxes", "padding" => 3px, "background-color" => "white", "border-radius" => 2px, 
+    "border" => 1px * "solid #1e1e1e", "width" => 95percent)
+    find_cont = style("div.findcontainer", "padding" => 10px, "background-color" => "#1e1e1e", "border-top-left-radius" => 0px, 
+    "border-top-right-radius" => 0px)
     # push:
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
@@ -241,7 +246,7 @@ function olivesheet()
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
     section_container_labels, section_innerc, section_innero, container_arrow, tab_icon, output_style, project_window, 
-    dialog_box, dialog_text, fade_upanim, code_side, selected_side, input_selected)
+    dialog_box, dialog_text, fade_upanim, code_side, selected_side, input_selected, searchboxes, find_cont)
     st::Component{:sheet}
 end
 

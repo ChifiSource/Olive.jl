@@ -984,22 +984,65 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         end for (e, cell_path) in enumerate(env.cell_clipboard)]
         proj.data[:cells] = vcat(proj.data[:cells][1:found_pos], paste_cells, proj.data[:cells][found_pos:end])
     end
- #   ToolipsSession.bind(km, keybindings["select"]) do cm2::ComponentModifier
+    ToolipsSession.bind(km, keybindings["select"]) do cm2::ComponentModifier
 
-  #  end
+    end
     ToolipsSession.bind(km, keybindings["open"]) do cm2::ComponentModifier
-
+        if typeof(cell.outputs) != Pair{String, Pair{String, String}}
+            olive_notify!(cm2, "this cell does not have an `open` binding")
+        end
     end
-    ToolipsSession.bind(km, keybindings["find"]) do cm2::ComponentModifier
-
+    ToolipsSession.bind(km, keybindings["find"], prevent_default = true) do cm2::ComponentModifier
+        found_items::Dict{String, Vector{UnitRange{Int64}}} = Dict{String, Vector{UnitRange{Int64}}}()
+        if "findbox" in cm2
+            found_items = Dict{String, Vector{UnitRange{Int64}}}()
+            remove!(cm, "mainbar")
+            return
+        end
+        findbar = build_findbar(c, cm2, cells, found_items)
+        insert!(cm2, "mainbody", 6, findbar)
+        focus!(cm2, "findbox")
     end
-
     ToolipsSession.bind(km, keybindings["focusdown"]) do cm::ComponentModifier
         focus_down!(c, cm, cell, proj)
     end
     km::KeyMap
 end
-indent_after = ("begin", "function", "struct")
+
+function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cells::Vector{Cell}, 
+    found_items::Dict{String, Vector{UnitRange{Int64}}})
+    find_box = textdiv("findbox", text = "", class = "searchboxes")
+    replace_box = textdiv("replacebox", text = "", class = "searchboxes")
+    style!(replace_box, "margin-top" => 5px)
+    position_indicator = a("find-position", text = "0/0")
+    style!(position_indicator, "color" => "white", "font-weight" => "bold", "font-size" => 13pt)
+    selected_text::String = ""
+    ToolipsSession.bind(c, cm, find_box, "Enter", prevent_default = true) do cm2::ComponentModifier
+        @info "ran"
+        selected_text = cm2["findbox"]["text"]
+        @info selected_text
+        cells_containing = findall(cell::Cell{<:Any} -> contains(cell.source, selected_text), cells)
+        @info cells_containing
+        found_items = Dict{String, Vector{UnitRange{Int64}}}(begin
+            cell = cells[cellindex]
+            positions = findall(selected_text, cell.source)
+            cell.id => positions
+        end for cellindex in cells_containing)
+        count = sum([length(k) for k in values(found_items)])
+        @info count
+        set_text!(cm2, "find-position", "1/$count")
+    end
+    texts_box = div("findtexts", children = [find_box, replace_box])
+    style!(texts_box, "display" => "inline-block", "width" => 50percent)
+    button_find = button("find_b", text = "find")
+    button_replace = button("rep_b", text = "replace")
+    button_box = div("button_box", children = [button_find, button_replace, position_indicator])
+    style!(button_box, "display" => "inline-block", "width" => 50percent)
+    mainbar = div("findbar", children = [texts_box, button_box], class = "findcontainer")
+    mainbar
+end
+
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
