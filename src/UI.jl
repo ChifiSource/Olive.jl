@@ -989,6 +989,73 @@ function empty_module!(c::Connection, proj::Project{<:Any})
     re_source!(c, proj)
     Base.GC.gc()
 end
+
+function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cells::Vector{Cell}, 
+    found_items::Dict{String, Vector{UnitRange{Int64}}})
+    find_box = textdiv("findbox", text = "", class = "searchboxes")
+    replace_box = textdiv("replacebox", text = "", class = "searchboxes")
+    style!(replace_box, "margin-top" => 5px)
+    position_indicator = a("find-position", text = "0/0")
+    style!(position_indicator, "color" => "white", "font-weight" => "bold", "font-size" => 13pt)
+    selected_text::String = ""
+    count::Int64 = 0
+    inner_count = 0
+    total::Int64 = 0
+    prev_cell = ""
+    active_key = 0
+    prev_class = ""
+    ToolipsSession.bind(c, cm, find_box, "Enter", prevent_default = true) do cm2::ComponentModifier
+        if length(keys(found_items)) == 0
+            selected_text = cm2["findbox"]["text"]
+            cells_containing = findall(cell::Cell{<:Any} -> contains(cell.source, selected_text), cells)
+            found_items = Dict{String, Vector{UnitRange{Int64}}}(begin
+                cell = cells[cellindex]
+                positions = findall(selected_text, cell.source)
+                cell.id => positions
+            end for cellindex in sort(cells_containing))
+            active_key = 1
+            total = sum([length(k) for k in values(found_items)])
+        end
+        if total > 0
+            count = count + 1
+            item_keys = [keys(found_items) ...]
+            active_cell = item_keys[active_key]
+            active_cell_items = found_items[active_cell]
+            if count > length(active_cell_items)
+                active_key = active_key + 1
+                if active_key > length(item_keys)
+                    # go back to first cell
+                    active_key = 1
+                    count = 1
+                    active_cell = item_keys[1]
+                else
+                    # advance cells
+                    active_cell = item_keys[active_key]
+                end
+                active_cell_items = found_items[active_cell]
+            end
+            if prev_cell != ""
+                cm2["cell$prev_cell"] = "class" => prev_class
+            end
+            ToolipsSession.scroll_to!(cm2, "cell$active_cell")
+            prev_class = cm2["cell$active_cell"]["class"]
+            prev_cell = active_cell
+            cm2["cell$active_cell"] = "class" => "input_cell inputselected"
+        else
+            count = 0
+        end
+        set_text!(cm2, "find-position", "$count/$total")
+    end
+    texts_box = div("findtexts", children = [find_box, replace_box])
+    style!(texts_box, "display" => "inline-block", "width" => 45percent)
+    button_find = button("find_b", text = "find")
+    button_replace = button("rep_b", text = "replace")
+    button_box = div("button_box", children = [button_find, button_replace, position_indicator])
+    style!(button_box, "display" => "inline-block", "width" => 45percent)
+    mainbar = div("findbar", children = [texts_box, button_box], class = "findcontainer")
+    mainbar
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -1047,104 +1114,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     end
     tabbody::Component{:div}
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
-    fname = p.id
-    tabbody = div("tab$(fname)")
-    style!(tabbody, "border-bottom-right-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "green")
-    if(hidden)
-        style!(tabbody, "background-color" => "gray")
-    end
-    tablabel = a("tablabel$(fname)", text = p.name)
-    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "white")
-    push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].open[getname(c)].projects
-        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
-        [begin
-            if projects[e].id != p.id 
-                style_tab_closed!(cm, projects[e])
-            end
-        end  for e in inpane]
-        projbuild = build(c, cm, p)
-        set_children!(cm, "pane_$(p[:pane])", [projbuild])
-        style!(cm, tabbody, "background-color" => "green")
-    end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
-        if ~("$(fname)close" in keys(cm.rootc))
-            decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
-                remove!(cm2, "$(fname)close")
-                remove!(cm2, "$(fname)add")
-                remove!(cm2, "$(fname)run")
-                remove!(cm2, "$(fname)switch")
-                remove!(cm2, decollapse_button)
-            end
-            style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
-            controls = tab_controls(c, p)
-            insert!(controls, 1, decollapse_button)
-            [append!(cm, tabbody, serv) for serv in controls]
-        end
-    end
-    tabbody::Component{:div}
-end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
-    fname = p.id
-    tabbody = div("tab$(fname)")
-    style!(tabbody, "border-bottom-right-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "#FF6C5C")
-    if(hidden)
-        style!(tabbody, "background-color" => "gray")
-    end
-    tablabel = a("tablabel$(fname)", text = p.name)
-    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "white")
-    push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].open[getname(c)].projects
-        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
-        [begin
-            if projects[e].id != p.id 
-                style_tab_closed!(cm, projects[e])
-            end
-        end  for e in inpane]
-        projbuild = build(c, cm, p)
-        set_children!(cm, "pane_$(p[:pane])", [projbuild])
-        style!(cm, tabbody, "background-color" => "#FF6C5C")
-    end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
-        if ~("$(fname)close" in keys(cm.rootc))
-            decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
-                remove!(cm2, "$(fname)close")
-                remove!(cm2, "$(fname)add")
-                remove!(cm2, "$(fname)run")
-                remove!(cm2, "$(fname)switch")
-                remove!(cm2, decollapse_button)
-            end
-            style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
-            controls = tab_controls(c, p)
-            insert!(controls, 1, decollapse_button)
-            [append!(cm, tabbody, serv) for serv in controls]
-        end
-    end
-    tabbody::Component{:div}
-end
+
 #==output[code]
 UndefVarError: ComponentModifier not defined
 ==#
