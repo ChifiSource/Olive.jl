@@ -186,7 +186,7 @@ function olivesheet()
         "font-style" => "normal", "display" => "inline-block")
     tab_icon:"hover":["transform" => "scale(1.01)", "color" => "darkgray"]
     # projects:
-    project_window = Style("div.projectwindow", "overflow-y" => "scroll", "overflow-x" => "hidden", "padding" => 7px, 
+    project_window = Style("div.projectwindow", "overflow-y" => "show", "overflow-x" => "hidden", "padding" => 7px, 
     "animation-name" => "fadeup", "animation-duration" => 850ms, "min-height" => 100percent)
     # project explorer:
     p_explorer = style("div.pexplorer", "opacity" => 0percent, 
@@ -234,8 +234,8 @@ function olivesheet()
     # search:
     searchboxes = style("div.searchboxes", "padding" => 3px, "background-color" => "white", "border-radius" => 2px, 
     "border" => 1px * "solid #1e1e1e", "width" => 95percent)
-    find_cont = style("div.findcontainer", "padding" => 10px, "background-color" => "#1e1e1e", "border-top-left-radius" => 0px, 
-    "border-top-right-radius" => 0px)
+    find_cont = style("div.findcontainer", "padding" => 1px, "background-color" => "#1e1e1e", "border-top-left-radius" => 0px, 
+    "border-top-right-radius" => 0px, "position" => "absolute", "top" => 0, "width" => 99percent, "z-index" => 10)
     # push:
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",

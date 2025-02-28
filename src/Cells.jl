@@ -1,3 +1,25 @@
+mutable struct CellOperation{CT <: Any, name <: Any}
+    cell::Cell{CT}
+    position::Int64
+end
+
+
+function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, :delete})
+
+end
+
+function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, :cellup})
+
+end
+
+function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, :celldown})
+
+end
+
+
 """
 # welcome to Cells.jl
 This file creates the basis for Olive.jl cells then builds olive cell types
@@ -996,7 +1018,8 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         found_items::Dict{String, Vector{UnitRange{Int64}}} = Dict{String, Vector{UnitRange{Int64}}}()
         if "findbox" in cm2
             found_items = Dict{String, Vector{UnitRange{Int64}}}()
-            remove!(cm, "mainbar")
+            style!(cm2, proj.id, "height" => 90percent)
+            remove!(cm2, "findbar")
             return
         end
         findbar = build_findbar(c, cm2, cells, found_items)
@@ -1017,27 +1040,60 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     position_indicator = a("find-position", text = "0/0")
     style!(position_indicator, "color" => "white", "font-weight" => "bold", "font-size" => 13pt)
     selected_text::String = ""
+    count::Int64 = 0
+    inner_count = 0
+    total::Int64 = 0
+    prev_cell = ""
+    active_key = 0
+    prev_class = ""
     ToolipsSession.bind(c, cm, find_box, "Enter", prevent_default = true) do cm2::ComponentModifier
-        @info "ran"
-        selected_text = cm2["findbox"]["text"]
-        @info selected_text
-        cells_containing = findall(cell::Cell{<:Any} -> contains(cell.source, selected_text), cells)
-        @info cells_containing
-        found_items = Dict{String, Vector{UnitRange{Int64}}}(begin
-            cell = cells[cellindex]
-            positions = findall(selected_text, cell.source)
-            cell.id => positions
-        end for cellindex in cells_containing)
-        count = sum([length(k) for k in values(found_items)])
-        @info count
-        set_text!(cm2, "find-position", "1/$count")
+        if length(keys(found_items)) == 0
+            selected_text = cm2["findbox"]["text"]
+            cells_containing = findall(cell::Cell{<:Any} -> contains(cell.source, selected_text), cells)
+            found_items = Dict{String, Vector{UnitRange{Int64}}}(begin
+                cell = cells[cellindex]
+                positions = findall(selected_text, cell.source)
+                cell.id => positions
+            end for cellindex in sort(cells_containing))
+            active_key = 1
+            total = sum([length(k) for k in values(found_items)])
+        end
+        if total > 0
+            count = count + 1
+            item_keys = [keys(found_items) ...]
+            active_cell = item_keys[active_key]
+            active_cell_items = found_items[active_cell]
+            if count > length(active_cell_items)
+                active_key = active_key + 1
+                if active_key > length(item_keys)
+                    # go back to first cell
+                    active_key = 1
+                    count = 1
+                    active_cell = item_keys[1]
+                else
+                    # advance cells
+                    active_cell = item_keys[active_key]
+                end
+                active_cell_items = found_items[active_cell]
+            end
+            if prev_cell != ""
+                cm2["cell$prev_cell"] = "class" => prev_class
+            end
+            ToolipsSession.scroll_to!(cm2, "cell$active_cell")
+            prev_class = cm2["cell$active_cell"]["class"]
+            prev_cell = active_cell
+            cm2["cell$active_cell"] = "class" => "input_cell inputselected"
+        else
+            count = 0
+        end
+        set_text!(cm2, "find-position", "$count/$total")
     end
     texts_box = div("findtexts", children = [find_box, replace_box])
-    style!(texts_box, "display" => "inline-block", "width" => 50percent)
+    style!(texts_box, "display" => "inline-block", "width" => 45percent)
     button_find = button("find_b", text = "find")
     button_replace = button("rep_b", text = "replace")
     button_box = div("button_box", children = [button_find, button_replace, position_indicator])
-    style!(button_box, "display" => "inline-block", "width" => 50percent)
+    style!(button_box, "display" => "inline-block", "width" => 45percent)
     mainbar = div("findbar", children = [texts_box, button_box], class = "findcontainer")
     mainbar
 end
