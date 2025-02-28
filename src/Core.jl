@@ -286,7 +286,8 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
 end
 
 function load_style_settings(c::Connection, om::AbstractComponentModifier)
-    if ~("highlighting" in keys(c[:OliveCore].client_data[getname(c)]))
+    setting_keys = keys(c[:OliveCore].client_data[getname(c)])
+    if ~("highlighting" in setting_keys)
         tm::Highlighter = OliveHighlighters.Highlighter("")
         OliveHighlighters.style_julia!(tm)
         tomltm = OliveHighlighters.Highlighter("")
@@ -353,6 +354,28 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
     end
     push!(sect, Component{:sep}("highsep"), updatebutton)
     append!(om, "settingsmenu", container)
+    container = containersection(c, "theme-settings", fillto = 80)
+    if ~("theme" in setting_keys)
+        enable_themes = button("theme-enable", text = "enable themes")
+        on(c, enable_themes, "click") do cm::ComponentModifier
+            theme_dir = CORE.data["home"] * "/themes"
+            if isdir(theme_dir)
+
+            else
+                @info theme_dir
+            end
+        end
+        push!(container[:children][2], enable_themes)
+    else
+
+    end
+    append!(om, "settingsmenu", container)
+end
+
+function build_themes_options(themes_path::String)
+    opts = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
+    Components.option("creatorkey", text = string(Tsig.parameters[1]))      
+    end for theme in readdir(theme_dir)]))
 end
 
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin

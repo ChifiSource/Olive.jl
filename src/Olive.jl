@@ -36,6 +36,13 @@ The `build` function is used as the translation layer between the
 ```julia
 # extensible methods for build:
 
+build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) # load extensions
+
+build(c::Connection, env::Environment{<:Any}) # environment extensions
+
+build(c::Connection, dir::Directory{<:Any}) # directory extensions
+
+build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any}) # project extensions
 ```
 For example, the `:code` cell is added to `Olive` using the `Method` 
 `build(::Connection, ::ComponentModifier, ::Cell{:code}, ::Project{<:Any})`.
@@ -50,13 +57,11 @@ code/none
 ==#
 #--
 """export evalin
-### Olive 
 ```julia
 olive_module(modname::String, environment::String) -> ::String
 ```
 ---
 Creates a simple, minimalist `Olive` module. This comes in the form of a `String`, which parsed and evaluated.
-#### example
 ```example
 mod = eval(Meta.parse(olive_module("mymod", "."))) 
 ```
@@ -93,13 +98,10 @@ code/none
 ==#
 #--
 """
-### Olive 
 ```julia
 olive_motd() -> ::Component{:div}
 ```
-------------------
 Creates a markdown component containing the `Olive` message of the day.
-#### example
 ```example
 using Olive
 
@@ -116,20 +118,13 @@ function olive_motd()
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
-#==
-code/none
-==#
-#--
+
 include("Core.jl")
-#==
-include/none
-==#
-#--
+
 include("UI.jl")
-#==
-include/none
-==#
-#--
+
+include("extensions.jl")
+
 """
 ```julia
 verify_client!(c::Connection) -> ::String
@@ -210,11 +205,16 @@ code/none
 #--
 """
 ```julia
-build(c::Connection, env::Environment{<:Any}) -> ::Environment
+build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
+    themes_enabled::Bool = true) -> Tuple{Component, Component, Component}
 ```
 The `build` function for an `Olive` `Environment` assembles the various components 
 which compose `Olive` into the `Olive` page. That being said, simply changing the loaded 
-environment can alter how `Olive` loads entirely.
+environment can alter how `Olive` loads entirely. This function should return 
+
+1. the main body from which the `Olive` is built
+2. the loadicondiv, the loadicon loaded into a `Component{:div}`. The loadicon can be whatever you want, 
+and can be provided as an argument to the default `Environment` `build` function.
 ###### example
 The calling of this function is done on a `Toolips.Route`, we are able to assemble our own `Environment` (`?(Environment)`) or use 
     `load_default_project!(::Connection)`.
@@ -283,8 +283,17 @@ From here, we would need to build out the **entire** `Olive` UI. That being said
 to look at this Function (line 274 of Olive.jl) to get an idea of how it works, and how one might 
 extend `Olive` using a new `Environment` type.
 """
-function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET)
-    write!(c, sheet)
+function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
+    themes_enabled::Bool = true)
+    if themes_enabled
+        if haskey(c[:OliveCore].client_data[getname(c)], "theme")
+            @info c[:OliveCore].client_data[getname(c)]["theme"]
+        else
+            write!(c, sheet)
+        end
+    else
+        write!(c, sheet)
+    end
     olmod::Module = c[:OliveCore].olmod
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)

@@ -211,11 +211,11 @@ function olivesheet()
     "padding" => 0px, "transition" => 500ms, "pointer-events" => "none")
     section_innero = style("div.inner-open", "opacity" => 100percent, "height" => 70percent, 
             "pointer-events" => "auto", "padding" => 5px, "transition" => 500ms, "overflow-x" => "hidden")
-    container_arrow = Style(".containerarrow", "cursor" => "pointer",
+    container_arrow = Style("span.containerarrow", "cursor" => "pointer",
     "font-family" => "'Material Icons'", "font-weight" => "normal",
     "font-style" => "normal", "display" => "inline-block", "line-height" => "1",
     "wewbkit-font-smoothing" => "antialiased", "text-rendering" => "optimizeLegibility",
-    "font-size" => "10pt", "transition" => ".4s", "line-height" => "1",
+    "font-size" => "5pt", "transition" => ".4s", "line-height" => "1",
     "text-transform" => "none", "letter-spacing" => "normal", "user-select" => "none",
     "color" => "darkgray",
     "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
