@@ -175,7 +175,7 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
         "copy" => ["C", "ctrl", "shift"],
         "paste" => ["V", "ctrl", "shift"],
         "cut" => ["X", "ctrl", "shift"],
-        "select" => ["F", "ctrl", "shift"],
+        "select" => ["Q", "ctrl", "shift"],
         "new" => ["Enter", "ctrl", "shift"],
         "focusup" => ["ArrowUp", "shift"],
         "focusdown" => ["ArrowDown", "shift"],
@@ -204,15 +204,16 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
         confirm = button("keybind$(keybinding[1])confirm", text = "confirm")
         on(c, confirm, "click") do cm::ComponentModifier
             key_vec = Vector{String}()
-            k = cm[setinput]["value"]
+            k = cm["$(keybinding[1])inp"]["value"]
             if length(k) == 1
                 k = uppercase(k)
             end
             push!(key_vec, k)
-            if parse(Bool, cm[shift_checkbox]["value"])
+            @info cm.rootc
+            if parse(Bool, cm["shiftk$(keybinding[1])"]["value"])
                 push!(key_vec, "shift")
             end
-            if parse(Bool, cm[ctrl_checkbox]["value"])
+            if parse(Bool, cm["ctrlk$(keybinding[1])"]["value"])
                 push!(key_vec, "ctrl")
             end
             c[:OliveCore].client_data[getname(c)]["keybindings"][keybinding[1]] = key_vec
@@ -736,6 +737,39 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     end for cell in frstcells])
     div(p.id, children = retvs, class = "projectwindow")::Component{:div}
 end
+
+abstract type AbstractOliveOperation end
+
+mutable struct CellOperation{CT <: Any, name <: Any} <: AbstractOliveOperation
+    cell::Cell{CT}
+    position::Int64
+    function CellOperation{T}(cell::Cell{<:Any}, position::Int64) where {T <: Any}
+        new{typeof(cell).parameters[1], T}(cell, position)::CellOperation
+    end
+end
+
+push!(v::Vector{<:AbstractOliveOperation}, el ...) = begin
+    append!(v, el)
+    if length(v) > 8
+        deleteat!(v, 1)
+    end
+end
+
+function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, :delete})
+
+end
+
+function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, :cellup})
+
+end
+
+function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, :celldown})
+
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -746,12 +780,14 @@ mutable struct Environment{T <: Any}
     projects::Vector{Project}
     cells_selected::Dict{String, String}
     cell_clipboard::Vector{Pair{String, String}}
+    cell_ops::Vector{CellOperation}
     pwd::String
     function Environment(T::String, name::String)
         nT::Symbol = Symbol(T)
         new{nT}(name, Vector{Directory}(), 
         Vector{Project}(), Dict{String, String}(), 
-        Vector{Pair{String, String}}(), "")::Environment{nT}
+        Vector{Pair{String, String}}(), 
+        Vector{CellOperation}(), "")::Environment{nT}
     end
     Environment(name::String) = Environment("olive", name)::Environment{:olive}
 end

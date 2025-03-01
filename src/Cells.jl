@@ -1,25 +1,3 @@
-mutable struct CellOperation{CT <: Any, name <: Any}
-    cell::Cell{CT}
-    position::Int64
-end
-
-
-function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
-    cells::Vector{Cell}, op::CellOperation{<:Any, :delete})
-
-end
-
-function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
-    cells::Vector{Cell}, op::CellOperation{<:Any, :cellup})
-
-end
-
-function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
-    cells::Vector{Cell}, op::CellOperation{<:Any, :celldown})
-
-end
-
-
 """
 # welcome to Cells.jl
 This file creates the basis for Olive.jl cells then builds olive cell types
@@ -50,6 +28,7 @@ function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
     else
         olive_notify!(cm2, "this cell cannot go up any further!", color = "red")
     end
+    push!(CORE.open[getname(c)].cell_ops, CellOperation{:cellup}(cell, pos))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -73,6 +52,7 @@ function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     else
         olive_notify!(cm, "this cell cannot go down any further!", color = "red")
     end
+    push!(CORE.open[getname(c)].cell_ops, CellOperation{:celldown}(cell, pos))
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -88,6 +68,7 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         focus!(cm, "cell$(cells[pos - 1].id)")
     end
     remove!(cm, "cellcontainer$(cellid)")
+    push!(CORE.open[getname(c)].cell_ops, CellOperation{:delete}(cell, pos))
     deleteat!(cells, pos)
 end
 #==output[code]
@@ -838,6 +819,12 @@ function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{<:An
     proj::Project{<:Any})
 
 end
+
+function cell_open!(c::Connection,   cm::ComponentModifier, cell::Cell{<:Any},
+    proj::Project{<:Any})
+    olive_notify!(cm2, "this cell does not have an `open` binding", color = "red")
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -935,13 +922,25 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         end for (e, cell_path) in enumerate(env.cell_clipboard)]
         proj.data[:cells] = vcat(proj.data[:cells][1:found_pos], paste_cells, proj.data[:cells][found_pos:end])
     end
+    original_class_inp = ""
+    original_class_side = ""
     ToolipsSession.bind(km, keybindings["select"]) do cm2::ComponentModifier
-
+        env::Environment = CORE.open[getname(c)]
+        cellid::String = cell.id
+        if cellid in keys(env.cells_selected)
+            delete!(env.cells_selected, cellid)
+            cm2["cellside$(cellid)"] = "class" => original_class_side
+            cm2["cell$cellid"] = "class" => original_class_inp
+            return
+        end
+        push!(env.cells_selected, cell.id => proj.id)
+        original_class_side = cm2["cellside$cellid"]["class"]
+        original_class_inp = cm2["cell$cellid"]["class"]
+        cm2["cellside$(cellid)"] = "class" => "cellside selectedside"
+        cm2["cell$cellid"] = "class" => "input_cell inputselected"
     end
     ToolipsSession.bind(km, keybindings["open"]) do cm2::ComponentModifier
-        if typeof(cell.outputs) != Pair{String, Pair{String, String}}
-            olive_notify!(cm2, "this cell does not have an `open` binding")
-        end
+        cell_open!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["find"], prevent_default = true) do cm2::ComponentModifier
         found_items::Dict{String, Vector{UnitRange{Int64}}} = Dict{String, Vector{UnitRange{Int64}}}()
@@ -1087,11 +1086,6 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
     outside::Component{:div}
 end
 
-
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     windowname::String = proj.id

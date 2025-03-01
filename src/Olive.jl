@@ -11,7 +11,7 @@ using Olive; Olive.start()
 ```
 """
 module Olive
-import Base: write, display, getindex, setindex!, string, showerror
+import Base: write, display, getindex, setindex!, string, showerror, push!
 using Toolips
 using Toolips.Components
 using Toolips: WebServer
@@ -43,6 +43,8 @@ build(c::Connection, env::Environment{<:Any}) # environment extensions
 build(c::Connection, dir::Directory{<:Any}) # directory extensions
 
 build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any}) # project extensions
+
+
 ```
 For example, the `:code` cell is added to `Olive` using the `Method` 
 `build(::Connection, ::ComponentModifier, ::Cell{:code}, ::Project{<:Any})`.
