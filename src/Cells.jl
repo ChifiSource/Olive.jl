@@ -62,6 +62,10 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
     cellid::String = cell.id
     pos = findlast(tempcell::Cell{<:Any} -> tempcell.id == cellid, cells)
+    if isnothing(pos)
+        @info [lcell.id for lcell in cells]
+        @info cell.id
+    end
     if pos == 1
         focus!(cm, "cell$(cells[pos + 1].id)")
     else
@@ -868,16 +872,16 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     end
     ToolipsSession.bind(km, keybindings["delete"]) do cm2::ComponentModifier
         cellid::String = cell.id
-        style!(cm2, "cellcontainer$(cellid)", "transform" => translateX(-100percent))
-        deleted::Bool = false
         if length(cells) == 1
             olive_notify!(cm2, "you cannot the last cell in the project", color = "red")
             return
         end
+        style!(cm2, "cellcontainer$(cellid)", "transform" => translateX(-100percent))
+        deleted::Bool = false
         on(c, cm2, 350) do cm::ComponentModifier
             if ~ deleted
-                cell_delete!(c, cm, cell, cells)
                 deleted = true
+                cell_delete!(c, cm, cell, proj.data[:cells])
             end
         end
     end
@@ -920,7 +924,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             ToolipsSession.insert!(cm2, proj.id, e + found_pos, built_cell)
             new_cell
         end for (e, cell_path) in enumerate(env.cell_clipboard)]
-        proj.data[:cells] = vcat(proj.data[:cells][1:found_pos], paste_cells, proj.data[:cells][found_pos:end])
+        proj.data[:cells] = vcat(proj.data[:cells][1:found_pos], paste_cells, proj.data[:cells][found_pos + 1:end])
     end
     original_class_inp = ""
     original_class_side = ""
