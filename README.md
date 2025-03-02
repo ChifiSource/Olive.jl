@@ -33,12 +33,7 @@ Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor buil
    - [tech stack](#tech-stack)
 ---
 ### get started
-- this overview corresponds to `Olive` **0.1**
-- welcome to `Olive` **beta I**
-
-<div align="center">
-   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/getstarted1.png"></img>
-</div>
+- this overview corresponds to `Olive` **0.1** (beta)
 
 ###### getting olive
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**, or use the `Pkg.add` `Function` to add `Olive`.
@@ -50,7 +45,7 @@ julia> ]
 
 pkg> add Olive
 ```
-Alternatively, you could also grab `Unstable`, this will give you the latest developments (`0.0.9`), but some features might be intermittently broken.
+Alternatively, you could also grab `Unstable`, this will give you the latest developments, but some features might be intermittently broken.
 ```julia
 julia> ]
 pkg> add Olive#Unstable
@@ -58,16 +53,18 @@ pkg> add Olive#Unstable
 ```julia
 using Olive; Olive.start()
 ```
-To change the IP or PORT, use the positional arguments `IP` (**1**, `String`) and `PORT` (**2**, `Int64`). There are also the key-word arguments
-- `path`**::String** = `homedirec()` -- Provides a path from which to setup or start `Olive`.
-- `warm`**::Bool** = `true` -- determines whether or not `Olive` should precompile `olive` and "warm" the `Toolips` server. This helps reduce initial latency when starting `Olive`.
+To change the IP or port, simply provide an `IP4` using **the colon syntax**:
+```julia
+using Olive; Olive.start("127.0.0.1":9987)
+```
+The following arguments will change the behavior of this start:
+- `path`**::String** = `homedirec()` -- The path
 
 If there is no `olive` setup inside of `path`, `start` will ask us for a root name to create a new `olive` home at that path. Providing `path` allows us to setup multiple `Olive` environments across our filesystem.
 
 <div align="center">
-   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/getstarted2.png"></img>
+   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/getstarted2.png" width = 450></img>
 </div>
-
 
 ```julia
 IP = "127.0.0.1" # same as default (see ?(Olive.start))
