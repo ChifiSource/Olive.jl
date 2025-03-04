@@ -44,10 +44,13 @@ build(c::Connection, dir::Directory{<:Any}) # directory extensions
 
 build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any}) # project extensions
 
+build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool = true) # file cells
 
+build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, proj::Project{<:Any}) # code cells
 ```
 For example, the `:code` cell is added to `Olive` using the `Method` 
 `build(::Connection, ::ComponentModifier, ::Cell{:code}, ::Project{<:Any})`.
+- See also: `start`, `on_code_build`, `cell_highlight!`, `cell_bind!`, `evaluate`, `Cell`, `Project`
 """
 function build end
 
@@ -62,8 +65,9 @@ code/none
 ```julia
 olive_module(modname::String, environment::String) -> ::String
 ```
----
-Creates a simple, minimalist `Olive` module. This comes in the form of a `String`, which parsed and evaluated.
+Creates a simple, minimalist `Olive` module. This comes in the form of a `String`, 
+which is parsed and evaluated to create `Olive` modules for projects. If you want to get a `Module` for 
+    your project, it is probably better to use `source_module!`
 ```example
 mod = eval(Meta.parse(olive_module("mymod", "."))) 
 ```
@@ -129,9 +133,11 @@ include("extensions.jl")
 
 """
 ```julia
-verify_client!(c::Connection) -> ::String
+verify_client!(c::Connection) -> ::Tuple{String, Dict{Symbol, String}}
 ```
-Verifies an incoming client, registers keys to names. Returns the username of the current `Connection`.
+Verifies an incoming client, registers keys to names. Returns the username of the current `Connection` and 
+the current `GET` arguments. This is called at the beginning of `make_session` and will make sure all clients 
+have keys.
 """
 function verify_client!(c::Connection)
     ip::String = get_ip(c)
@@ -173,11 +179,38 @@ code/none
 ==#
 #--
 """
-### Olive
 ```julia
 load_default_project!(c::Connection) -> ::Environment
 ```
-Creates the default `Olive` environment with the `getstarted` project.
+Creates the default `Olive` environment with the `getstarted` project. This is the default 
+function provided to `make_session` for loading a new environment. The default project can be changed 
+    by assembling your own `Environment` and providing this function as `default` to `make_session`. For 
+    help in making your own `Environment`, here is how this is done for load_default_project!:
+```julia
+function load_default_project!(c::Connection)
+    name::String = getname(c)
+    oc::OliveCore = c[:OliveCore]
+    cells = Vector{Cell}([Cell("getstarted", "")])
+    env::Environment = Environment(name)
+    env.pwd::String = oc.data["wd"]
+    env.directories = copy(get_group(c).directories)
+    pwd_direc::Directory{:pwd} = Directory(env.pwd, dirtype = "pwd")
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cells,
+    :pane => "one", :env => " ")
+    sourced_path::String = " "
+    if "home" in keys(oc.data)
+        push!(projdict, :env => oc.data["home"])
+        sourced_path = oc.data["home"]
+    end
+    myproj::Project{<:Any} = Project{:olive}("get started", projdict)
+    oc.olmod.Olive.source_module!(c, myproj, sourced_path)
+    insert!(env.directories, 1, pwd_direc)
+    push!(env.projects, myproj)
+    push!(oc.open, env)
+    env::Environment
+end
+```
+- See also: `make_session`
 """
 function load_default_project!(c::Connection)
     name::String = getname(c)
@@ -217,7 +250,6 @@ environment can alter how `Olive` loads entirely. This function should return
 1. the main body from which the `Olive` is built
 2. the loadicondiv, the loadicon loaded into a `Component{:div}`. The loadicon can be whatever you want, 
 and can be provided as an argument to the default `Environment` `build` function.
-###### example
 The calling of this function is done on a `Toolips.Route`, we are able to assemble our own `Environment` (`?(Environment)`) or use 
     `load_default_project!(::Connection)`.
 ```example
@@ -284,6 +316,7 @@ From here, we would need to build out the **entire** `Olive` UI. That being said
 `Environment` extensions are likely the least approachable extensions, and it might be valuable 
 to look at this Function (line 274 of Olive.jl) to get an idea of how it works, and how one might 
 extend `Olive` using a new `Environment` type.
+- See also: `Project`, `Environment`, `make_session`, `start`, `getname`
 """
 function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
     themes_enabled::Bool = true)

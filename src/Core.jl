@@ -355,7 +355,7 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
     end
     push!(sect, Component{:sep}("highsep"), updatebutton)
     append!(om, "settingsmenu", container)
-    container = containersection(c, "theme-settings", fillto = 80)
+    container = containersection(c, "themes", fillto = 80)
     if ~("theme" in setting_keys)
         enable_themes = button("theme-enable", text = "enable themes")
         on(c, enable_themes, "click") do cm::ComponentModifier
@@ -748,10 +748,11 @@ mutable struct CellOperation{CT <: Any, name <: Any} <: AbstractOliveOperation
     end
 end
 
-push!(v::Vector{<:AbstractOliveOperation}, el ...) = begin
+push!(v::Vector{<:AbstractOliveOperation}, el...) = begin
     append!(v, el)
-    if length(v) > 8
-        deleteat!(v, 1)
+    n = length(v)
+    if n > 8
+        deleteat!(v, 1:(n - 8))
     end
 end
 
@@ -1012,7 +1013,11 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractDict)
 end
 
 function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractVector)
-    write(d.io, "Vector x$(length(o)):" * string(o[1:5]) * " ...")
+    upper, n = 5, length(o)
+    if n < 5
+        upper = n
+    end
+    write(d.io, "Vector ($n):" * string(o[1:upper]) * " ...")
 end
 
 #==output[code]
