@@ -102,30 +102,31 @@ The main window is called **session**. This contains two panes which will be fil
 ###### keybindings
 Using cells is simple. By default, olive bindings use `ctrl` alone for window features, `ctrl` + `shift` to do things inside of `Cell`, and `shift` to work with the `Project`. Here is the keymap reflecting this:
 - **window bindings**
-  - `ctrl` + `C` **copy**
-  - `ctrl` + `X` **cut**
-  - `ctrl` + `V` **paste**
   - `ctrl` + `S` **save selected project**
-  - `ctrl` + `z` **undo**
-  - `ctrl` + `y` **redo**
-  - `ctrl` + `F` **search** `TODO (but has default)`
-  - `ctrl` + `O`  **open** `TODO `
+  - `ctrl` + `z` cell **undo**
+  - `ctrl` + `y` cell **redo**
   - `ctrl` + `N` **new** `TODO`
-- **project bindings**
-  - `ctrl` + `shift` + `C` **copy selected cell** `TODO`
-  - `ctrl` + `shift` + `X` **cut selected cell** `TODO`
-  - `ctrl` + `shift` + `V` **paste selected cell** `TODO`
+  - `ctrl` + `E` **explorer** TODO
+- **cell bindings**
   - `ctrl` + `Shift` + `S` **save project as**
   - `ctrl` + `shift` + `Delete` **delete selected cell**
   - `ctrl` + `shift` + `Enter` **new cell**
-  - `ctrl` + `shift` + `↑` **move selected cell up**
-  - `ctrl` + `shift` + `↓` **move selected cell down**
-  - `ctrl` + `shift` + `O` **open** `TODO`
-
-- **cell bindings**
+  - `ctrl` + `shift` + `↑` **move cell up**
+  - `ctrl` + `shift` + `↓` **move cell down**
+  - `ctrl` + `Shift` + `F` cell **search** 
+  - `ctrl` + `Shift` + `O`  cell **open** (open-ended binding, used for extensions -- doesn't do anything for base `Olive` cells)
+  - `ctrl` + `Shift` + `A` cell **select**
+  - `ctrl` + `C` cell **copy**
+  - `ctrl` + `V` cell **paste**
+- **cell text bindings**
   - `shift` + `Enter` **run cell**
   - `shift` + `↑` **shift focus up**
   - `shift` + `↑` **shift focus down**
+  - `ctrl` + `C` **cell undo**
+  - `ctrl` + `Y` **cell redo**
+  - `ctrl` + `C` **cell copy**
+  - `ctrl` + `V` **cell paste**
+  - `ctrl` + `X` **cell cut**
 
 These keybindings can be edited inside of the [settings](https://github.com/ChifiSource/Olive.jl#settings)
 #### settings
