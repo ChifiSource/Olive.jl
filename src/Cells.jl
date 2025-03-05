@@ -517,7 +517,6 @@ function build(f::Function, c::Connection, cell::Cell{:creator}, template::Strin
         remove!(cm, maincell)
     end
     not_this_template = Symbol(template)
-    @warn "hello?"
     opts = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
         Tsig = m.sig.parameters[4]
         if Tsig != OliveExtension{<:Any} && Tsig.parameters[1] != not_this_template
@@ -525,7 +524,6 @@ function build(f::Function, c::Connection, cell::Cell{:creator}, template::Strin
             Components.option("creatorkey", text = string(Tsig.parameters[1]))   
         end        
     end for m in methods(create_new)]))
-  # insert!(opts, 1, ))
     push!(opts, Components.option("creatorkey", text = template))
     formatbox = Components.select("formatbox", opts, value = template)
     style!(formatbox, "width" => 25percent)
@@ -573,7 +571,9 @@ function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::Compo
         fname = cm[namebox]["text"]
         fmtn = cm[formatbox]["value"]
         direc = cm["selector"]["text"]
-        p.data[:path] = direc * "/" * fname * ".$fmtn"
+        if ~(contains(fname, ".$fmtn"))
+            p.data[:path] = direc * "/" * fname * ".$fmtn"
+        end
         p.data[:export] = string(fmtn)
         save_project(c, cm, p)
         remove!(cm, "cell$(cell.id)")
@@ -633,6 +633,11 @@ inputcell_style (generic function with 1 method)
 function build(c::Connection, cell::Cell{:ipynb},
     d::Directory{<:Any})
     filecell = build_base_cell(c, cell, d)
+    on(c, filecell, "dblclick") do cm::ComponentModifier
+        cs::Vector{Cell{<:Any}} = olive_read(cell)
+        proj = add_to_session(c, cs, cm, cell.source, cell.outputs)
+        proj.data[:export] = "ipynb"
+    end
     style!(filecell, "background-color" => "#FD5800")
     filecell
 end
