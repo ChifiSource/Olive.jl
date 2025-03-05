@@ -1247,13 +1247,13 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         ret = e
     end
     # output
-    [begin
+    for m in methods(on_code_evaluate)
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
             ext = xtname()
             on_code_evaluate(c, cm, ext, cell, proj)
         end
-    end for m in methods(on_code_evaluate)]
+    end
     # we do this again, in case a code cell extension changes the output
     projects = c[:OliveCore].open[getname(c)].projects
     projpos = findfirst(p -> p.id == window, projects)
@@ -1266,7 +1266,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     end
     if typeof(ret) <: Exception
         display(active_display, ret)
-        outp = replace(String(active_display.io.data), "\n" => "</br>")
+        outp = replace(String(take!(active_display.io)), "\n" => "</br>")
     elseif ~(isnothing(ret))
         display(active_display, MIME"olive"(), ret)
         outp = outp * "</br>" * String(active_display.io.data)
