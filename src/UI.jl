@@ -111,7 +111,7 @@ function default_tabstyle(; radiustop::Int64 = 5,
     "backgroundcolor" => "#754679", "color" => "#754679")::Style
 end
 
-default_astyle() = Style("a", "color" => "#2c4c3b")
+default_astyle() = Style("a", "color" => "#2c4c3b", "transition" => 700ms)
 
 default_pstyle(; textsize = 12pt) = Style("p",
     "color" => "#141414", "font-size" => "14pt")::Style
@@ -1020,9 +1020,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             item_keys = [keys(found_items) ...]
             count = 0
             inner_count = 0
-            hl = get_highlighter(c, cells[active_cell])
-            style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166")
-            style!(hl, :founds, "color" => "black")
         end
         if total > 0
             count += 1
@@ -1050,12 +1047,20 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             @warn active_cell
             @warn active_key
             position = active_cell_items[inner_count]
+            hl = get_highlighter(c, cells[active_cell])
+            style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166")
+            style!(hl, :founds, "color" => "black")
             @info position
             push!(hl, position => :found)
+            @info hl.marks
             cell_highlight!(c, cm2, cells[active_cell], proj)
-            if prev_cell != ""
-                cm2["cell$prev_cell"] = "class" => prev_class
-                cell_highlight!(c, cm2, cells[prev_cell], proj)
+            if prev_cell != "" && inner_count == 1
+                current_prev = prev_cell
+                current_prev_class = prev_class
+                on(c, cm2, 150) do cm3::ComponentModifier
+                    cm3["cell$current_prev"] = "class" => current_prev_class
+                    cell_highlight!(c, cm3, cells[current_prev], proj)
+                end
             end
             ToolipsSession.scroll_to!(cm2, "cell$active_cell")
             prev_class = cm2["cell$active_cell"]["class"]
