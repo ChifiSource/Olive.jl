@@ -991,7 +991,7 @@ function empty_module!(c::Connection, proj::Project{<:Any})
 end
 
 function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cells::Vector{Cell}, 
-    found_items::Dict{String, Vector{UnitRange{Int64}}})
+    proj::Project{<:Any}, found_items::Dict{String, Vector{UnitRange{Int64}}})
     find_box = textdiv("findbox", text = "", class = "searchboxes")
     replace_box = textdiv("replacebox", text = "", class = "searchboxes")
     style!(replace_box, "margin-top" => 5px)
@@ -999,14 +999,16 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     style!(position_indicator, "color" => "white", "font-weight" => "bold", "font-size" => 13pt)
     selected_text::String = ""
     count::Int64 = 0
-    inner_count = 0
     total::Int64 = 0
     prev_cell = ""
     active_key = 0
+    inner_count = 0
     prev_class = ""
+    item_keys = nothing
     ToolipsSession.bind(c, cm, find_box, "Enter", prevent_default = true) do cm2::ComponentModifier
-        if length(keys(found_items)) == 0
-            selected_text = cm2["findbox"]["text"]
+        active_text::String = cm2["findbox"]["text"]
+        if length(keys(found_items)) == 0 || (selected_text != "" && active_text != selected_text)
+            selected_text = active_text
             cells_containing = findall(cell::Cell{<:Any} -> contains(cell.source, selected_text), cells)
             found_items = Dict{String, Vector{UnitRange{Int64}}}(begin
                 cell = cells[cellindex]
@@ -1015,32 +1017,51 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             end for cellindex in sort(cells_containing))
             active_key = 1
             total = sum([length(k) for k in values(found_items)])
+            item_keys = [keys(found_items) ...]
+            count = 0
+            inner_count = 0
+            hl = get_highlighter(c, cells[active_cell])
+            style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166")
+            style!(hl, :founds, "color" => "black")
         end
         if total > 0
-            count = count + 1
-            item_keys = [keys(found_items) ...]
+            count += 1
+            inner_count += 1
             active_cell = item_keys[active_key]
             active_cell_items = found_items[active_cell]
-            if count > length(active_cell_items)
+            if inner_count > length(active_cell_items)
                 active_key = active_key + 1
                 if active_key > length(item_keys)
+                    @warn "back to first"
                     # go back to first cell
                     active_key = 1
                     count = 1
+                    inner_count = 1
                     active_cell = item_keys[1]
                 else
+                    @warn "advance cell"
                     # advance cells
                     active_cell = item_keys[active_key]
+                    inner_count = 1
                 end
                 active_cell_items = found_items[active_cell]
             end
+            @info inner_count
+            @warn active_cell
+            @warn active_key
+            position = active_cell_items[inner_count]
+            @info position
+            push!(hl, position => :found)
+            cell_highlight!(c, cm2, cells[active_cell], proj)
             if prev_cell != ""
                 cm2["cell$prev_cell"] = "class" => prev_class
+                cell_highlight!(c, cm2, cells[prev_cell], proj)
             end
             ToolipsSession.scroll_to!(cm2, "cell$active_cell")
             prev_class = cm2["cell$active_cell"]["class"]
             prev_cell = active_cell
             cm2["cell$active_cell"] = "class" => "input_cell inputselected"
+            
         else
             count = 0
         end

@@ -177,6 +177,7 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
         "cut" => ["X", "ctrl", "shift"],
         "select" => ["Q", "ctrl", "shift"],
         "new" => ["Enter", "ctrl", "shift"],
+        "project-new" => ["N", "shift"],
         "focusup" => ["ArrowUp", "shift"],
         "focusdown" => ["ArrowDown", "shift"],
         "save" => ["s", "ctrl"],
@@ -209,7 +210,6 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
                 k = uppercase(k)
             end
             push!(key_vec, k)
-            @info cm.rootc
             if parse(Bool, cm["shiftk$(keybinding[1])"]["value"])
                 push!(key_vec, "shift")
             end
@@ -964,7 +964,6 @@ function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
 end
 
 function onsave(core::OliveCore, copy::AbstractDict, oe::OliveExtension{:groups})
-    @info keys(copy)
     copy["groups"] = Dict{String, Dict{String, Vector}}(begin
         cells::Vector{String} = [string(cell) for cell in group.cells]
         uris::Vector{String} = [string(cell.uri) for cell in group.directories]

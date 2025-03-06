@@ -520,7 +520,6 @@ function build(f::Function, c::Connection, cell::Cell{:creator}, template::Strin
     opts = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
         Tsig = m.sig.parameters[4]
         if Tsig != OliveExtension{<:Any} && Tsig.parameters[1] != not_this_template
-            @info Tsid.parameters[1]
             Components.option("creatorkey", text = string(Tsig.parameters[1]))   
         end        
     end for m in methods(create_new)]))
@@ -572,11 +571,13 @@ function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::Compo
         fmtn = cm[formatbox]["value"]
         direc = cm["selector"]["text"]
         if ~(contains(fname, ".$fmtn"))
-            p.data[:path] = direc * "/" * fname * ".$fmtn"
+            fname = fname * ".$fmtn"
         end
+        p.data[:path] = direc * "/" * fname 
         p.data[:export] = string(fmtn)
         save_project(c, cm, p)
         remove!(cm, "cell$(cell.id)")
+        set_text!(cm, "tablabel$(p.id)", fname)
     end
     maincell[:children] = [namebox, formatbox, cancelbutton, savebutton]
     maincell
@@ -826,13 +827,29 @@ end
 """
 function cell_highlight!(c::Connection,   cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
-
 end
 
-function cell_open!(c::Connection,   cm::ComponentModifier, cell::Cell{<:Any},
+function cell_open!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     olive_notify!(cm2, "this cell does not have an `open` binding", color = "red")
 end
+
+function get_highlighter(c::Connection, cell::Cell{<:Any})
+    nothing::Nothing
+end
+
+function get_highlighter(c::Connection, cell::Cell{:code})
+    c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
+end
+
+function get_highlighter(c::Connection, cell::Cell{:markdown})
+    c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
+end
+
+function get_highlighter(c::Connection, cell::Cell{:tomlvalues})
+    c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
+end
+
 
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -874,6 +891,30 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     end
     ToolipsSession.bind(km, keybindings["down"]) do cm2::ComponentModifier
         cell_down!(c, cm2, cell, proj)
+    end
+    ToolipsSession.bind(km, keybindings["project-new"], prevent_default = true) do cm2::ComponentModifier
+        creatorcell::Cell{:creator} = Cell("creator", "", "save")
+        cm2["settingsmenu"] =  "open" => "0"
+        cm2["settingicon"] = "class" => "material-icons"
+        cm2["settingsmenu"] = "class" => "settings"
+        cm2["projectexplorer"] = "class" => "pexplorer pexplorer-open"
+        style!(cm2, "olivemain", "margin-left" => "500px")
+        cm2["explorerico"] = "class" => "material-icons material-icons-selected"
+        style!(cm2, "menubar", "border-bottom-left-radius" => 0px)
+        set_text!(cm2, "explorerico", "folder_open")
+        cm2["olivemain"] = "ex" => "1"
+        insert!(cm2, "pwdmain", 2, build(c, creatorcell, p, cm))
+    end
+    ToolipsSession.bind(km, keybindings["explorer"], prevent_default = true) do cm2::ComponentModifier
+        cm2["settingsmenu"] =  "open" => "0"
+        cm2["settingicon"] = "class" => "material-icons"
+        cm2["settingsmenu"] = "class" => "settings"
+        cm2["projectexplorer"] = "class" => "pexplorer pexplorer-open"
+        style!(cm2, "olivemain", "margin-left" => "500px")
+        cm2["explorerico"] = "class" => "material-icons material-icons-selected"
+        style!(cm2, "menubar", "border-bottom-left-radius" => 0px)
+        set_text!(cm2, "explorerico", "folder_open")
+        cm2["olivemain"] = "ex" => "1"
     end
     ToolipsSession.bind(km, keybindings["delete"]) do cm2::ComponentModifier
         cellid::String = cell.id
@@ -959,7 +1000,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             remove!(cm2, "findbar")
             return
         end
-        findbar = build_findbar(c, cm2, cells, found_items)
+        findbar = build_findbar(c, cm2, cells, proj, found_items)
         insert!(cm2, "mainbody", 6, findbar)
         focus!(cm2, "findbox")
     end
@@ -1229,7 +1270,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     end for m in methods(on_code_highlight)]::Vector{Nothing}
     cell.source = replace(curr, "<div>" => "", "<br>" => "\n", "&nbsp;" => " ")
     tm::Highlighter = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
-    OliveHighlighters.set_text!(tm, cell.source)
+    tm.raw = cell.source
     OliveHighlighters.mark_julia!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
     OliveHighlighters.clear!(tm)
@@ -1274,7 +1315,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         outp = replace(String(take!(active_display.io)), "\n" => "</br>")
     elseif ~(isnothing(ret))
         display(active_display, MIME"olive"(), ret)
-        outp = outp * "</br>" * String(active_display.io.data)
+        outp = outp * "</br>" * String(take!(active_display.io))
     elseif isnothing(ret)
         outp = standard_out
     end
