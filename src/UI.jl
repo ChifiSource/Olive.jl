@@ -1005,7 +1005,8 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     inner_count = 0
     prev_class = ""
     item_keys = nothing
-    ToolipsSession.bind(c, cm, find_box, "Enter", prevent_default = true) do cm2::ComponentModifier
+    km = ToolipsSession.KeyMap()
+    ToolipsSession.bind(km, "Enter", prevent_default = true) do cm2::ComponentModifier
         active_text::String = cm2["findbox"]["text"]
         if length(keys(found_items)) == 0 || (selected_text != "" && active_text != selected_text)
             selected_text = active_text
@@ -1029,30 +1030,27 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             if inner_count > length(active_cell_items)
                 active_key = active_key + 1
                 if active_key > length(item_keys)
-                    @warn "back to first"
                     # go back to first cell
                     active_key = 1
                     count = 1
                     inner_count = 1
                     active_cell = item_keys[1]
                 else
-                    @warn "advance cell"
                     # advance cells
                     active_cell = item_keys[active_key]
                     inner_count = 1
                 end
                 active_cell_items = found_items[active_cell]
             end
-            @info inner_count
-            @warn active_cell
-            @warn active_key
             position = active_cell_items[inner_count]
             hl = get_highlighter(c, cells[active_cell])
-            style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166")
-            style!(hl, :founds, "color" => "black")
-            @info position
+            common = ("padding" => 1px, "border-radius" => 1px)
+            style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166", common ...)
+            style!(hl, :founds, "color" => "black", "background-color" => "lightpink", common ...)
             push!(hl, position => :found)
-            @info hl.marks
+            for pos in filter(p -> p != position, active_cell_items)
+                push!(hl, pos => :founds)
+            end
             cell_highlight!(c, cm2, cells[active_cell], proj)
             if prev_cell != "" && inner_count == 1
                 current_prev = prev_cell
@@ -1066,12 +1064,38 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             prev_class = cm2["cell$active_cell"]["class"]
             prev_cell = active_cell
             cm2["cell$active_cell"] = "class" => "input_cell inputselected"
-            
         else
             count = 0
         end
         set_text!(cm2, "find-position", "$count/$total")
     end
+    ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
+        focus!(cm2, "replacebox")
+    end
+    ToolipsSession.bind(km, "F", :ctrl, :shift, prevent_default = true) do cm2::ComponentModifier
+        remove!(cm2, "findbar")
+        if prev_cell != ""
+            current_prev = prev_cell
+            current_prev_class = prev_class
+            on(c, cm2, 150) do cm3::ComponentModifier
+                cm3["cell$current_prev"] = "class" => current_prev_class
+                cell_highlight!(c, cm3, cells[current_prev], proj)
+            end
+        end
+        found_items, prev_cell, prev_class, inner_count = nothing, nothing, nothing, nothing
+    end
+    ToolipsSession.bind(km, "Enter", :shift) do cm2::ComponentModifier
+        # replace
+    end
+    ToolipsSession.bind(km, "R", :ctrl, prevent_default = true) do cm2::ComponentModifier
+        # replace in selected cell.
+    end
+    ToolipsSession.bind(c, cm, find_box, km)
+    delete!(km.keys, "Tab")
+    ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
+        focus!(cm2, "findbox")
+    end
+    ToolipsSession.bind(c, cm, replace_box, km)
     texts_box = div("findtexts", children = [find_box, replace_box])
     style!(texts_box, "display" => "inline-block", "width" => 45percent)
     button_find = button("find_b", text = "find")

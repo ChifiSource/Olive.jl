@@ -1285,7 +1285,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell} = proj[:cells]
     # get code
     cell.source::String = cm["cell$(cell.id)"]["text"]
-    execcode::String = *("begin\n", cell.source, "\nend\n")
+    execcode::String = *(cell.source)
     ret::Any = ""
     try
         ret = proj[:mod].evalin(Meta.parse(execcode))
