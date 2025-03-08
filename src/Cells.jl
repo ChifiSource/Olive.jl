@@ -104,26 +104,35 @@ function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         return
     end
     selected_cell = cells[i - 1]
-    focus_on!(c, cm, selected_cell)
-    focus_off!(c, cm, cell)
+    focus_on!(c, cm, selected_cell, proj)
+    focus_off!(c, cm, cell, proj)
     nothing::Nothing
 end
 
-focus_on!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{<:Any}) = begin
-    focus!(cl, "cell" * selected_cell.id)
+focus_on!(c::AbstractConnection, cm::ComponentModifier, selected_cell::Cell{<:Any}, 
+    proj::Project{<:Any}) = begin
+    focus!(cm, "cell" * selected_cell.id)
 end
 
-focus_on!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{:markdown}) = begin
-    focus!(cl, "cell" * selected_cell.id)
+focus_on!(c::AbstractConnection, cm::ComponentModifier, selected_cell::Cell{:markdown}, 
+    proj::Project{<:Any}) = begin
+    on(cm, 50) do cl::ClientModifier
+        focus!(cl, "cell" * selected_cell.id)
+    end
+    cm["cell" * selected_cell.id] = "contenteditable" => "true"
+    set_text!(cm, "cell" * selected_cell.id, selected_cell.source)
+    cell_highlight!(c, cm, selected_cell, proj)
+    nothing::Nothing
 end
 
-
-focus_off!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{<:Any}) = begin
+focus_off!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{<:Any}, proj::Project{<:Any}) = begin
 
 end
 
-focus_off!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{:markdown}) = begin
-
+focus_off!(c::AbstractConnection, cm::ComponentModifier, selected_cell::Cell{:markdown}, proj::Project{<:Any}) = begin
+    set_children!(cm, "cell" * selected_cell.id, [tmd("-", selected_cell.source)])
+    set_text!(cm, "cellhighlight$(selected_cell.id)", "")
+    cm["cell$(selected_cell.id)"] = "contenteditable" => "false"
 end
 
 #==output[code]
@@ -138,11 +147,8 @@ function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         return
     end
     selected_cell = cells[i + 1]
-    set_text!(cm, "cell" * selected_cell.id, selected_cell.source)
-    on(cm, 50) do cl::ClientModifier
-        focus!(cl, "cell" * selected_cell.id)
-    end
-    cm[selected_cell.id] = "contenteditable" => "true"
+    focus_on!(c, cm, selected_cell, proj)
+    focus_off!(c, cm, cell, proj)
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -1457,7 +1463,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     newtmd = tmd("cell$(cell.id)tmd", cell.source)
     set_children!(cm, "cell$(cell.id)", [newtmd])
     cm["cell$(cell.id)"] = "contenteditable" => "false"
-    set_text!(cm, "cellhighlight$(cell.id)", "")
+    set_children!(cm, "cellhighlight$(cell.id)", Vector{AbstractComponent}())
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
