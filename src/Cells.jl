@@ -90,6 +90,7 @@ function cell_new!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj))
     focus!(cm, "cell$(newcell.id)")
     cm["cell$(newcell.id)"] = "contenteditable" => "true"
+    nothing::Nothing
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -102,8 +103,29 @@ function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     if i == 1 || isnothing(i)
         return
     end
-    focus!(cm, "cell$(cells[i - 1].id)")
+    selected_cell = cells[i - 1]
+    focus_on!(c, cm, selected_cell)
+    focus_off!(c, cm, cell)
+    nothing::Nothing
 end
+
+focus_on!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{<:Any}) = begin
+    focus!(cl, "cell" * selected_cell.id)
+end
+
+focus_on!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{:markdown}) = begin
+    focus!(cl, "cell" * selected_cell.id)
+end
+
+
+focus_off!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{<:Any}) = begin
+
+end
+
+focus_off!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{:markdown}) = begin
+
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -115,7 +137,12 @@ function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     if i == length(cells) || isnothing(i)
         return
     end
-    focus!(cm, "cell$(cells[i + 1].id)")
+    selected_cell = cells[i + 1]
+    set_text!(cm, "cell" * selected_cell.id, selected_cell.source)
+    on(cm, 50) do cl::ClientModifier
+        focus!(cl, "cell" * selected_cell.id)
+    end
+    cm[selected_cell.id] = "contenteditable" => "true"
 end
 #==output[code]
 inputcell_style (generic function with 1 method)
@@ -903,7 +930,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         style!(cm2, "menubar", "border-bottom-left-radius" => 0px)
         set_text!(cm2, "explorerico", "folder_open")
         cm2["olivemain"] = "ex" => "1"
-        insert!(cm2, "pwdmain", 2, build(c, creatorcell, p, cm))
+        insert!(cm2, "pwdmain", 2, build(c, creatorcell, p, cm2))
     end
     ToolipsSession.bind(km, keybindings["explorer"], prevent_default = true) do cm2::ComponentModifier
         cm2["settingsmenu"] =  "open" => "0"
@@ -1418,6 +1445,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     ToolipsSession.bind(c, cm, maincell, km)
     newcell::Component{:div}
 end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -1436,8 +1464,8 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markd
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
-    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
-    OliveHighlighters.set_text!(tm, cell.source)
+    tm::Highlighter = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
+    tm.raw = cell.source
     OliveHighlighters.mark_markdown!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
     OliveHighlighters.clear!(tm)

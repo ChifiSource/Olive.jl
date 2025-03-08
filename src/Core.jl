@@ -177,7 +177,7 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
         "cut" => ["X", "ctrl", "shift"],
         "select" => ["Q", "ctrl", "shift"],
         "new" => ["Enter", "ctrl", "shift"],
-        "project-new" => ["N", "shift"],
+        "project-new" => ["N", "ctrl", "shift"],
         "focusup" => ["ArrowUp", "shift"],
         "focusdown" => ["ArrowDown", "shift"],
         "save" => ["s", "ctrl"],
