@@ -41,11 +41,11 @@ function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cellid::String = cell.id
     pos = findfirst(lcell -> lcell.id == cellid, cells)
     if pos != length(cells)
-        switchcell = cells[pos + 1]
+        switchcell = cells[pos]
         remove!(cm, "cellcontainer$(switchcell.id)")
         remove!(cm, "cellcontainer$(cellid)")
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, proj))
-        ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, proj))
+        ToolipsSession.insert!(cm, windowname, pos - 1, build(c, cm, switchcell, proj))
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, cell, proj))
         focus!(cm, "cell$(cellid)")
         cells[pos] = switchcell
         cells[pos + 1] = cell
@@ -1431,12 +1431,15 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     sideb = interior[:children]["cellside$(cell.id)"]
     style!(sideb, "background-color" => "#88807B")
     sideb[:children] = sideb[:children][1:2]
+
    # cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
     #style!(cell_edit, "color" => "white", "font-size" => 17pt)
     maincell = inp[:children]["cell$(cell.id)"]
-    maincell[:contenteditable] = false
-    newtmd = tmd("cell$(cell.id)tmd", cell.source)
-    push!(maincell, newtmd)
+    if cell.source != ""
+        maincell[:contenteditable] = false
+        newtmd = tmd("cell$(cell.id)tmd", cell.source)
+        push!(maincell, newtmd)
+    end
     on(c, cm, maincell, "dblclick") do cm::ComponentModifier
         cm["cell$(cell.id)"] = "contenteditable" => "true"
         set_children!(cm, "cell$(cell.id)", Vector{AbstractComponent}())
@@ -1463,7 +1466,9 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     newtmd = tmd("cell$(cell.id)tmd", cell.source)
     set_children!(cm, "cell$(cell.id)", [newtmd])
     cm["cell$(cell.id)"] = "contenteditable" => "false"
-    set_children!(cm, "cellhighlight$(cell.id)", Vector{AbstractComponent}())
+    on(c, cm, 100) do cm2::ComponentModifier
+        set_children!(cm2, "cellhighlight$(cell.id)", Vector{AbstractComponent}())
+    end
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
@@ -1564,7 +1569,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
             insert!(cm2, windowname, pos, build(c, cm2, new_cell, proj))
             focus!(cm2, "cell$(new_cell.id)")
          elseif txt != ""
-             olive_notify!(cm2, "not a recognized cell hotkey", color = "red")
+             olive_notify!(cm2, "$txt is not a recognized cell hotkey", color = "red")
              set_text!(cm2, cbox, "")
         end
     end
