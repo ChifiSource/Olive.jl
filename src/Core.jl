@@ -1003,6 +1003,20 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::Number)
     write(d.io, string(o))
 end
 
+function display(d::OliveDisplay, m::MIME{:olive}, o::Function)
+    m_list = methods(o)
+    main_header = div("-", text = "$o ($(length(m_list)) methods)")
+    style!(main_header, "background-color" => "#164222", "font-weight" => "bold", "padding" => 5px,
+    "border-radius" => 2px, "color" => "white")
+    method_boxes = [begin
+        box = div("m", text = string(m))
+        style!(box, "padding" => 3px, "background-color" => "#478056", "color" => "white", "border-radius" => 0px)
+        box
+    end for m in m_list]
+    main_box = div("mbox" * Toolips.gen_ref(3), children = method_boxes)
+    write(d.io, string(div("-", children = [main_header, main_box])))
+end
+
 function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractString)
     write(d.io, "<code>$o</code>")
 end

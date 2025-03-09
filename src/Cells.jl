@@ -44,8 +44,8 @@ function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         switchcell = cells[pos]
         remove!(cm, "cellcontainer$(switchcell.id)")
         remove!(cm, "cellcontainer$(cellid)")
-        ToolipsSession.insert!(cm, windowname, pos - 1, build(c, cm, switchcell, proj))
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, cell, proj))
+        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, proj))
+        ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, proj))
         focus!(cm, "cell$(cellid)")
         cells[pos] = switchcell
         cells[pos + 1] = cell
