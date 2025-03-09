@@ -1317,7 +1317,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     window::String = proj.id
     cells::Vector{Cell} = proj[:cells]
     # get code
-    cell.source::String = cm["cell$(cell.id)"]["text"]
+    cell.source::String = replace(cm["cell$(cell.id)"]["text"], "&lt;" => "<")
     execcode::String = *(cell.source)
     ret::Any = ""
     try
