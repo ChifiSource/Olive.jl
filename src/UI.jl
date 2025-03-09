@@ -111,7 +111,7 @@ function default_tabstyle(; radiustop::Int64 = 5,
     "backgroundcolor" => "#754679", "color" => "#754679")::Style
 end
 
-default_astyle() = Style("a", "color" => "#2c4c3b")
+default_astyle() = Style("a", "color" => "#2c4c3b", "transition" => 700ms)
 
 default_pstyle(; textsize = 12pt) = Style("p",
     "color" => "#141414", "font-size" => "14pt")::Style
@@ -991,7 +991,7 @@ function empty_module!(c::Connection, proj::Project{<:Any})
 end
 
 function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cells::Vector{Cell}, 
-    found_items::Dict{String, Vector{UnitRange{Int64}}})
+    proj::Project{<:Any}, found_items::Dict{String, Vector{UnitRange{Int64}}})
     find_box = textdiv("findbox", text = "", class = "searchboxes")
     replace_box = textdiv("replacebox", text = "", class = "searchboxes")
     style!(replace_box, "margin-top" => 5px)
@@ -999,14 +999,17 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     style!(position_indicator, "color" => "white", "font-weight" => "bold", "font-size" => 13pt)
     selected_text::String = ""
     count::Int64 = 0
-    inner_count = 0
     total::Int64 = 0
     prev_cell = ""
     active_key = 0
+    inner_count = 0
     prev_class = ""
-    ToolipsSession.bind(c, cm, find_box, "Enter", prevent_default = true) do cm2::ComponentModifier
-        if length(keys(found_items)) == 0
-            selected_text = cm2["findbox"]["text"]
+    item_keys = nothing
+    km = ToolipsSession.KeyMap()
+    ToolipsSession.bind(km, "Enter", prevent_default = true) do cm2::ComponentModifier
+        active_text::String = cm2["findbox"]["text"]
+        if length(keys(found_items)) == 0 || (selected_text != "" && active_text != selected_text)
+            selected_text = active_text
             cells_containing = findall(cell::Cell{<:Any} -> contains(cell.source, selected_text), cells)
             found_items = Dict{String, Vector{UnitRange{Int64}}}(begin
                 cell = cells[cellindex]
@@ -1015,27 +1018,47 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             end for cellindex in sort(cells_containing))
             active_key = 1
             total = sum([length(k) for k in values(found_items)])
+            item_keys = [keys(found_items) ...]
+            count = 0
+            inner_count = 0
         end
         if total > 0
-            count = count + 1
-            item_keys = [keys(found_items) ...]
+            count += 1
+            inner_count += 1
             active_cell = item_keys[active_key]
             active_cell_items = found_items[active_cell]
-            if count > length(active_cell_items)
+            if inner_count > length(active_cell_items)
                 active_key = active_key + 1
                 if active_key > length(item_keys)
                     # go back to first cell
                     active_key = 1
                     count = 1
+                    inner_count = 1
                     active_cell = item_keys[1]
                 else
                     # advance cells
                     active_cell = item_keys[active_key]
+                    inner_count = 1
                 end
                 active_cell_items = found_items[active_cell]
             end
-            if prev_cell != ""
-                cm2["cell$prev_cell"] = "class" => prev_class
+            position = active_cell_items[inner_count]
+            hl = get_highlighter(c, cells[active_cell])
+            common = ("padding" => 1px, "border-radius" => 1px)
+            style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166", common ...)
+            style!(hl, :founds, "color" => "black", "background-color" => "lightpink", common ...)
+            push!(hl, position => :found)
+            for pos in filter(p -> p != position, active_cell_items)
+                push!(hl, pos => :founds)
+            end
+            cell_highlight!(c, cm2, cells[active_cell], proj)
+            if prev_cell != "" && inner_count == 1
+                current_prev = prev_cell
+                current_prev_class = prev_class
+                on(c, cm2, 150) do cm3::ComponentModifier
+                    cm3["cell$current_prev"] = "class" => current_prev_class
+                    cell_highlight!(c, cm3, cells[current_prev], proj)
+                end
             end
             ToolipsSession.scroll_to!(cm2, "cell$active_cell")
             prev_class = cm2["cell$active_cell"]["class"]
@@ -1046,6 +1069,47 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         end
         set_text!(cm2, "find-position", "$count/$total")
     end
+    ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
+        focus!(cm2, "replacebox")
+    end
+    ToolipsSession.bind(km, "F", :ctrl, :shift, prevent_default = true) do cm2::ComponentModifier
+        remove!(cm2, "findbar")
+        if prev_cell != ""
+            current_prev = prev_cell
+            current_prev_class = prev_class
+            on(c, cm2, 150) do cm3::ComponentModifier
+                cm3["cell$current_prev"] = "class" => current_prev_class
+                cell_highlight!(c, cm3, cells[current_prev], proj)
+            end
+        end
+        found_items, prev_cell, prev_class, inner_count = nothing, nothing, nothing, nothing
+    end
+    ToolipsSession.bind(km, "Enter", :shift) do cm2::ComponentModifier
+        if selected_text == ""
+            olive_notify!(cm2, "no found items to replace, use find fist with `Enter`", color = "darkred")
+            return
+        end
+    end
+    ToolipsSession.bind(km, "A", :ctrl, :shift, prevent_default = true) do cm2::ComponentModifier
+        if selected_text == ""
+            olive_notify!(cm2, "no found items to replace, use find fist with `Enter`", color = "darkred")
+            return
+        end
+        active_cell = item_keys[active_key]
+        replace_text = cm2["replacebox"]["text"]
+        cell_object::Cell{<:Any} = cells[active_cell]
+        cell_object.source = replace(cell_object.source, selected_text => replace_text)
+        set_text!(cm2, "cell$active_cell", cell_object.source)
+        on(c, cm2, 100) do cm::ComponentModifier
+            cell_highlight!(c, cm, cell_object, proj)
+        end
+    end
+    ToolipsSession.bind(c, cm, find_box, km)
+    delete!(km.keys, "Tab")
+    ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
+        focus!(cm2, "findbox")
+    end
+    ToolipsSession.bind(c, cm, replace_box, km)
     texts_box = div("findtexts", children = [find_box, replace_box])
     style!(texts_box, "display" => "inline-block", "width" => 45percent)
     button_find = button("find_b", text = "find")

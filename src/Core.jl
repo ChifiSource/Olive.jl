@@ -177,6 +177,7 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
         "cut" => ["X", "ctrl", "shift"],
         "select" => ["Q", "ctrl", "shift"],
         "new" => ["Enter", "ctrl", "shift"],
+        "project-new" => ["N", "ctrl", "shift"],
         "focusup" => ["ArrowUp", "shift"],
         "focusdown" => ["ArrowDown", "shift"],
         "save" => ["s", "ctrl"],
@@ -209,7 +210,6 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
                 k = uppercase(k)
             end
             push!(key_vec, k)
-            @info cm.rootc
             if parse(Bool, cm["shiftk$(keybinding[1])"]["value"])
                 push!(key_vec, "shift")
             end
@@ -355,7 +355,7 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
     end
     push!(sect, Component{:sep}("highsep"), updatebutton)
     append!(om, "settingsmenu", container)
-    container = containersection(c, "theme-settings", fillto = 80)
+    container = containersection(c, "themes", fillto = 80)
     if ~("theme" in setting_keys)
         enable_themes = button("theme-enable", text = "enable themes")
         on(c, enable_themes, "click") do cm::ComponentModifier
@@ -748,10 +748,11 @@ mutable struct CellOperation{CT <: Any, name <: Any} <: AbstractOliveOperation
     end
 end
 
-push!(v::Vector{<:AbstractOliveOperation}, el ...) = begin
+push!(v::Vector{<:AbstractOliveOperation}, el...) = begin
     append!(v, el)
-    if length(v) > 8
-        deleteat!(v, 1)
+    n = length(v)
+    if n > 8
+        deleteat!(v, 1:(n - 8))
     end
 end
 
@@ -963,7 +964,6 @@ function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
 end
 
 function onsave(core::OliveCore, copy::AbstractDict, oe::OliveExtension{:groups})
-    @info keys(copy)
     copy["groups"] = Dict{String, Dict{String, Vector}}(begin
         cells::Vector{String} = [string(cell) for cell in group.cells]
         uris::Vector{String} = [string(cell.uri) for cell in group.directories]
@@ -1003,8 +1003,22 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::Number)
     write(d.io, string(o))
 end
 
+function display(d::OliveDisplay, m::MIME{:olive}, o::Function)
+    m_list = methods(o)
+    main_header = div("-", text = "$o ($(length(m_list)) methods)")
+    style!(main_header, "background-color" => "#164222", "font-weight" => "bold", "padding" => 5px,
+    "border-radius" => 2px, "color" => "white")
+    method_boxes = [begin
+        box = div("m", text = string(m))
+        style!(box, "padding" => 3px, "background-color" => "#478056", "color" => "white", "border-radius" => 0px)
+        box
+    end for m in m_list]
+    main_box = div("mbox" * Toolips.gen_ref(3), children = method_boxes)
+    write(d.io, string(div("-", children = [main_header, main_box])))
+end
+
 function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractString)
-    write(d.io, "\"$o\"")
+    write(d.io, "<code>$o</code>")
 end
 
 function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractDict)
@@ -1012,7 +1026,11 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractDict)
 end
 
 function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractVector)
-    write(d.io, "Vector x$(length(o)):" * string(o[1:5]) * " ...")
+    upper, n = 5, length(o)
+    if n < 5
+        upper = n
+    end
+    write(d.io, "Vector ($n):" * string(o[1:upper]) * " ...")
 end
 
 #==output[code]
