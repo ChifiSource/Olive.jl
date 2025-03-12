@@ -382,7 +382,18 @@ end
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
     load_keybinds_settings(c, om)
     load_style_settings(c, om)
+    build_groups_options(c, om)
 end
+
+function build_groups_options(c::AbstractConnection, cm::OliveModifier)
+    groups_drop = containersection(c, "keybindings", fillto = 90)
+    
+    groups_section = keybind_drop[:children][2][:children] = [begin
+            button("edit$(group.name)", text = group.name)
+    end for group in CORE.data["groups"]]
+    append!(cm, "settingsmenu", groups_drop)
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
