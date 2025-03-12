@@ -359,31 +359,34 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
     if ~("theme" in setting_keys)
         enable_themes = button("theme-enable", text = "enable themes")
         on(c, enable_themes, "click") do cm::ComponentModifier
-            
             theme_dir = CORE.data["home"] * "/themes"
+            theme_value = nothing
             if isdir(theme_dir)
                 selected_theme_names = readdir(theme_dir)
-                theme_value = nothing
                 if length(selected_theme_names) > 1
                     t_path = selected_theme_names[1]
-                    theme_value = replace(t_path, "-" => " ", ".toml" => "") => read_toml_style(theme_dir * "/$t_path")
+                    theme_value = replace(t_path, "-" => " ", ".toml" => "")
                 else
                     add_default_theme(theme_dir)
-                    theme_value = "pastel pride" => DEFAULT_SHEET
+                    theme_value = "pastel pride"
                 end
                 push!(c[:OliveCore].client_data[getname(c)], "theme" => theme_value)
+                set_children!(cm, "themes", [build_theme_menu(c, theme_value)])
             else
                 confirm_di = olive_confirm_dialog(c, 
                 "enabling themes (for the first time) will create a new `olive/themes` directory. Please 
                 confirm the creation of `~olive/themes.") do cm2::ComponentModifier
                     mkdir(theme_dir)
                     add_default_theme(theme_dir)
+                    set_children!(cm2, "themes", [build_theme_menu(c, "pastel-pride")])
+                    push!(c[:OliveCore].client_data[getname(c)], "theme" => "pastel pride")
                 end
+                append!(cm, "mainbody", confirm_di)
             end
         end
         push!(container[:children][2], enable_themes)
     else
-
+        push!(container[:children][2], build_theme_menu(c, c[:OliveCore].client_data[getname(c)]["theme"]))
     end
     append!(om, "settingsmenu", container)
 end
@@ -392,25 +395,29 @@ function add_default_theme(theme_dir::String)
     touch(theme_dir * "/pastel-pride.toml")
     base_sheet = olivesheet()
     toml_dct = Dict{String, Any}()
+    do_after = Vector{AbstractComponent}()
     for sty in base_sheet[:children]
         if typeof(sty) == Style
-            push!(toml_dct, sty.name => sty.properties)
+            do_after = vcat(do_after, sty.properties[:extras])
+            propcopy = Dict(string(k) => string(p) for (k, p) in filter(k -> k[1] != :extras, sty.properties))
+            push!(toml_dct, sty.name => propcopy)
         end
     end
-    open(theme_dir * "/pastelpride.toml") do o::IOStream
+    open(theme_dir * "/pastel-pride.toml", "w") do o::IOStream
         TOML.print(o, toml_dct)
     end
-    return::Nothing
+    nothing::Nothing
 end
 
 function build_theme_menu(c::AbstractConnection, selected_theme::String)
-    
-end
-
-function build_themes_options(themes_path::String)
-    opts = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
-    Components.option("creatorkey", text = string(Tsig.parameters[1]))      
-    end for theme in readdir(theme_dir)]))
+    t_label = a(text = "current theme:")
+    t_active = a("active-theme-label", text = selected_theme)
+    theme_options = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
+        Components.option("creatorkey", text = replace(theme, "-" => " ", ".toml" => ""))      
+    end for theme in readdir(CORE.data["home"] * "/themes")]))
+    t_selector = Components.select("theme-selector", value = selected_theme, 
+    children = theme_options)
+    div("theme-menu", children = [t_label, t_active, t_selector])
 end
 
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
@@ -420,9 +427,8 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
 end
 
 function build_groups_options(c::AbstractConnection, cm::OliveModifier)
-    groups_drop = containersection(c, "keybindings", fillto = 90)
-    
-    groups_section = keybind_drop[:children][2][:children] = [begin
+    groups_drop = containersection(c, "groups", fillto = 90)
+    groups_section = groups_drop[:children][2][:children] = [begin
             button("edit$(group.name)", text = group.name)
     end for group in CORE.data["groups"]]
     append!(cm, "settingsmenu", groups_drop)
