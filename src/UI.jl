@@ -1003,7 +1003,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     prev_cell = ""
     active_key = 0
     inner_count = 0
-    prev_class = ""
     item_keys = nothing
     km = ToolipsSession.KeyMap()
     ToolipsSession.bind(km, "Enter", prevent_default = true) do cm2::ComponentModifier
@@ -1054,14 +1053,12 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             cell_highlight!(c, cm2, cells[active_cell], proj)
             if prev_cell != "" && inner_count == 1
                 current_prev = prev_cell
-                current_prev_class = prev_class
                 on(c, cm2, 150) do cm3::ComponentModifier
-                    cm3["cell$current_prev"] = "class" => current_prev_class
+                    cm3["cell$current_prev"] = "class" => get_class(cells[current_prev])
                     cell_highlight!(c, cm3, cells[current_prev], proj)
                 end
             end
             ToolipsSession.scroll_to!(cm2, "cell$active_cell")
-            prev_class = cm2["cell$active_cell"]["class"]
             prev_cell = active_cell
             cm2["cell$active_cell"] = "class" => "input_cell inputselected"
         else
@@ -1076,19 +1073,29 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         remove!(cm2, "findbar")
         if prev_cell != ""
             current_prev = prev_cell
-            current_prev_class = prev_class
             on(c, cm2, 150) do cm3::ComponentModifier
-                cm3["cell$current_prev"] = "class" => current_prev_class
+                cm3["cell$current_prev"] = "class" => get_class(cells[current_prev])
                 cell_highlight!(c, cm3, cells[current_prev], proj)
             end
         end
-        found_items, prev_cell, prev_class, inner_count = nothing, nothing, nothing, nothing
+        found_items, prev_cell, inner_count = nothing, nothing, nothing
     end
     ToolipsSession.bind(km, "Enter", :shift) do cm2::ComponentModifier
         if selected_text == ""
-            olive_notify!(cm2, "no found items to replace, use find fist with `Enter`", color = "darkred")
+            olive_notify!(cm2, "No found items to replace, use find first with `Enter`", color = "darkred")
             return
         end
+        replace_text = cm2["replacebox"]["text"]
+        for (cell_key, _) in found_items
+            cell_object::Cell{<:Any} = cells[cell_key]
+            cell_object.source = replace(cell_object.source, selected_text => replace_text)
+            set_text!(cm2, "cell$cell_key", cell_object.source)
+            
+            on(c, cm2, 100) do cm::ComponentModifier
+                cell_highlight!(c, cm, cell_object, proj)
+            end
+        end
+        olive_notify!(cm2, "Replaced all occurrences of '$selected_text' across found items", color = "darkgreen")
     end
     ToolipsSession.bind(km, "A", :ctrl, :shift, prevent_default = true) do cm2::ComponentModifier
         if selected_text == ""

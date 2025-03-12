@@ -79,7 +79,9 @@ function olive_module(modname::String, environment::String)
     using Base
     import Base: println, print
     global STDO::String = ""
+    WD = ""
     Main = nothing
+    Olive = nothing
     eval(e::Any) = Core.eval($(modname), e)
     function evalin(ex::Any)
             Pkg.activate("$environment")

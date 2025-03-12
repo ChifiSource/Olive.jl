@@ -161,6 +161,7 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+
 """
 ### Olive Cells
 ```
@@ -1043,6 +1044,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     km::KeyMap
 end
 
+get_cell_class(cell::Cell{<:Any}) = "input_cell"
 
 #==output[code]
 inputcell_style (generic function with 1 method)
