@@ -359,11 +359,26 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
     if ~("theme" in setting_keys)
         enable_themes = button("theme-enable", text = "enable themes")
         on(c, enable_themes, "click") do cm::ComponentModifier
+            
             theme_dir = CORE.data["home"] * "/themes"
             if isdir(theme_dir)
-
+                selected_theme_names = readdir(theme_dir)
+                theme_value = nothing
+                if length(selected_theme_names) > 1
+                    t_path = selected_theme_names[1]
+                    theme_value = replace(t_path, "-" => " ", ".toml" => "") => read_toml_style(theme_dir * "/$t_path")
+                else
+                    add_default_theme(theme_dir)
+                    theme_value = "pastel pride" => DEFAULT_SHEET
+                end
+                push!(c[:OliveCore].client_data[getname(c)], "theme" => theme_value)
             else
-                @info theme_dir
+                confirm_di = olive_confirm_dialog(c, 
+                "enabling themes (for the first time) will create a new `olive/themes` directory. Please 
+                confirm the creation of `~olive/themes.") do cm2::ComponentModifier
+                    mkdir(theme_dir)
+                    add_default_theme(theme_dir)
+                end
             end
         end
         push!(container[:children][2], enable_themes)
@@ -371,6 +386,25 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
 
     end
     append!(om, "settingsmenu", container)
+end
+
+function add_default_theme(theme_dir::String)
+    touch(theme_dir * "/pastel-pride.toml")
+    base_sheet = olivesheet()
+    toml_dct = Dict{String, Any}()
+    for sty in base_sheet[:children]
+        if typeof(sty) == Style
+            push!(toml_dct, sty.name => sty.properties)
+        end
+    end
+    open(theme_dir * "/pastelpride.toml") do o::IOStream
+        TOML.print(o, toml_dct)
+    end
+    return::Nothing
+end
+
+function build_theme_menu(c::AbstractConnection, selected_theme::String)
+    
 end
 
 function build_themes_options(themes_path::String)
