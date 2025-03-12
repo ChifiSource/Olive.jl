@@ -997,9 +997,9 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     style!(replace_box, "margin-top" => 5px)
     position_indicator = a("find-position", text = "0/0")
     style!(position_indicator, "color" => "white", "font-weight" => "bold", "font-size" => 13pt)
-    selected_text::String = ""
-    count::Int64 = 0
-    total::Int64 = 0
+    selected_text = ""
+    count = 0
+    total = 0
     prev_cell = ""
     active_key = 0
     inner_count = 0
@@ -1015,47 +1015,65 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
                 positions = findall(selected_text, cell.source)
                 cell.id => positions
             end for cellindex in sort(cells_containing))
+            @warn sort(cells_containing)
+            for (cell_key, positions) in found_items
+                hl = get_highlighter(c, cells[cell_key])
+                style!(hl, :pfounds, "color" => "black", "background-color" => "lightgreen", "border-radius" => 1px)
+                for pos in positions
+                    push!(hl, pos => :pfounds)
+                end
+                cell_highlight!(c, cm2, cells[cell_key], proj)
+            end
+    
             active_key = 1
             total = sum([length(k) for k in values(found_items)])
             item_keys = [keys(found_items) ...]
             count = 0
             inner_count = 0
         end
+    
         if total > 0
             count += 1
             inner_count += 1
             active_cell = item_keys[active_key]
             active_cell_items = found_items[active_cell]
             if inner_count > length(active_cell_items)
-                active_key = active_key + 1
+                active_key += 1
                 if active_key > length(item_keys)
-                    # go back to first cell
                     active_key = 1
                     count = 1
                     inner_count = 1
                     active_cell = item_keys[1]
                 else
-                    # advance cells
                     active_cell = item_keys[active_key]
                     inner_count = 1
                 end
                 active_cell_items = found_items[active_cell]
             end
             position = active_cell_items[inner_count]
+    
             hl = get_highlighter(c, cells[active_cell])
-            common = ("padding" => 1px, "border-radius" => 1px)
-            style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166", common ...)
-            style!(hl, :founds, "color" => "black", "background-color" => "lightpink", common ...)
+            style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166", "border-radius" => 1px)
+            style!(hl, :founds, "color" => "black", "background-color" => "lightpink", "border-radius" => 1px)
+    
+            # Override "pfounds" in the selected cell for better visibility
             push!(hl, position => :found)
             for pos in filter(p -> p != position, active_cell_items)
                 push!(hl, pos => :founds)
             end
             cell_highlight!(c, cm2, cells[active_cell], proj)
+    
             if prev_cell != "" && inner_count == 1
                 current_prev = prev_cell
                 on(c, cm2, 150) do cm3::ComponentModifier
-                    cm3["cell$current_prev"] = "class" => get_class(cells[current_prev])
+                    hl = get_highlighter(c, cells[current_prev])
+                    style!(hl, :pfounds, "color" => "black", "background-color" => "lightgreen", "border-radius" => 1px)
+                    for pos in found_items[current_prev]
+                        push!(hl, pos => :pfounds)
+                    end
+                    cm3["cell$current_prev"] = "class" => get_cell_class(cells[current_prev])
                     cell_highlight!(c, cm3, cells[current_prev], proj)
+                    current_prev = nothing
                 end
             end
             ToolipsSession.scroll_to!(cm2, "cell$active_cell")
@@ -1074,11 +1092,12 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         if prev_cell != ""
             current_prev = prev_cell
             on(c, cm2, 150) do cm3::ComponentModifier
-                cm3["cell$current_prev"] = "class" => get_class(cells[current_prev])
+                cm3["cell$current_prev"] = "class" => get_cell_class(cells[current_prev])
                 cell_highlight!(c, cm3, cells[current_prev], proj)
             end
         end
         found_items, prev_cell, inner_count = nothing, nothing, nothing
+        count, total, selected_text = nothing
     end
     ToolipsSession.bind(km, "Enter", :shift) do cm2::ComponentModifier
         if selected_text == ""
