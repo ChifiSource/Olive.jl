@@ -355,6 +355,7 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
     end
     push!(sect, Component{:sep}("highsep"), updatebutton)
     append!(om, "settingsmenu", container)
+
     container = containersection(c, "themes", fillto = 80)
     if ~("theme" in setting_keys)
         enable_themes = button("theme-enable", text = "enable themes")
@@ -394,11 +395,13 @@ end
 function add_default_theme(theme_dir::String)
     touch(theme_dir * "/pastel-pride.toml")
     base_sheet = olivesheet()
-    toml_dct = Dict{String, Any}()
+    toml_dct = Dict{String, Any}("COMPOSED" => string(base_sheet))
     do_after = Vector{AbstractComponent}()
     for sty in base_sheet[:children]
         if typeof(sty) == Style
-            do_after = vcat(do_after, sty.properties[:extras])
+            if :extras in keys(sty.properties)
+                do_after = vcat(do_after, sty.properties[:extras])
+            end
             propcopy = Dict(string(k) => string(p) for (k, p) in filter(k -> k[1] != :extras, sty.properties))
             push!(toml_dct, sty.name => propcopy)
         end
@@ -410,14 +413,14 @@ function add_default_theme(theme_dir::String)
 end
 
 function build_theme_menu(c::AbstractConnection, selected_theme::String)
-    t_label = a(text = "current theme:")
-    t_active = a("active-theme-label", text = selected_theme)
+    t_label = p(text = "current theme:  ")
+    t_active = p("active-theme-label", text = selected_theme)
     theme_options = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
         Components.option("creatorkey", text = replace(theme, "-" => " ", ".toml" => ""))      
     end for theme in readdir(CORE.data["home"] * "/themes")]))
     t_selector = Components.select("theme-selector", value = selected_theme, 
     children = theme_options)
-    div("theme-menu", children = [t_label, t_active, t_selector])
+    div("theme-menu", children = [t_label, t_active, br(), t_selector])
 end
 
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin

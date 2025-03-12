@@ -396,7 +396,7 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:toml})
-    joinedstr = join([toml_string(cell) for cell in p.data[:cells]])
+    joinedstr = join((cell.source for cell in p.data[:cells]), "\n")
     ret = ""
     try
         ret = TOML.parse(joinedstr * "\n")
@@ -1320,7 +1320,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cells::Vector{Cell} = proj[:cells]
     # get code
     cell.source::String = replace(cm["cell$(cell.id)"]["text"], "&lt;" => "<")
-    execcode::String = *(cell.source)
+    execcode::String = *("begin\n", cell.source, "\nend")
     ret::Any = ""
     try
         ret = proj[:mod].evalin(Meta.parse(execcode))
@@ -1492,8 +1492,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     interior::Component{:div} = builtcell[:children]["cellinterior$(cell.id)"]
     inp::Component{:div} = interior[:children]["cellinput$(cell.id)"]
     getstarted::Component{:div} = div("getstarted$(cell.id)", contenteditable = true)
-    style!(getstarted, "padding" => 8px, "margin-top" => 0px, "overflow" => "visible")
+    style!(getstarted, "padding" => 3px, "margin-top" => 0px, "overflow" => "visible")
     runl::Component{:div} = tmd("runl", """- use `shift` + `enter` to use this project""")
+    style!(runl, "padding" => 2px)
     push!(getstarted, runl)
     buttons_box::Component{:div} = div("buttons_box")
     issues_button::Component{:button} = button("issues_button", text = "report issues or suggest improvements")

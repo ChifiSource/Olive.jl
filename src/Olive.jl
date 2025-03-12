@@ -322,15 +322,17 @@ extend `Olive` using a new `Environment` type.
 """
 function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
     themes_enabled::Bool = true)
+    selected_sheet = sheet
     if themes_enabled
         if haskey(c[:OliveCore].client_data[getname(c)], "theme")
             @info c[:OliveCore].client_data[getname(c)]["theme"]
-        else
-            write!(c, sheet)
+            theme_name = c[:OliveCore].client_data[getname(c)]["theme"]
+            theme_dir = CORE.data["home"] * "/themes"
+            fpath = theme_dir * "/$(replace(theme_name, " " => "-")).toml"
+            selected_sheet = TOML.parse(read(fpath, String))["COMPOSED"]
         end
-    else
-        write!(c, sheet)
     end
+    write!(c, selected_sheet)
     olmod::Module = c[:OliveCore].olmod
     notifier::Component{:div} = olive_notific()
     ui_topbar::Component{:div} = topbar(c)
