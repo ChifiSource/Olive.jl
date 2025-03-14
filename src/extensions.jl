@@ -692,3 +692,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
     set_text!(cm, "$(cell.id)cmds", replace(cell.source, "\n" => "<br>"))
     style!(cm, "cell$(cell.id)out", "height" => "auto", "opacity" => 100percent)
 end
+
+function build(c::Connection, cell::Cell{:olivestyle},
+    d::Directory)
+    hiddencell = build_base_cell(c, cell, d)
+    style!(hiddencell, "background-color" => "#F15A60")
+    hiddencell
+end

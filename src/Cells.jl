@@ -340,6 +340,15 @@ inputcell_style (generic function with 1 method)
 function olive_read(cell::Cell{:toml})
     read_toml(cell.outputs)
 end
+
+function olive_read(cell::Cell{:olivestyle})::Vector{Cell}
+    cells = read_toml(cell.outputs)
+    if length(cells) > 1
+        cells[2:end]
+    else
+        cells
+    end
+end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#

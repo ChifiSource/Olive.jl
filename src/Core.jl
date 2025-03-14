@@ -366,7 +366,7 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
                 selected_theme_names = readdir(theme_dir)
                 if length(selected_theme_names) > 1
                     t_path = selected_theme_names[1]
-                    theme_value = replace(t_path, "-" => " ", ".toml" => "")
+                    theme_value = replace(t_path, "-" => " ", ".olivestyle" => "")
                 else
                     add_default_theme(theme_dir)
                     theme_value = "pastel pride"
@@ -393,7 +393,7 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
 end
 
 function add_default_theme(theme_dir::String)
-    touch(theme_dir * "/pastel-pride.toml")
+    touch(theme_dir * "/pastel-pride.olivestyle")
     base_sheet = olivesheet()
     toml_dct = Dict{String, Any}("COMPOSED" => string(base_sheet))
     do_after = Vector{AbstractComponent}()
@@ -406,7 +406,7 @@ function add_default_theme(theme_dir::String)
             push!(toml_dct, sty.name => propcopy)
         end
     end
-    open(theme_dir * "/pastel-pride.toml", "w") do o::IOStream
+    open(theme_dir * "/pastel-pride.olivestyle", "w") do o::IOStream
         TOML.print(o, toml_dct)
     end
     nothing::Nothing
@@ -416,7 +416,7 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
     t_label = p(text = "current theme:  ")
     t_active = p("active-theme-label", text = selected_theme)
     theme_options = Vector{AbstractComponent}(filter(x -> ~(isnothing(x)), [begin
-        Components.option("creatorkey", text = replace(theme, "-" => " ", ".toml" => ""))      
+        Components.option("creatorkey", text = replace(theme, "-" => " ", ".olivestyle" => ""))      
     end for theme in readdir(CORE.data["home"] * "/themes")]))
     t_selector = Components.select("theme-selector", value = selected_theme, 
     children = theme_options)
