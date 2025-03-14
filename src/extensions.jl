@@ -689,6 +689,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
         "\n" => "<br>", "✓" => "</", "*" => "", "⇒" => "->"))
     end
     set_text!(cm, "cell$(cell.id)", "")
+    remove!(cm, "load$(cell.id)")
     set_text!(cm, "$(cell.id)cmds", replace(cell.source, "\n" => "<br>"))
     style!(cm, "cell$(cell.id)out", "height" => "auto", "opacity" => 100percent)
 end
