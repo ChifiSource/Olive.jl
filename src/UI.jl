@@ -1096,8 +1096,8 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
                 cell_highlight!(c, cm3, cells[current_prev], proj)
             end
         end
-        prev_cell, inner_count = nothing, nothing, nothing
-        count, total, selected_text = nothing
+        prev_cell, inner_count = nothing, nothing
+        count, total, selected_text = nothing, nothing, nothing
     end
     ToolipsSession.bind(km, "Enter", :shift) do cm2::ComponentModifier
         if selected_text == ""

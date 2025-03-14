@@ -1036,9 +1036,9 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         cell_open!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["find"], prevent_default = true) do cm2::ComponentModifier
-        found_items::Dict{String, Vector{UnitRange{Int64}}} = Dict{String, Vector{UnitRange{Int64}}}()
+        found_items = Dict{String, Vector{UnitRange{Int64}}}()
         if "findbox" in cm2
-            found_items = Dict{String, Vector{UnitRange{Int64}}}()
+            found_items = nothing
             style!(cm2, proj.id, "height" => 90percent)
             remove!(cm2, "findbar")
             return
