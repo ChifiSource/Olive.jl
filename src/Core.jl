@@ -184,7 +184,8 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
         "saveas" => ["S", "ctrl", "shift"],
         "open" => ["O", "ctrl"],
         "find" => ["F", "ctrl"], 
-        "explorer" => ["E", "ctrl"]
+        "explorer" => ["E", "ctrl"], 
+        "undo" => ["Z", "ctrl", "shift"]
         ))
     end
     keybind_drop = containersection(c, "keybindings", fillto = 90)
@@ -812,21 +813,6 @@ push!(v::Vector{<:AbstractOliveOperation}, el...) = begin
     if n > 8
         deleteat!(v, 1:(n - 8))
     end
-end
-
-function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
-    cells::Vector{Cell}, op::CellOperation{<:Any, :delete})
-
-end
-
-function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
-    cells::Vector{Cell}, op::CellOperation{<:Any, :cellup})
-
-end
-
-function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
-    cells::Vector{Cell}, op::CellOperation{<:Any, :celldown})
-
 end
 
 #==output[code]

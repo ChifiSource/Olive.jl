@@ -150,6 +150,22 @@ function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     focus_on!(c, cm, selected_cell, proj)
     focus_off!(c, cm, cell, proj)
 end
+
+function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, :delete})
+
+end
+
+function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, :cellup})
+
+end
+
+function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, :celldown})
+
+end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -1067,6 +1083,17 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     ToolipsSession.bind(km, keybindings["focusdown"]) do cm::ComponentModifier
         focus_down!(c, cm, cell, proj)
     end
+    # push!(CORE.open[getname(c)].cell_ops, CellOperation{:cellup}(cell, pos))
+    ToolipsSession.bind(km, keybindings["undo"], prevent_default = true) do cm::ComponentModifier
+        ops::Vector{CellOperation{<:Any, <:Any}} = CORE.open[getname(c)].cell_ops
+        n = length(ops)
+        if n < 1
+            olive_notify!(cm, "there is no operation to undo.")
+            return
+        end
+        undo_operation(c, cm, proj, cells, ops[n])
+        deleteat!(ops, n)
+    end
     km::KeyMap
 end
 
@@ -1458,17 +1485,17 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     inp = interior[:children]["cellinput$(cell.id)"]
     sideb = interior[:children]["cellside$(cell.id)"]
     style!(sideb, "background-color" => "#88807B")
-    sideb[:children] = sideb[:children][1:2]
-
-   # cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
-    #style!(cell_edit, "color" => "white", "font-size" => 17pt)
+    cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
+    style!(cell_edit, "color" => "white", "font-size" => 17pt)
+    sideb[:children] = vcat(sideb[:children][1:2], [cell_edit])
     maincell = inp[:children]["cell$(cell.id)"]
+
     if cell.source != ""
         maincell[:contenteditable] = false
         newtmd = tmd("cell$(cell.id)tmd", cell.source)
         push!(maincell, newtmd)
     end
-    on(c, cm, maincell, "dblclick") do cm::ComponentModifier
+    edit_flip = cm::AbstractComponentModifier -> begin
         cm["cell$(cell.id)"] = "contenteditable" => "true"
         set_children!(cm, "cell$(cell.id)", Vector{AbstractComponent}())
         set_text!(cm, "cell$(cell.id)", replace(cell.source, "\n" => "<br>"))
@@ -1478,6 +1505,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
         set_text!(cm, "cellhighlight$(cell.id)", string(tm))
         OliveHighlighters.clear!(tm)
     end
+    on(edit_flip, c, cm, maincell, "dblclick")
+    on(edit_flip, c, cm, cell_edit, "click")
     km = cell_bind!(c, cell, proj)
     ToolipsSession.bind(c, cm, maincell, km)
     newcell::Component{:div}
