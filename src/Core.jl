@@ -406,6 +406,10 @@ function add_default_theme(theme_dir::String)
             push!(toml_dct, sty.name => propcopy)
         end
     end
+    [begin
+        propcopy = Dict(string(k) => string(p) for (k, p) in filter(k -> k[1] != :extras, sty.properties))
+        push!(toml_dct, sty.name => propcopy)
+    end for sty in do_after]
     open(theme_dir * "/pastel-pride.olivestyle", "w") do o::IOStream
         TOML.print(o, toml_dct)
     end

@@ -696,7 +696,11 @@ end
 
 function build(c::Connection, cell::Cell{:olivestyle},
     d::Directory)
-    hiddencell = build_base_cell(c, cell, d)
+    hiddencell = build_base_cell(c, cell, d, binding = false)
+    on(c, hiddencell, "dblclick") do cm::ComponentModifier
+        cs::Vector{Cell{<:Any}} = olive_read(cell)
+        add_to_session(c, cs, cm, cell.source, cell.outputs)
+    end
     style!(hiddencell, "background-color" => "#F15A60")
     hiddencell
 end

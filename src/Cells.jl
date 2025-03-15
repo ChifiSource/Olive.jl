@@ -194,7 +194,8 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     if binding
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
             cs::Vector{Cell{<:Any}} = olive_read(cell)
-            add_to_session(c, cs, cm, cell.source, cell.outputs)
+            proj = add_to_session(c, cs, cm, cell.source, cell.outputs, type = "olivestyle")
+            proj[:export] = "olivestyle"
         end
     end
     finfo::Component{:a} = a("cell$(cellid)info", text =  string(fs) * outputfmt)
@@ -412,6 +413,23 @@ function olive_save(p::Project{<:Any}, pe::ProjectExport{:toml})
     catch e
         return "TOML parse error: $(e)"
     end
+    open(p[:path], "w") do io
+        TOML.print(io, ret)
+    end
+    nothing
+end
+
+function olive_save(p::Project{<:Any}, pe::ProjectExport{:olivestyle})
+    joinedstr = join((cell.source for cell in p.data[:cells]))
+    ret = ""
+    try
+        ret = TOML.parse(joinedstr * "\n")
+    catch e
+        return "TOML parse error: $(e)"
+    end
+    styles = sheet("olivestyle", children = Vector{AbstractComponent}([style(k[1], pairs(k[2]) ...) for k in ret]))
+    @info styles[:children]
+    push!(ret, "COMPOSED" => string(styles))
     open(p[:path], "w") do io
         TOML.print(io, ret)
     end

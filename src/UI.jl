@@ -189,13 +189,17 @@ function olivesheet()
     project_window = Style("div.projectwindow", "overflow-y" => "show", "overflow-x" => "hidden", "padding" => 7px, 
     "animation-name" => "fadeup", "animation-duration" => 850ms, "min-height" => 100percent)
     # project explorer:
-    p_explorer = style("div.pexplorer", "opacity" => 0percent, 
+    p_explorer = style("div.pexplorer", "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
+        "height" => "90%", "left" => "8", "padding" => 0px,
+        "transition" => 800ms, "margin-top" => 85px, "border-radius" => 0px, 
+        "overflow-y" => "visible")
+    p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
+        "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
+    p_explorer_closed = style("div.pexplorer-closed", "opacity" => 0percent, 
         "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
         "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
         "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px, 
         "overflow-y" => "visible", "pointer-events" => "none", "padding" => 5px)
-    p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
-        "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
     icon_selected = style(".material-icons-selected", "color" => "lightblue", "overflow-x" => "hidden")
     # settings:
     settings = style("div.settings", "opacity" => "0 !important",  "height" => "0px !important",
@@ -246,7 +250,7 @@ function olivesheet()
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
     section_container_labels, section_innerc, section_innero, container_arrow, tab_icon, output_style, project_window, 
-    dialog_box, dialog_text, fade_upanim, code_side, selected_side, input_selected, searchboxes, find_cont)
+    dialog_box, dialog_text, fade_upanim, code_side, selected_side, input_selected, searchboxes, find_cont, p_explorer_closed)
     st::Component{:sheet}
 end
 
@@ -261,7 +265,7 @@ olivesheet (generic function with 1 method)
 ==#
 #==|||==#
 function projectexplorer()
-    div("projectexplorer", class = "pexplorer")
+    div("projectexplorer", class = "pexplorer pexplorer-closed")
 end
 #==output[code]
 projectexplorer (generic function with 1 method)
@@ -282,7 +286,7 @@ function explorer_icon(c::Connection)
             cm["olivemain"] = "ex" => "1"
             return
         else
-            cm["projectexplorer"] = "class" => "pexplorer"
+            cm["projectexplorer"] = "class" => "pexplorer pexplorer-closed"
             style!(cm, "menubar", "border-bottom-left-radius" => 5px)
             style!(cm, "olivemain", "margin-left" => "0px")
             set_text!(cm, explorericon, "drive_file_move_rtl")
@@ -491,7 +495,7 @@ olive_notific (generic function with 1 method)
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
     on(c, settingicon, "click") do cm::ComponentModifier
-        cm["projectexplorer"] = "class" => "pexplorer"
+        cm["projectexplorer"] = "class" => "pexplorer pexplorer-closed"
         style!(cm, "olivemain", "margin-left" => "0px")
         set_text!(cm, "explorerico", "drive_file_move_rtl")
         cm["explorerico"] = "class" => "material-icons"
