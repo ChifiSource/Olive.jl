@@ -474,15 +474,11 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
                     window::Component{:div} = olmod.build(c, cm2, env.projects[1])
                     append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
                     if ~(isnothing(navigate_to))
-                        @info "navigating to"
                         filtered_mds = filter(cell -> typeof(cell) == Cell{:markdown}, selected_proj[:cells])
                         found = findfirst(cell -> contains(cell.source, "# $navigate_to"), filtered_mds)
                         if ~(isnothing(found))
-                            @info "scrolling"
                             cellid = selected_proj[:cells][found]
                             scroll_to!(cm, "cell$cellid")
-                        else
-                            @info join("$(typeof(c)) $(c.source)" for c in selected_proj[:cells])
                         end
                     end
                 end

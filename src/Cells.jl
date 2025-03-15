@@ -444,8 +444,16 @@ function olive_save(p::Project{<:Any}, pe::ProjectExport{:olivestyle})
     catch e
         return "TOML parse error: $(e)"
     end
-    styles = sheet("olivestyle", children = Vector{AbstractComponent}([style(k[1], pairs(k[2]) ...) for k in ret]))
-    @info styles[:children]
+    styles = sheet("olivestyle", children = Vector{AbstractComponent}([begin 
+        if contains(k[1], "@keyframes")
+            kf = keyframes(replace(k[1], "@keyframes-" => ""), duration = k[2]["duration"])
+            propcopy = filter!(key_pair -> key_pair[1] != "duration", k[2])
+            kf.properties = propcopy
+            kf
+        else
+            style(k[1], pairs(k[2]) ...) 
+        end
+    end for k in ret]))
     push!(ret, "COMPOSED" => string(styles))
     open(p[:path], "w") do io
         TOML.print(io, ret)

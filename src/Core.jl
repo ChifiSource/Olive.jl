@@ -393,8 +393,8 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
     append!(om, "settingsmenu", container)
 end
 
-function add_default_theme(theme_dir::String)
-    touch(theme_dir * "/pastel-pride.olivestyle")
+function add_default_theme(theme_dir::String, name::String = "pastel-pride")
+    touch(theme_dir * "/$name.olivestyle")
     base_sheet = olivesheet()
     toml_dct = Dict{String, Any}("COMPOSED" => string(base_sheet))
     do_after = Vector{AbstractComponent}()
@@ -405,13 +405,17 @@ function add_default_theme(theme_dir::String)
             end
             propcopy = Dict(string(k) => string(p) for (k, p) in filter(k -> k[1] != :extras, sty.properties))
             push!(toml_dct, sty.name => propcopy)
+        elseif typeof(sty) == Components.KeyFrames
+            propcopy = Dict{String, Any}(string(k) => p for (k, p) in filter(k -> k[1] != :extras, sty.properties))
+            push!(propcopy, "duration" => string(sty.duration))
+            push!(toml_dct, "@keyframes-" * sty.name => propcopy)
         end
     end
     [begin
         propcopy = Dict(string(k) => string(p) for (k, p) in filter(k -> k[1] != :extras, sty.properties))
         push!(toml_dct, sty.name => propcopy)
     end for sty in do_after]
-    open(theme_dir * "/pastel-pride.olivestyle", "w") do o::IOStream
+    open(theme_dir * "/$name.olivestyle", "w") do o::IOStream
         TOML.print(o, toml_dct)
     end
     nothing::Nothing
