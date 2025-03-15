@@ -194,7 +194,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     if binding
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
             cs::Vector{Cell{<:Any}} = olive_read(cell)
-            add_to_session(c, cs, cm, cell.source, cell.outputs)
+            proj = add_to_session(c, cs, cm, cell.source, cell.outputs)
         end
     end
     finfo::Component{:a} = a("cell$(cellid)info", text =  string(fs) * outputfmt)
@@ -340,6 +340,15 @@ inputcell_style (generic function with 1 method)
 function olive_read(cell::Cell{:toml})
     read_toml(cell.outputs)
 end
+
+function olive_read(cell::Cell{:olivestyle})::Vector{Cell}
+    cells = read_toml(cell.outputs)
+    if length(cells) > 1
+        cells[2:end]
+    else
+        cells
+    end
+end
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -403,6 +412,23 @@ function olive_save(p::Project{<:Any}, pe::ProjectExport{:toml})
     catch e
         return "TOML parse error: $(e)"
     end
+    open(p[:path], "w") do io
+        TOML.print(io, ret)
+    end
+    nothing
+end
+
+function olive_save(p::Project{<:Any}, pe::ProjectExport{:olivestyle})
+    joinedstr = join((cell.source for cell in p.data[:cells]))
+    ret = ""
+    try
+        ret = TOML.parse(joinedstr * "\n")
+    catch e
+        return "TOML parse error: $(e)"
+    end
+    styles = sheet("olivestyle", children = Vector{AbstractComponent}([style(k[1], pairs(k[2]) ...) for k in ret]))
+    @info styles[:children]
+    push!(ret, "COMPOSED" => string(styles))
     open(p[:path], "w") do io
         TOML.print(io, ret)
     end
@@ -1027,9 +1053,9 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         cell_open!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["find"], prevent_default = true) do cm2::ComponentModifier
-        found_items::Dict{String, Vector{UnitRange{Int64}}} = Dict{String, Vector{UnitRange{Int64}}}()
+        found_items = Dict{String, Vector{UnitRange{Int64}}}()
         if "findbox" in cm2
-            found_items = Dict{String, Vector{UnitRange{Int64}}}()
+            found_items = nothing
             style!(cm2, proj.id, "height" => 90percent)
             remove!(cm2, "findbar")
             return

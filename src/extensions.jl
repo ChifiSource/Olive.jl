@@ -689,6 +689,19 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:pkgrepl},
         "\n" => "<br>", "✓" => "</", "*" => "", "⇒" => "->"))
     end
     set_text!(cm, "cell$(cell.id)", "")
+    remove!(cm, "load$(cell.id)")
     set_text!(cm, "$(cell.id)cmds", replace(cell.source, "\n" => "<br>"))
     style!(cm, "cell$(cell.id)out", "height" => "auto", "opacity" => 100percent)
+end
+
+function build(c::Connection, cell::Cell{:olivestyle},
+    d::Directory)
+    hiddencell = build_base_cell(c, cell, d, binding = false)
+    on(c, hiddencell, "dblclick") do cm::ComponentModifier
+        cs::Vector{Cell{<:Any}} = olive_read(cell)
+        proj::Project{:olivestyle} = add_to_session(c, cs, cm, cell.source, cell.outputs, type = "olivestyle")
+        proj.data[:export] = "olivestyle"
+    end
+    style!(hiddencell, "background-color" => "#F15A60")
+    hiddencell
 end
