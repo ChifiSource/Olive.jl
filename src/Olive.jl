@@ -325,7 +325,6 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     selected_sheet = sheet
     if themes_enabled
         if haskey(c[:OliveCore].client_data[getname(c)], "theme")
-            @info c[:OliveCore].client_data[getname(c)]["theme"]
             theme_name = c[:OliveCore].client_data[getname(c)]["theme"]
             theme_dir = CORE.data["home"] * "/themes"
             fpath = theme_dir * "/$(replace(theme_name, " " => "-")).olivestyle"

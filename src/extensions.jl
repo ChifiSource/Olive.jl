@@ -699,7 +699,8 @@ function build(c::Connection, cell::Cell{:olivestyle},
     hiddencell = build_base_cell(c, cell, d, binding = false)
     on(c, hiddencell, "dblclick") do cm::ComponentModifier
         cs::Vector{Cell{<:Any}} = olive_read(cell)
-        add_to_session(c, cs, cm, cell.source, cell.outputs)
+        proj::Project{:olivestyle} = add_to_session(c, cs, cm, cell.source, cell.outputs, type = "olivestyle")
+        proj.data[:export] = "olivestyle"
     end
     style!(hiddencell, "background-color" => "#F15A60")
     hiddencell

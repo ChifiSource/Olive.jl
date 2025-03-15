@@ -194,8 +194,7 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     if binding
         on(c, hiddencell, "dblclick") do cm::ComponentModifier
             cs::Vector{Cell{<:Any}} = olive_read(cell)
-            proj = add_to_session(c, cs, cm, cell.source, cell.outputs, type = "olivestyle")
-            proj[:export] = "olivestyle"
+            proj = add_to_session(c, cs, cm, cell.source, cell.outputs)
         end
     end
     finfo::Component{:a} = a("cell$(cellid)info", text =  string(fs) * outputfmt)
