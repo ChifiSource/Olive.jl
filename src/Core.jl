@@ -441,7 +441,15 @@ end
 function build_groups_options(c::AbstractConnection, cm::OliveModifier)
     groups_drop = containersection(c, "groups", fillto = 90)
     groups_section = groups_drop[:children][2][:children] = [begin
-            button("edit$(group.name)", text = group.name)
+            group_b = button("edit$(group.name)", text = group.name)
+            on(c, group_b, "click") do cm2::ComponentModifier
+                if "group-dialog" in cm2
+                    remove!(cm2, "group-dialog")
+                end
+                g_dialog = build_group_dialog(c, group)
+                append!(cm2, "mainbody", g_dialog)
+            end
+            group_b
     end for group in CORE.data["groups"]]
     append!(cm, "settingsmenu", groups_drop)
 end
@@ -882,6 +890,72 @@ function get_group(c)
     group::String = c[:OliveCore].client_data[getname(c)]["group"]
     c[:OliveCore].data["groups"][group]
 end
+
+function build_group_dialog(c::AbstractConnection, group::Group)
+    box_common = ("padding" => 20px, "border-radius" => 3px, "border-color" => "#1e1e1e", 
+    "margin-bottom" => 4px)
+    exit_button = button("closedia", text = "close")
+    exit_div = div("-", align = "right", children = [exit_button])
+    style!(exit_button, "background-color" => "red", "border-radius" => 5px, "padding" => 4px, 
+    "color" => "white", "font-weight" => "bold")
+    on(exit_button, "click") do cl
+        remove!(cl, "group-dialog")
+    end
+    name_label = h2("groupname", text = group.name)
+    signatures = [m.sig.parameters[4] for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
+    Project{<:Any}])]
+    filter!(sig -> sig != Cell{<:Any}, signatures)
+    cells_label = h3("-", text = "activated cells")
+    cell_checkboxes = [begin
+        T = extension_method.parameters[1]
+        checkbox = Components.checkbox(string(T), value = ~(T in group.cells), text = string(T))
+    end for extension_method in signatures]
+    cell_update_button = button("group-up-cell", text = "update")
+    on(c, cell_update_button, "click") do cm::ComponentModifier
+        signatures = [m.sig.parameters[4] for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
+        Project{<:Any}])]
+        filter!(sig -> sig != Cell{<:Any}, signatures)
+        group.cells = Vector{Symbol}()
+        for sig in signatures
+            if ~(parse(Bool, cm[string(sig.parameters[1])]["value"]))
+                push!(group.cells, sig.parameters[1])
+            end
+        end
+    end
+    cell_box = section("-", children = cell_checkboxes)
+    style!(cell_box, box_common ...)
+
+    signatures = [m.sig.parameters[4] for m in methods(build,
+    [Any, Modifier, OliveExtension])] 
+    filter!(sig -> sig != OliveExtension{<:Any}, signatures)
+    load_label = h3("-", text = "load extensions")
+    load_checkboxes = [begin
+        T = extension_method.parameters[1]
+        checkbox = Components.checkbox(string(T), value = T in group.load_extensions, text = string(T))
+    end for extension_method in signatures]
+    load_update_button = button("group-up-load", text = "update")
+    on(c, load_update_button, "click") do cm::ComponentModifier
+        signatures = [m.sig.parameters[4] for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
+        Project{<:Any}])]
+        filter!(sig -> sig != Cell{<:Any}, signatures)
+        group.load_extensions = Vector{Symbol}()
+        for sig in signatures
+            if parse(Bool, cm[string(sig.parameters[1])]["value"])
+                push!(group.load_extensions, sig.parameters[1])
+            end
+        end
+    end
+    load_box = section("-", children = load_checkboxes)
+    style!(load_box, box_common ...)
+
+    main_container = section("group-dialog", children = [exit_div, name_label, 
+    cells_label, cell_box, cell_update_button, load_label, load_box, load_update_button])
+    style!(main_container, "position" => "absolute", "overflow-x" => "hidden", "overflow-y" => "scroll", 
+    "top" => 30percent, "height" => 40percent, "width" => 70percent, "left" => 13percent, "background-color" => "white", 
+    "padding" => 4percent)
+    main_container::Component{:section}
+end
+
 
 mutable struct OliveCore <: Toolips.AbstractExtension
     olmod::Module
