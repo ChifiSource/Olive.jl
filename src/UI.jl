@@ -1016,7 +1016,7 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     inner_count = 0
     item_keys = nothing
     km = ToolipsSession.KeyMap()
-    ToolipsSession.bind(km, "Enter", prevent_default = true) do cm2::ComponentModifier
+    find_f = cm2::ComponentModifier -> begin
         active_text::String = cm2["findbox"]["text"]
         if length(keys(found_items)) == 0 || (selected_text != "" && active_text != selected_text)
             selected_text = active_text
@@ -1098,6 +1098,7 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         set_text!(cm2, "find-position", "$count/$total")
         set_text!(cm2, "find-cell", "$inner_count/$n_active_items")
     end
+    ToolipsSession.bind(find_f, km, "Enter", prevent_default = true)
     ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
         focus!(cm2, "replacebox")
     end
@@ -1113,8 +1114,8 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         prev_cell, inner_count = nothing, nothing
         count, total, selected_text = nothing, nothing, nothing
     end
-    ToolipsSession.bind(km, "Enter", :shift) do cm2::ComponentModifier
-        if selected_text == ""
+    replace_f = cm2::ComponentModifier -> begin
+      if selected_text == ""
             olive_notify!(cm2, "No found items to replace, use find first with `Enter`", color = "darkred")
             return
         end
@@ -1129,8 +1130,10 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             end
         end
         olive_notify!(cm2, "Replaced all occurrences of '$selected_text' across found items", color = "darkgreen")
+        found_items = Dict{String, Vector{UnitRange{Int64}}}()
     end
-    ToolipsSession.bind(km, "A", :ctrl, :shift, prevent_default = true) do cm2::ComponentModifier
+    ToolipsSession.bind(replace_f, km, "Enter", :shift)
+    replace_cell_f = cm2::ComponentModifier -> begin
         if selected_text == ""
             olive_notify!(cm2, "no found items to replace, use find fist with `Enter`", color = "darkred")
             return
@@ -1143,7 +1146,9 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         on(c, cm2, 100) do cm::ComponentModifier
             cell_highlight!(c, cm, cell_object, proj)
         end
+        found_items = Dict{String, Vector{UnitRange{Int64}}}()
     end
+    ToolipsSession.bind(replace_cell_f, km, "A", :ctrl, :shift, prevent_default = true)
     ToolipsSession.bind(c, cm, find_box, km)
     delete!(km.keys, "Tab")
     ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
@@ -1154,9 +1159,12 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     style!(texts_box, "display" => "inline-block", "width" => 45percent)
     button_find = button("find_b", text = "find (enter)")
     button_replace = button("rep_b", text = "replace in project (shift + enter)")
-    button_rep_in_proj = button("rep_cell", text = "replace in cell (ctrl + shift + A)")
+    button_rep_in_cell = button("rep_cell", text = "replace in cell (ctrl + shift + A)")
+    on(find_f, c, button_find, "click")
+    on(replace_f, c, button_replace, "click")
+    on(replace_cell_f, c, button_rep_in_cell, "click")
     button_box = div("button_box", children = [button_find, button_replace, pos_pre, position_indicator, 
-    button_rep_in_proj, cell_pos_pre, cell_position_indicator])
+    button_rep_in_cell, cell_pos_pre, cell_position_indicator])
     style!(button_box, "display" => "inline-block", "width" => 45percent)
     mainbar = div("findbar", children = [texts_box, button_box], class = "findcontainer")
     mainbar
