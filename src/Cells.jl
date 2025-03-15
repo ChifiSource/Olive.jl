@@ -152,8 +152,10 @@ function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 end
 
 function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
-    cells::Vector{Cell}, op::CellOperation{<:Any, :delete})
-
+    cells::Vector{Cell}, op::CellOperation{<:Any, :delete})::Nothing
+    insert!(cells, op.position, op.cell)
+    insert!(cm, proj.id, op.position, build(c, cm, op.cell, proj))
+    return
 end
 
 function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
@@ -1489,7 +1491,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     style!(cell_edit, "color" => "white", "font-size" => 17pt)
     sideb[:children] = vcat(sideb[:children][1:2], [cell_edit])
     maincell = inp[:children]["cell$(cell.id)"]
-
     if cell.source != ""
         maincell[:contenteditable] = false
         newtmd = tmd("cell$(cell.id)tmd", cell.source)
