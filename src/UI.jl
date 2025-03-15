@@ -999,8 +999,15 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     find_box = textdiv("findbox", text = "", class = "searchboxes")
     replace_box = textdiv("replacebox", text = "", class = "searchboxes")
     style!(replace_box, "margin-top" => 5px)
+    pos_pre = a(text = "   in project: ")
+    style!(pos_pre, "color" => "lightgreen")
     position_indicator = a("find-position", text = "0/0")
-    style!(position_indicator, "color" => "white", "font-weight" => "bold", "font-size" => 13pt)
+    common = ("color" => "white", "font-weight" => "bold", "font-size" => 13pt)
+    style!(position_indicator, common ...)
+    cell_pos_pre = a(text = "   in cell: ")
+    style!(cell_pos_pre, "color" => "lightpink")
+    cell_position_indicator = a("find-cell", text = "0/0")
+    style!(cell_position_indicator, common ...)
     selected_text = ""
     count = 0
     total = 0
@@ -1041,7 +1048,8 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             inner_count += 1
             active_cell = item_keys[active_key]
             active_cell_items = found_items[active_cell]
-            if inner_count > length(active_cell_items)
+            n_active_items = length(active_cell_items)
+            if inner_count > n_active_items
                 active_key += 1
                 if active_key > length(item_keys)
                     active_key = 1
@@ -1053,6 +1061,7 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
                     inner_count = 1
                 end
                 active_cell_items = found_items[active_cell]
+                n_active_items = length(active_cell_items)
             end
             position = active_cell_items[inner_count]
     
@@ -1087,6 +1096,7 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             count = 0
         end
         set_text!(cm2, "find-position", "$count/$total")
+        set_text!(cm2, "find-cell", "$inner_count/$n_active_items")
     end
     ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
         focus!(cm2, "replacebox")
@@ -1142,9 +1152,11 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     ToolipsSession.bind(c, cm, replace_box, km)
     texts_box = div("findtexts", children = [find_box, replace_box])
     style!(texts_box, "display" => "inline-block", "width" => 45percent)
-    button_find = button("find_b", text = "find")
-    button_replace = button("rep_b", text = "replace")
-    button_box = div("button_box", children = [button_find, button_replace, position_indicator])
+    button_find = button("find_b", text = "find (enter)")
+    button_replace = button("rep_b", text = "replace in project (shift + enter)")
+    button_rep_in_proj = button("rep_cell", text = "replace in cell (ctrl + shift + A)")
+    button_box = div("button_box", children = [button_find, button_replace, pos_pre, position_indicator, 
+    button_rep_in_proj, cell_pos_pre, cell_position_indicator])
     style!(button_box, "display" => "inline-block", "width" => 45percent)
     mainbar = div("findbar", children = [texts_box, button_box], class = "findcontainer")
     mainbar
