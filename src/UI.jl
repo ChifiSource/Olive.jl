@@ -1026,7 +1026,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
                 positions = findall(selected_text, cell.source)
                 cell.id => positions
             end for cellindex in sort(cells_containing))
-            @warn sort(cells_containing)
             for (cell_key, positions) in found_items
                 hl = get_highlighter(c, cells[cell_key])
                 style!(hl, :pfounds, "color" => "black", "background-color" => "lightgreen", "border-radius" => 1px)
