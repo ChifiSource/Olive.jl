@@ -648,6 +648,7 @@ function build(c::Connection, dir::Directory{:pwd})
             finalname = cm["new_namebox"]["text"] * ".$fmat"
             path = cm["selector"]["text"]
             create_new(c, cm, ext, path, finalname)
+            @info CORE.open[getname(c)].projects
         end
         insert!(cm, "pwdmain", 2, built)
     end

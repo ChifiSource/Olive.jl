@@ -401,6 +401,7 @@ create a new button inside of the **create** menu in the **inspector**.
 function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:jl}, path::String, finalname::String)
     projdata = Dict{Symbol, Any}(:cells => Vector{Cell}([Cell("code", "")]), 
     :env => c[:OliveCore].data["home"], :path => path * "/" * finalname)
+    touch(path * "/" * finalname)
     newproj = Project{:olive}(finalname, projdata)
     source_module!(c, newproj)
     projtab = build_tab(c, newproj)
@@ -930,6 +931,9 @@ convention. `e` in this case is the specific number of cells to evaluate.
 """
 function step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
     e += 1
+    if length(proj.data[:cells]) == 0
+        return
+    end
     script!(c, cm, type = "Timeout") do cm2::ComponentModifier
         evaluate(c, cm2, proj.data[:cells][e], proj)
         if e == length(proj.data[:cells]) - 1
@@ -981,6 +985,7 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     projs)
     push!(c[:OliveCore].pool, proj.id)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
+    @info projs
     empty_module!(c, proj)
     deleteat!(projs, pos)
     proj = nothing
@@ -1205,7 +1210,9 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         projbuild::Component{:div} = build(c, cm, p)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         cm["tab$(fname)"] = :class => "tabopen"
-        focus!(cm, "cell$(p[:cells][1].id)")
+        if length(p.data[:cells]) > 0
+            focus!(cm, "cell$(p[:cells][1].id)")
+        end
     end
     on(c, tabbody, "dblclick") do cm::ComponentModifier
         if "$(fname)dec" in cm
