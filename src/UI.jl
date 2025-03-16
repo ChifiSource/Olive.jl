@@ -985,7 +985,6 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     projs)
     push!(c[:OliveCore].pool, proj.id)
     olive_notify!(cm2, "project $(proj.name) closed", color = "blue")
-    @info projs
     empty_module!(c, proj)
     deleteat!(projs, pos)
     proj = nothing

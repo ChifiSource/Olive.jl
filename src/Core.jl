@@ -435,7 +435,9 @@ end
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
     load_keybinds_settings(c, om)
     load_style_settings(c, om)
-    build_groups_options(c, om)
+    if get_group(c).name == "root"
+        build_groups_options(c, om)
+    end
 end
 
 function build_groups_options(c::AbstractConnection, cm::OliveModifier)
@@ -446,7 +448,7 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
                 if "group-dialog" in cm2
                     remove!(cm2, "group-dialog")
                 end
-                g_dialog = build_group_dialog(c, group)
+                g_dialog = build_group_dialog(c, cm2, group)
                 append!(cm2, "mainbody", g_dialog)
             end
             group_b
@@ -553,7 +555,7 @@ function build(c::Connection, dir::Directory{<:Any})
     insert!(builtcell[:children][1][:children], 1, rmbutton)
     builtcell::Component{:div}
 end
-
+#==
 function build(c::Connection, dir::Directory{:saved})
     srcbutton = topbar_icon("srchome", "play_arrow")
     style!(srcbutton, "color" => "white", "font-size" => 17pt)
@@ -595,6 +597,7 @@ function build(c::Connection, dir::Directory{:saved})
     style!(builtcell[:children][2], "border-color" => "#36013F")
     builtcell::Component{:div}
 end
+==#
 
 function build(c::Connection, dir::Directory{:home})
     srcbutton = topbar_icon("srchome", "play_arrow")
@@ -648,7 +651,6 @@ function build(c::Connection, dir::Directory{:pwd})
             finalname = cm["new_namebox"]["text"] * ".$fmat"
             path = cm["selector"]["text"]
             create_new(c, cm, ext, path, finalname)
-            @info CORE.open[getname(c)].projects
         end
         insert!(cm, "pwdmain", 2, built)
     end
@@ -892,17 +894,19 @@ function get_group(c)
     c[:OliveCore].data["groups"][group]
 end
 
-function build_group_dialog(c::AbstractConnection, group::Group)
+function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentModifier, group::Group)
     box_common = ("padding" => 20px, "border-radius" => 3px, "border-color" => "#1e1e1e", 
     "margin-bottom" => 4px)
     exit_button = button("closedia", text = "close")
     exit_div = div("-", align = "right", children = [exit_button])
     style!(exit_button, "background-color" => "red", "border-radius" => 5px, "padding" => 4px, 
     "color" => "white", "font-weight" => "bold")
-    on(exit_button, "click") do cl
-        remove!(cl, "group-dialog")
+    on(c, exit_button, "click") do cm
+        remove!(cm, "group-dialog")
+        save_settings!(c, core = true)
     end
     name_label = h2("groupname", text = group.name)
+    # cells
     signatures = [m.sig.parameters[4] for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
     Project{<:Any}])]
     filter!(sig -> sig != Cell{<:Any}, signatures)
@@ -925,7 +929,7 @@ function build_group_dialog(c::AbstractConnection, group::Group)
     end
     cell_box = section("-", children = cell_checkboxes)
     style!(cell_box, box_common ...)
-
+    # loads
     signatures = [m.sig.parameters[4] for m in methods(build,
     [Any, Modifier, OliveExtension])] 
     filter!(sig -> sig != OliveExtension{<:Any}, signatures)
@@ -948,9 +952,72 @@ function build_group_dialog(c::AbstractConnection, group::Group)
     end
     load_box = section("-", children = load_checkboxes)
     style!(load_box, box_common ...)
+    # directories
+    direlements = [begin
+        el_id = Toolips.gen_ref(4)
+        pathbox = Components.textdiv("$el_id-path", text = dir.uri)
+        commons = ("border" => "3px solid #ddded1", "border-radius" => 2px, "display" => "inline-block")
+        style!(pathbox, commons ...)
+        ToolipsSession.bind(c, main_cm, pathbox, "Enter", prevent_default = true) do cm::ComponentModifier
+            path = cm["$el_id-path"]["text"]
+            dirpos = findfirst(d -> d.uri == dir.uri, group.directories)
+            group.directories[dirpos].uri = path
+            olive_notify!(cm, "directory path updated")
+        end
+        type_indicator = button("$el_id-type", text = string(typeof(dir).parameters[1]))
+        style!(type_indicator, "background-color" => "white", commons ...)
+        style!(type_indicator)
+        delete_button = button("$el_id-delete", text = "remove")
+        on(c, delete_button, "click") do cm::ComponentModifier
+            dirpos = findfirst(d -> d.uri == dir.uri, group.directories)
+            deleteat!(group.directories, dirpos)
+            save_settings!(c, core = true)
+            remove!(cm, "$el_id-container")
+        end
+        on(c, type_indicator, "click") do cm::ComponentModifier
+            if "typeindic" in cm
+                remove!(cm, "typeindic")
+                return
+            end
+            option_buttons = [begin
+                T = m.sig.parameters[3]
+                if T == Directory{<:Any}
+                    T = "olive"
+                else
+                    T = string(T.parameters[1])
+                end
+                opt_butt = button("option-$T", text = T)
+                on(c, opt_butt, "click") do cm2::ComponentModifier
+                    dirpos = findfirst(d -> d.uri == dir.uri, group.directories)
+                    deleteat!(group.directories, dirpos)
+                    insert!(group.directories, dirpos, Directory(dir.uri, dirtype = T))
+                    CORE.open[getname(c)].directories = copy(group.directories)
+                    set_text!(cm2, el_id * "-type", T)
+                    remove!(cm2, "typeindic")
+                end
+                opt_butt::Component{:button}
+            end for m in methods(build, Any[Connection, Directory{<:Any}])]
+            cancel_button = button("cancel-typeset", text = "cancel")
+            style!(cancel_button, "background-color" => "red", "color" => "white")
+            on(c, cancel_button, "click") do cm::ComponentModifier
+                remove!(cm, "typeindic")
+            end
+            new_dialog = div("typeindic", children = [cancel_button, option_buttons ...])
+            style!(new_dialog, "z-index" => "20", "top" => 70percent, "border" => "3px solid #1e1e1e1e", 
+            "position" => "absolute", "padding" => 10px, "background-color" => "white", "left" => 10percent)
+            append!(cm, "mainbody", new_dialog)
+        end
+        container = div("$el_id-container", children = [pathbox, type_indicator])
+        style!(container, "display" => "flex")
+        container
+    end for dir in group.directories]
+    dirs_box = section("-", children = direlements)
+    style!(dirs_box, box_common ...)
 
+    dirs_label = h3("-", text = "directories")
     main_container = section("group-dialog", children = [exit_div, name_label, 
-    cells_label, cell_box, cell_update_button, load_label, load_box, load_update_button])
+    cells_label, cell_box, cell_update_button, load_label, load_box, load_update_button, dirs_label, 
+    dirs_box])
     style!(main_container, "position" => "absolute", "overflow-x" => "hidden", "overflow-y" => "scroll", 
     "top" => 30percent, "height" => 40percent, "width" => 70percent, "left" => 13percent, "background-color" => "white", 
     "padding" => 4percent)
