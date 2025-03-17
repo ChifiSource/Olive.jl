@@ -1493,6 +1493,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     interior = newcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     sideb = interior[:children]["cellside$(cell.id)"]
+    sidb[:class] = "cellside mdside"
     style!(sideb, "background-color" => "#88807B")
     cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
     style!(cell_edit, "color" => "white", "font-size" => 17pt)

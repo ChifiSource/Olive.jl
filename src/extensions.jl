@@ -312,8 +312,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     style!(collapsebutt, "color" => "white", "font-size" => 17pt)
     on(c, collapsebutt, "click") do cm2::ComponentModifier
         if cm2[collapsebutt]["col"] == "false"
-            style!(cm2, builtcell,
-            "min-height" => 3percent, "height" => 10percent,
+            style!(cm2, builtcell, "height" => 3percent,
+            "transform" => "scaleY(50%)",
             "overflow" => "hidden", "border-bottom-width" => 2px,
              "border-bottom-style" => "solid",
              "border-bottom-color" => "lightblue")
@@ -322,7 +322,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
             return
         end
         style!(cm2, builtcell, "min-height" => 50px, "height" => "auto",
-        "border-bottom-width" => 0px)
+        "border-bottom-width" => 0px, "transform" => "scaleY(100%)")
         set_text!(cm2, collapsebutt, "unfold_less")
         cm2[collapsebutt] = "col" => "false"
     end
@@ -334,17 +334,19 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     proj::Project{<:Any})
-    curr = cm["cell$(cell.id)"]["text"]
+    curr = cm["cell$(cell.id)"]["text"] * "\n"
     varname = "data"
     if length(curr) > 2
         if contains(curr[1:2], "[")
             st = findfirst("[", curr)[1] + 1:findfirst("]", curr)[1] - 1
-            varname = curr[st]
+            varname = replace(curr[st], "\"" => "")
         else
             curr = "[data]\n$curr"
         end
     end
-    evalstr = "using TOML;$varname = TOML.parse(\"\"\"$(curr)\"\"\")[\"$varname\"]"
+    grabname = replace(varname, "." => "", "-" => "_", " " => "")
+    curr = replace(curr, "\"" => "\\\"")
+    evalstr = "begin using TOML\n$grabname = TOML.parse(\"\"\"$(curr)\"\"\")[\"$varname\"]\n end"
     ret::Any = ""
     p = Pipe()
     err = Pipe()
@@ -359,8 +361,8 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
         set_text!(cm, "cell$(cell.id)out", replace(string(ret),
         "\n" => "<br>"))
     else
-        cell.outputs = varname
-        set_text!(cm, "cell$(cell.id)out", varname)
+        cell.outputs = grabname
+        set_text!(cm, "cell$(cell.id)out", grabname)
     end
 end
 
