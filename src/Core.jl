@@ -1259,7 +1259,7 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractVector)
     if n < 5
         upper = n
     end
-    write(d.io, "Vector ($n):" * string(o[1:upper]) * " ...")
+    write(d.io, "Vector (x$n) : " * string(o[1:upper]) * " ...")
 end
 
 #==output[code]
@@ -1273,9 +1273,47 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-function display(d::OliveDisplay, err::Exception)
-    write(d.io, string(err))
+
+function build_base_error_box(err::Exception, traces::Vector{Base.StackTraces.StackFrame}; 
+    message::String = "$(typeof(err)) Exception ")
+	# Extract first relevant file and line number
+	linef = 0
+	for frame in traces
+		if frame.linfo !== nothing  # Ignore system/internal calls
+			linef = frame.line - 1
+			break
+		end
+	end
+	# Create a header with error type & location
+	exception_header = div("-", text = "$message on line $linef")
+	style!(exception_header, "background-color" => "#8B0000", "font-weight" => "bold",
+		"padding" => 7px, "border-radius" => 2px, "color" => "white")
+
+	# Create a box for the exception message
+	message_box = div("message", text = string(err))
+	style!(message_box, "padding" => 10px, "background-color" => "#FFB6C1", "color" => "black",
+		"border-radius" => 3px, "white-space" => "pre-wrap")
+    return(div("exbox" * Toolips.gen_ref(3), children = [exception_header, message_box]), linef)
 end
+
+function display(d::OliveDisplay, err::Exception, traces::Vector{Base.StackTraces.StackFrame})
+	# Write to IOBuffer
+	write(d.io, string(build_base_error_box(err, traces)[1]))
+end
+
+function display(d::OliveDisplay, err::Base.Meta.ParseError, traces::Vector{Base.StackTraces.StackFrame})
+    main_box, line = build_base_error_box(err, traces, message = "Syntax Error (Parse Error) ")
+    write(d.io, string(main_box))
+end
+
+function display(d::OliveDisplay, err::UndefVarError, traces::Vector{Base.StackTraces.StackFrame})
+    main_box, line = build_base_error_box(err, traces)
+    name = string(err.var)
+    main_box[:children, "message"][:children] = p("-", text = "$name not defined in this project")
+    write(d.io, string(main_box))
+end
+
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
@@ -1319,6 +1357,7 @@ inputcell_style (generic function with 1 method)
 function display(d::OliveDisplay, m::MIME"text/markdown", o::Any)
     show(d.io, m, o)
 end
+
 #==output[code]
 inputcell_style (generic function with 1 method)
 ==#
