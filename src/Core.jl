@@ -448,7 +448,7 @@ end
 
 function build_groups_options(c::AbstractConnection, cm::OliveModifier)
     groups_drop = containersection(c, "groups", fillto = 90)
-    groups_section = groups_drop[:children][2][:children] = [begin
+    group_editors = [begin
             group_b = button("edit$(group.name)", text = group.name)
             on(c, group_b, "click") do cm2::ComponentModifier
                 if "group-dialog" in cm2
@@ -459,7 +459,40 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
             end
             group_b
     end for group in CORE.data["groups"]]
+    group_wrapper = div("-", children = group_editors)
+    style!(group_wrapper, "border-radius" => 5px, "border" => "1px solid #1e1e1e", "padding" => 8px)
+    add_group_button = button("add-group", text = "add new group")
+    add_buttons = ("background-color" => "darkgreen", "color" => "white", "margin-top" => 3px, 
+    "font-weight" => "bold")
+    style!(add_group_button, add_buttons ...)
+    previews = [begin
+        build_user_data(c, user[1], user[2])
+    end for user in CORE.client_data]
+    user_previews = div("user_previews", children = previews)
+    user_adder = button("add-user", text = "add new user")
+    style!(user_adder, add_buttons ...)
+    users_window = div("users-window", children = user_previews)
+    groups_drop[:children][2][:children] = [group_wrapper, add_group_button, users_window, user_adder]
     append!(cm, "settingsmenu", groups_drop)
+end
+
+function build_user_data(c::AbstractConnection, name::String, data::Dict)
+    name_indicator = a("-", text = name)
+    style!(name_indicator, "background-color" => "#574ca1", "color" => "white", "font-weight" => "bold", 
+    "padding" => 7px)
+    group_button = div("gr$name", text = data["group"])
+    active_key = findfirst(k -> k == name, CORE.client_keys)
+    style!(group_button, "background-color" => "#ebe8ff", "padding" => 7px, "cursor" => "pointer", 
+    "border-radius" => 0px)
+    on(c, group_button, "click") do cm::ComponentModifier
+
+    end
+    link = "http://$(get_host(c))/?key=$active_key"
+    key_ind = a("key-ind", text = link, href = link)
+    style!(key_ind, "padding" => 7px, "background-color" => "#ffe8fb")
+    user_container = div("$name-user", children = [name_indicator, key_ind, group_button])
+    style!(user_container, "display" => "inline-flex", "border" => "1px solid #1e1e1e", "padding" => 0px, "border-radius" => 5px)
+    user_container
 end
 
 #==output[code]

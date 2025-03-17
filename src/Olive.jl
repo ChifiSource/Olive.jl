@@ -296,7 +296,6 @@ script!(c, "load", ["olivemain"], type = "Timeout", time = 350) do cm::Component
 end
 write!(c, bod)
 ```
-###### extending
 To extend, we start by creating a new symbolic dispatch, this one I am naming `customenv`
 ```example
 import Olive: build
@@ -391,9 +390,9 @@ code/none
 """
 ### Olive
 ```julia
-session(c::Connection; key::Bool = true, default::Function = load_default_project) -> ::Nothing
+make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon(), 
+    sheet = DEFAULT_SHEET) -> ::Nothing
 ```
----
 The `session` `Function` is responsible for comprising the initial `Olive` UI as it is served to 
 an incoming `Connection`. Providing a `Connection` to this route will create an `Olive` page on that route. 
 The `session` route consists of four major steps:
@@ -416,7 +415,7 @@ function customstart()
     ws = Olive.start()
     ws["/"] = c::Connection -> session(c, key = false, default = example_function)
 end
-````
+```
 """
 function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon(), 
     sheet = DEFAULT_SHEET)
@@ -525,11 +524,11 @@ code/none
 CORE::OliveCore = OliveCore("olive")
 """
 ```julia
-start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/")) -> ::ParametricProcesses.ProcessManager
+start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd()) -> ::ParametricProcesses.ProcessManager
 ```
-Starts your `Olive` server! This function puts together your `Olive` server and sources your `olive` home.  `path` is used to denote a path to run `Olive` from.
-`warm` determines whether or not `Olive` should "warm up" your `Toolips` server by precompiling and invoking it.
-```
+Starts your `Olive` server! `path` will be the path of the `olive` home -- `Olive` requires this to function in its current state, 
+this is how it loads extensions. `wd` will become the default `:pwd` directory inside of `Olive`.
+```julia
 using Olive
 
 olive_server = Olive.start()
@@ -537,7 +536,7 @@ olive_server = Olive.start()
 olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
-function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"))
+function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd())
     ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'
@@ -557,7 +556,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
             push!(CORE.data, "home" => path * "/olive")
         end
         groups::Vector{Group} = Vector{Group}()
-        push!(CORE.data, "wd" => pwd(), "groups" => groups)
+        push!(CORE.data, "wd" => wd, "groups" => groups)
         for group in config["groups"]
             name::String = group[1]
             log(ollogger, "loading group: $name")
