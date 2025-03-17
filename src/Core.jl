@@ -429,7 +429,8 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
     end for theme in readdir(CORE.data["home"] * "/themes")]))
     t_selector = Components.select("theme-selector", value = selected_theme, 
     children = theme_options)
-    div("theme-menu", children = [t_label, t_active, br(), t_selector])
+    set_theme_button = button("set-theme", text = "set theme")
+    div("theme-menu", children = [t_label, t_active, br(), t_selector, set_theme_button])
 end
 
 build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin

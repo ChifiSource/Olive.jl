@@ -86,7 +86,7 @@ function filec_style()
     "background-color" => "gray","overflow" => "visible", "cursor" => "pointer", "overflow" => "visible",
     "padding" => 4px, "transition" => "0.5s", "border-radius" => 0px, "border-top-left-radius" => 0px, 
     "border-top-right-radius" => 0px, "border-right" => "2px solid 	#232b2b", 
-    "width" => 98percent)
+    "width" => 100percent)
     s:"hover":["border-left" => "5px solid magenta", "transform" => "scale(1.02)"]
     s::Style
 end
@@ -165,6 +165,7 @@ function olivesheet()
     topbar_style = style("div.topbar", "border-color" => "black", 
         "border-radius" => "5px", "background-color" => "white", "transition" => 500ms, 
         "border-style" => "solid", "top" => 0percent, "position" => "sticky", "animation-name" => "fadeup", "animation-duration" => 700ms)
+    topbar_icons_s = style("span.topbaricons", "font-size" => "35pt")
     #tabs:
     tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333",
         "border-style" => "solid", "background-color" => "gray", "border-width" => 2px, "border-color" => "#333333", 
@@ -229,6 +230,9 @@ function olivesheet()
     output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
     selected_side = Style("div.selectedside", "background-color" => "#485eae")
     input_selected = style("div.inputselected", "border-color" => "#485eae")
+    file_cell_icons = style("span.fileicon", "color" => "white", "font-size" => 17pt)
+    file_names = style("a.filelabel", "color" => "white", "font-weight" => "bold",
+    "font-size" => 14pt, "margin-left" => 5px, "pointer-events" => "none")
     # dialogs:
     dialog_box = style("div.confdialog", "background-color" => "white", "border" => "3px solid #333333", "padding" => 15px, 
     "position" => "absolute", "width" => 50percent, "height" => 20percent, "top" => 25percent, "left" => 25percent, 
@@ -250,7 +254,8 @@ function olivesheet()
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
     section_container_labels, section_innerc, section_innero, container_arrow, tab_icon, output_style, project_window, 
-    dialog_box, dialog_text, fade_upanim, code_side, selected_side, input_selected, searchboxes, find_cont, p_explorer_closed)
+    dialog_box, dialog_text, fade_upanim, code_side, selected_side, input_selected, searchboxes, find_cont, p_explorer_closed, 
+    file_cell_icons, file_names, topbar_icons_s)
     st::Component{:sheet}
 end
 
@@ -271,28 +276,24 @@ end
 projectexplorer (generic function with 1 method)
 ==#
 #==|||==#
+
+function close_project_explorer!(cm::AbstractComponentModifier)
+    cm["projectexplorer"] = "class" => "pexplorer pexplorer-closed"
+    style!(cm, "menubar", "border-bottom-left-radius" => 5px)
+    style!(cm, "olivemain", "margin-left" => "0px")
+    set_text!(cm, "explorerico", "drive_file_move_rtl")
+    cm["explorerico"] = "class" => "material-icons topbaricons"
+    cm["olivemain"] = "ex" => "0"
+end
+
 function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
     on(c, explorericon, "click") do cm::ComponentModifier
         if cm["olivemain"]["ex"] == "0"
-            cm["settingsmenu"] =  "open" => "0"
-            cm["settingicon"] = "class" => "material-icons"
-            cm["settingsmenu"] = "class" => "settings"
-            cm["projectexplorer"] = "class" => "pexplorer pexplorer-open"
-            style!(cm, "olivemain", "margin-left" => "500px")
-            cm["explorerico"] = "class" => "material-icons material-icons-selected"
-            style!(cm, "menubar", "border-bottom-left-radius" => 0px)
-            set_text!(cm, explorericon, "folder_open")
-            cm["olivemain"] = "ex" => "1"
+            open_project_explorer!(cm)
             return
-        else
-            cm["projectexplorer"] = "class" => "pexplorer pexplorer-closed"
-            style!(cm, "menubar", "border-bottom-left-radius" => 5px)
-            style!(cm, "olivemain", "margin-left" => "0px")
-            set_text!(cm, explorericon, "drive_file_move_rtl")
-            cm["explorerico"] = "class" => "material-icons"
-            cm["olivemain"] = "ex" => "0"
         end
+        close_project_explorer!(cm)
     end
     explorericon::Component{:span}
 end
@@ -493,26 +494,31 @@ end
 olive_notific (generic function with 1 method)
 ==#
 #==|||==#
+
+function open_settings_menu!(cm::AbstractComponentModifier)
+    close_project_explorer!(cm)
+    style!(cm, "settingicon", "transform" => "rotate(-180deg)")
+    cm["settingicon"] = "class" => "material-icons topbaricons material-icons-selected"
+    cm["settingsmenu"] = "class" => "settings-expanded"
+    cm["settingsmenu"] = "open" => "1"
+end
+
+function close_settings_menu!(cm::AbstractComponentModifier)
+    cm["settingsmenu"] =  "open" => "0"
+    style!(cm, "settingicon", "transform" => "rotate(0deg)")
+    cm["settingicon"] = "class" => "material-icons topbaricons"
+    cm["settingsmenu"] = "class" => "settings"
+    cm["settingsmenu"] = "open" => "0"
+end
+
 function settings(c::Connection)
     settingicon = topbar_icon("settingicon", "settings")
     on(c, settingicon, "click") do cm::ComponentModifier
-        cm["projectexplorer"] = "class" => "pexplorer pexplorer-closed"
-        style!(cm, "olivemain", "margin-left" => "0px")
-        set_text!(cm, "explorerico", "drive_file_move_rtl")
-        cm["explorerico"] = "class" => "material-icons"
-        cm["olivemain"] = "ex" => "0"
         if cm["settingsmenu"]["open"] == "0"
-            style!(cm, "settingicon", "transform" => "rotate(-180deg)")
-            cm["settingicon"] = "class" => "material-icons material-icons-selected"
-            cm["settingsmenu"] = "class" => "settings-expanded"
-            cm["settingsmenu"] = "open" => "1"
+            open_settings_menu!(cm)
             return
         end
-        cm["settingsmenu"] =  "open" => "0"
-        style!(cm, "settingicon", "transform" => "rotate(0deg)")
-        cm["settingicon"] = "class" => "material-icons"
-        cm["settingsmenu"] = "class" => "settings"
-        cm["settingsmenu"] = "open" => "0"
+        close_settings_menu!(cm)
         save_settings!(c)
         olive_notify!(cm, "settings saved", color = "green")
     end
@@ -541,10 +547,8 @@ UndefVarError: Connection not defined
 ==#
 #==|||==#
 function topbar_icon(name::String, icon::String)
-    ico::Component{:span} = span(name, class = "material-icons", text = icon,
-     margin = "15px")
-     style!(ico, "font-size" => "35pt")
-     ico::Component{:span}
+    ico::Component{:span} = span(name, class = "material-icons topbaricons", text = icon,
+     margin = "15px")::Component{:span}
 end
 #==output[code]
 topbar_icon (generic function with 1 method)
@@ -1276,6 +1280,17 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
+
+function open_project_explorer!(cm::AbstractComponentModifier)
+    close_settings_menu!(cm)
+    cm["projectexplorer"] = "class" => "pexplorer pexplorer-open"
+    style!(cm, "olivemain", "margin-left" => "500px")
+    cm["explorerico"] = "class" => "material-icons topbaricons material-icons-selected"
+    style!(cm, "menubar", "border-bottom-left-radius" => 0px)
+    set_text!(cm, "explorerico", "folder_open")
+    cm["olivemain"] = "ex" => "1"
+end
+
 """
 ### Olive UI
 ````
@@ -1289,15 +1304,7 @@ Saves a project to a new path.
 """
 function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Project{<:Any})
     creatorcell::Cell{:creator} = Cell("creator", "", "save")
-    cm["settingsmenu"] =  "open" => "0"
-    cm["settingicon"] = "class" => "material-icons"
-    cm["settingsmenu"] = "class" => "settings"
-    cm["projectexplorer"] = "class" => "pexplorer pexplorer-open"
-    style!(cm, "olivemain", "margin-left" => "500px")
-    cm["explorerico"] = "class" => "material-icons material-icons-selected"
-    style!(cm, "menubar", "border-bottom-left-radius" => 0px)
-    set_text!(cm, "explorerico", "folder_open")
-    cm["olivemain"] = "ex" => "1"
+    open_project_explorer!(cm)
     insert!(cm, "pwdmain", 2, build(c, creatorcell, p, cm))
 end
 #==output[code]
