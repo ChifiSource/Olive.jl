@@ -196,7 +196,7 @@ This is a callable build function that can be used to create a base file cell.
 function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; binding::Bool = true)
     cellid::String = cell.id
     hiddencell::Component{:div} = div("cell$cellid", class = "file-cell")
-    name::Component{:a} = a("cell$(cellid)label", text = cell.source)
+    name::Component{:a} = a("cell$(cellid)label", text = cell.source, class = "filelabel")
     outputfmt::String = "b"
     fs::Number = filesize(cell.outputs)
     if fs > Int64(1e+9)
@@ -218,6 +218,20 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     finfo::Component{:a} = a("cell$(cellid)info", text =  string(fs) * outputfmt)
     style!(finfo, "color" => "white", "font-weight" => "bold", "margin-left" => 15percent)
     delbutton::Component{:span} = topbar_icon("$(cellid)expand", "cancel")
+    dupe_button = topbar_icon("$(cellid)dupe", "control_point_duplicate")
+    on(c, dupe_button, "click") do cm::ComponentModifier
+        new_dialog = olive_confirm_dialog(c, "duplicate file $(cell.outputs)?") do cm::ComponentModifier
+            fpath_splits = split(cell.outputs, "/")
+            fmt_splits = split(fpath_splits[end], ".")
+            fname = fmt_splits[1]
+            deleteat!(fmt_splits, 1)
+            new_name = fname * " (new)." * join(fmt_splits)
+            cp(cell.outputs, join(fpath_splits[begin:end - 1], "/") * "/" * new_name)
+            olive_notify!(cm, "file copied!")
+        end
+        append!(cm, "mainbody", new_dialog)
+    end
+    style!(dupe_button, "margin-left" => 8px)
     copyb::Component{:span} = topbar_icon("copb$(cellid)", "copy")
     on(c, delbutton, "click") do cm::ComponentModifier
         new_dialog = olive_confirm_dialog(c, "delete file $(cell.outputs)?") do cm::ComponentModifier
@@ -281,13 +295,13 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
         set_text!(cm, name, "")
         focus!(cm, name)
     end
-    style!(delbutton, "color" => "white", "font-size" => 17pt)
-    style!(movbutton, "color" => "white", "font-size" => 17pt)
-    style!(copyb, "color" => "white", "font-size" => 17pt)
-    style!(editbutton, "color" => "white", "font-size" => 17pt)
-    style!(name, "color" => "white", "font-weight" => "bold",
-    "font-size" => 14pt, "margin-left" => 5px, "pointer-events" => "none")
-    push!(hiddencell, delbutton, movbutton, copyb, editbutton, name, finfo)
+    def = "material-icons " * " fileicon"
+    delbutton[:class] = def
+    movbutton[:class] = def
+    copyb[:class] = def
+    editbutton[:class] = def
+    dupe_button[:class] = def
+    push!(hiddencell, delbutton, movbutton, copyb, editbutton, name, finfo, dupe_button)
     hiddencell::Component{:div}
 end
 #==output[code]
@@ -507,6 +521,7 @@ function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool 
     "border-bottom" => "2px solid #3b444b", "width" => 100percent)
     filecell = build_base_cell(c, cell, d, binding = false)
     cdto = topbar_icon("$(cellid)cd", "file_open")
+    cdto[:class] = "material-icons fileicon"
     on(c, cdto, "click") do cm::ComponentModifier
         switch_work_dir!(c, cm, cell.outputs * "/" * cell.source)
     end
@@ -980,27 +995,11 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     end
     ToolipsSession.bind(km, keybindings["project-new"], prevent_default = true) do cm2::ComponentModifier
         creatorcell::Cell{:creator} = Cell("creator", "", "save")
-        cm2["settingsmenu"] =  "open" => "0"
-        cm2["settingicon"] = "class" => "material-icons"
-        cm2["settingsmenu"] = "class" => "settings"
-        cm2["projectexplorer"] = "class" => "pexplorer pexplorer-open"
-        style!(cm2, "olivemain", "margin-left" => "500px")
-        cm2["explorerico"] = "class" => "material-icons material-icons-selected"
-        style!(cm2, "menubar", "border-bottom-left-radius" => 0px)
-        set_text!(cm2, "explorerico", "folder_open")
-        cm2["olivemain"] = "ex" => "1"
+        open_project_explorer!(cm2)
         insert!(cm2, "pwdmain", 2, build(c, creatorcell, p, cm2))
     end
     ToolipsSession.bind(km, keybindings["explorer"], prevent_default = true) do cm2::ComponentModifier
-        cm2["settingsmenu"] =  "open" => "0"
-        cm2["settingicon"] = "class" => "material-icons"
-        cm2["settingsmenu"] = "class" => "settings"
-        cm2["projectexplorer"] = "class" => "pexplorer pexplorer-open"
-        style!(cm2, "olivemain", "margin-left" => "500px")
-        cm2["explorerico"] = "class" => "material-icons material-icons-selected"
-        style!(cm2, "menubar", "border-bottom-left-radius" => 0px)
-        set_text!(cm2, "explorerico", "folder_open")
-        cm2["olivemain"] = "ex" => "1"
+        open_project_explorer!(cm2)
     end
     ToolipsSession.bind(km, keybindings["delete"]) do cm2::ComponentModifier
         cellid::String = cell.id
