@@ -430,6 +430,11 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
     t_selector = Components.select("theme-selector", value = selected_theme, 
     children = theme_options)
     set_theme_button = button("set-theme", text = "set theme")
+    on(c, set_theme_button, "click") do cm::ComponentModifier
+        theme = cm["theme-selector"]["value"]
+        CORE.client_data[getname(c)]["theme"] = theme
+        olive_notify!(cm, "set theme: $(theme) (refresh required)")
+    end
     div("theme-menu", children = [t_label, t_active, br(), t_selector, set_theme_button])
 end
 

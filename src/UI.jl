@@ -217,13 +217,7 @@ function olivesheet()
     section_innero = style("div.inner-open", "opacity" => 100percent, "height" => 70percent, 
             "pointer-events" => "auto", "padding" => 5px, "transition" => 500ms, "overflow-x" => "hidden")
     container_arrow = Style("span.containerarrow", "cursor" => "pointer",
-    "font-family" => "'Material Icons'", "font-weight" => "normal",
-    "font-style" => "normal", "display" => "inline-block", "line-height" => "1",
-    "wewbkit-font-smoothing" => "antialiased", "text-rendering" => "optimizeLegibility",
-    "font-size" => "5pt", "transition" => ".4s", "line-height" => "1",
-    "text-transform" => "none", "letter-spacing" => "normal", "user-select" => "none",
-    "color" => "darkgray",
-    "word-wrap" => "normal", "white-space" => "nowrap", "direction" => "ltr")
+    "font-size" => 13pt, "color" => "#1e1e1e")
     # cells:
     output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
     code_side = Style("div.codeside", "background-color" => "pink")
@@ -326,7 +320,7 @@ This function creates a simple `Olive`-styled collapsible container.
 function containersection(c::Connection, name::String, level::Int64 = 3;
     text::String = name, fillto::Int64 = 60)
     arrow::Component{:span} = topbar_icon("$name-expander", "expand_more")
-    arrow[:class] = "containerarrow"
+    arrow[:class] = "material-icons containerarrow"
     outersection::Component{:section} = section("outer$name", ex = "0", class = "outers")
     heading::Component{<:Any} = Component{Symbol("h$level")}("$name-heading", text = text, class = "containerlabels")
     upperdiv::Component{:div} = div("$name-upper")
