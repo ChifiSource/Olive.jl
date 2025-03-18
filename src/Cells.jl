@@ -1384,10 +1384,12 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cell.source::String = replace(cm["cell$(cell.id)"]["text"], "&lt;" => "<")
     execcode::String = *("begin\n", cell.source, "\nend")
     ret::Any = ""
+    st_trace = nothing
     try
         ret = proj[:mod].evalin(Meta.parse(execcode))
     catch e
         ret = e
+        st_trace = proj[:mod].catch_backtrace()
     end
     # output
     for m in methods(on_code_evaluate)
@@ -1408,7 +1410,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         outp = standard_out
     end
     if typeof(ret) <: Exception
-        display(active_display, ret)
+        display(active_display, ret, Base.StackTraces.stacktrace(st_trace))
         outp = replace(String(take!(active_display.io)), "\n" => "</br>")
     elseif ~(isnothing(ret))
         display(active_display, MIME"olive"(), ret)
@@ -1493,6 +1495,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     interior = newcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     sideb = interior[:children]["cellside$(cell.id)"]
+    sidb[:class] = "cellside mdside"
     style!(sideb, "background-color" => "#88807B")
     cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
     style!(cell_edit, "color" => "white", "font-size" => 17pt)

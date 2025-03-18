@@ -19,51 +19,31 @@ function cellside_style()
     st::Style
 end
 
-#==output[code]
-jl_style (generic function with 1 method)
-==#
-#==|||==#
 function spin_forever()
     load = keyframes("spin_forever",  duration = 1s, iterations = 0)
     keyframes!(load, 0percent, "transform" => "rotate(0deg)")
     keyframes!(load, 100percent, "transform" => "rotate(360deg)")
     load
 end
-#==output[code]
-spin_forever (generic function with 1 method)
-==#
-#==|||==#
+
 function load_spinner()
     mys = Style("img.loadicon", "transition" => ".5s")
     style!(mys, spin_forever())
     mys::Style
 end
-#==output[code]
-usingcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function cell_style()
     st::Style = Style("div.cell", "transition" => 350ms)
     st:"focus":["border-width" => 2px, "border-color" => "magenta"]
     st::Style
 end
-#==output[code]
-cell_style (generic function with 1 method)
-==#
-#==|||==#
+
 hdeps_style() = Style("h1.deps", "color" => "white")
-#==output[code]
-hdeps_style (generic function with 1 method)
-==#
-#==|||==#
+
 olive_icons_font() = Style("@font-face", "font-family" => "'Material Icons'",
     "font-style" => "normal", "font-weight" => "400",
     "src" => """local('Material Icons'), local('MaterialIcons-Regular'),
     url(/MaterialIcons.otf) format('opentype')""")::Style
-#==output[code]
-google_icons (generic function with 1 method)
-==#
-#==|||==#
 
 function iconstyle()
     s = Style(".material-icons", "cursor" => "pointer",
@@ -77,10 +57,6 @@ function iconstyle()
     s
 end
 
-#==output[code]
-iconstyle (generic function with 1 method)
-==#
-#==|||==#
 function filec_style()
     s = Style("div.file-cell", "padding" => 10px,
     "background-color" => "gray","overflow" => "visible", "cursor" => "pointer", "overflow" => "visible",
@@ -149,10 +125,7 @@ function sheet(name::String,p::Pair{String, Any} ...;
     h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb)
     msheet
 end
-#==output[code]
-hidden_style (generic function with 1 method)
-==#
-#==|||==#
+
 function olivesheet()
     st = sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
@@ -221,6 +194,7 @@ function olivesheet()
     # cells:
     output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
     code_side = Style("div.codeside", "background-color" => "pink")
+    md_side = Style("div.mdside", "background-color" => "#452b20")
     output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
     selected_side = Style("div.selectedside", "background-color" => "#485eae")
     input_selected = style("div.inputselected", "border-color" => "#485eae")
@@ -259,17 +233,9 @@ const DEFAULT_SHEET = begin
     new_sheet::Component{:sheet}
 end
 
-#==output[code]
-olivesheet (generic function with 1 method)
-==#
-#==|||==#
 function projectexplorer()
     div("projectexplorer", class = "pexplorer pexplorer-closed")
 end
-#==output[code]
-projectexplorer (generic function with 1 method)
-==#
-#==|||==#
 
 function close_project_explorer!(cm::AbstractComponentModifier)
     cm["projectexplorer"] = "class" => "pexplorer pexplorer-closed"
@@ -291,19 +257,12 @@ function explorer_icon(c::Connection)
     end
     explorericon::Component{:span}
 end
-#==output[code]
-UndefVarError: ComponentModifier not defined
-==#
-#==|||==#
+
 function settings_menu(c::Connection)
     div("settingsmenu", open = "0", class = "settings")::Component{:div}
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
-### Olive UI
 ````
 containersection(c::Connection, name::String, level::Int64 = 3; 
 text::String = name, fillto::Int64 = 80)
@@ -339,10 +298,7 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
     push!(outersection, innersection)
     outersection::Component{:section}
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
 ### Olive UI
 ````
@@ -379,10 +335,6 @@ function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::St
     set_text!(cm, "selector", string(path))
     set_children!(cm, "pwdbox", childs)
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 """
 ```
 create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
@@ -402,10 +354,7 @@ function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExten
     projtab = build_tab(c, newproj)
     open_project(c, cm, newproj, projtab)
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:module}, path::String, finalname::String)
     finalname = split(finalname, ".")[1]
     try
