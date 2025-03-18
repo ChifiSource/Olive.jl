@@ -56,16 +56,12 @@ using Olive; Olive.start()
 To change the IP or port, simply provide an `IP4` using **the colon syntax**:
 ```julia
 using Olive; Olive.start("127.0.0.1":9987)
+# start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd())
 ```
 The following arguments will change the behavior of this start:
 - `path`**::String** = `homedirec()` -- The path
-
+- `wd`**::String** = `pwd()`
 If there is no `olive` setup inside of `path`, `start` will ask us for a root name to create a new `olive` home at that path. Providing `path` allows us to setup multiple `Olive` environments across our filesystem.
-
-<div align="center">
-   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/getstarted2.png" width = 450></img>
-</div>
-
 ```julia
 IP = "127.0.0.1" # same as default (see ?(Olive.start))
 PORT = 8000
@@ -74,10 +70,10 @@ using Olive
 
 Olive.start(IP, PORT, path = startpath)
 ```
-The `Olive.start` method also returns a `Toolips.WebServer`, this being the server that contains your entire `Olive` session. This provides an easy avenue to introspect and work with `Olive`, especially if you know what you are doing. There is more information on working with this server type in the [deploying olive](#deploying-olive) portion of this `README`.
 #### docs
-This README includes a brief overview of `Olive`'s basic usage; for more information `Olive` ensures that all doc-strings are easily browse-able. All exports are listed in the doc-string for `Olive`. Beyond that, there is the `ChifiDocs` documentation:
-- [chifidocs]()
+This README includes a brief overview of `Olive`'s basic usage; for more information `Olive` ensures that all doc-strings are easily browse-able. All exports are listed in the doc-string for `Olive`. Alteranatively, you could `push!` `Olive.Toolips.make_docroute(Olive)` to `Olive.olive_routes` or use the `OliveDocBrowser` extension to browse documentation more thoroughly. [chifi](https://github.com/ChifiSource) is also working on a new documentation website, which will eventually have `Olive` documentation here:
+- [chifidocs](https://chifidocs.com/olive/olive)
+---
 #### explanation
 Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method definitions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
 
@@ -92,7 +88,7 @@ Olive's user-interface is relatively straightforward. When starting olive, you w
 
 The main window is called **session**. This contains two panes which will be filled with your projects. Projects are denoted by a tab and a window which contains cells. This tab can be double clicked for a range of different project options.
 #### session
-**Session** is the colloquial name for the main editor which comprises `Olive` -- this being the `Project` and `Cell` combination. Inside of **session** there are two panes, `pane_one` and `pane_two` respectively. These panes houses projects, their tabs being contained within a tab container above them. Clicking these tabs will yield project focus. Double clicking will add the tab's controls to the tab. These are, from left to right, `decollapse controls`, `new cell`, `switch pane`, `re-source`,`step evaluate`, and `close project`. Other than this, the hotkeys in [keybindings](https://github.com/ChifiSource/Olive.jl#keybindings) are the primary method `Olive` uses for input. Files are open from the **project explorer** and then edited inside of this session, before being saved. 
+**session** is the colloquial name for the central editor which comprises `Olive` -- this being the `Project` and `Cell` combination. Inside of **session** there are two panes, `pane_one` and `pane_two` respectively. These panes houses projects, their tabs being contained within a tab container above them. Clicking these tabs will yield project focus. Double clicking will add the tab's controls to the tab. These are, from left to right, `decollapse controls`, `new cell`, `switch pane`, `re-source`,`step evaluate`, and `close project`. Other than this, the hotkeys in [keybindings](https://github.com/ChifiSource/Olive.jl#keybindings) are the primary method `Olive` uses for input. Files are open from the **project explorer** and then edited inside of this session, before being saved. 
 
 <div align="center">
    <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/ui2.png"></img>
@@ -105,8 +101,7 @@ Using cells is simple. By default, olive bindings use `ctrl` alone for window fe
   - `ctrl` + `S` **save selected project**
   - `ctrl` + `z` cell **undo**
   - `ctrl` + `y` cell **redo**
-  - `ctrl` + `N` **new** `TODO`
-  - `ctrl` + `E` **explorer** TODO
+  - `ctrl` `shift` + `E` **explorer**
 - **cell bindings**
   - `ctrl` + `Shift` + `S` **save project as**
   - `ctrl` + `shift` + `Delete` **delete selected cell**
