@@ -1663,18 +1663,20 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
      buttonbox = div("cellcontainer$(cell.id)")
      push!(buttonbox, cbox)
      push!(buttonbox, h3("spawn$(cell.id)", text = "new cell"))
+     group_excluded_sigs = get_group(c).cells
      for sig in signatures
          if sig in (Cell{:creator}, Cell{<:Any}, Cell{:getstarted})
              continue
          end
-         if length(sig.parameters) < 1
-             continue
+         signature::Symbol = sig.parameters[1]
+         if sig in group_excluded_sigs
+            continue
          end
-         b = button("$(sig)butt", text = string(sig.parameters[1]))
+         b = button("$(sig)butt", text = string(signature))
          on(c, b, "click") do cm2::ComponentModifier
              pos = findfirst(lcell -> lcell.id == cell.id, cells)
              remove!(cm2, buttonbox)
-             new_cell = Cell(string(sig.parameters[1]), "")
+             new_cell = Cell(string(signature), "")
              deleteat!(cells, pos)
              insert!(cells, pos, new_cell)
              insert!(cm2, windowname, pos, build(c, cm2, new_cell,

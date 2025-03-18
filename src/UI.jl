@@ -264,16 +264,14 @@ function settings_menu(c::Connection)
 end
 
 """
-````
+```julia
 containersection(c::Connection, name::String, level::Int64 = 3; 
 text::String = name, fillto::Int64 = 80)
-````
-------------------
+```
 This function creates a simple `Olive`-styled collapsible container. 
     These are used in the **settings** menu and the **inspector** inside 
     of `Olive`.
-#### example
-```
+```julia
 
 ```
 """
