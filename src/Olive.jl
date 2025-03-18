@@ -127,6 +127,25 @@ include("UI.jl")
 
 include("extensions.jl")
 
+function build_key_screen(c::AbstractConnection, message::String = "welcome to olive")
+    key_input = Components.textdiv("keyinp", text = "")
+    ToolipsSession.bind(c, key_input, "Enter", prevent_default = true) do cm::ComponentModifier
+        txt = cm["keyinp"]["text"]
+        redirect!(cm, "/?key=$txt")
+    end
+    style!(key_input, "color" => "#1e1e1e", "border" => "1px solid #1e1e1e", "padding" => 5px, 
+    "background-color" => "white", "font-size" => 16pt, "border-radius" => 3px)
+    header = h3("-", text = message)
+    style!(header, "color" => "white", "font-size" => 22pt)
+    message = p("-", text = "Please provide your access key:")
+    style!(message, "color" => "#1e1e1e", "font-weight" => "bold", "font-size" => 14pt)
+    olivecover = div("-",  children = [header, message, key_input])
+    style!(olivecover, "padding" => 10percent)
+    mainbod = body(children = [olivecover])
+    style!(mainbod, "background-color" => "C16AAD")
+    mainbod::Component{:body}
+end
+
 """
 ```julia
 verify_client!(c::Connection) -> ::Tuple{String, Dict{Symbol, String}}
@@ -142,26 +161,11 @@ function verify_client!(c::Connection)
         return(c[:OliveCore].names[ip], args)
     end
     if ~(:key in keys(args))
-        coverimg::Component{:img} = olive_cover()
-        olivecover::Component{:div} = div("topdiv", align = "center")
-        logbutt = button("requestaccess", text = "request access")
-        on(c, logbutt, "click") do cm::ComponentModifier
-            log(c[:Logger], " someone is trying to login to olive! is this you?")
-            y = readline()
-            if y == "y"
-                log(c[:Logger], " okay, logging in as root.")
-                key = ToolipsSession.gen_ref(16)
-                push!(c[:OliveCore].client_keys, [key] => c[:OliveCore].data["root"])
-                redirect!(cm, "/?key=$(key)")
-            end
-        end
-        push!(olivecover, coverimg,
-        h2("mustconfirm", text = "request access (no key)"), logbutt)
-        write!(c, olivecover)
+        write!(c, build_key_screen(c))
         return("dead", args)
     end
     if ~(args[:key] in keys(c[:OliveCore].client_keys))
-        write!(c, "bad key.")
+        write!(c, build_key_screen(c, "bad key"))
         return("dead", args)
     end
     uname = c[:OliveCore].client_keys[args[:key]]
@@ -203,7 +207,7 @@ function load_default_project!(c::Connection)
     env::Environment
 end
 ```
-- See also: `make_session`
+- See also: `make_session`, `Olive`, `build`
 """
 function load_default_project!(c::Connection)
     name::String = getname(c)
@@ -509,7 +513,7 @@ olive_server = Olive.start()
 olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
-function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd())
+function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"))
     ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'

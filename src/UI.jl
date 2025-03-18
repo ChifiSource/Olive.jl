@@ -408,7 +408,7 @@ end
 create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
 ```
 Creates a new project from a given template. Each method for this function will 
-create a new button inside of the **create** menu in the **inspector**.
+create a new button inside of the **create** menu in the **explorer**.
 ```
 
 ```
@@ -451,30 +451,22 @@ function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExten
         olive_notify!(cm, "failed to create $finalname !", color = "red")
     end
 end
-#==output[code]
-UndefVarError: Connection not defined
-==#
-#==|||==#
+
 function create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{:directory}, path::String, finalname::String)
     path = path * "/" * replace(finalname, ".directory" => "")
     mkdir(path)
     olive_notify!(cm, "created directory", color = "darkgreen")
     switch_work_dir!(c, cm, path)
 end
-#==output[code]
-UndefVarError: Connection not defined
-==#
-#==|||==#
+
 """
-### Olive UI
-````
+```julia
 olive_notify!(cm::AbstractComponentModifier, message::String, 
-duration::Int64 = 2000, color::String = "pink")
-````
+duration::Int64 = 2000, color::String = "#333333") -> ::Nothing
+```
 Sends a notification to the top of the user's session. `duration` changes how 
 long the message is displayed and `color` changes the background color of the message.
-#### example
-```
+```julia
 
 ```
 """
@@ -486,11 +478,19 @@ function olive_notify!(cm::AbstractComponentModifier, message::String,
     on(cm, time = duration) do cm2
         style!(cm2, "olive-notifier", "height" => 0percent, "opacity" => 0percent)
     end
+    nothing::Nothing
 end
-#==output[code]
-UndefVarError: AbstractComponentModifier not defined
-==#
-#==|||==#
+
+"""
+```julia
+olive_notific() -> ::Component{:div}
+```
+Sends a notification to the top of the user's session. `duration` changes how 
+long the message is displayed and `color` changes the background color of the message.
+```julia
+
+```
+"""
 function olive_notific()
     notifier::Component{:div} = div("olive-notifier", align = "center")
     style!(notifier, "background-color" => "pink", "color" => "white",
@@ -501,10 +501,6 @@ function olive_notific()
     "transition" => ".5s")
     notifier::Component{:div}
 end
-#==output[code]
-olive_notific (generic function with 1 method)
-==#
-#==|||==#
 
 function open_settings_menu!(cm::AbstractComponentModifier)
     close_project_explorer!(cm)
@@ -535,10 +531,7 @@ function settings(c::Connection)
     end
     settingicon::Component{:span}
 end
-#==output[code]
-UndefVarError: ComponentModifier not defined
-==#
-#==|||==#
+
 function topbar(c::Connection)
     topbar = div("menubar", class = "topbar")
     leftmenu = span("leftmenu", align = "left")
@@ -553,37 +546,25 @@ function topbar(c::Connection)
     push!(topbar, leftmenu, tabmenu, rightmenu)
     topbar::Component{:div}
 end
-#==output[code]
-UndefVarError: Connection not defined
-==#
-#==|||==#
+
 function topbar_icon(name::String, icon::String)
     ico::Component{:span} = span(name, class = "material-icons topbaricons", text = icon,
      margin = "15px")::Component{:span}
 end
-#==output[code]
-topbar_icon (generic function with 1 method)
-==#
-#==|||==#
+
 function olive_main()
     main = div("olivemain", ex = 0)
     style!(main, "transition" => ".8s", "overflow"  =>  "scroll", "padding" => 2px)
     main::Component{:div}
 end
-#==output[code]
-olive_main (generic function with 2 methods)
-==#
-#==|||==#
+
 """
-### Olive UI
-````
+```julia
 source_module!(c::Connection, p::Project{<:Any}, name::String)
-````
-Sources the project's module. Note that the modules are parsed in `Olive` 
-but evaluated in `Main`. This is an important note because without this `Olive` cannot
-use external dependencies.
-#### example
 ```
+Sources the project's module. This function can be overwritten for a new project to change how the 
+`proj[:mod]` is sourced. For example, for `Python` you would likely want to load `PyCall` in each `Module`.
+```julia
 
 ```
 """
@@ -602,10 +583,7 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String = p.id)
     push!(p.data, :mod => mod, :modid => name)
     nothing::Nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
 ```julia
 check!(p::Project{<:Any}) -> ::Nothing
@@ -613,8 +591,7 @@ check!(p::Project{<:Any}) -> ::Nothing
 `check!` is an open-ended function that is called whenever a 
 `Project` is loaded. For this base `Project`, this does absolutely nothing, 
 but could be useful for extensions.
-#### example
-```
+```julia
 
 ```
 """
@@ -623,16 +600,14 @@ function check!(p::Project{<:Any})
 end
 
 """
-### Olive UI
-````
+```julia
 add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell}, 
 cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any})
-````
+```
 This is the function `Olive` uses to load files into projects. This function 
     will find your project's environment, source its module, then add it to the 
     client's page.
-#### example
-```
+```julia
 
 ```
 """
@@ -685,12 +660,10 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
 end
 
 """
-### Olive UI
 ```julia
 open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab)
 ```
 This is the function `Olive` uses to load a project into its UI.
-#### example
 ```example
 
 ```
@@ -738,13 +711,11 @@ inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
 """
-### Olive UI
 ````
 style_tab_closed!(cm::ComponentModifier, proj::Project{<:Any}) -> ::Nothing
 ````
 This function is called on a project whenever its tab is minimized.
     All that happens here for most projects is that the tab changes style.
-#### example
 ```
 
 ```
@@ -762,14 +733,12 @@ function style_tab_closed!(cm::ComponentModifier, proj::Project{:module})
 end
 
 """
-### Olive UI
-````
+```julia
 switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}) -> ::Nothing
-````
+```
 This function is called on a project whenever its tab is minimized.
     All that happens here for most projects is that the tab changes style.
-#### example
-```
+```julia
 
 ```
 """
@@ -803,7 +772,16 @@ function switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Projec
     end
 end
 
-re_source!(c::Connection, p::Project{<:Any}) = begin
+"""
+```julia
+re_source!(c::Connection, p::Project{<:Any}) -> ::Nothing
+```
+Removes the project's current `Module` and calls `source_module!`, thereby creating a new empty active 
+environment.
+```julia
+```
+"""
+re_source!(c::Connection, p::Project{<:Any})::Nothing = begin
     delete!(p.data, :mod)
     source_module!(c, p)
 end
@@ -846,10 +824,7 @@ function tab_controls(c::Connection, p::Project{<:Any})
     style!(closebutton, "font-size"  => 17pt, "color" => "red")
     return([add_button, switchpane_button, restartbutton, runall_button, closebutton])::Vector{<:AbstractComponent}
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function tab_controls(c::Connection, p::Project{:include})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
@@ -877,10 +852,7 @@ function tab_controls(c::Connection, p::Project{:include})
     style!(runall_button, "font-size"  => 17pt, "color" => "white")
     [add_button, switchpane_button, runall_button, closebutton]
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function tab_controls(c::Connection, p::Project{:module})
     fname = p.id
     closebutton = topbar_icon("$(fname)close", "close")
@@ -908,18 +880,13 @@ function tab_controls(c::Connection, p::Project{:module})
     style!(runall_button, "font-size"  => 17pt, "color" => "white")
     [add_button, switchpane_button, runall_button, closebutton]
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
-### Olive UI
-````
+```julia
 step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, e::Int64 = 0)
-````
+```
 Step evaluate evaluates each cell in descending order, typical to that of notebook
 convention. `e` in this case is the specific number of cells to evaluate.
-#### example
 ```
 
 ```
@@ -937,18 +904,13 @@ function step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Proje
         step_evaluate(c, cm2, proj, e)
     end
 end
-#==output[code]
-UndefVarError: Cell not defined 
-==#
-#==|||==#
+
 """
-### Olive UI
-````
+```julia
 close_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any})
-````
-This is the function `Olive` uses to close the project in the UI.
-#### example
 ```
+This is the function `Olive` uses to close the project in the UI.
+```julia
 
 ```
 """
@@ -986,13 +948,33 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     nothing::Nothing
 end
 
+"""
+```julia
+empty_module!(c::Connection, proj::Project{<:Any}) -> ::Nothing
+```
+Completely removes a `Module` from a project, adding it back to the `OliveCore` pool.
+```julia
+
+```
+"""
 function empty_module!(c::Connection, proj::Project{<:Any})
     push!(c[:OliveCore].pool, proj.id)
     mod = proj[:mod]
     re_source!(c, proj)
     Base.GC.gc()
+    nothing::Nothing
 end
 
+"""
+```julia
+build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cells::Vector{Cell}, 
+    proj::Project{<:Any}, found_items::Dict{String, Vector{UnitRange{Int64}}}) -> ::Component{:div}
+```
+Builds the `find` bar used for searching `Olive`cells.
+```julia
+
+```
+"""
 function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cells::Vector{Cell}, 
     proj::Project{<:Any}, found_items::Dict{String, Vector{UnitRange{Int64}}})
     find_box = textdiv("findbox", text = "", class = "searchboxes")
@@ -1168,18 +1150,12 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     mainbar
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 """
-### Olive UI
-````
+```julia
 build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false) -> ::Component{:div}
-````
+```
 Creates a tab for the project, including its controls. These tabs are then provided 
     to `open_project`.
-#### example
 ```
 
 ```
@@ -1229,18 +1205,12 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     tabbody::Component{:div}
 end
 
-#==output[code]
-UndefVarError: ComponentModifier not defined
-==#
-#==|||==#
 """
-### Olive UI
-````
+```julia
 save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{<:Any}) -> ::Nothing
-````
-Saves a project to the URI contained within the :path key of its `data` field.
-#### example
 ```
+Saves a project to the URI contained within the :path key of its `data` field.
+```julia
 
 ```
 """
@@ -1267,18 +1237,12 @@ function save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{
         olive_notify!(cm2, "file $(p.name) failed to save.", color = "red")
     end
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 
 """
-### Olive UI
-````
+```julia
 save_project(c::Connection, cm2::AbstractComponentModifier, p::Project{<:Any}) -> ::Nothing
-````
+```
 Saves a project to a new path.
-#### example
 ```
 
 ```
@@ -1288,10 +1252,7 @@ function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Projec
     open_project_explorer!(cm)
     insert!(cm, "pwdmain", 2, build(c, creatorcell, p, cm))
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function olive_loadicon()
     srcdir = @__DIR__
     iconb64 = read(srcdir * "/images/loadicon.png", String)
@@ -1299,19 +1260,16 @@ function olive_loadicon()
     style!(myimg, spin_forever())
     myimg
 end
-#==output[code]
-olive_loadicon (generic function with 1 method)
-==#
-#==|||==#
-function olive_cover()
-    srcdir = @__DIR__
-    iconb64 = read(srcdir * "/images/cover.png", String)
-    img("olive-headerr", src = iconb64, width = 250)
-end
-#==output[code]
-olive_cover (generic function with 1 method)
-==#
-#==|||==#
+
+"""
+```julia
+olive_confirm_dialog(f::Function, c::AbstractConnection, message::String) -> ::Component{:div}
+```
+Creates a confirmation dialog that will only run `f` if `ok` is pressed.
+```julia
+
+```
+"""
 function olive_confirm_dialog(f::Function, c::AbstractConnection, message::String)
     dialog_text::Component{:p} = p("dialog-text", text = message, class = "dialogtext")
     okbutton::Component{:button} = button("okdialog", text = "ok")
@@ -1329,6 +1287,3 @@ function olive_confirm_dialog(f::Function, c::AbstractConnection, message::Strin
 end
 
 include("Cells.jl")
-#==output[code]
-SystemError: opening file "/home/emmac/dev/toolips/Olive/Cells.jl": No such file or directory
-==#
