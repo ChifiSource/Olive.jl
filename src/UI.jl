@@ -201,6 +201,7 @@ function olivesheet()
     file_cell_icons = style("span.fileicon", "color" => "white", "font-size" => 17pt)
     file_names = style("a.filelabel", "color" => "white", "font-weight" => "bold",
     "font-size" => 14pt, "margin-left" => 5px, "pointer-events" => "none")
+    cell_icons = style("span.cell-icons","font-size" => 17pt, "color" => "white")
     # dialogs:
     dialog_box = style("div.confdialog", "background-color" => "white", "border" => "3px solid #333333", "padding" => 15px, 
     "position" => "absolute", "width" => 50percent, "height" => 20percent, "top" => 25percent, "left" => 25percent, 
@@ -223,7 +224,7 @@ function olivesheet()
     tabopen_style, tablabel, icon_selected, p_explorer, p_explorer_open, settings, settings_exp, section_container, 
     section_container_labels, section_innerc, section_innero, container_arrow, tab_icon, output_style, project_window, 
     dialog_box, dialog_text, fade_upanim, code_side, selected_side, input_selected, searchboxes, find_cont, p_explorer_closed, 
-    file_cell_icons, file_names, topbar_icons_s)
+    file_cell_icons, file_names, topbar_icons_s, cell_icons)
     st::Component{:sheet}
 end
 

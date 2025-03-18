@@ -1198,6 +1198,8 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
         sidebox::Component{:div} = div("cellside$(cellid)", class = "cellside")
         cell_drag::Component{:span} = topbar_icon("cell$(cellid)drag", "drag_indicator")
         cell_run::Component{:span} = topbar_icon("cell$(cellid)drag", "play_arrow")
+        cell_run[:class] = "material-icons cell-icons"
+        cell_drag[:class] = "material-icons cell-icons"
         on(c, cell_run, "click") do cm2::ComponentModifier
             evaluate(c, cm2, cell, proj)
         end
@@ -1217,8 +1219,6 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
             cm2["cellside$(cellid)"] = "class" => "cellside selectedside"
             cm2["cell$cellid"] = "class" => "input_cell inputselected"
         end
-        style!(cell_drag, "color" => "white", "font-size" => 17pt)
-        style!(cell_run, "color" => "white", "font-size" => 17pt)
         push!(sidebox, cell_drag, br(), cell_run)
         push!(interiorbox, sidebox, inputbox)
     else
@@ -1495,10 +1495,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     interior = newcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     sideb = interior[:children]["cellside$(cell.id)"]
-    sidb[:class] = "cellside mdside"
-    style!(sideb, "background-color" => "#88807B")
+    sideb[:class] = "cellside mdside"
     cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
-    style!(cell_edit, "color" => "white", "font-size" => 17pt)
+    cell_edit[:class] = "material-icons cell-icons"
     sideb[:children] = vcat(sideb[:children][1:2], [cell_edit])
     maincell = inp[:children]["cell$(cell.id)"]
     if cell.source != ""
