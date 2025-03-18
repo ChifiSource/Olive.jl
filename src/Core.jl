@@ -462,6 +462,9 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
     group_wrapper = div("-", children = group_editors)
     style!(group_wrapper, "border-radius" => 5px, "border" => "1px solid #1e1e1e", "padding" => 8px)
     add_group_button = button("add-group", text = "add new group")
+    on(c, add_group_button, "click") do cm::ComponentModifier
+
+    end
     add_buttons = ("background-color" => "darkgreen", "color" => "white", "margin-top" => 3px, 
     "font-weight" => "bold")
     style!(add_group_button, add_buttons ...)
@@ -471,7 +474,43 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
     user_previews = div("user_previews", children = previews)
     user_adder = button("add-user", text = "add new user")
     style!(user_adder, add_buttons ...)
+    on(c, user_adder, "click") do cm3::ComponentModifier
+        if "newuser" in cm3
+            remove!(cm, "newuser")
+            return
+        end
+        name_label = a("-", text = "name: ")
+        user_name = textdiv("new-username", text = "")
+        style!(user_name, "border" => "1px solid #1e1e1e", "color" => "#1e1e1e", "padding" => 4px, "border-radius" => 3px)
+        opts = options([g.name for g in CORE.data["groups"]] ...)
+        group_selector = Components.select("new-usergroup", value = "root", children = opts)
+        confirm_button = button("user-confirm", text = "confirm")
+        cancel_button = button("usercancel", text = "cancel")
+        on(cancel_button, "click") do cl::ClientModifier
+            remove!(cl, "newuser")
+        end
+        on(c, confirm_button, "click") do cm2::ComponentModifier
+            new_user_name = cm2["new-username"]["text"]
+            new_user_group = cm2["new-usergroup"]["value"]
+            key::String = ToolipsSession.gen_ref(16)
+            new_data = Dict{String, Any}("group" => new_user_group)
+            push!(CORE.client_keys, key => new_user_name)
+            push!(CORE.client_data, new_user_name => new_data)
+            log(LOGGER,
+            "\nlink for (new user) $(new_user_name): http://$(get_host(c))/?key=$key", 2)
+            olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
+            append!(cm2, "users-window", build_user_data(c, new_user_name, new_data))
+            remove!(cm2, "newuser")
+        end
+        style!(cancel_button, "background-color" => "red", "color" => "white")
+        button_wrapper = div("-", children = [cancel_button, confirm_button], align = "right")
+        new_user_dialog = div("newuser", children = [name_label, user_name, group_selector, button_wrapper])
+        style!(new_user_dialog, "border" => "2px solid #1e1e1e", "background-color" => "white", "position" => "absolute", 
+        "width" => 25percent, "left" => 37.5percent, "top" => 20percent)
+        append!(cm3, "mainbody", new_user_dialog)
+    end
     users_window = div("users-window", children = user_previews)
+    style!(users_window, "overflow" => "visible")
     groups_drop[:children][2][:children] = [group_wrapper, add_group_button, users_window, user_adder]
     append!(cm, "settingsmenu", groups_drop)
 end
@@ -484,14 +523,43 @@ function build_user_data(c::AbstractConnection, name::String, data::Dict)
     active_key = findfirst(k -> k == name, CORE.client_keys)
     style!(group_button, "background-color" => "#ebe8ff", "padding" => 7px, "cursor" => "pointer", 
     "border-radius" => 0px)
+    del_button = div("del$name", text = "remove")
+    style!(del_button, "background-color" => "#b0473c", "color" => "#1e1e1e", "padding" => 7px, "cursor" => "pointer", 
+    "border-radius" => 0px)
     on(c, group_button, "click") do cm::ComponentModifier
-
+        opts = options([g.name for g in CORE.data["groups"]] ...)
+        group_selector = select("groupselector", children = opts)
+        cancel_button = button("cancelgroup", text = "cancel")
+        on(cancel_button, "click") do cl::ClientModifier
+            remove!(cl, "gselector")
+        end
+        on(c, group_selector, "input") do cm2::ComponentModifier
+            new_group = cm2["groupselector"]["value"]
+            confirmer = olive_confirm_dialog(c, "change user group to $new_group?") do cm::ComponentModifier
+                CORE.client_data[name]
+            end
+            append!(cm2, "mainbody", confirmer)
+        end
+        new_dialog = div("gselector", children = [group_selector, cancel_button])
+        style!(new_dialog, "border" => "2px solid #1e1e1e", "background-color" => "white", "position" => "absolute", 
+        "width" => 25percent, "left" => 37.5percent, "top" => 20percent)
+        append!(cm, "mainbody", new_dialog)
+    end
+    on(c, del_button, "click") do cm2::ComponentModifier
+        confirmer = olive_confirm_dialog(c, "delete user $(name)? (this cannot be undone!)") do cm::ComponentModifier
+            delete!(CORE.client_data, name)
+            active_key = findfirst(k -> k == name, CORE.client_keys)
+            delete!(CORE.client_keys, active_key)
+            olive_notify!(cm, "user $name removed (pending settings close to save)", color = "darkred")
+        end
+        append!(cm2, "mainbody", confirmer)
     end
     link = "http://$(get_host(c))/?key=$active_key"
     key_ind = a("key-ind", text = link, href = link)
     style!(key_ind, "padding" => 7px, "background-color" => "#ffe8fb")
-    user_container = div("$name-user", children = [name_indicator, key_ind, group_button])
-    style!(user_container, "display" => "inline-flex", "border" => "1px solid #1e1e1e", "padding" => 0px, "border-radius" => 5px)
+    user_container = div("$name-user", children = [name_indicator, key_ind, group_button, del_button])
+    style!(user_container, "display" => "inline-flex", "border" => "1px solid #1e1e1e", "padding" => 0px, "border-radius" => 5px, 
+    "width" => "auto")
     user_container
 end
 
@@ -869,10 +937,6 @@ push!(v::Vector{<:AbstractOliveOperation}, el...) = begin
     end
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 mutable struct Environment{T <: Any}
     name::String
     directories::Vector{Directory}
@@ -890,15 +954,9 @@ mutable struct Environment{T <: Any}
     end
     Environment(name::String) = Environment("olive", name)::Environment{:olive}
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 getindex(e::Environment, proj::String) = e.projects[proj]::Project{<:Any}
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 getindex(e::Vector{Environment}, name::String) = begin
     pos = findfirst(env::Environment -> env.name == name, e)
     if isnothing(pos)
@@ -906,10 +964,7 @@ getindex(e::Vector{Environment}, name::String) = begin
     end
     e[pos]::Environment
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 mutable struct Group
     name::String
     cells::Vector{Symbol}
@@ -1089,15 +1144,9 @@ function on_start(oc::OliveCore, data::Dict{Symbol, Any}, routes::Vector{<:Abstr
     push!(data, :OliveCore => oc)
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 getname(c::Connection) = c[:OliveCore].names[get_ip(c)]::String
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function source_module!(oc::OliveCore)
     homemod = """baremodule olive
     using Olive
@@ -1106,10 +1155,7 @@ function source_module!(oc::OliveCore)
     olmod::Module = Main.evalin(pmod)
     oc.olmod = olmod
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function load_extensions!(oc::OliveCore)
     homedirec = oc.data["home"]
     olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
@@ -1120,28 +1166,19 @@ function load_extensions!(oc::OliveCore)
     olmod = oc.olmod
     olmod.evalin(Meta.parse(modstr))
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 OliveLogger() = Toolips.Logger("🫒 olive> ", Crayon(foreground = :blue), Crayon(foreground = :magenta), 
     Crayon(foreground = :red), prefix_crayon = Crayon(foreground = :light_magenta, bold = true))
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 
 """
-### Olive Core
 ```julia
 save_settings!(c::Connection; core::Bool = false) -> ::Nothing
 ```
----
 `save_settings!` saves `OliveCore` settings for the user's `Connection`. Providing `core` 
 will also save `Olive` core settings, as well. Core settings are in 
 `OliveCore.data` whereas client settings are in `OliveCore.client_data`. 
 These correspond to the `olive` and `oliveusers` section in the `olive` home 
-`Project.toml`
+`Project.toml`.
 """
 function save_settings!(c::Connection; core::Bool = false)
     homedir::String = c[:OliveCore].data["home"]
@@ -1174,19 +1211,19 @@ function save_settings!(c::Connection; core::Bool = false)
     current_toml = nothing
     nothing::Nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
 ```julia
+onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{<:Any}) -> ::Nothing
 onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter}) -> ::Nothing
+onsave(core::OliveCore, copy::AbstractDict, oe::OliveExtension{:groups}) -> ::Nothing
 ```
----
 Each `onsave` `Method` is called on client data before `save_settings!`, in the case of this `Method`, 
 (:highlighter), this method removes the highlighter objects from the client data, which 
 may not be saved in TOML. This is an example of where this might be applied -- this is how we 
-can store data in memory for only a single session.
+can store data in memory for only a single session and get rid of it before our data is saved. 
+    (This function can be extended to change saving for your own client data, which you could likely load in a 
+        :load extension)
 """
 function onsave(cd::Dict{<:Any, <:Any}, oe::OliveExtension{:highlighter})
     delete!(cd, "highlighters")
@@ -1200,6 +1237,7 @@ function onsave(core::OliveCore, copy::AbstractDict, oe::OliveExtension{:groups}
         load::Vector{String} = [string(ext) for ext in group.load_extensions]
         group.name => Dict("cells" => cells, "uris" => uris, "dirs" => dirs, "load" => load)
     end for group in copy["groups"])
+    nothing::Nothing
 end
 
 mutable struct OliveDisplay <: AbstractDisplay
@@ -1207,10 +1245,6 @@ mutable struct OliveDisplay <: AbstractDisplay
     OliveDisplay() = new(IOBuffer())::OliveDisplay
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function display(d::OliveDisplay, m::MIME{:olive}, o::Any)
     T::Type = typeof(o)
     mymimes = [MIME"text/html", MIME"text/svg", MIME"image/png",
@@ -1262,17 +1296,9 @@ function display(d::OliveDisplay, m::MIME{:olive}, o::AbstractVector)
     write(d.io, "Vector (x$n) : " * string(o[1:upper]) * " ...")
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function display(d::OliveDisplay, m::MIME"text/html", o::Any)
     show(d.io, m, o)
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 
 function build_base_error_box(err::Exception, traces::Vector{Base.StackTraces.StackFrame}; 
     message::String = "$(typeof(err)) Exception ")
@@ -1313,56 +1339,29 @@ function display(d::OliveDisplay, err::UndefVarError, traces::Vector{Base.StackT
     write(d.io, string(main_box))
 end
 
-
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function display(d::OliveDisplay, m::MIME"image/png", o::Any)
     show_img(d, o, "png")
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function display(d::OliveDisplay, m::MIME"image/jpeg", o::Any)
     show_img(d, o, "jpeg")
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function display(d::OliveDisplay, m::MIME"image/gif", o::Any)
     show_img(d, o, "gif")
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function show_img(d::OliveDisplay, o::Any, ftype::String)
     show(d.io, MIME"text/html"(), base64img("$(ToolipsSession.gen_ref())", o,
     ftype))
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
     show(d.io, m, o)
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function display(d::OliveDisplay, m::MIME"text/markdown", o::Any)
     show(d.io, m, o)
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 display(d::OliveDisplay, o::Any) = display(d, MIME{:olive}(), o)
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
