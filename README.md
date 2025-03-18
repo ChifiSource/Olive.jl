@@ -5,7 +5,7 @@
 
 Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor built on the back of Julia's **multiple dispatch**. `Olive` is able to load new features by loading new methods for its functions.
 - regular **julia modules** (instead of kernels)
-- *parametric* multiple-dispatch **extensible** design philosophy
+- **extensible** *parametric* multiple-dispatch design philosophy
 - **tabbing** notebooks
 - **customizable** *everything* (styles, key-bindings, syntax highlighting, environment ...)
 - reading of pluto, julia, olive, **and** ipython notebooks -- saving to `Olive`, raw Julia, and IPython notebooks.
