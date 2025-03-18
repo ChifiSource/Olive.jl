@@ -27,7 +27,6 @@ Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor buil
    - [installing extensions](#installing-extensions)
 - [deploying olive](#deploying-olive)
    - [creating an olive server](#creating-a-server)
-   - [olive servers](#olive-servers)
 - [contributing](#contributing)
    - [guidelines](#guidelines)
    - [tech stack](#tech-stack)
@@ -165,70 +164,17 @@ Clicking the `+` icon next to the `pwd` directory will create a new project, fil
 </div>
 
 Extensions can be added to `Olive` by first clicking the `+` button by your `home` directory in `Olive`, then typing the extension's URL into the name box before pressing *add*
-#### creating extensions
-This section of the readme, unfortunately still needs some work.
-##### documentation
-With the upcoming release of `0.1.0`, [chifi](https://github.com/ChifiSource) will also be releasing [OliveCreator](https://github.com/ChifiSource/OliveCreator.jl), this will be a website which hosts `Olive`. Along with this there will be interactive examples, notebooks, and most importantly -- documentation (for all chifi stuff, really awesome olive-based documentation). The problem is that this still requires a lot of work to `Olive` and its sister projects. In its current state the two best tools to learn `Olive` are
-- this `README`
-- or the [OliveDefaults](https://github.com/ChifiSource/OliveDefaults.jl) documentation browser.
-
-  I would recommend the latter. For the most part, this documentation is only needed if you are writing extensions for `Olive`. I could see knowledge of how the thing works being beneficial in these early pre-releases, however. In other instances, this `README` should suffice.
 ### deploying olive
-   - [`0.0.9`deployment status](#status)
+   - [`beta` deployment status](#status)
    - [creating an olive server](#creating-a-server)
 #### status
-In its current form, `Olive` would certainly need some things to be deployable. The main concern on this front is that the modules still have `Base` inside of them (they can `cd` the julia working directory around, for example). Currently, we are working through the extensions to facilitate this functionality, and this section will be updated once this is done.
+In its current form, `Olive` *still* needs a few more small things for deployment. Of course, all of this could be added in your own server using extensions, but eventually the base will better support deployment. It is definitely possible to deploy `Olive` publicly in its current state, but it isn't recommended and would likely require some pretty significant modifications to `Olive`.
 #### creating a server
-Unless you are only sharing your `olive` with a limited number of people, you probably do not want this server to load from your home `olive`. That being said, it is really easy to create an `olive` at any path on your machine using the `path` key-word argument on `start`.
+`Olive` now features the `create` bindings, for creating both a new `Olive`-based server and an `Olive` extension from a template.
 ```julia
-using Olive; Olive.start(path = ".")
+create(t::Type{Toolips.ServerTemplate}, name::String)
+create(t::Type{OliveExtension}, name::String)
 ```
-This will give us an `olive` home directory inside of the provided URI. Inside of this directory, we can begin developing our module. From there, it is simply extending your `Olive` and manipulating it into being server-ready. Alternatively, `start` does not have to be used and you can load `Olive` by manually creating the olive server yourself. This is not entirely recommended, especially not for new users, primarily because there is no documentation on doing this. However, there is more information and a small write-up on this in [olive servers](#olive-servers)
-#### olive servers
-The `Olive.start` function actually does not return `Nothing`, it returns a `Toolips.WebServer`.
-```julia
-help?> Toolips.WebServer
-  WebServer <: ToolipsServer
-  ––––––––––––––––––––––––––––
-
-    •  host::String
-
-    •  routes::Dict
-
-    •  extensions::Dict
-
-    •  server::Any
-
-    •  add::Function
-
-    •  remove::Function
-
-    •  start::Function
-
-  A web-server is given as a return from a ServerTemplate whenever ServerTemplate.start() is ran. It can be rerouted with route! and indexed similarly to
-  the Connection, with Symbols representing extensions and Strings representing routes.
-
-  example
-  ⋅⋅⋅⋅⋅⋅⋅⋅⋅
-
-  st = ServerTemplate()
-  ws = st.start()
-  routes(ws)
-  ...
-  extensions(ws)
-  ...
-  route!(ws, "/") do c::Connection
-      write!(c, "hello")
-  end
-
-```
-This is an introspectable server type that holds **all** of the data for your `Olive` session. From your Julia REPL, this can easily be introspected by accessing the extensions and routes.
-```julia
-oliveserver = Olive.start()
-
-oliveserver[:OliveCore]
-```
-This also means that the routes of an `Olive` server could be changed, or rerouted in anyway -- really. All of the projects are stored within the `OliveCore.open` field, a `Vector{Olive.Environment}`. Our client data is stored inside of `OliveCore.client_data` and open projects are in `OliveCore.open`.
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
 - simply using olive 🫒
