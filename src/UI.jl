@@ -403,6 +403,7 @@ function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::St
     set_text!(cm, "selector", string(path))
     set_children!(cm, "pwdbox", childs)
 end
+
 """
 ```
 create_new(c::Connection, cm::AbstractComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
