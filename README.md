@@ -1,30 +1,22 @@
 <div align = "center">
-<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/newoliveover.png" width="350">
-<h6>🩷| 0.0.93 | (pre-release III)|🩷</h6>
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/0.1/olivesave.png" width="250">
+<h6>🩷 0.1 🩷 (! Beta I !)</h6>
 </div>
 
-Welcome to olive! Olive is a **pure julia** notebook editor built on the back of multiple dispatch. Through multiple dispatch, olive is able to change functionality entirely by simply having new methods. Using extensions, olive can edit **any** file. Among other things, olive features ...
-- regular **julia modules**
-- unparalleled **extensibility**
-- **modular** design
+Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor built on the back of Julia's **multiple dispatch**. `Olive` is able to load new features by loading new methods for its functions.
+- regular **julia modules** (instead of kernels)
+- **extensible** *parametric* multiple-dispatch design philosophy
 - **tabbing** notebooks
-- its own **julia** ecosystem
-- **customizable** settings
-- reading of pluto, julia, olive, **and** ipython notebooks
-- exporting to **multiple** formats
+- **customizable** *everything* (styles, key-bindings, syntax highlighting, environment ...)
+- reading of pluto, julia, olive, **and** ipython notebooks -- saving to `Olive`, raw Julia, and IPython notebooks.
 - a full **file-browser**
-- julia **repl cells**
-- module and include cells for **software development**
-- **deployability**
-- **shared variables** between multiple cell-types
-- a **two-pane** design
-- **loadable** directories as **profiles**
-- **flexible** and modern design
-- the ability to edit **any** file
+- **deployable**
+- and a **two-pane** design.
 
 ###### map
 - [get started](#get-started)
    - [getting olive](#getting-olive)
+   - [documentation](#docs)
    - [explanation](#explanation)
 - [user interface](#user-interface)
    - [session](#session)
@@ -33,24 +25,14 @@ Welcome to olive! Olive is a **pure julia** notebook editor built on the back of
    - [settings](#settings)
 - [extensions](#extensions)
    - [installing extensions](#installing-extensions)
-   - [common extensions](https://github.com/ChifiSource#olive-extensions)
-- [creating extensions](#creating-extensions)
-   - [documentation](#documentation)
 - [deploying olive](#deploying-olive)
-   - [`0.0.9`deployment status](#status)
    - [creating an olive server](#creating-a-server)
-   - [olive servers](#olive-servers)
 - [contributing](#contributing)
    - [guidelines](#guidelines)
    - [tech stack](#tech-stack)
 ---
 ### get started
-- this overview corresponds to `Olive` **0.0.92**, subsequent versions may vary slightly.
-- Keep in mind this version of Olive (while functional) is still a **work in progress** build. Thank you for reporting bugs to the issues page!
-  
-<div align="center">
-   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/getstarted1.png"></img>
-</div>
+- this overview corresponds to `Olive` **0.1** (beta)
 
 ###### getting olive
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**, or use the `Pkg.add` `Function` to add `Olive`.
@@ -62,7 +44,7 @@ julia> ]
 
 pkg> add Olive
 ```
-Alternatively, you could also grab `Unstable`, this will give you the latest developments (`0.0.9`), but some features might be intermittently broken.
+Alternatively, you could also grab `Unstable`, this will give you the latest developments, but some features might be intermittently broken.
 ```julia
 julia> ]
 pkg> add Olive#Unstable
@@ -70,17 +52,15 @@ pkg> add Olive#Unstable
 ```julia
 using Olive; Olive.start()
 ```
-To change the IP or PORT, use the positional arguments `IP` (**1**, `String`) and `PORT` (**2**, `Int64`). There are also the key-word arguments
-- `path`**::String** = `homedirec()` -- Provides a path from which to setup or start `Olive`.
-- `warm`**::Bool** = `true` -- determines whether or not `Olive` should precompile `olive` and "warm" the `Toolips` server. This helps reduce initial latency when starting `Olive`.
-
+To change the IP or port, simply provide an `IP4` using **the colon syntax**:
+```julia
+using Olive; Olive.start("127.0.0.1":9987)
+# start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd())
+```
+The following arguments will change the behavior of this start:
+- `path`**::String** = `homedirec()` -- The path
+- `wd`**::String** = `pwd()`
 If there is no `olive` setup inside of `path`, `start` will ask us for a root name to create a new `olive` home at that path. Providing `path` allows us to setup multiple `Olive` environments across our filesystem.
-
-<div align="center">
-   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/getstarted2.png"></img>
-</div>
-
-
 ```julia
 IP = "127.0.0.1" # same as default (see ?(Olive.start))
 PORT = 8000
@@ -89,7 +69,10 @@ using Olive
 
 Olive.start(IP, PORT, path = startpath)
 ```
-The `Olive.start` method also returns a `Toolips.WebServer`, this being the server that contains your entire `Olive` session. This provides an easy avenue to introspect and work with `Olive`, especially if you know what you are doing. There is more information on working with this server type in the [deploying olive](#deploying-olive) portion of this `README`.
+#### docs
+This README includes a brief overview of `Olive`'s basic usage; for more information `Olive` ensures that all doc-strings are easily browse-able. All exports are listed in the doc-string for `Olive`. Alteranatively, you could `push!` `Olive.Toolips.make_docroute(Olive)` to `Olive.olive_routes` or use the `OliveDocBrowser` extension to browse documentation more thoroughly. [chifi](https://github.com/ChifiSource) is also working on a new documentation website, which will eventually have `Olive` documentation here:
+- [chifidocs](https://chifidocs.com/olive/olive)
+---
 #### explanation
 Olive uses **parameters** and **multiple dispatch** to load new features with the creation of method definitions. This technique is used comprehensively for `Olive`'s `Directory` and `Project` types, as well as [IPyCell's](https://github.com/ChifiSource/IPyCells.jl) `Cell`. This allows for a `Symbol` to be provided as a parameter. With this, `Olive` either reads the methods for its own functions or provides them as arguments to alter the nature of UI components. `Project`, `Directory`, and `Cell` are all **julia types**. These are translated into the `Olive` web-based UI using `build` methods. For example, the `creator` cell will list out all of the methods that `Olive` has defined for `build(::Toolips.AbstractConnection, ::Toolips.Modifier, ::Cell{<:Any}, ::Vector{Cell}, proj::Project{<:Any})`. In order to name such a cell, simply label the parameter in the `Cell` using a `Symbol`.
 
@@ -104,7 +87,7 @@ Olive's user-interface is relatively straightforward. When starting olive, you w
 
 The main window is called **session**. This contains two panes which will be filled with your projects. Projects are denoted by a tab and a window which contains cells. This tab can be double clicked for a range of different project options.
 #### session
-**Session** is the colloquial name for the main editor which comprises `Olive` -- this being the `Project` and `Cell` combination. Inside of **session** there are two panes, `pane_one` and `pane_two` respectively. These panes houses projects, their tabs being contained within a tab container above them. Clicking these tabs will yield project focus. Double clicking will add the tab's controls to the tab. These are, from left to right, `decollapse controls`, `new cell`, `switch pane`, `re-source`,`step evaluate`, and `close project`. Other than this, the hotkeys in [keybindings](https://github.com/ChifiSource/Olive.jl#keybindings) are the primary method `Olive` uses for input. Files are open from the **project explorer** and then edited inside of this session, before being saved. 
+**session** is the colloquial name for the central editor which comprises `Olive` -- this being the `Project` and `Cell` combination. Inside of **session** there are two panes, `pane_one` and `pane_two` respectively. These panes houses projects, their tabs being contained within a tab container above them. Clicking these tabs will yield project focus. Double clicking will add the tab's controls to the tab. These are, from left to right, `decollapse controls`, `new cell`, `switch pane`, `re-source`,`step evaluate`, and `close project`. Other than this, the hotkeys in [keybindings](https://github.com/ChifiSource/Olive.jl#keybindings) are the primary method `Olive` uses for input. Files are open from the **project explorer** and then edited inside of this session, before being saved. 
 
 <div align="center">
    <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/ui2.png"></img>
@@ -114,30 +97,30 @@ The main window is called **session**. This contains two panes which will be fil
 ###### keybindings
 Using cells is simple. By default, olive bindings use `ctrl` alone for window features, `ctrl` + `shift` to do things inside of `Cell`, and `shift` to work with the `Project`. Here is the keymap reflecting this:
 - **window bindings**
-  - `ctrl` + `C` **copy**
-  - `ctrl` + `X` **cut**
-  - `ctrl` + `V` **paste**
   - `ctrl` + `S` **save selected project**
-  - `ctrl` + `z` **undo**
-  - `ctrl` + `y` **redo**
-  - `ctrl` + `F` **search** `TODO (but has default)`
-  - `ctrl` + `O`  **open** `TODO `
-  - `ctrl` + `N` **new** `TODO`
-- **project bindings**
-  - `ctrl` + `shift` + `C` **copy selected cell** `TODO`
-  - `ctrl` + `shift` + `X` **cut selected cell** `TODO`
-  - `ctrl` + `shift` + `V` **paste selected cell** `TODO`
+  - `ctrl` + `z` cell **undo**
+  - `ctrl` + `y` cell **redo**
+  - `ctrl` `shift` + `E` **explorer**
+- **cell bindings**
   - `ctrl` + `Shift` + `S` **save project as**
   - `ctrl` + `shift` + `Delete` **delete selected cell**
   - `ctrl` + `shift` + `Enter` **new cell**
-  - `ctrl` + `shift` + `↑` **move selected cell up**
-  - `ctrl` + `shift` + `↓` **move selected cell down**
-  - `ctrl` + `shift` + `O` **open** `TODO`
-
-- **cell bindings**
+  - `ctrl` + `shift` + `↑` **move cell up**
+  - `ctrl` + `shift` + `↓` **move cell down**
+  - `ctrl` + `Shift` + `F` cell **search** 
+  - `ctrl` + `Shift` + `O`  cell **open** (open-ended binding, used for extensions -- doesn't do anything for base `Olive` cells)
+  - `ctrl` + `Shift` + `A` cell **select**
+  - `ctrl` + `C` cell **copy**
+  - `ctrl` + `V` cell **paste**
+- **cell text bindings**
   - `shift` + `Enter` **run cell**
   - `shift` + `↑` **shift focus up**
   - `shift` + `↑` **shift focus down**
+  - `ctrl` + `C` **cell undo**
+  - `ctrl` + `Y` **cell redo**
+  - `ctrl` + `C` **cell copy**
+  - `ctrl` + `V` **cell paste**
+  - `ctrl` + `X` **cell cut**
 
 These keybindings can be edited inside of the [settings](https://github.com/ChifiSource/Olive.jl#settings)
 #### settings
@@ -181,70 +164,17 @@ Clicking the `+` icon next to the `pwd` directory will create a new project, fil
 </div>
 
 Extensions can be added to `Olive` by first clicking the `+` button by your `home` directory in `Olive`, then typing the extension's URL into the name box before pressing *add*
-#### creating extensions
-This section of the readme, unfortunately still needs some work.
-##### documentation
-With the upcoming release of `0.1.0`, [chifi](https://github.com/ChifiSource) will also be releasing [OliveCreator](https://github.com/ChifiSource/OliveCreator.jl), this will be a website which hosts `Olive`. Along with this there will be interactive examples, notebooks, and most importantly -- documentation (for all chifi stuff, really awesome olive-based documentation). The problem is that this still requires a lot of work to `Olive` and its sister projects. In its current state the two best tools to learn `Olive` are
-- this `README`
-- or the [OliveDefaults](https://github.com/ChifiSource/OliveDefaults.jl) documentation browser.
-
-  I would recommend the latter. For the most part, this documentation is only needed if you are writing extensions for `Olive`. I could see knowledge of how the thing works being beneficial in these early pre-releases, however. In other instances, this `README` should suffice.
 ### deploying olive
-   - [`0.0.9`deployment status](#status)
+   - [`beta` deployment status](#status)
    - [creating an olive server](#creating-a-server)
 #### status
-In its current form, `Olive` would certainly need some things to be deployable. The main concern on this front is that the modules still have `Base` inside of them (they can `cd` the julia working directory around, for example). Currently, we are working through the extensions to facilitate this functionality, and this section will be updated once this is done.
+In its current form, `Olive` *still* needs a few more small things for deployment. Of course, all of this could be added in your own server using extensions, but eventually the base will better support deployment. It is definitely possible to deploy `Olive` publicly in its current state, but it isn't recommended and would likely require some pretty significant modifications to `Olive`.
 #### creating a server
-Unless you are only sharing your `olive` with a limited number of people, you probably do not want this server to load from your home `olive`. That being said, it is really easy to create an `olive` at any path on your machine using the `path` key-word argument on `start`.
+`Olive` now features the `create` bindings, for creating both a new `Olive`-based server and an `Olive` extension from a template.
 ```julia
-using Olive; Olive.start(path = ".")
+create(t::Type{Toolips.ServerTemplate}, name::String)
+create(t::Type{OliveExtension}, name::String)
 ```
-This will give us an `olive` home directory inside of the provided URI. Inside of this directory, we can begin developing our module. From there, it is simply extending your `Olive` and manipulating it into being server-ready. Alternatively, `start` does not have to be used and you can load `Olive` by manually creating the olive server yourself. This is not entirely recommended, especially not for new users, primarily because there is no documentation on doing this. However, there is more information and a small write-up on this in [olive servers](#olive-servers)
-#### olive servers
-The `Olive.start` function actually does not return `Nothing`, it returns a `Toolips.WebServer`.
-```julia
-help?> Toolips.WebServer
-  WebServer <: ToolipsServer
-  ––––––––––––––––––––––––––––
-
-    •  host::String
-
-    •  routes::Dict
-
-    •  extensions::Dict
-
-    •  server::Any
-
-    •  add::Function
-
-    •  remove::Function
-
-    •  start::Function
-
-  A web-server is given as a return from a ServerTemplate whenever ServerTemplate.start() is ran. It can be rerouted with route! and indexed similarly to
-  the Connection, with Symbols representing extensions and Strings representing routes.
-
-  example
-  ⋅⋅⋅⋅⋅⋅⋅⋅⋅
-
-  st = ServerTemplate()
-  ws = st.start()
-  routes(ws)
-  ...
-  extensions(ws)
-  ...
-  route!(ws, "/") do c::Connection
-      write!(c, "hello")
-  end
-
-```
-This is an introspectable server type that holds **all** of the data for your `Olive` session. From your Julia REPL, this can easily be introspected by accessing the extensions and routes.
-```julia
-oliveserver = Olive.start()
-
-oliveserver[:OliveCore]
-```
-This also means that the routes of an `Olive` server could be changed, or rerouted in anyway -- really. All of the projects are stored within the `OliveCore.open` field, a `Vector{Olive.Environment}`. Our client data is stored inside of `OliveCore.client_data` and open projects are in `OliveCore.open`.
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
 - simply using olive 🫒
@@ -269,13 +199,12 @@ When submitting issues or pull-requests for Olive, it is important to make sure 
 I appreciate those who are interested to take some time to look into the tech-stack used to create this project. I created a lot of these, and it took a lot of time.
 
 **toolips packages**
+- [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl) - Templating framework for web-development.
 - [Toolips](https://github.com/ChifiSource/Toolips.jl) - Base web-development framework.
-- [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) - Fullstack callbacks.
-- [ToolipsMarkdown](https://github.com/ChifiSource/ToolipsMarkdown.jl) - Markdown interpolation, syntax highlighting.
-- [ToolipsDefaults](https://github.com/ChifiSource/ToolipsDefaults.jl) - Default Components.
-- [ToolipsBase64](https://github.com/ChifiSource/ToolipsBase64.jl) - Image types into Components -- for Olive display.
+- [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) - Fullstack callbacks for the `Toolips` framework.
 
 **other packages**
+- [OliveHighlighters](https://github.com/OliveHighlighters.jl) Provides `ToolipsServables`-based syntax highlighting.
 - [IPyCells](https://github.com/ChifiSource/IPyCells.jl) Provides the parametric cell structures for the back-end, as well as the Julia/IPython readers/writers
-- [Pkg]() Used to manage Julia dependencies and virtual environments.
-- [TOML]() Used to manage environment information, save settings, and read TOML into cells.
+- [Pkg](https://github.com/JuliaLang/Pkg.jl) Used to manage Julia dependencies and virtual environments.
+- [TOML](https://github.com/JuliaLang/TOML.jl) Used to manage environment information, save settings, and read TOML into cells.
