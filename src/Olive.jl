@@ -57,10 +57,7 @@ function build end
 global evalin(ex::Any) = begin
     Main.eval(ex)
 end
-#==
-code/none
-==#
-#--
+
 """export evalin
 ```julia
 olive_module(modname::String, environment::String) -> ::String
@@ -101,10 +98,7 @@ function olive_module(modname::String, environment::String)
     end
     """
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 olive_motd() -> ::Component{:div}
@@ -176,10 +170,7 @@ function verify_client!(c::Connection)
     end
     return(uname, args)
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 load_default_project!(c::Connection) -> ::Environment
@@ -236,10 +227,7 @@ function load_default_project!(c::Connection)
     push!(oc.open, env)
     env::Environment
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
@@ -383,12 +371,7 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     return(bod, loadicondiv, olmod)
 end
 
-#==
-code/none
-==#
-#--
 """
-### Olive
 ```julia
 make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon(), 
     sheet = DEFAULT_SHEET) -> ::Nothing
@@ -493,35 +476,25 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
     write!(c, bod)
 end
-#==
-code/none
-==#
-#--
+
 main::Route{Connection} = route(make_session, "/")
-#==
-code/none
-==#
-#--
+
 fourofour::Route{Connection} = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
 end
-#==
-code/none
-==#
-#--
+
 icons::Route{Connection} = route("/MaterialIcons.otf") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/fonts/MaterialIcons.otf"))
 end
+
 mainicon::Route{Connection} = route("/favicon.ico") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/images/favicon.ico"))
 end
-#==
-code/none
-==#
-#--
+
 CORE::OliveCore = OliveCore("olive")
+
 """
 ```julia
 start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd()) -> ::ParametricProcesses.ProcessManager
@@ -593,10 +566,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
             "\nlink for $(rootname): http://$(string(IP))/?key=$key", 2)
     end
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 StartError{E <: Exception} <: Exception
@@ -626,17 +596,11 @@ struct StartError{E <: Exception} <: Exception
         new{typeof(cause)}(on, cause, message)
     end
 end
-#==
-code/none
-==#
-#--
+
 function showerror(io::IO, err::StartError{<:Any})
     println(io, Toolips.Crayon(foreground = :red), """on $(err.on).\n$(err.message)\n$(showerror(io, err.cause))""")
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 restore_defaults!(server::Toolips.WebServer) -> ::Nothing
@@ -773,17 +737,6 @@ function create(t::Type{OliveExtension}, name::String)
     end
 end
 
-#==
-code/none
-==#
-#--
 export CORE, olive_routes, SES, build, evalin, LOGGER
-#==
-code/none
-==#
-#--
+
 end # - module
-#==output[module]
-Olive
-==#
-#==|||==#

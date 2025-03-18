@@ -1,15 +1,24 @@
-"""
+#==
 # welcome to Cells.jl
 This file creates the basis for Olive.jl cells then builds olive cell types
  on  top of it. 
 - Cell controls
+- Base directory cells
 - Directory cells
-- Session cells (markdown, code, TODO, NOTE, creator)
-- REPL Cells (pkgrepl, helprepl, shellrepl, oliverepl)
-- Environment cells (module cells, include cells)
-- Filebrowsing
+- Base code cells
+- Session cells (markdown, code)
+==#
+
 """
-#==|||==#
+```julia
+cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
+    proj::Project{<:Any}) -> ::Nothing
+```
+This function is used to move a cell up, usually bound to `ctrl` + `shift` + `UP` by default.
+```julia
+```
+- See also: `cell_down!`, `build`, `focus!`, `cell_delete!`, `focus_up!`, `Cell`, `CellOperation`
+"""
 function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     windowname::String = proj.id
@@ -29,11 +38,19 @@ function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
         olive_notify!(cm2, "this cell cannot go up any further!", color = "red")
     end
     push!(CORE.open[getname(c)].cell_ops, CellOperation{:cellup}(cell, pos))
+    nothing::Nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
+"""
+```julia
+cell_down!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
+    proj::Project{<:Any}) -> ::Nothing
+```
+This function is used to move a cell down, usually bound to `ctrl` + `shift` + `DOWN` by default.
+```julia
+```
+- See also: `cell_up!`, `build`, `focus!`, `cell_delete!`, `focus_up!`, `Cell`, `CellOperation`
+"""
 function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     windowname::String = proj.id
@@ -53,11 +70,20 @@ function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
         olive_notify!(cm, "this cell cannot go down any further!", color = "red")
     end
     push!(CORE.open[getname(c)].cell_ops, CellOperation{:celldown}(cell, pos))
+    nothing::Nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
+"""
+```julia
+cell_delete!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
+    proj::Project{<:Any}) -> ::Nothing
+```
+This is the function called for cell deleting when the user uses the `delete` keybindings (by default, 
+    `ctrl` + `shift` + `delete`).
+```julia
+```
+- See also: `cell_up!`, `build`, `focus!`, `cell_delete!`, `focus_down!`, `Cell`, `CellOperation`
+"""
 function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
     cellid::String = cell.id
@@ -74,11 +100,20 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     remove!(cm, "cellcontainer$(cellid)")
     push!(CORE.open[getname(c)].cell_ops, CellOperation{:delete}(cell, pos))
     deleteat!(cells, pos)
+    nothing::Nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
+"""
+```julia
+cell_new!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
+    proj::Project{<:Any}; type::String = "creator") -> ::Nothing
+```
+The new binding for Session cells. This action is called whenever a new cell is created, usually using the 
+    default binding of `ctrl` + `shift` + `Enter` from a `Cell`.
+```julia
+```
+- See also: `cell_delete!`, `Cell`
+"""
 function cell_new!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any}; type::String = "creator")
     windowname::String = proj.id
@@ -92,10 +127,17 @@ function cell_new!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cm["cell$(newcell.id)"] = "contenteditable" => "true"
     nothing::Nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
+"""
+```julia
+focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, 
+    proj::Project{<:Any}) -> ::Nothing
+```
+Focuses to the cell above the current `Cell`. This function is usually called when a user hits `shift` + `up`.
+```julia
+```
+- See also: `focus_on!`, focus_down!`, `cell_delete!`, `Cell`, `CellOperation`, `cell_down!`, `cell_up!`
+"""
 function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, 
     proj::Project{<:Any})
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
@@ -109,9 +151,22 @@ function focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     nothing::Nothing
 end
 
+"""
+```julia
+focus_on!(c::AbstractConnection, cm::ComponentModifier, selected_cell::Cell{<:Any}, 
+    proj::Project{<:Any}) -> ::Nothing
+```
+`focus_on!` is used to change how we focus an element. For example, for a `:markdown` cell we need to replace 
+the active markdown with the cell's source and make it editable. This allows us to overwrite how specific cells 
+are focused on, and there is a convenient equivalent for `focus_off!`
+```julia
+```
+- See also: `focus_off!`, `focus_down!`, `cell_delete!`, `Cell`, `CellOperation`, `cell_down!`, `cell_up!`
+"""
 focus_on!(c::AbstractConnection, cm::ComponentModifier, selected_cell::Cell{<:Any}, 
     proj::Project{<:Any}) = begin
     focus!(cm, "cell" * selected_cell.id)
+    nothing::Nothing
 end
 
 focus_on!(c::AbstractConnection, cm::ComponentModifier, selected_cell::Cell{:markdown}, 
@@ -125,6 +180,18 @@ focus_on!(c::AbstractConnection, cm::ComponentModifier, selected_cell::Cell{:mar
     nothing::Nothing
 end
 
+"""
+```julia
+focus_off!(c::AbstractConnection, cm::ComponentModifier, selected_cell::Cell{<:Any}, 
+    proj::Project{<:Any}) -> ::Nothing
+```
+`focus_off!` changes how we remove focus from an element. For example, in the case of the `:markdown` cell 
+we will want to rebuild the markdown. Binding this function allows us to change how the focus leaves certain 
+types of cells or certain types of cells when they are in certain projects. This is the inverse of `focus_on!`
+```julia
+```
+- See also: `focus_on!`, `focus_down!`, `Cell`, `focus_up!`
+"""
 focus_off!(c::AbstractConnection, cm::ComponentModifier, cell::Cell{<:Any}, proj::Project{<:Any}) = begin
 
 end
@@ -135,10 +202,17 @@ focus_off!(c::AbstractConnection, cm::ComponentModifier, selected_cell::Cell{:ma
     cm["cell$(selected_cell.id)"] = "contenteditable" => "false"
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+"""
+```julia
+focus_up!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}, 
+    proj::Project{<:Any}) -> ::Nothing
+```
+Focuses to the cell below the current `Cell`. This function is usually called when a user hits `shift` + `DOWN`. 
+This is, of course, the inverse to `focus_down!`
+```julia
+```
+- See also: `focus_on!`, focus_down!`, `cell_delete!`, `Cell`, `CellOperation`, `cell_down!`, `cell_up!`
+"""
 function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
@@ -151,6 +225,17 @@ function focus_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     focus_off!(c, cm, cell, proj)
 end
 
+"""
+```julia
+undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
+    cells::Vector{Cell}, op::CellOperation{<:Any, <:Any})::Nothing
+```
+`undo_operation` does the inverse of a saved `CellOperation` to undo whatever it did. This will be called anytime 
+we have a `CellOperation` inside of our environment and use `ctrl` + `shift` + `Z` to perform an Cell operation undo.
+```julia
+```
+- See also: `cell_delete!`, `Cell`, `CellOperation`
+"""
 function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Project{<:Any}, 
     cells::Vector{Cell}, op::CellOperation{<:Any, :delete})::Nothing
     insert!(cells, op.position, op.cell)
@@ -168,28 +253,18 @@ function undo_operation(c::AbstractConnection, cm::ComponentModifier, proj::Proj
 
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function ToolipsSession.bind(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
 
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 
 """
-### Olive Cells
-```
+```julia
 build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
-explorer::Bool = false)
+explorer::Bool = false) -> ::Component{:div}
 ```
-------------------
-This is a callable build function that can be used to create a base file cell.
-#### example
-```
+This is a callable build function that can be used to create a base file cell. This offers a great template 
+    to build a new file cell from in accordance with the typical `Olive` styles.
+```julia
 
 ```
 """
@@ -304,16 +379,11 @@ function build_base_cell(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}; 
     push!(hiddencell, delbutton, movbutton, copyb, editbutton, name, finfo, dupe_button)
     hiddencell::Component{:div}
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
-### Olive Cells
 ````
 build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any}) -> ::Component{:div}
 ````
-------------------
 The catchall/default `build` function for directory cells. This function is what
 creates the gray boxes for files that Olive cannot read inside of directories.
 Using this function as a template, you can create your own directory cells.
@@ -323,8 +393,7 @@ to save your new file type. Bind `dblclick` and use the `load_session` or
 `add_to_session` methods, dependent on `explorer`... Which should also be `false`
 by default. `directory_cells` will put the file path into `cell.outputs` and
 the file name into `cell.source`.
-#### example
-```
+```julia
 ```
 Here are some other **important** functions to look at for creating file cells:
 - `build_base_cell`
@@ -341,34 +410,44 @@ function build(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any};
     push!(hiddencell, name)
     hiddencell
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function olive_read(cell::Cell{<:Any})
+
+"""
+```julia
+olive_read(cell::Cell{<:Any}) -> ::Vector{Cell{<:Any}}
+```
+Will read a given **FILE** `Cell` into a new `Vector` of **SESSION** cells. This is automatically bound to the 
+double-click of a file within the explorer with `build_base_cell`. This allows `Olive` to read that new `Cell's` 
+file type.  
+```julia
+# readable files with `Base` `Olive`:
+olive_read(cell::Cell{:jl})
+olive_read(cell::Cell{:ipynb})
+olive_read(cell::Cell{:toml})
+olive_read(cell::Cell{:olivestyle})
+```
+description of method list
+```julia
+# additional method list?
+```
+description of method list
+- See also: 
+"""
+
+function olive_read(cell::Cell{<:Any})::Vector{Cell}
     src = read(cell.outputs, String)
     [begin 
         Cell("txt", string(cellsource)) 
     end for (e, cellsource) in enumerate(split(src, "\n\n"))]
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function olive_read(cell::Cell{:jl})
+
+function olive_read(cell::Cell{:jl})::Vector{Cell}
     IPyCells.read_jl(cell.outputs)
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function olive_read(cell::Cell{:ipynb})
+
+function olive_read(cell::Cell{:ipynb})::Vector{Cell}
     IPyCells.read_ipynb(cell.outputs)
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function olive_read(cell::Cell{:toml})
     read_toml(cell.outputs)
 end
@@ -381,27 +460,31 @@ function olive_read(cell::Cell{:olivestyle})::Vector{Cell}
         cells
     end
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
-"""
-mutable struct ProjectExport{T <: Any} end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-"""
-### Olive Cells
+```julia
+mutable ProjectExport{<:Any}
 ```
-olive_save(cells::Vector{Cell}, p::Project{<:Any}, ProjectExport{<:Any}) -> ::Nothing
+- (this type has no fields)
+
+the `ProjectExport` is a symbolic type used to hold the export details of a given project and save it to the
+correct format. This is a symbolic type, so there are no fields -- the type is entirely represented by its 
+parameter and name.
+```julia
+ProjectExport{T}()
+```
+- See also: `olive_save`, `Olive`, `Cell`, `Project`
+"""
+
+mutable struct ProjectExport{T <: Any} end
+
+"""
+```julia
+olive_save(p::Project{<:Any}, pe::ProjectExport{<:Any}) -> ::Nothing
 ````
-------------------
 Saves the project to the `path` inside of its data. This function can be extended to export to 
 multiple new formats by providing a new `ProjectExport`
-#### example
-```
+```julia
 cells = IPyCells.read_jl("myfolder/myjl.jl")
 filecell = Cell(1, "jl", "myjl.jl", "myfolder/myjl.jl")
 olive_save(cells, filecell) # saves `cells` to "myfolder/myjl.jl"
@@ -411,10 +494,7 @@ function olive_save(p::Project{<:Any}, pe::ProjectExport{<:Any})
     IPyCells.save(p.data[:cells], p.data[:path])
     nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:jl})
     IPyCells.save(p.data[:cells], p.data[:path])
     nothing
@@ -424,18 +504,12 @@ function olive_save(p::Project{<:Any}, pe::ProjectExport{:raw})
     IPyCells.save(p.data[:cells], p.data[:path], raw = true)
     nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:ipynb})
     IPyCells.save_ipynb(p.data[:cells], p.data[:path])
     nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:toml})
     joinedstr = join((cell.source for cell in p.data[:cells]), "\n")
     ret = ""
@@ -474,19 +548,33 @@ function olive_save(p::Project{<:Any}, pe::ProjectExport{:olivestyle})
     end
     nothing
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
+"""
+```julia
+directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool = false) -> ::Vector{Cell}
+```
+`directory_cells` will make FILE cells for a given directory by path. `pwd` simply determines whether or not 
+    the current file is inside of the `pwd` directory, which will require them to be built just a hair differently. 
+    Saved directories have collapsible directories, whereas the `pwd` directory has switching ones.
+```julia
+```
+- See also: `build_file_cell`, `Cell`, `build_base_cell`
+"""
 function directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool = false)
     files = readdir(dir)
-    return(filter!(e -> ~(isnothing(e)), [build_file_cell(e, path, dir, pwd = pwd) for (e, path) in enumerate(files)]::AbstractVector))
+    return(filter!(e -> ~(isnothing(e)), [build_file_cell(path, dir, pwd = pwd) for path in files]::AbstractVector))
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-function build_file_cell(e::Int64, path::String, dir::String; pwd::Bool = false)
+
+"""
+```julia
+build_file_cell(path::String, dir::String; pwd::Bool = false) -> ::Cell{<:Any}
+```
+Used by `directory_cells` to build individual file cells. This function will build a specific cell by file path.
+```julia
+```
+- See also: `directory_cells`, `Cell`, `build_base_cell`
+"""
+function build_file_cell(path::String, dir::String; pwd::Bool = false)
     fpath = dir * "/" * path
     if ~(isdir(fpath))
         if isfile(fpath)
@@ -509,10 +597,7 @@ function build_file_cell(e::Int64, path::String, dir::String; pwd::Bool = false)
         end
     end
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function build(c::Connection, cell::Cell{:dir}, d::Directory{<:Any}; bind::Bool = true)
     cellid::String = cell.id
     container = div("cellcontainer$(cellid)")
@@ -728,10 +813,6 @@ function build(c::Connection, cell::Cell{:creator}, d::Directory{:home})
     maincell
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function build(c::Connection, cell::Cell{:ipynb},
     d::Directory{<:Any})
     filecell = build_base_cell(c, cell, d)
@@ -743,15 +824,7 @@ function build(c::Connection, cell::Cell{:ipynb},
     style!(filecell, "background-color" => "#FD5800")
     filecell
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function build(c::Connection, cell::Cell{:jl},
     d::Directory{<:Any})
     hiddencell = build_base_cell(c, cell, d)
@@ -759,15 +832,7 @@ function build(c::Connection, cell::Cell{:jl},
     style!(hiddencell, "cursor" => "pointer")
     hiddencell
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function read_toml(path::String)
     concat::String = ""
     file::String = read(path, String)
@@ -800,16 +865,13 @@ Session cells
 ==#
 
 """
-**Olive Cells**
-```
+```julia
 build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}) -> ::Component{:div}
 ```
-------------------
 The catchall/default `build` function for session cells. This function is what
 creates the gray boxes for cells that Olive cannot create.
 Using this function as a template, you can create your own olive cells.
-#### example
 ```
 
 ```
@@ -845,12 +907,10 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 end
 
 """
-##### Olive Cells
-```
+```julia
 evaluate(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}) -> ::Nothing
 ```
-------------------
 This is the catchall/default function for the evaluation of any cell. Use this
 as a template to add evaluation to your cell using the `evaluate` method binding.
 If you were to, say bind your cell without using evaluate, the only problem would
@@ -862,8 +922,7 @@ this method exists.
 The process of creating an evaluation extension is simple; get the text from the cell and then 
 evaluate it however, providing a return to the cell's outputs. The example below is the `evaluate` 
 function for a `txt` cell.
-#### example
-```
+```julia
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:txt},
     proj::Project{<:Any})
     cells = proj[:cells]
@@ -899,18 +958,15 @@ end
 
 
 """
-##### Olive Cells
-```
+```julia
 cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any})
 ```
-------------------
 The catchall/default highlighting function for cells. Build a base cell using
 `build_base_cell`, setting the `highlight` key-word argument to `false`, then
 write this function for your cell and it should highlight properly. The example below 
     is a `python` cell implementation from [OlivePy](https://github.com/ChifiSource/OlivePy.jl)
-#### example
-```
+```julia
 import Olive: cell_highlight!
 using Olive: Cell, Project
 using Olive.Toolips
@@ -951,22 +1007,13 @@ function get_highlighter(c::Connection, cell::Cell{:tomlvalues})
     c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
 end
 
-
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-
 """
-##### Olive Cells
-```
+```julia
 cell_bind!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}) -> ::ToolipsSession.KeyMap
 ```
-------------------
 Binds default cell controls, returns keymap to bind to your cell's input.
-#### example
-```
+```julia
 
 ```
 """
@@ -1092,7 +1139,6 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     ToolipsSession.bind(km, keybindings["focusdown"]) do cm::ComponentModifier
         focus_down!(c, cm, cell, proj)
     end
-    # push!(CORE.open[getname(c)].cell_ops, CellOperation{:cellup}(cell, pos))
     ToolipsSession.bind(km, keybindings["undo"], prevent_default = true) do cm::ComponentModifier
         ops::Vector{CellOperation{<:Any, <:Any}} = CORE.open[getname(c)].cell_ops
         n = length(ops)
@@ -1106,24 +1152,29 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     km::KeyMap
 end
 
+"""
+```julia
+get_cell_class(cell::Cell{<:Any}) -> ::String
+```
+Returns the default class for a given `Cell` -- the cell's actual input. This might be an important 
+    binding in some cases; most cells will have the same class, but some cells might have a different input 
+    class and this allows those cells to work with functions that overwrite the style, such as cell select
+    or find.
+```julia
+```
+- See also: `cell_delete!`, `build_findbar`, `Cell`
+"""
 get_cell_class(cell::Cell{<:Any}) = "input_cell"
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 """
-##### Olive Cells
-```
+```julia
 build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}; highlight::Bool = false) -> ::Component{:div}
 ```
-------------------
 This function builds the base input box of a standard cell with or without highlighting. 
     In most cases, a use-case would be better served by `build_base_cell`, which builds 
     the rest the base `Cell` and calls this function to create the input box.
-#### example
-```
+```julia
 
 ```
 """
@@ -1163,21 +1214,15 @@ function build_base_input(c::Connection, cm::ComponentModifier, cell::Cell{<:Any
     end
     inputbox::Component{:div}
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
-##### Olive Cells
 ```
 build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 proj::Project{<:Any}; highlight::Bool = false, sidebox::Bool = false) -> ::Component{:div}
 ```
-------------------
 This function builds a base `Cell` which comes pre-binded using `cell_bind!`. This creates a quick `Cell` that easily 
     fits into the other functions an `Olive` -- a nice starting point to create other cells from.
-#### example
-```
+```julia
 
 ```
 """
@@ -1260,22 +1305,16 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     end for m in methods(on_code_build)]
     builtcell::Component{:div}
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
-##### Olive Cells
-```
+```julia
 on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any},
 cell::Cell{:code}, proj::Project{<:Any}) -> ::Nothing
 ```
-------------------
 This is the stub function for `on_code_evaluate`. This method is only used to denote the existence of this function. 
     Each time a `code` cell is evaluated, every method for this function is ran. This allows you to extend `code` cells 
     by importing and explicitly extending them.
-#### example
-```
+```julia
 using Olive
 import Olive: on_code_evaluate, on_code_highlight, on_code_build
 
@@ -1289,21 +1328,15 @@ function on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtensi
     cell::Cell{:code}, proj::Project{<:Any})
 
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
-##### Olive Cells
-```
+```julia
 on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any},
 cell::Cell{:code}, proj::Project{<:Any}) -> ::Nothing
 ```
-------------------
 This is the stub function for `on_code_evaluate`. This method is only used to denote the existence of this function. 
     Each time a `code` cell is typed into, every method for this function is ran. This allows you to extend `code` cells 
     by importing and explicitly extending them.
-#### example
 ```
 using Olive
 import Olive: on_code_evaluate, on_code_highlight, on_code_build
@@ -1318,21 +1351,15 @@ function on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtens
     cell::Cell{:code}, proj::Project{<:Any}, km::ToolipsSession.KeyMap)
 
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
-##### Olive Cells
 ```
 on_code_evaluate(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any},
 cell::Cell{:code}, proj::Project{<:Any}) -> ::Nothing
 ```
-------------------
 This is the stub function for `on_code_evaluate`. This method is only used to denote the existence of this function. 
     Each time a `code` cell is created, every method for this function is ran. This allows you to extend `code` cells 
     by importing and explicitly extending them.
-#### example
 ```
 using Olive
 import Olive: on_code_evaluate, on_code_highlight, on_code_build
@@ -1347,11 +1374,6 @@ function on_code_build(c::Connection, cm::ComponentModifier, oe::OliveExtension{
     cell::Cell{:code}, proj::Project{<:Any}, component::Component{:div}, km::ToolipsSession.KeyMap)
 
 end
-
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
@@ -1372,10 +1394,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
     OliveHighlighters.clear!(tm)
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     window::String = proj.id
@@ -1482,10 +1501,7 @@ function build(c::Connection, cell::Cell{:dirselect})
     push!(cellover, selector_indicator, filebox)
     cellover::Component{:div}
 end
-#==output[code]
-Session cells
-==#
-#==|||==#
+
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
@@ -1522,10 +1538,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     newcell::Component{:div}
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
     activemd = cm["cell$(cell.id)"]["text"]
