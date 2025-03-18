@@ -126,6 +126,21 @@ function sheet(name::String,p::Pair{String, Any} ...;
     msheet
 end
 
+"""
+```julia
+olivesheet() -> ::Component{:sheet}
+```
+Returns the default `Olive` stylesheet/theme (`pastel-pride`) -- a great template to start from when creating 
+your own styles.
+```julia
+new_sheet = Olive.olivesheet()
+for sty in new_sheet[:children]
+    @warn sty.name
+    @info string(sty)
+end
+```
+- See also: `build_findbar`, `containersection`, `Olive`
+"""
 function olivesheet()
     st = sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
@@ -234,10 +249,28 @@ const DEFAULT_SHEET = begin
     new_sheet::Component{:sheet}
 end
 
-function projectexplorer()
+"""
+```julia
+projectexplorer() -> ::Component{:div}
+```
+Builds the `Olive` project explorer.
+```julia
+```
+- See also: `close_project_explorer!`, `explorer_icon`, `settings`, `open_project_explorer!`
+"""
+function projectexplorer()::Component{:div}
     div("projectexplorer", class = "pexplorer pexplorer-closed")
 end
 
+"""
+```julia
+close_project_explorer!(cm::AbstractComponentModifier) -> ::Nothing
+```
+Closes the project explorer by changing its class. The inverse of `open_project_explorer!`
+```julia
+```
+- See also: `open_project_explorer!`, `explorer_icon`
+"""
 function close_project_explorer!(cm::AbstractComponentModifier)
     cm["projectexplorer"] = "class" => "pexplorer pexplorer-closed"
     style!(cm, "menubar", "border-bottom-left-radius" => 5px)
@@ -245,8 +278,38 @@ function close_project_explorer!(cm::AbstractComponentModifier)
     set_text!(cm, "explorerico", "drive_file_move_rtl")
     cm["explorerico"] = "class" => "material-icons topbaricons"
     cm["olivemain"] = "ex" => "0"
+    nothing::Nothing
 end
 
+"""
+```julia
+open_project_explorer!(cm::AbstractComponentModifier) -> ::Nothing
+```
+Opens the project explorer by changing its class. The inverse of `close_project_explorer!`.
+```julia
+```
+- See also: `close_project_explorer!`, `Olive`, `projectexplorer`, `explorer_icon`, `olivesheet`
+"""
+function open_project_explorer!(cm::AbstractComponentModifier)
+    close_settings_menu!(cm)
+    cm["projectexplorer"] = "class" => "pexplorer pexplorer-open"
+    style!(cm, "olivemain", "margin-left" => "500px")
+    cm["explorerico"] = "class" => "material-icons topbaricons material-icons-selected"
+    style!(cm, "menubar", "border-bottom-left-radius" => 0px)
+    set_text!(cm, "explorerico", "folder_open")
+    cm["olivemain"] = "ex" => "1"
+    nothing::Nothing
+end
+
+"""
+```julia
+explorer_icon(c::Connection) -> ::Component{:span}
+```
+Creates an explorer icon automatically bound to `close_project_explorer!` and `open_project_explorer!`
+```julia
+```
+- See also: `projectexplorer`, `open_project_explorer!`, `containersection`, `olivesheet`, `settings_menu`
+"""
 function explorer_icon(c::Connection)
     explorericon = topbar_icon("explorerico", "drive_file_move_rtl")
     on(c, explorericon, "click") do cm::ComponentModifier
@@ -259,6 +322,15 @@ function explorer_icon(c::Connection)
     explorericon::Component{:span}
 end
 
+"""
+```julia
+settings_menu(c::Connection) -> ::Component{:span}
+```
+Creates an explorer icon automatically bound to `close_project_explorer!` and `open_project_explorer!`
+```julia
+```
+- See also: `projectexplorer`, `open_project_explorer!`, `containersection`, `olivesheet`, `settings_menu`
+"""
 function settings_menu(c::Connection)
     div("settingsmenu", open = "0", class = "settings")::Component{:div}
 end
@@ -299,15 +371,12 @@ function containersection(c::Connection, name::String, level::Int64 = 3;
 end
 
 """
-### Olive UI
-````
+```julia
 switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String) -> ::Nothing
-````
-------------------
+```
 Switches the active working directory (`Environment.pwd`) to the provided path. 
 This will also decollapse the **inspector** and open the **project explorer**
-#### example
-```
+```julia
 
 ```
 """
@@ -553,10 +622,6 @@ function check!(p::Project{<:Any})
     nothing::Nothing
 end
 
-#==output[code]
-UndefVarError: Cell not defined 
-==#
-#==|||==#
 """
 ### Olive UI
 ````
@@ -618,10 +683,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     open_project(c, cm, myproj, tab)
     myproj::Project{<:Any}
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
 ### Olive UI
 ```julia
@@ -690,24 +752,15 @@ This function is called on a project whenever its tab is minimized.
 function style_tab_closed!(cm::ComponentModifier, proj::Project{<:Any})
     cm["tab$(proj.id)"] = "class" => "tabclosed"
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function style_tab_closed!(cm::ComponentModifier, proj::Project{:include})
     style!(cm, """tab$(proj.id)""", "background-color" => "#1E5631")
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function style_tab_closed!(cm::ComponentModifier, proj::Project{:module})
     style!(cm, """tab$(proj.id)""", "background-color" => "darkred")
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
 ### Olive UI
 ````
@@ -749,22 +802,18 @@ function switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Projec
         end
     end
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 re_source!(c::Connection, p::Project{<:Any}) = begin
     delete!(p.data, :mod)
     source_module!(c, p)
 end
+
 """
 ```julia
 tab_controls(c::Connection, p::Project{<:Any}) -> ::Component{:div}
 ```
 Returns the default set of tab controls for a `Project`.
-
-```
-
+```julia
 ```
 """
 function tab_controls(c::Connection, p::Project{<:Any})
@@ -1222,16 +1271,6 @@ end
 inputcell_style (generic function with 1 method)
 ==#
 #==|||==#
-
-function open_project_explorer!(cm::AbstractComponentModifier)
-    close_settings_menu!(cm)
-    cm["projectexplorer"] = "class" => "pexplorer pexplorer-open"
-    style!(cm, "olivemain", "margin-left" => "500px")
-    cm["explorerico"] = "class" => "material-icons topbaricons material-icons-selected"
-    style!(cm, "menubar", "border-bottom-left-radius" => 0px)
-    set_text!(cm, "explorerico", "folder_open")
-    cm["olivemain"] = "ex" => "1"
-end
 
 """
 ### Olive UI
