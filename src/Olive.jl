@@ -697,7 +697,7 @@ function setup_olive(logger::Toolips.Logger, path::String)
     users::Dict{String, Any} = Dict{String, Any}(
         username => Dict{String, String}("group" => "root"))
     # groups
-    root_group_data = Dict{String, Vector}("cells" => ["code", "markdown"], "uris" => ["$path/olive"], 
+    root_group_data = Dict{String, Vector}("cells" => [], "uris" => ["$path/olive"], 
     "dirs" => ["home"], "load" => ["olivebase"])
     groups = Dict{String, Dict{String, Vector}}("root" => root_group_data)
     push!(config,

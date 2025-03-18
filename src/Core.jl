@@ -459,11 +459,41 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
             end
             group_b
     end for group in CORE.data["groups"]]
-    group_wrapper = div("-", children = group_editors)
+    group_wrapper = div("groupwrap", children = group_editors)
     style!(group_wrapper, "border-radius" => 5px, "border" => "1px solid #1e1e1e", "padding" => 8px)
     add_group_button = button("add-group", text = "add new group")
     on(c, add_group_button, "click") do cm::ComponentModifier
-
+        if "grselector" in cm
+            remove!(cm, "grselector")
+            return
+        end
+        new_group_lbl = a(text = "name new group:  ")
+        groupname_box = Components.textdiv("grname", text = "")
+        confirm_button = button("user-confirm", text = "confirm")
+        cancel_button = button("usercancel", text = "cancel")
+        on(cancel_button, "click") do cl::ClientModifier
+            remove!(cl, "grselector")
+        end
+        on(c, confirm_button, "click") do cm2::ComponentModifier
+            new_gr = Group(cm2["grname"]["text"])
+            push!(CORE.data["groups"], new_gr)
+            save_settings!(c, core = true)
+            group_b = button("edit$(new_gr.name)", text = new_gr.name)
+            on(c, group_b, "click") do cm2::ComponentModifier
+                if "group-dialog" in cm2
+                    remove!(cm2, "group-dialog")
+                end
+                g_dialog = build_group_dialog(c, cm2, group)
+                append!(cm2, "mainbody", g_dialog)
+            end
+            remove!(cm2, "grselector")
+            append!(cm2, "groupwrap", group_b)
+        end
+        style!(groupname_box, "border-radius" => 2px, "border" => "1px solid #1e1e1e")
+        new_dialog = div("grselector", children = [new_group_lbl, groupname_box, confirm_button, cancel_button])
+        style!(new_dialog, "border" => "2px solid #1e1e1e", "background-color" => "white", "position" => "absolute", 
+        "width" => 25percent, "left" => 37.5percent, "top" => 20percent)
+        append!(cm, "mainbody", new_dialog)
     end
     add_buttons = ("background-color" => "darkgreen", "color" => "white", "margin-top" => 3px, 
     "font-weight" => "bold")
@@ -528,17 +558,19 @@ function build_user_data(c::AbstractConnection, name::String, data::Dict)
     "border-radius" => 0px)
     on(c, group_button, "click") do cm::ComponentModifier
         opts = options([g.name for g in CORE.data["groups"]] ...)
-        group_selector = select("groupselector", children = opts)
+        group_selector = select("groupselector", children = opts, value = "main")
         cancel_button = button("cancelgroup", text = "cancel")
         on(cancel_button, "click") do cl::ClientModifier
             remove!(cl, "gselector")
         end
-        on(c, group_selector, "input") do cm2::ComponentModifier
+        on(c, group_selector, "change") do cm2::ComponentModifier
             new_group = cm2["groupselector"]["value"]
-            confirmer = olive_confirm_dialog(c, "change user group to $new_group?") do cm::ComponentModifier
-                CORE.client_data[name]
+            confirmer = olive_confirm_dialog(c, "change $name user group to $new_group?") do cm::ComponentModifier
+                CORE.client_data[name]["group"] = new_group
+                set_text!(cm, "gr$name", new_group)
             end
             append!(cm2, "mainbody", confirmer)
+            remove!(cm2, "gselector")
         end
         new_dialog = div("gselector", children = [group_selector, cancel_button])
         style!(new_dialog, "border" => "2px solid #1e1e1e", "background-color" => "white", "position" => "absolute", 
@@ -1108,6 +1140,17 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
     dirs_box = section("-", children = direlements)
     style!(dirs_box, box_common ...)
 
+    delete_dir = button("deletegr", text = "delete this group")
+    style!(delete_dir, "background-color" => "#b52852", "color" => "white")
+    on(c, delete_dir, "click") do cm::ComponentModifier
+        name = group.name
+        conf = olive_confirm_dialog(c, "delete group $(name)? (this cannot be undone!)") do cm::ComponentModifier
+            f = findfirst(g -> g.name == name, CORE.data["groups"])
+            deleteat!(CORE.data["groups"], f)
+            olive_notify!(cm, "group $name removed")
+        end
+        append!(cm, "mainbody", conf)
+    end
     dirs_label = h3("-", text = "directories")
     main_container = section("group-dialog", children = [exit_div, name_label, 
     cells_label, cell_box, cell_update_button, load_label, load_box, load_update_button, dirs_label, 
