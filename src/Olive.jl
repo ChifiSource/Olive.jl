@@ -57,10 +57,7 @@ function build end
 global evalin(ex::Any) = begin
     Main.eval(ex)
 end
-#==
-code/none
-==#
-#--
+
 """export evalin
 ```julia
 olive_module(modname::String, environment::String) -> ::String
@@ -101,10 +98,7 @@ function olive_module(modname::String, environment::String)
     end
     """
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 olive_motd() -> ::Component{:div}
@@ -133,6 +127,25 @@ include("UI.jl")
 
 include("extensions.jl")
 
+function build_key_screen(c::AbstractConnection, message::String = "welcome to olive")
+    key_input = Components.textdiv("keyinp", text = "")
+    ToolipsSession.bind(c, key_input, "Enter", prevent_default = true) do cm::ComponentModifier
+        txt = cm["keyinp"]["text"]
+        redirect!(cm, "/?key=$txt")
+    end
+    style!(key_input, "color" => "#1e1e1e", "border" => "1px solid #1e1e1e", "padding" => 5px, 
+    "background-color" => "white", "font-size" => 16pt, "border-radius" => 3px)
+    header = h3("-", text = message)
+    style!(header, "color" => "white", "font-size" => 22pt)
+    message = p("-", text = "Please provide your access key:")
+    style!(message, "color" => "#1e1e1e", "font-weight" => "bold", "font-size" => 14pt)
+    olivecover = div("-",  children = [header, message, key_input])
+    style!(olivecover, "padding" => 10percent)
+    mainbod = body(children = [olivecover])
+    style!(mainbod, "background-color" => "C16AAD")
+    mainbod::Component{:body}
+end
+
 """
 ```julia
 verify_client!(c::Connection) -> ::Tuple{String, Dict{Symbol, String}}
@@ -148,26 +161,11 @@ function verify_client!(c::Connection)
         return(c[:OliveCore].names[ip], args)
     end
     if ~(:key in keys(args))
-        coverimg::Component{:img} = olive_cover()
-        olivecover::Component{:div} = div("topdiv", align = "center")
-        logbutt = button("requestaccess", text = "request access")
-        on(c, logbutt, "click") do cm::ComponentModifier
-            log(c[:Logger], " someone is trying to login to olive! is this you?")
-            y = readline()
-            if y == "y"
-                log(c[:Logger], " okay, logging in as root.")
-                key = ToolipsSession.gen_ref(16)
-                push!(c[:OliveCore].client_keys, [key] => c[:OliveCore].data["root"])
-                redirect!(cm, "/?key=$(key)")
-            end
-        end
-        push!(olivecover, coverimg,
-        h2("mustconfirm", text = "request access (no key)"), logbutt)
-        write!(c, olivecover)
+        write!(c, build_key_screen(c))
         return("dead", args)
     end
     if ~(args[:key] in keys(c[:OliveCore].client_keys))
-        write!(c, "bad key.")
+        write!(c, build_key_screen(c, "bad key"))
         return("dead", args)
     end
     uname = c[:OliveCore].client_keys[args[:key]]
@@ -176,10 +174,7 @@ function verify_client!(c::Connection)
     end
     return(uname, args)
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 load_default_project!(c::Connection) -> ::Environment
@@ -212,7 +207,7 @@ function load_default_project!(c::Connection)
     env::Environment
 end
 ```
-- See also: `make_session`
+- See also: `make_session`, `Olive`, `build`
 """
 function load_default_project!(c::Connection)
     name::String = getname(c)
@@ -236,10 +231,7 @@ function load_default_project!(c::Connection)
     push!(oc.open, env)
     env::Environment
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
@@ -383,12 +375,7 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     return(bod, loadicondiv, olmod)
 end
 
-#==
-code/none
-==#
-#--
 """
-### Olive
 ```julia
 make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon(), 
     sheet = DEFAULT_SHEET) -> ::Nothing
@@ -493,35 +480,25 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
     write!(c, bod)
 end
-#==
-code/none
-==#
-#--
+
 main::Route{Connection} = route(make_session, "/")
-#==
-code/none
-==#
-#--
+
 fourofour::Route{Connection} = route("404") do c::Connection
     write!(c, p("404message", text = "404, not found!"))
 end
-#==
-code/none
-==#
-#--
+
 icons::Route{Connection} = route("/MaterialIcons.otf") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/fonts/MaterialIcons.otf"))
 end
+
 mainicon::Route{Connection} = route("/favicon.ico") do c::Connection
     srcdir = @__DIR__
     write!(c, Toolips.File(srcdir * "/images/favicon.ico"))
 end
-#==
-code/none
-==#
-#--
+
 CORE::OliveCore = OliveCore("olive")
+
 """
 ```julia
 start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd()) -> ::ParametricProcesses.ProcessManager
@@ -536,7 +513,7 @@ olive_server = Olive.start()
 olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
-function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd())
+function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"))
     ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'
@@ -593,10 +570,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
             "\nlink for $(rootname): http://$(string(IP))/?key=$key", 2)
     end
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 StartError{E <: Exception} <: Exception
@@ -626,17 +600,11 @@ struct StartError{E <: Exception} <: Exception
         new{typeof(cause)}(on, cause, message)
     end
 end
-#==
-code/none
-==#
-#--
+
 function showerror(io::IO, err::StartError{<:Any})
     println(io, Toolips.Crayon(foreground = :red), """on $(err.on).\n$(err.message)\n$(showerror(io, err.cause))""")
 end
-#==
-code/none
-==#
-#--
+
 """
 ```julia
 restore_defaults!(server::Toolips.WebServer) -> ::Nothing
@@ -773,17 +741,6 @@ function create(t::Type{OliveExtension}, name::String)
     end
 end
 
-#==
-code/none
-==#
-#--
 export CORE, olive_routes, SES, build, evalin, LOGGER
-#==
-code/none
-==#
-#--
+
 end # - module
-#==output[module]
-Olive
-==#
-#==|||==#
