@@ -16,15 +16,13 @@ Core.jl
 - `OliveLogger`
 - `OliveDisplay`
 ===#
-#==output[filemap]
-==#
-#==|||==#
 """
-### OliveExtension{P <: Any}
+```julia
+OliveExtension{P <: Any}
+```
 The OliveExtension is a symbolic type that is used by the `build` function in
 order to create extensions using an OliveModifier. This constructor should only
 be called internally. Instead, simply use methods to define your extension.
-##### example
 ```example
 # this is your olive root file:
 module olive
@@ -36,22 +34,21 @@ function build(om::OliveModifier, oe::OliveExtension{:myextension})
     alert!(om, "hello!")
 end
 ```
-------------------
-##### constructors
+```julia
 OliveExtension{T <: Any}()
+```
 """
 mutable struct OliveExtension{P <: Any} end
-#==output[code]
-==#
-#==|||==#
+
 """
-### OliveModifier <: ToolipsSession.AbstractComponentModifier
+```julia
+OliveModifier <: ToolipsSession.AbstractComponentModifier
+```
 - rootc**::Dict{String, AbstractComponent}**
 - changes**::Vector{String}**
 - data**::Dict{String, Any}**
 The OliveModifier is used whenever an extension is loaded with a `build`
 function.
-##### example
 ```
 # this is your olive root file:
 module olive
@@ -63,9 +60,7 @@ function build(om::OliveModifier, oe::OliveExtension{:myextension})
     alert!(om, "hello!")
 end
 ```
-------------------
-##### constructors
-- OliveModifier(c::Connection, cm::ComponentModifier)
+- `OliveModifier(c::Connection, cm::ComponentModifier)``
 """
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     rootc::String
@@ -75,22 +70,16 @@ mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
         new(cm.rootc, cm.changes, c[:OliveCore].client_data[getname(c)])
     end
 end
-#==output[code]
-==#
-#==|||==#
+
 getindex(om::OliveModifier, symb::Symbol) = om.data[symb]
 setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
-#==output[code]
-==#
-#==|||==#
+
 """
-### Olive Core
 ```julia
 load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module) -> ::Nothing
 ```
-------------------
-Loads `Olive` extensions. This function is called when `Olive` loads the main session.
-#### example
+Loads `Olive` extensions. This function is called when `Olive` loads the main session. 
+This function is used on the `Olive` backend whenever a client loads the page.
 ```example
 
 ```
@@ -112,10 +101,8 @@ end
 ```julia
 build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Nothing
 ```
----
 This is the base `Olive` extension function, used to create `load` extensions. These are 
     extensions which do something on `Olive's` startup. 
-#### example
 In order to extend `build`, write `import` build and write a new `Method`:
 ```example
 import Olive: build
@@ -159,9 +146,6 @@ end
 ```
 """
 build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
-#==output[code]
-==#
-#==|||==#
 
 function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
     # cell bindings
@@ -483,7 +467,7 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
                 if "group-dialog" in cm2
                     remove!(cm2, "group-dialog")
                 end
-                g_dialog = build_group_dialog(c, cm2, group)
+                g_dialog = build_group_dialog(c, cm2, new_gr)
                 append!(cm2, "mainbody", g_dialog)
             end
             remove!(cm2, "grselector")
@@ -526,11 +510,10 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
             new_data = Dict{String, Any}("group" => new_user_group)
             push!(CORE.client_keys, key => new_user_name)
             push!(CORE.client_data, new_user_name => new_data)
-            log(LOGGER,
-            "\nlink for (new user) $(new_user_name): http://$(get_host(c))/?key=$key", 2)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
             append!(cm2, "user_previews", build_user_data(c, new_user_name, new_data))
             remove!(cm2, "newuser")
+            save_settings!(c, core = true)
         end
         style!(cancel_button, "background-color" => "red", "color" => "white")
         button_wrapper = div("-", children = [cancel_button, confirm_button], align = "right")
@@ -594,26 +577,18 @@ function build_user_data(c::AbstractConnection, name::String, data::Dict)
     "width" => "auto")
     user_container
 end
-
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+#===
+DIRECTORIES
+===#
 """
-### Directory{S <: Any}
-- uri::String
+```julia
+Directory{S <: Any}
+```
+- `uri`::String
 The directory type holds Directory information and file cells on startup. It
-is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds
-cells and directories
-##### example
-```
-```
-------------------
-##### constructors
+is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds 
+file cells inside of the project explorer, and is built like most other `Olive` components 
+by using the `build` function.
 - Directory(uri::String; dirtype::String = "olive")
 """
 mutable struct Directory{S <: Any}
@@ -631,14 +606,15 @@ getindex(p::Vector{Directory{<:Any}}, s::String) = begin
     end
     p[pos]
 end
-#==output[code]
-==#
-#==|||==#
-#===
-DIRECTORY BUILD FUNCTIONS
-===#
-"""
 
+
+"""
+```julia
+build(c::Connection, dir::Directory{<:Any}) -> ::Component{:div}
+```
+The `build` function for an `Olive.Directory`. This function could be extended to create new 
+    direcotry types. `import` `Olive.build` and create a new `build(c::Connection, dir::Directory{:custom})` 
+    binding to do so.
 """
 function build(c::Connection, dir::Directory{<:Any})
     nsplit::Vector{SubString} = split(dir.uri, "/")
@@ -818,12 +794,10 @@ function build(c::Connection, dir::Directory{:pwd})
     filecell
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 """
-### Project{name <: Any}
+```julia
+Project{name <: Any}
+```
 - name::String
 - dir::String
 - directories::Vector{Directory{<:Any}}
@@ -832,11 +806,8 @@ inputcell_style (generic function with 1 method)
 The directory type holds Directory information and file cells on startup. It
 is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds
 cells and directories.
-##### example
 ```
 ```
-------------------
-##### constructors
 - Project{T}(name::String, data::Dict{Symbol, Any} = Dict{Symbol, Any})
 """
 mutable struct Project{name <: Any}
@@ -850,15 +821,9 @@ mutable struct Project{name <: Any}
         new{T}(name, data, uuid)::Project{<:Any}
     end
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 getindex(p::Project{<:Any}, symb::Symbol) = p.data[symb]
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 function create_project(homedir::String = homedir(), olivedir::String = "olive")
     path::String = pwd()
     try
@@ -888,10 +853,7 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
     end
     @info "olive files created! welcome to olive! "
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 getindex(p::Vector{Project{<:Any}}, s::String) = begin
     pos = findfirst(proj::Project{<:Any} -> proj.id == s, p)
     if isnothing(pos)
@@ -899,10 +861,7 @@ getindex(p::Vector{Project{<:Any}}, s::String) = begin
     end
     p[pos]
 end
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
+
 """
 ```julia
 build(c::Connection, cm::ComponentModifier, p::Project{<:Any}) -> ::Component{:div}
@@ -951,8 +910,37 @@ function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     div(p.id, children = retvs, class = "projectwindow")::Component{:div}
 end
 
+"""
+```julia
+abstract AbstractOliveOperation <: Any
+```
+An `AbstractOliveOperation` is some kind of action that `Olive` performs that is reversable with `ctrl` + `shift` + `Z`. 
+These operations are then binded to `undo_operation`, and will be added to the `Environment` each time the operation 
+is done.
+```julia
+- `cell::Cell`
+- `position::Int64`
+```
+- See also: `CellOperation`, `Environment`, `undo_operation`, `focus_down!`
+"""
 abstract type AbstractOliveOperation end
 
+"""
+```julia
+mutable struct CellOperation{CT <: Any, name <: Any} <: Any
+```
+- `cell`**Cell{CT}**
+- `position`**::Int64**
+
+The `CellOperation` is the quintessential `AbstractOliveOperation` type for `Olive`. The `CellOperation` 
+is undone by adding a new dispatch to `undo_operation`.
+```julia
+```
+example
+```julia
+```
+- See also: `undo_operation`, `AbstractOliveOperation`, `cell_down!`, `cell_delete!`
+"""
 mutable struct CellOperation{CT <: Any, name <: Any} <: AbstractOliveOperation
     cell::Cell{CT}
     position::Int64
@@ -969,6 +957,29 @@ push!(v::Vector{<:AbstractOliveOperation}, el...) = begin
     end
 end
 
+"""
+```julia
+mutable struct Environment{T <: Any} <: Any
+```
+- `name`::String
+- `directories`::Vector{Directory}
+- `projects`::Vector{Project}
+- `cells_selected`::Dict{String, String}
+- `cell_clipboard`::Vector{Pair{String, String}}
+- `cell_ops`::Vector{CellOperation}
+- `pwd`::String
+
+An `Environment` is the quintessential `open` type for `Olive` -- this type holds all of the information 
+fora  given client's session, excluding their client data. The `Environment` is also binded to build, which 
+provides a way to change the entirety of how `Olive`is built.
+```julia
+Environment(T::String, name::String)
+```
+example
+```julia
+```
+- See also: `build`, `Project`, `Directory`, `CellOperation`, `Group`
+"""
 mutable struct Environment{T <: Any}
     name::String
     directories::Vector{Directory}
@@ -997,6 +1008,26 @@ getindex(e::Vector{Environment}, name::String) = begin
     e[pos]::Environment
 end
 
+"""
+```julia
+mutable struct Group
+```
+- `name`::String
+- `cells`::Vector{Symbol}
+- `directories`::Vector{Directory}
+- `load_extensions`::Vector{Symbol}
+
+The `group` manages permissions for users by using a combination of specific, target settings, and 
+    set of extensions. Note that `cells` is reversed; provided cells will be the cells the 
+    `Group` is **not** allowed to use -- for the rest of the extensions, the opposite is the case.
+```julia
+Group(name::String)
+```
+example
+```julia
+```
+- See also: 
+"""
 mutable struct Group
     name::String
     cells::Vector{Symbol}
@@ -1165,7 +1196,34 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
     main_container::Component{:section}
 end
 
+"""
+```julia
+(mutable) struct OliveCore <: Toolips.AbstractExtension
+```
+- `olmod::Module`
+- `data::Dict{String, Any}`
+- `names::Dict{String, String}`
+- `client_data::Dict{String, Dict{String, Any}}`
+- `open::Vector{Environment}`
+- `pool::Vector{String}`
+- `client_keys::Vector{String}`
 
+`OliveCore` is the main server-extension used to run `Olive`; this type keeps track of all `Olive` settings, holds 
+your `olive` home custom `Module`, and all of the currently open environments.
+`olmod` is the `olive` module sourced from your `Olive` home on startup. `data` is the server's data, including things 
+like `Groups` and the name of the root user. `names` is a dictionary containing all of the user-names and their 
+associated keys -- where the keys are the client IPs and the values are the client names. `client_data` contains 
+the data for each client, and `open` contains their environments which hold projects, cells, and directories. 
+    The `pool` keeps track of open module containers that can be resused for future `Olive` projects.
+Finally, `client_keys` is similar to `names` but holds the keys as keys and the usernames as values.
+```julia
+OliveCore(mod::String)
+```
+example
+```julia
+```
+- See also: `Environment`, `Project`, `Cell`, `Olive`, `source_module!`, `load_extensions!`
+"""
 mutable struct OliveCore <: Toolips.AbstractExtension
     olmod::Module
     data::Dict{String, Any}
@@ -1191,9 +1249,26 @@ function on_start(oc::OliveCore, data::Dict{Symbol, Any}, routes::Vector{<:Abstr
     push!(data, :OliveCore => oc)
 end
 
-
+"""
+```julia
+getname(c::Connection) -> ::String
+```
+`getname` is used to grab an `Olive` username for a given client from the `Connection`.
+```julia
+```
+- See also: `source_module!`, `OliveCore`, `Olive`, `Environment`
+"""
 getname(c::Connection) = c[:OliveCore].names[get_ip(c)]::String
 
+"""
+```julia
+source_module!(oc::OliveCore) -> ::Nothing
+```
+Quickly sources a new home `Module` (`OliveCore.olmod`) for `OliveCore`.
+```julia
+```
+- See also: `load_extensions!`, `OliveCore`, `Olive`, `Environment`, `Project`
+"""
 function source_module!(oc::OliveCore)
     homemod = """baremodule olive
     using Olive
@@ -1201,8 +1276,19 @@ function source_module!(oc::OliveCore)
     pmod = Meta.parse(homemod)
     olmod::Module = Main.evalin(pmod)
     oc.olmod = olmod
+    nothing::Nothing
 end
 
+"""
+```julia
+load_extensions!(oc::OliveCore) -> ::Nothing
+```
+This function is used to load the `olive` home extensions into the `OliveCore`. This is done by evaluating 
+    your `olive` home inside of your `olive` `Module` held in `OliveCore.olmod`.
+```julia
+```
+- See also: `source_module!`, `OliveCore`
+"""
 function load_extensions!(oc::OliveCore)
     homedirec = oc.data["home"]
     olive_cells = IPyCells.read_jl("$homedirec/src/olive.jl")
@@ -1212,6 +1298,7 @@ function load_extensions!(oc::OliveCore)
         [cell.source for cell in olive_cells], "\n") * "\nend"
     olmod = oc.olmod
     olmod.evalin(Meta.parse(modstr))
+    nothing::Nothing
 end
 
 OliveLogger() = Toolips.Logger("🫒 olive> ", Crayon(foreground = :blue), Crayon(foreground = :magenta), 
@@ -1352,7 +1439,7 @@ function build_base_error_box(err::Exception, traces::Vector{Base.StackTraces.St
 	# Extract first relevant file and line number
 	linef = 0
 	for frame in traces
-		if frame.linfo !== nothing  # Ignore system/internal calls
+		if frame.linfo !== nothing
 			linef = frame.line - 1
 			break
 		end
@@ -1361,8 +1448,6 @@ function build_base_error_box(err::Exception, traces::Vector{Base.StackTraces.St
 	exception_header = div("-", text = "$message on line $linef")
 	style!(exception_header, "background-color" => "#8B0000", "font-weight" => "bold",
 		"padding" => 7px, "border-radius" => 2px, "color" => "white")
-
-	# Create a box for the exception message
 	message_box = div("message", text = string(err))
 	style!(message_box, "padding" => 10px, "background-color" => "#FFB6C1", "color" => "black",
 		"border-radius" => 3px, "white-space" => "pre-wrap")
