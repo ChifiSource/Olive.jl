@@ -1536,6 +1536,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     on(c, cm, 100) do cm2::ComponentModifier
         set_children!(cm2, "cellhighlight$(cell.id)", Vector{AbstractComponent}())
     end
+    cell_new!(c, cm, cell, proj, type = "code")
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
