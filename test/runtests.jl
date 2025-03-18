@@ -11,4 +11,4 @@ Olive.start(path = "testdir")
     @test length(ret) > 1
 end
 
-rmdir("testdir", force = true)
+rm("testdir", force = true, recursive = true)
