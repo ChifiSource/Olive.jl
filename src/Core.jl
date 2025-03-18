@@ -529,7 +529,7 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
             log(LOGGER,
             "\nlink for (new user) $(new_user_name): http://$(get_host(c))/?key=$key", 2)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
-            append!(cm2, "users-window", build_user_data(c, new_user_name, new_data))
+            append!(cm2, "user_previews", build_user_data(c, new_user_name, new_data))
             remove!(cm2, "newuser")
         end
         style!(cancel_button, "background-color" => "red", "color" => "white")
@@ -1140,8 +1140,11 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
     dirs_box = section("-", children = direlements)
     style!(dirs_box, box_common ...)
 
+    add_directory_button = button("adddir", text = "add directory to group")
+
     delete_dir = button("deletegr", text = "delete this group")
     style!(delete_dir, "background-color" => "#b52852", "color" => "white")
+
     on(c, delete_dir, "click") do cm::ComponentModifier
         name = group.name
         conf = olive_confirm_dialog(c, "delete group $(name)? (this cannot be undone!)") do cm::ComponentModifier
@@ -1151,10 +1154,11 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
         end
         append!(cm, "mainbody", conf)
     end
+
     dirs_label = h3("-", text = "directories")
     main_container = section("group-dialog", children = [exit_div, name_label, 
     cells_label, cell_box, cell_update_button, load_label, load_box, load_update_button, dirs_label, 
-    dirs_box])
+    dirs_box, add_directory_button, delete_dir])
     style!(main_container, "position" => "absolute", "overflow-x" => "hidden", "overflow-y" => "scroll", 
     "top" => 30percent, "height" => 40percent, "width" => 70percent, "left" => 13percent, "background-color" => "white", 
     "padding" => 4percent)
