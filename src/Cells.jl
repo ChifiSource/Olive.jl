@@ -1046,11 +1046,11 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         insert!(cm2, "pwdmain", 2, build(c, creatorcell, p, cm2))
     end
     ToolipsSession.bind(km, keybindings["explorer"], prevent_default = true) do cm2::ComponentModifier
-        if cm["olivemain"]["ex"] == "0"
-            open_project_explorer!(cm)
+        if cm2["olivemain"]["ex"] == "0"
+            open_project_explorer!(cm2)
             return
         end
-        close_project_explorer!(cm)
+        close_project_explorer!(cm2)
     end
     ToolipsSession.bind(km, keybindings["delete"]) do cm2::ComponentModifier
         cellid::String = cell.id

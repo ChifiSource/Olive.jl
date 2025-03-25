@@ -674,7 +674,7 @@ function open_project(c::Connection, cm::AbstractComponentModifier, proj::Projec
     n_projects::Int64 = length(projects)
     projbuild = build(c, cm, proj)
     proj.data[:pane] = "one"
-    inpane2 = findall(p::Project{<:Any} -> p[:pane] == "two", projects)
+    inpane2 = findall(p::Project{<:Any} -> if haskey(p.data, :pane) p[:pane] == "two" else false end, projects)
     if length(inpane2) == 0
         proj.data[:pane]::String = "one"
         set_children!(cm, "pane_one", [projbuild])
