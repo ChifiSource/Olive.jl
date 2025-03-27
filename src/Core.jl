@@ -460,6 +460,8 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
         end
         on(c, confirm_button, "click") do cm2::ComponentModifier
             new_gr = Group(cm2["grname"]["text"])
+            push!(new_gr.load_extensions, :olivebase)
+            push!(new_gr.cells, :code, :markdown, :helprepl)
             push!(CORE.data["groups"], new_gr)
             save_settings!(c, core = true)
             group_b = button("edit$(new_gr.name)", text = new_gr.name)
@@ -1088,6 +1090,7 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
                 push!(group.cells, sig.parameters[1])
             end
         end
+        olive_notify!(cm, "signatures updated", color = "darkblue")
     end
     cell_box = section("-", children = cell_checkboxes)
     style!(cell_box, box_common ...)
@@ -1098,19 +1101,24 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
     load_label = h3("-", text = "load extensions")
     load_checkboxes = [begin
         T = extension_method.parameters[1]
+        if ~(T in group.load_extensions)
+            @info T
+            @info group.load_extensions
+        end
         checkbox = Components.checkbox(string(T), value = T in group.load_extensions, text = string(T))
     end for extension_method in signatures]
     load_update_button = button("group-up-load", text = "update")
     on(c, load_update_button, "click") do cm::ComponentModifier
-        signatures = [m.sig.parameters[4] for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
-        Project{<:Any}])]
-        filter!(sig -> sig != Cell{<:Any}, signatures)
+        signatures = [m.sig.parameters[4] for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.AbstractComponentModifier, 
+        OliveExtension{<:Any}])]
+        filter!(sig -> sig != OliveExtension{<:Any}, signatures)
         group.load_extensions = Vector{Symbol}()
         for sig in signatures
             if parse(Bool, cm[string(sig.parameters[1])]["value"])
                 push!(group.load_extensions, sig.parameters[1])
             end
         end
+        olive_notify!(cm, "signatures updated", color = "darkblue")
     end
     load_box = section("-", children = load_checkboxes)
     style!(load_box, box_common ...)
