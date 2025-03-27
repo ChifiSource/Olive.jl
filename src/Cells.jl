@@ -52,26 +52,28 @@ This function is used to move a cell down, usually bound to `ctrl` + `shift` + `
 - See also: `cell_up!`, `build`, `focus!`, `cell_delete!`, `focus_up!`, `Cell`, `CellOperation`
 """
 function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
-    proj::Project{<:Any})
-    windowname::String = proj.id
-    cells::Vector{Cell{<:Any}} = proj.data[:cells]
-    cellid::String = cell.id
-    pos = findfirst(lcell -> lcell.id == cellid, cells)
-    if pos != length(cells)
-        switchcell = cells[pos]
-        remove!(cm, "cellcontainer$(switchcell.id)")
-        remove!(cm, "cellcontainer$(cellid)")
-        ToolipsSession.insert!(cm, windowname, pos, build(c, cm, switchcell, proj))
-        ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cell, proj))
-        focus!(cm, "cell$(cellid)")
-        cells[pos] = switchcell
-        cells[pos + 1] = cell
-    else
-        olive_notify!(cm, "this cell cannot go down any further!", color = "red")
-    end
-    push!(CORE.open[getname(c)].cell_ops, CellOperation{:celldown}(cell, pos))
-    nothing::Nothing
+	proj::Project{<:Any})
+	windowname::String = proj.id
+	cells::Vector{Cell{<:Any}} = proj.data[:cells]
+	cellid::String = cell.id
+	pos = findfirst(lcell -> lcell.id == cellid, cells)
+
+	if pos !== nothing && pos < length(cells)
+		switchcell = cells[pos + 1]
+		remove!(cm, "cellcontainer$(switchcell.id)")
+		remove!(cm, "cellcontainer$(cellid)")
+		cells[pos], cells[pos + 1] = cells[pos + 1], cells[pos]
+		ToolipsSession.insert!(cm, windowname, pos, build(c, cm, cells[pos], proj))
+		ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cells[pos + 1], proj))
+		focus!(cm, "cell$(cellid)")
+	else
+		olive_notify!(cm, "this cell cannot go down any further!", color = "red")
+	end
+
+	push!(CORE.open[getname(c)].cell_ops, CellOperation{:celldown}(cell, pos))
+	nothing::Nothing
 end
+
 
 """
 ```julia
