@@ -1060,13 +1060,17 @@ end
 
 function build_group_directory(c::AbstractConnection, main_cm::AbstractComponentModifier, group::Group, 
     dir::Directory; ret_id::Bool = false)
-    URI::String = dir.uri
+    URI::String = replace(dir.uri, CORE.data["home"] => "~")
     el_id = Toolips.gen_ref(4)
     pathbox = Components.textdiv("$el_id-path", text = URI)
     commons = ("border" => "3px solid #ddded1", "border-radius" => 2px, "display" => "inline-block")
     style!(pathbox, commons ...)
     ToolipsSession.bind(c, main_cm, pathbox, "Enter", prevent_default = true) do cm::ComponentModifier
-        path = cm["$el_id-path"]["text"]
+        path = replace(cm["$el_id-path"]["text"], "~" => CORE.data["home"])
+        if ~(isdir(path))
+            olive_notify!(cm, "$path is not a valid directory.", color = "darkred")
+            return
+        end
         dirpos = findfirst(d -> d.uri == dir.uri, group.directories)
         group.directories[dirpos].uri = path
         olive_notify!(cm, "directory path updated")
@@ -1186,7 +1190,6 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
     direlements = [begin
         build_group_directory(c, main_cm, group, dir)
     end for dir in group.directories]
-    @info typeof(direlements)
     dirs_box = section("dirsbox", children = direlements)
     style!(dirs_box, box_common ...)
 
@@ -1196,7 +1199,8 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
             new_dir = Directory("")
             push!(group.directories, new_dir)
             gr_pr, gr_id = build_group_directory(c, cm, group, new_dir, ret_id = true)
-            CORE.client_data[get_name(c)].directories = copy(group.directories)
+            env = CORE.open[getname(c)]
+            env.directories = vcat([Directory(env.pwd, dirtype = "pwd")], group.directories)
             append!(cm, "dirsbox", gr_pr)
             focus!(cm, "$(gr_id)-path")
         end
