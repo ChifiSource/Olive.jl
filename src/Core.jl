@@ -818,6 +818,9 @@ mutable struct Project{name <: Any}
     data::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T <: Any} = begin
         uuid::String = replace(ToolipsSession.gen_ref(10),
         [string(dig) => "" for dig in digits(1234567890)] ...)
+        if ~(haskey(data, :pane))
+            push!(data, :pane => "one")
+        end
         new{T}(name, data, uuid)::Project{<:Any}
     end
 end
@@ -837,13 +840,15 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         write(o,
         """\"""
         ## welcome to olive!
-        Welcome to the `0.0.92` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
+        Welcome to the `0.1` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
         are added.
-        - [getting started with olive]()
-        - [installing extensions]()
+        ```julia
+        import Olive: build
+        build(c::Olive.Connection, om::Olive.OliveModifier, oe::Olive.OliveExtension{:myext}) = begin
+            Olive.olive_notify!(om, "welcome to my CUSTOM Olive!", color = "darkblue")
+        end
+        ```
         - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
-        
-        Thank you for trying olive !
         \"""
         #==|""" * """||==#
         using Olive

@@ -671,9 +671,9 @@ This is the function `Olive` uses to load a project into its UI.
 """
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
     projects = c[:OliveCore].open[getname(c)].projects
+    push!(projects, proj)
     n_projects::Int64 = length(projects)
     projbuild = build(c, cm, proj)
-    proj.data[:pane] = "one"
     inpane2 = findall(p::Project{<:Any} -> if haskey(p.data, :pane) p[:pane] == "two" else false end, projects)
     if length(inpane2) == 0
         proj.data[:pane]::String = "one"
