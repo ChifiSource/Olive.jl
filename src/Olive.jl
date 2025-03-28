@@ -448,30 +448,28 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
             remove!(cm2, "loaddiv")
             switch_work_dir!(c, cm2, env.pwd)
             [begin
-                append!(cm2, "pane_$(proj.data[:pane])_tabs", build_tab(c, proj))
+                projpane = proj.data[:pane]
+                append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))
                 if proj.id != env.projects[1].id
                     style_tab_closed!(cm2, proj)
                 end
             end for proj in env.projects]
             if length(env.projects) > 0
-                p1i = findfirst(proj -> proj[:pane] == "one", env.projects)
-                if ~(isnothing(p1i))
-                    selected_proj = env.projects[1]
-                    window::Component{:div} = olmod.build(c, cm2, env.projects[1])
-                    append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
-                    if ~(isnothing(navigate_to))
-                        filtered_mds = filter(cell -> typeof(cell) == Cell{:markdown}, selected_proj[:cells])
-                        found = findfirst(cell -> contains(cell.source, "# $navigate_to"), filtered_mds)
-                        if ~(isnothing(found))
-                            cellid = selected_proj[:cells][found]
-                            scroll_to!(cm, "cell$cellid")
-                        end
+                selected_proj = env.projects[1]
+                window::Component{:div} = olmod.build(c, cm2, env.projects[1])
+                append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
+                if ~(isnothing(navigate_to))
+                    filtered_mds = filter(cell -> typeof(cell) == Cell{:markdown}, selected_proj[:cells])
+                    found = findfirst(cell -> contains(cell.source, "# $navigate_to"), filtered_mds)
+                    if ~(isnothing(found))
+                        cellid = selected_proj[:cells][found]
+                        scroll_to!(cm, "cell$cellid")
                     end
                 end
                 p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
                 if ~(isnothing(p2i))
                     style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
-                    append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[1]))
+                    append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[p2i]))
                 end
             else
                 # TODO default project here

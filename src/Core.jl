@@ -460,6 +460,8 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
         end
         on(c, confirm_button, "click") do cm2::ComponentModifier
             new_gr = Group(cm2["grname"]["text"])
+            push!(new_gr.load_extensions, :olivebase)
+            push!(new_gr.cells, :shellrepl, :include, :module, :pkgrepl, :NOTE, :TODO)
             push!(CORE.data["groups"], new_gr)
             save_settings!(c, core = true)
             group_b = button("edit$(new_gr.name)", text = new_gr.name)
@@ -818,6 +820,9 @@ mutable struct Project{name <: Any}
     data::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T <: Any} = begin
         uuid::String = replace(ToolipsSession.gen_ref(10),
         [string(dig) => "" for dig in digits(1234567890)] ...)
+        if ~(haskey(data, :pane))
+            push!(data, :pane => "one")
+        end
         new{T}(name, data, uuid)::Project{<:Any}
     end
 end
@@ -837,13 +842,15 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         write(o,
         """\"""
         ## welcome to olive!
-        Welcome to the `0.0.92` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
+        Welcome to the `0.1` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
         are added.
-        - [getting started with olive]()
-        - [installing extensions]()
+        ```julia
+        import Olive: build
+        build(c::Olive.Connection, om::Olive.OliveModifier, oe::Olive.OliveExtension{:myext}) = begin
+            Olive.olive_notify!(om, "welcome to my CUSTOM Olive!", color = "darkblue")
+        end
+        ```
         - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
-        
-        Thank you for trying olive !
         \"""
         #==|""" * """||==#
         using Olive
@@ -1051,6 +1058,74 @@ function get_group(c)
     c[:OliveCore].data["groups"][group]
 end
 
+function build_group_directory(c::AbstractConnection, main_cm::AbstractComponentModifier, group::Group, 
+    dir::Directory; ret_id::Bool = false)
+    URI::String = replace(dir.uri, CORE.data["home"] => "~")
+    el_id = Toolips.gen_ref(4)
+    pathbox = Components.textdiv("$el_id-path", text = URI)
+    commons = ("border" => "3px solid #ddded1", "border-radius" => 2px, "display" => "inline-block")
+    style!(pathbox, commons ...)
+    ToolipsSession.bind(c, main_cm, pathbox, "Enter", prevent_default = true) do cm::ComponentModifier
+        path = replace(cm["$el_id-path"]["text"], "~" => CORE.data["home"])
+        if ~(isdir(path))
+            olive_notify!(cm, "$path is not a valid directory.", color = "darkred")
+            return
+        end
+        dirpos = findfirst(d -> d.uri == dir.uri, group.directories)
+        group.directories[dirpos].uri = path
+        olive_notify!(cm, "directory path updated")
+    end
+    type_indicator = button("$el_id-type", text = string(typeof(dir).parameters[1]))
+    style!(type_indicator, "background-color" => "white", commons ...)
+    style!(type_indicator)
+    delete_button = button("$el_id-delete", text = "remove")
+    on(c, delete_button, "click") do cm::ComponentModifier
+        dirpos = findfirst(d -> d.uri == dir.uri, group.directories)
+        deleteat!(group.directories, dirpos)
+        save_settings!(c, core = true)
+        remove!(cm, "$el_id-container")
+    end
+    on(c, type_indicator, "click") do cm::ComponentModifier
+        if "typeindic" in cm
+            remove!(cm, "typeindic")
+            return
+        end
+        option_buttons = [begin
+            T = m.sig.parameters[3]
+            if T == Directory{<:Any}
+                T = "olive"
+            else
+                T = string(T.parameters[1])
+            end
+            opt_butt = button("option-$T", text = T)
+            on(c, opt_butt, "click") do cm2::ComponentModifier
+                dirpos = findfirst(d -> d.uri == URI, group.directories)
+                deleteat!(group.directories, dirpos)
+                insert!(group.directories, dirpos, Directory(URI, dirtype = T))
+                CORE.open[getname(c)].directories = copy(group.directories)
+                set_text!(cm2, el_id * "-type", T)
+                remove!(cm2, "typeindic")
+            end
+            opt_butt::Component{:button}
+        end for m in methods(build, Any[Connection, Directory{<:Any}])]
+        cancel_button = button("cancel-typeset", text = "cancel")
+        style!(cancel_button, "background-color" => "red", "color" => "white")
+        on(c, cancel_button, "click") do cm::ComponentModifier
+            remove!(cm, "typeindic")
+        end
+        new_dialog = div("typeindic", children = [cancel_button, option_buttons ...])
+        style!(new_dialog, "z-index" => "20", "top" => 70percent, "border" => "3px solid #1e1e1e1e", 
+        "position" => "absolute", "padding" => 10px, "background-color" => "white", "left" => 10percent)
+        append!(cm, "mainbody", new_dialog)
+    end
+    container = div("$el_id-container", children = [pathbox, type_indicator, delete_button])
+    style!(container, "display" => "flex")
+    if ret_id
+        return(container, el_id)
+    end
+    container
+end
+
 function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentModifier, group::Group)
     box_common = ("padding" => 20px, "border-radius" => 3px, "border-color" => "#1e1e1e", 
     "margin-bottom" => 4px)
@@ -1083,6 +1158,7 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
                 push!(group.cells, sig.parameters[1])
             end
         end
+        olive_notify!(cm, "signatures updated", color = "darkblue")
     end
     cell_box = section("-", children = cell_checkboxes)
     style!(cell_box, box_common ...)
@@ -1097,82 +1173,39 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
     end for extension_method in signatures]
     load_update_button = button("group-up-load", text = "update")
     on(c, load_update_button, "click") do cm::ComponentModifier
-        signatures = [m.sig.parameters[4] for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
-        Project{<:Any}])]
-        filter!(sig -> sig != Cell{<:Any}, signatures)
+        signatures = [m.sig.parameters[4] for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.AbstractComponentModifier, 
+        OliveExtension{<:Any}])]
+        filter!(sig -> sig != OliveExtension{<:Any}, signatures)
         group.load_extensions = Vector{Symbol}()
         for sig in signatures
             if parse(Bool, cm[string(sig.parameters[1])]["value"])
                 push!(group.load_extensions, sig.parameters[1])
             end
         end
+        olive_notify!(cm, "signatures updated", color = "darkblue")
     end
     load_box = section("-", children = load_checkboxes)
     style!(load_box, box_common ...)
     # directories
     direlements = [begin
-        el_id = Toolips.gen_ref(4)
-        pathbox = Components.textdiv("$el_id-path", text = dir.uri)
-        commons = ("border" => "3px solid #ddded1", "border-radius" => 2px, "display" => "inline-block")
-        style!(pathbox, commons ...)
-        ToolipsSession.bind(c, main_cm, pathbox, "Enter", prevent_default = true) do cm::ComponentModifier
-            path = cm["$el_id-path"]["text"]
-            dirpos = findfirst(d -> d.uri == dir.uri, group.directories)
-            group.directories[dirpos].uri = path
-            olive_notify!(cm, "directory path updated")
-        end
-        type_indicator = button("$el_id-type", text = string(typeof(dir).parameters[1]))
-        style!(type_indicator, "background-color" => "white", commons ...)
-        style!(type_indicator)
-        delete_button = button("$el_id-delete", text = "remove")
-        on(c, delete_button, "click") do cm::ComponentModifier
-            dirpos = findfirst(d -> d.uri == dir.uri, group.directories)
-            deleteat!(group.directories, dirpos)
-            save_settings!(c, core = true)
-            remove!(cm, "$el_id-container")
-        end
-        on(c, type_indicator, "click") do cm::ComponentModifier
-            if "typeindic" in cm
-                remove!(cm, "typeindic")
-                return
-            end
-            option_buttons = [begin
-                T = m.sig.parameters[3]
-                if T == Directory{<:Any}
-                    T = "olive"
-                else
-                    T = string(T.parameters[1])
-                end
-                opt_butt = button("option-$T", text = T)
-                on(c, opt_butt, "click") do cm2::ComponentModifier
-                    dirpos = findfirst(d -> d.uri == dir.uri, group.directories)
-                    deleteat!(group.directories, dirpos)
-                    insert!(group.directories, dirpos, Directory(dir.uri, dirtype = T))
-                    CORE.open[getname(c)].directories = copy(group.directories)
-                    set_text!(cm2, el_id * "-type", T)
-                    remove!(cm2, "typeindic")
-                end
-                opt_butt::Component{:button}
-            end for m in methods(build, Any[Connection, Directory{<:Any}])]
-            cancel_button = button("cancel-typeset", text = "cancel")
-            style!(cancel_button, "background-color" => "red", "color" => "white")
-            on(c, cancel_button, "click") do cm::ComponentModifier
-                remove!(cm, "typeindic")
-            end
-            new_dialog = div("typeindic", children = [cancel_button, option_buttons ...])
-            style!(new_dialog, "z-index" => "20", "top" => 70percent, "border" => "3px solid #1e1e1e1e", 
-            "position" => "absolute", "padding" => 10px, "background-color" => "white", "left" => 10percent)
-            append!(cm, "mainbody", new_dialog)
-        end
-        container = div("$el_id-container", children = [pathbox, type_indicator])
-        style!(container, "display" => "flex")
-        container
+        build_group_directory(c, main_cm, group, dir)
     end for dir in group.directories]
-    dirs_box = section("-", children = direlements)
+    dirs_box = section("dirsbox", children = direlements)
     style!(dirs_box, box_common ...)
 
     add_directory_button = button("adddir", text = "add directory to group")
-
+    on(c, add_directory_button, "click") do cm::ComponentModifier
+        conf = olive_confirm_dialog(c, "add a directory?") do cm::ComponentModifier
+            new_dir = Directory("")
+            push!(group.directories, new_dir)
+            gr_pr, gr_id = build_group_directory(c, cm, group, new_dir, ret_id = true)
+            env = CORE.open[getname(c)]
+            env.directories = vcat([Directory(env.pwd, dirtype = "pwd")], group.directories)
+            append!(cm, "dirsbox", gr_pr)
+            focus!(cm, "$(gr_id)-path")
+        end
+        append!(cm, "mainbody", conf)
+    end
     delete_dir = button("deletegr", text = "delete this group")
     style!(delete_dir, "background-color" => "#b52852", "color" => "white")
 
