@@ -55,7 +55,7 @@ For example, the `:code` cell is added to `Olive` using the `Method`
 function build end
 
 global evalin(ex::Any) = begin
-    Main.eval(ex)
+    Base.eval(Main, ex)
 end
 
 """export evalin
@@ -658,6 +658,7 @@ function setup_olive(logger::Toolips.Logger, path::String)
     create_project(path)
     config::Dict{String, Any} = TOML.parse(read(
         "$path/olive/Project.toml",String))
+    Pkg.activate("$path/olive")
     log(logger, "creating user configuration")
     # users
     users::Dict{String, Any} = Dict{String, Any}(
