@@ -1,6 +1,6 @@
 <div align = "center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/0.1/olivesave.png" width="250">
-<h6>🩷 0.1.1 🩷 (! Beta I !)</h6>
+<h6>🩷 0.1.2 🩷 (! Beta I !)</h6>
 </div>
 
 Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor built on the back of Julia's **multiple dispatch**. `Olive` is able to load new features by loading new methods for its functions.
