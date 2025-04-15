@@ -69,6 +69,9 @@ mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     function OliveModifier(c::Connection, cm::ComponentModifier)
         new(cm.rootc, cm.changes, c[:OliveCore].client_data[getname(c)])
     end
+    function OliveModifier(s::String)
+        new(s, Vector{String}(), Dict{String, Any}())
+    end
 end
 
 getindex(om::OliveModifier, symb::Symbol) = om.data[symb]
