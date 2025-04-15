@@ -58,6 +58,19 @@ global evalin(ex::Any) = begin
     Base.eval(Main, ex)
 end
 
+baremodule OliveBase
+import Base: *, vect, +, -, catch_backtrace
+println(STDO::String = "", x::Any ...) = begin
+    STDO * join(string(x) for x in x) * "</br>"
+end
+
+print(STDO::String = "", x::Any ...) = begin
+    STDO * join(string(x) for x in x)
+end
+
+export *, vect, +, -, catch_backtrace
+end
+
 """export evalin
 ```julia
 olive_module(modname::String, environment::String) -> ::String
@@ -73,23 +86,24 @@ function olive_module(modname::String, environment::String)
     """
     baremodule $(modname)
     using Pkg
-    using Base
+    using Olive.OliveBase
+    const Base = OliveBase
     global STDO::String = ""
     WD = ""
     Main = nothing
     Olive = nothing
     eval(e::Any) = Core.eval($(modname), e)
     function evalin(ex::Any)
-            Pkg.activate("$environment")
-            ret = eval(ex)
+        Pkg.activate("$environment")
+        ret = eval(ex)
     end
     pwd() = WD
     println(x::Any ...) = begin
-        $modname.STDO=$modname.STDO*join(string(x) for x in x)*"</br>"
+        $modname.STDO = OliveBase.println($modname.STDO, x)
         return(nothing)::Nothing
     end
     print(x::Any ...) = begin
-        $modname.STDO=$modname.STDO*join(string(x) for x in x)
+        $modname.STDO = OliveBase.print($modname.STDO, x)
         return(nothing)::Nothing
     end
     end
