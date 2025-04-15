@@ -961,6 +961,9 @@ Completely removes a `Module` from a project, adding it back to the `OliveCore` 
 ```
 """
 function empty_module!(c::Connection, proj::Project{<:Any})
+    if ~(haskey(proj.data, :mod))
+        return(nothing)
+    end
     push!(c[:OliveCore].pool, proj.id)
     mod = proj[:mod]
     re_source!(c, proj)
@@ -1051,7 +1054,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             hl = get_highlighter(c, cells[active_cell])
             style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166", "border-radius" => 1px)
             style!(hl, :founds, "color" => "black", "background-color" => "lightpink", "border-radius" => 1px)
-    
             # Override "pfounds" in the selected cell for better visibility
             push!(hl, position => :found)
             for pos in filter(p -> p != position, active_cell_items)
