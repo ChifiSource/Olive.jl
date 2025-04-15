@@ -1077,10 +1077,12 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         icon = olive_loadicon()
         icon.name = "load$(cell.id)"
         icon["width"] = "16"
+        proj.data[:mod].WD = CORE.open[getname(c)].pwd
         append!(cm2, "cellside$(cell.id)", icon)
         on(c, cm2, 100) do cm::ComponentModifier
             evaluate(c, cm, cell, proj)
             remove!(cm, "load$(cell.id)")
+            CORE.open[getname(c)].pwd = proj.data[:mod].WD
         end
     end
     ToolipsSession.bind(km, keybindings["copy"]) do cm2::ComponentModifier

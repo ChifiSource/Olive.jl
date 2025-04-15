@@ -74,7 +74,7 @@ function olive_module(modname::String, environment::String)
     baremodule $(modname)
     using Pkg
     using Base
-    import Base: println, print
+    import Base: println, print, pwd
     global STDO::String = ""
     WD = ""
     Main = nothing
@@ -86,7 +86,8 @@ function olive_module(modname::String, environment::String)
     end
     Base.delete_method(methods(println)[3])
     Base.delete_method(methods(print)[29])
-    
+    Base.delete_method(methods(pwd)[1])
+    pwd() = WD
     println(x::Any ...) = begin
         $modname.STDO=$modname.STDO*join(string(x) for x in x)*"</br>"
         return(nothing)::Nothing
