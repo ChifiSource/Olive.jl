@@ -75,7 +75,10 @@ for name in names(Base)
         eval(OliveBase, Meta.parse("import Base: $name"))
         eval(OliveBase, Meta.parse("export $name"))
     catch
-
+        try
+            eval(OliveBase, Meta.parse("import Base: ($name)"))
+        catch
+        end
     end
 end
 
@@ -87,6 +90,7 @@ print(STDO::String = "", x::Any ...) = begin
     STDO * join(string(x) for x in x)
 end
 
+disabled = nothing
 end
 
 """export evalin
