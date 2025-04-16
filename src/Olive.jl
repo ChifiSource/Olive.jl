@@ -59,7 +59,26 @@ global evalin(ex::Any) = begin
 end
 
 baremodule OliveBase
-import Base: *, vect, +, -, catch_backtrace
+import Base
+import Base: names, in, contains, Meta, string, join, eval
+
+disabled = [:pwd, :println, :print]
+
+for name in names(Base)
+    if name in disabled
+        continue
+    end
+    if contains(string(name), "#")
+        continue
+    end
+    try
+        eval(OliveBase, Meta.parse("import Base: $name"))
+        eval(OliveBase, Meta.parse("export $name"))
+    catch
+
+    end
+end
+
 println(STDO::String = "", x::Any ...) = begin
     STDO * join(string(x) for x in x) * "</br>"
 end
@@ -68,7 +87,6 @@ print(STDO::String = "", x::Any ...) = begin
     STDO * join(string(x) for x in x)
 end
 
-export *, vect, +, -, catch_backtrace
 end
 
 """export evalin
