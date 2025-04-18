@@ -91,9 +91,9 @@ print(STDO::String = "", x::Any ...) = begin
     STDO * join(string(x) for x in x)
 end
 
-read(path::String, wd::String, args ...; keyargs ...) = Base.read(wd * "/$path", args ...; keyargs ...)
+read(path::AbstractString, wd::AbstractString, args ...; keyargs ...) = Base.read(wd * "/$path", args ...; keyargs ...)
 
-cd(current_path::String, to::String)::String = begin
+cd(current_path::AbstractString, to::AbstractString)::String = begin
     if to == ".."
         direc = join(split(current_path, "/")[1:end - 1], "/")
         if isdir(direc)
@@ -103,19 +103,19 @@ cd(current_path::String, to::String)::String = begin
     current_path * "/$to"
 end
 
-rm(current_path::String, path::String; keyargs ...) = Base.rm(current_path * "/$path"; keyargs ...)
+rm(current_path::AbstractString, path::AbstractString; keyargs ...) = Base.rm(current_path * "/$path"; keyargs ...)
 
-cp(current_path::String, path1::String, path2::String; keyargs ...) = Base.cp(current_path * "/$path1", 
+cp(current_path::AbstractString, path1::AbstractString, path2::AbstractString; keyargs ...) = Base.cp(current_path * "/$path1", 
     current_path * "/$path2", keyargs ...)
 
-rmdir(current_path::String, name::String; args ...) = Base.rmdir(current_path * "/$name"; args ...)
+rmdir(current_path::AbstractString, name::AbstractString; args ...) = Base.rmdir(current_path * "/$name"; args ...)
 
-touch(current_path::String, name::String) = Base.touch(current_path * "/$name")
+touch(current_path::AbstractString, name::AbstractString) = Base.touch(current_path * "/$name")
 
-mv(current_path::String, path1::String, path2::String; keyargs ...) = Base.mv(current_path * "/$path1", 
+mv(current_path::AbstractString, path1::AbstractString, path2::AbstractString; keyargs ...) = Base.mv(current_path * "/$path1", 
     current_path * "/$path2", keyargs ...)
 
-open(current_path::String, path::String, args ...; keyargs ...) = Base.open(current_path * "/$path", args ...; keyargs ...)
+open(current_path::AbstractString, path::AbstractString, args ...; keyargs ...) = Base.open(current_path * "/$path", args ...; keyargs ...)
 
 disabled = nothing
 end
@@ -155,14 +155,14 @@ function olive_module(modname::String, environment::String)
         $modname.STDO = OliveBase.print($modname.STDO, x)
         return(nothing)::Nothing
     end
-    read(path::String, args ...; keyargs ...) = OliveBase.read(path, $modname.WD, args ...; keyargs ...)
-    cd(path::String) = $modname.WD = OliveBase.cd($modname.WD, path)
-    readdir(path::String = $modname.WD) = OliveBase.readdir(path)
-    open(path::String, args ...; keyargs ...) = OliveBase.open($modname.WD, args ...; keyargs ...)
-    touch(name::String) = OliveBase.touch($modname.WD, name)
-    rmdir(name::String; args ...) = OliveBase.rmdir($modname.WD, name, args ...)
-    mv(name::String, to::String; keyargs ...) = OliveBase.mv($modname.WD, name, to)
-    cp(name::String, to::String; keyargs ...) = OliveBase.cp($modname.WD, name, to)
+    read(path::AbstractString, args ...; keyargs ...) = OliveBase.read(path, $modname.WD, args ...; keyargs ...)
+    cd(path::AbstractString) = $modname.WD = OliveBase.cd($modname.WD, path)
+    readdir(path::AbstractString = $modname.WD) = OliveBase.readdir(path)
+    open(path::AbstractString, args ...; keyargs ...) = OliveBase.open($modname.WD * "/" * path, args ...; keyargs ...)
+    touch(name::AbstractString) = OliveBase.touch($modname.WD, name)
+    rmdir(name::AbstractString; args ...) = OliveBase.rmdir($modname.WD, name, args ...)
+    mv(name::AbstractString, to::AbstractString; keyargs ...) = OliveBase.mv($modname.WD, name, to)
+    cp(name::AbstractString, to::AbstractString; keyargs ...) = OliveBase.cp($modname.WD, name, to)
     end
     """
 end
