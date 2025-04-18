@@ -62,7 +62,8 @@ baremodule OliveBase
 import Base
 import Base: names, in, contains, Meta, string, join, eval
 
-disabled = [:pwd, :println, :print, :read, :cd]
+disabled = [:pwd, :println, :print, :read, :cd, :open, :touch, :cp, :rm, 
+:mv, :rmdir]
 
 for name in names(Base)
     if name in disabled
@@ -90,7 +91,7 @@ print(STDO::String = "", x::Any ...) = begin
     STDO * join(string(x) for x in x)
 end
 
-read(path::String, wd::String, args ...; keyargs ...) = read(wd * "/$path", args ...; keyargs ...)
+read(path::String, wd::String, args ...; keyargs ...) = Base.read(wd * "/$path", args ...; keyargs ...)
 
 cd(current_path::String, to::String)::String = begin
     if to == ".."
@@ -102,7 +103,19 @@ cd(current_path::String, to::String)::String = begin
     current_path * "/$to"
 end
 
-# TODO rm, cp, rmdir, touch, mv, open
+rm(current_path::String, path::String; keyargs ...) = Base.rm(current_path * "/$path"; keyargs ...)
+
+cp(current_path::String, path1::String, path2::String; keyargs ...) = Base.cp(current_path * "/$path1", 
+    current_path * "/$path2", keyargs ...)
+
+rmdir(current_path::String, name::String; args ...) = Base.rmdir(current_path * "/$name"; args ...)
+
+touch(current_path::String, name::String) = Base.touch(current_path * "/$name")
+
+mv(current_path::String, path1::String, path2::String; keyargs ...) = Base.mv(current_path * "/$path1", 
+    current_path * "/$path2", keyargs ...)
+
+open(current_path::String, path::String, args ...; keyargs ...) = Base.open(current_path * "/$path", args ...; keyargs ...)
 
 disabled = nothing
 end
@@ -143,11 +156,13 @@ function olive_module(modname::String, environment::String)
         return(nothing)::Nothing
     end
     read(path::String, args ...; keyargs ...) = OliveBase.read(path, $modname.WD, args ...; keyargs ...)
-
-    cd(path::String) = $modname.WD = OliveBase.cd(path, to)
-
+    cd(path::String) = $modname.WD = OliveBase.cd($modname.WD, path)
     readdir(path::String = $modname.WD) = OliveBase.readdir(path)
-
+    open(path::String, args ...; keyargs ...) = OliveBase.open($modname.WD, args ...; keyargs ...)
+    touch(name::String) = OliveBase.touch($modname.WD, name)
+    rmdir(name::String; args ...) = OliveBase.rmdir($modname.WD, name, args ...)
+    mv(name::String, to::String; keyargs ...) = OliveBase.mv($modname.WD, name, to)
+    cp(name::String, to::String; keyargs ...) = OliveBase.cp($modname.WD, name, to)
     end
     """
 end
