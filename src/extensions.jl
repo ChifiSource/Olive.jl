@@ -623,6 +623,9 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
         outp = standard_out
     end
     out = mod.STDO
+    if cmd == :pwd || cmd == :cd
+        out = mod.WD
+    end
     set_text!(cm, "cell$(cell.id)out", outp * out)
     set_text!(cm, "cell$(cell.id)", "")
 end
