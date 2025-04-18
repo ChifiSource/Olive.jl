@@ -62,7 +62,7 @@ baremodule OliveBase
 import Base
 import Base: names, in, contains, Meta, string, join, eval
 
-disabled = [:pwd, :println, :print]
+disabled = [:pwd, :println, :print, :read, :cd]
 
 for name in names(Base)
     if name in disabled
@@ -89,6 +89,20 @@ end
 print(STDO::String = "", x::Any ...) = begin
     STDO * join(string(x) for x in x)
 end
+
+read(path::String, wd::String, args ...; keyargs ...) = read(wd * "/$path", args ...; keyargs ...)
+
+cd(current_path::String, to::String)::String = begin
+    if to == ".."
+        direc = join(split(current_path, "/")[1:end - 1], "/")
+        if isdir(direc)
+            return(direc)
+        end
+    end
+    current_path * "/$to"
+end
+
+# TODO rm, cp, rmdir, touch, mv, open
 
 disabled = nothing
 end
@@ -128,6 +142,12 @@ function olive_module(modname::String, environment::String)
         $modname.STDO = OliveBase.print($modname.STDO, x)
         return(nothing)::Nothing
     end
+    read(path::String, args ...; keyargs ...) = OliveBase.read(path, $modname.WD, args ...; keyargs ...)
+
+    cd(path::String) = $modname.WD = OliveBase.cd(path, to)
+
+    readdir(path::String = $modname.WD) = OliveBase.readdir(path)
+
     end
     """
 end
