@@ -464,7 +464,7 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
         on(c, confirm_button, "click") do cm2::ComponentModifier
             new_gr = Group(cm2["grname"]["text"])
             push!(new_gr.load_extensions, :olivebase)
-            push!(new_gr.cells, :shellrepl, :include, :module, :pkgrepl, :NOTE, :TODO)
+            push!(new_gr.cells, :shell, :include, :module, :pkgrepl, :NOTE, :TODO)
             push!(CORE.data["groups"], new_gr)
             save_settings!(c, core = true)
             group_b = button("edit$(new_gr.name)", text = new_gr.name)
