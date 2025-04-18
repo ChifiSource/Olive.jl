@@ -994,10 +994,6 @@ function cell_open!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 end
 
 function get_highlighter(c::Connection, cell::Cell{<:Any})
-    nothing::Nothing
-end
-
-function get_highlighter(c::Connection, cell::Cell{:code})
     c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
 end
 
@@ -1077,10 +1073,12 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         icon = olive_loadicon()
         icon.name = "load$(cell.id)"
         icon["width"] = "16"
+        proj.data[:mod].WD = CORE.open[getname(c)].pwd
         append!(cm2, "cellside$(cell.id)", icon)
         on(c, cm2, 100) do cm::ComponentModifier
             evaluate(c, cm, cell, proj)
             remove!(cm, "load$(cell.id)")
+            CORE.open[getname(c)].pwd = proj.data[:mod].WD
         end
     end
     ToolipsSession.bind(km, keybindings["copy"]) do cm2::ComponentModifier
@@ -1589,7 +1587,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     doc_button::Component{:button} = button("doc_button", text = "documentation")
     style!(doc_button, "font-weight" => "bold", "cursor" => "pointer")
     on(doc_button, "click") do cl::ClientModifier
-        redirect!(cl, "https://chifidocs.com/olive", new_tab = true)
+        redirect!(cl, "https://chifidocs.com/olive/Olive", new_tab = true)
     end
     push!(buttons_box, issues_button, doc_button)
     dir::Directory{<:Any} = Directory("~/")

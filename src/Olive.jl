@@ -55,7 +55,69 @@ For example, the `:code` cell is added to `Olive` using the `Method`
 function build end
 
 global evalin(ex::Any) = begin
-    Main.eval(ex)
+    Base.eval(Main, ex)
+end
+
+baremodule OliveBase
+import Base
+import Base: names, in, contains, Meta, string, join, eval
+
+disabled = [:pwd, :println, :print, :read, :cd, :open, :touch, :cp, :rm, 
+:mv, :rmdir]
+
+for name in names(Base)
+    if name in disabled
+        continue
+    end
+    if contains(string(name), "#")
+        continue
+    end
+    try
+        eval(OliveBase, Meta.parse("import Base: $name"))
+        eval(OliveBase, Meta.parse("export $name"))
+    catch
+        try
+            eval(OliveBase, Meta.parse("import Base: ($name)"))
+        catch
+        end
+    end
+end
+
+println(STDO::String = "", x::Any ...) = begin
+    STDO * join(string(x) for x in x) * "</br>"
+end
+
+print(STDO::String = "", x::Any ...) = begin
+    STDO * join(string(x) for x in x)
+end
+
+read(path::AbstractString, wd::AbstractString, args ...; keyargs ...) = Base.read(wd * "/$path", args ...; keyargs ...)
+
+cd(current_path::AbstractString, to::AbstractString)::String = begin
+    if to == ".."
+        direc = join(split(current_path, "/")[1:end - 1], "/")
+        if isdir(direc)
+            return(direc)
+        end
+    end
+    current_path * "/$to"
+end
+
+rm(current_path::AbstractString, path::AbstractString; keyargs ...) = Base.rm(current_path * "/$path"; keyargs ...)
+
+cp(current_path::AbstractString, path1::AbstractString, path2::AbstractString; keyargs ...) = Base.cp(current_path * "/$path1", 
+    current_path * "/$path2", keyargs ...)
+
+rmdir(current_path::AbstractString, name::AbstractString; args ...) = Base.rmdir(current_path * "/$name"; args ...)
+
+touch(current_path::AbstractString, name::AbstractString) = Base.touch(current_path * "/$name")
+
+mv(current_path::AbstractString, path1::AbstractString, path2::AbstractString; keyargs ...) = Base.mv(current_path * "/$path1", 
+    current_path * "/$path2", keyargs ...)
+
+open(current_path::AbstractString, path::AbstractString, args ...; keyargs ...) = Base.open(current_path * "/$path", args ...; keyargs ...)
+
+disabled = nothing
 end
 
 """export evalin
@@ -73,28 +135,34 @@ function olive_module(modname::String, environment::String)
     """
     baremodule $(modname)
     using Pkg
-    using Base
-    import Base: println, print
+    using Olive.OliveBase
+    const Base = OliveBase
     global STDO::String = ""
     WD = ""
     Main = nothing
     Olive = nothing
     eval(e::Any) = Core.eval($(modname), e)
     function evalin(ex::Any)
-            Pkg.activate("$environment")
-            ret = eval(ex)
+        Pkg.activate("$environment")
+        ret = eval(ex)
     end
-    Base.delete_method(methods(println)[3])
-    Base.delete_method(methods(print)[29])
-    
+    pwd() = WD
     println(x::Any ...) = begin
-        $modname.STDO=$modname.STDO*join(string(x) for x in x)*"</br>"
+        $modname.STDO = OliveBase.println($modname.STDO, x)
         return(nothing)::Nothing
     end
     print(x::Any ...) = begin
-        $modname.STDO=$modname.STDO*join(string(x) for x in x)
+        $modname.STDO = OliveBase.print($modname.STDO, x)
         return(nothing)::Nothing
     end
+    read(path::AbstractString, args ...; keyargs ...) = OliveBase.read(path, $modname.WD, args ...; keyargs ...)
+    cd(path::AbstractString) = $modname.WD = OliveBase.cd($modname.WD, path)
+    readdir(path::AbstractString = $modname.WD) = OliveBase.readdir(path)
+    open(path::AbstractString, args ...; keyargs ...) = OliveBase.open($modname.WD * "/" * path, args ...; keyargs ...)
+    touch(name::AbstractString) = OliveBase.touch($modname.WD, name)
+    rmdir(name::AbstractString; args ...) = OliveBase.rmdir($modname.WD, name, args ...)
+    mv(name::AbstractString, to::AbstractString; keyargs ...) = OliveBase.mv($modname.WD, name, to)
+    cp(name::AbstractString, to::AbstractString; keyargs ...) = OliveBase.cp($modname.WD, name, to)
     end
     """
 end
@@ -658,6 +726,7 @@ function setup_olive(logger::Toolips.Logger, path::String)
     create_project(path)
     config::Dict{String, Any} = TOML.parse(read(
         "$path/olive/Project.toml",String))
+    Pkg.activate("$path/olive")
     log(logger, "creating user configuration")
     # users
     users::Dict{String, Any} = Dict{String, Any}(

@@ -1,7 +1,7 @@
 name = "Olive"
 uuid = "724ecaf6-c7a0-4c22-b37e-0bb7b4193da8"
 authors = ["emmac <emmettgb@gmail.com>"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 IPyCells = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
