@@ -20,10 +20,10 @@ function cellside_style()
 end
 
 function spin_forever()
-    load = keyframes("spin_forever",  duration = 300ms, iterations = 0)
-    keyframes!(load, 0percent, "transform" => "scale(.7)")
+    load = keyframes("spin_forever",  duration = 600ms, iterations = 0)
+    keyframes!(load, 0percent, "transform" => "scale(.9)")
     keyframes!(load, 50percent, "transform" => "scale(1)")
-    keyframes!(load, 100percent, "transform" => "scale(.7)")
+    keyframes!(load, 100percent, "transform" => "scale(.9)")
     load
 end
 

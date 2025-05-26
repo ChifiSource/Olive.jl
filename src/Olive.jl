@@ -633,11 +633,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         log(ollogger, "olive extensions failed to load.", 3)
         showerror(stdout, e)
     end
-    
-    procs = start!(Olive, IP)
-    if threads > 1
-        Toolips.add_workers!(procs, threads)
-    end
+    procs = start!(Olive, IP, threads = threads, router_threads = 0:0)
     Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Toolips
             using ToolipsSession
