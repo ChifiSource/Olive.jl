@@ -20,9 +20,10 @@ function cellside_style()
 end
 
 function spin_forever()
-    load = keyframes("spin_forever",  duration = 1s, iterations = 0)
-    keyframes!(load, 0percent, "transform" => "rotate(0deg)")
-    keyframes!(load, 100percent, "transform" => "rotate(360deg)")
+    load = keyframes("spin_forever",  duration = 300ms, iterations = 0)
+    keyframes!(load, 0percent, "transform" => "scale(.7)")
+    keyframes!(load, 50percent, "transform" => "scale(1)")
+    keyframes!(load, 100percent, "transform" => "scale(.7)")
     load
 end
 
@@ -157,9 +158,9 @@ function olivesheet()
     #tabs:
     tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333",
         "border-style" => "solid", "background-color" => "gray", "border-width" => 2px, "border-color" => "#333333", 
-        "border-bottom" => 0px, "border-style" => "solid", "background-color" => "lightgray", "border-bottom-right-radius" => 0px, 
+        "border-bottom-width" => 0px, "border-style" => "solid", "background-color" => "lightgray", "border-bottom-right-radius" => 0px, 
         "border-bottom-left-radius" => 0px, "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer", 
-        "margin-left" => 0px, "transition" => 1seconds, "border-bottom" => "0px solid white", 
+        "margin-left" => 0px, "transition" => 1seconds, 
         "animation-name" => "fadeup", "animation-duration" => 700ms)
     tabopen_style = style("div.tabopen", 
         "border-width" => 2px, "border-color" => "#333333", "border-bottom" => "0px solid white",
@@ -383,6 +384,28 @@ This will also decollapse the **inspector** and open the **project explorer**
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
     env::Environment = c[:OliveCore].open[getname(c)]
     env.pwd = path
+    if isfile(path)
+        pathsplit = split(path, "/")
+        path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
+    end
+    newcells = directory_cells(string(path), pwd = true)
+    pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
+    if isnothing(pwddi)
+        return
+    end
+    if path != env.directories[pwddi].uri
+        newcells = vcat([Cell("retdir", "")], newcells)
+    end
+    newd = Directory(path)
+    childs = Vector{Servable}([begin
+        build(c, mcell, newd)
+    end
+    for mcell in newcells])
+    set_text!(cm, "selector", string(path))
+    set_children!(cm, "pwdbox", childs)
+end
+
+function switch_work_dir!(cm::AbstractComponentModifier, path::String)
     if isfile(path)
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
@@ -1109,7 +1132,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             cell_object::Cell{<:Any} = cells[cell_key]
             cell_object.source = replace(cell_object.source, selected_text => replace_text)
             set_text!(cm2, "cell$cell_key", cell_object.source)
-            
             on(c, cm2, 100) do cm::ComponentModifier
                 cell_highlight!(c, cm, cell_object, proj)
             end
@@ -1200,7 +1222,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
             remove!(cm2, "$(fname)restart")
             remove!(cm2, "$(fname)run")
             remove!(cm2, "$(fname)switch")
-            remove!(cm2, decollapse_button)
+            remove!(cm2, "$(fname)dec")
         end
         style!(decollapse_button, "color" => "blue")
         controls::Vector{<:AbstractComponent} = tab_controls(c, p)
@@ -1259,10 +1281,11 @@ function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Projec
 end
 
 function olive_loadicon()
-    srcdir = @__DIR__
-    iconb64 = read(srcdir * "/images/loadicon.png", String)
-    myimg = img("olive-loader", src = iconb64, class = "loadicon")
-    style!(myimg, spin_forever())
+    circ = Component{:circle}("circloader", r = 7, cx = 10, cy = 10)
+    style!(circ, "fill" => "#ef6292")
+    myimg = svg("olive-loader", width = 20, height = 20, children = [circ], 
+    style = "transition:600ms;")
+    style!(circ, spin_forever())
     myimg
 end
 
