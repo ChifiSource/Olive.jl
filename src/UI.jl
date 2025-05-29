@@ -292,7 +292,9 @@ Opens the project explorer by changing its class. The inverse of `close_project_
 - See also: `close_project_explorer!`, `Olive`, `projectexplorer`, `explorer_icon`, `olivesheet`
 """
 function open_project_explorer!(cm::AbstractComponentModifier)
-    close_settings_menu!(cm)
+    if ~(haskey(CORE.data, "headless") || haskey(CORE.data, "noset"))
+        close_settings_menu!(cm)
+    end
     cm["projectexplorer"] = "class" => "pexplorer pexplorer-open"
     style!(cm, "olivemain", "margin-left" => "500px")
     cm["explorerico"] = "class" => "material-icons topbaricons material-icons-selected"
@@ -565,8 +567,12 @@ function topbar(c::Connection)
     style!(topbar, "overflow" =>  "hidden", "position" => "sticky", "z-index" => "7")
     tabmenu = div("tabmenu", align = "center")
     style!(tabmenu, "display" => "inline-block")
-    push!(leftmenu, explorer_icon(c))
-    push!(rightmenu, settings(c))
+    if ~(haskey(CORE.data, "noexp"))
+        push!(leftmenu, explorer_icon(c))
+    end
+    if ~(haskey(CORE.data, "headless"))
+        push!(rightmenu, settings(c))
+    end
     push!(topbar, leftmenu, tabmenu, rightmenu)
     topbar::Component{:div}
 end

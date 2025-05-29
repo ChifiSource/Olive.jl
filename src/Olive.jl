@@ -570,6 +570,29 @@ end
 
 CORE::OliveCore = OliveCore("olive")
 
+function read_config(path::String, wd::String)
+    config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
+    Pkg.activate("$path/olive")
+    CORE.data = config["olive"]
+    rootname = CORE.data["root"]
+    CORE.client_data = config["oliveusers"]
+    if ~haskey(CORE.data, "home")
+        push!(CORE.data, "home" => path * "/olive")
+    end
+    groups::Vector{Group} = Vector{Group}()
+    push!(CORE.data, "wd" => wd, "groups" => groups)
+    for group in config["groups"]
+        name::String = group[1]
+        log(ollogger, "loading group: $name")
+        newg = Group(name)
+        data = group[2]
+        newg.cells = [Symbol(s) for s in data["cells"]]
+        newg.load_extensions = [Symbol(s) for s in data["load"]]
+        newg.directories = [Directory(uri, dirtype = t) for (uri, t) in zip(data["uris"], data["dirs"])]
+        push!(groups, newg)
+    end
+end
+
 """
 ```julia
 start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd()) -> ::ParametricProcesses.ProcessManager
@@ -595,46 +618,36 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     if ~(isdir("$path/olive"))
         setup_olive(ollogger, path)
     end
-    try
-        config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
-        Pkg.activate("$path/olive")
-        CORE.data = config["olive"]
-        rootname = CORE.data["root"]
-        CORE.client_data = config["oliveusers"]
-        if ~haskey(CORE.data, "home")
-            push!(CORE.data, "home" => path * "/olive")
-        end
-        groups::Vector{Group} = Vector{Group}()
-        push!(CORE.data, "wd" => wd, "groups" => groups)
-        for group in config["groups"]
-            name::String = group[1]
-            log(ollogger, "loading group: $name")
-            newg = Group(name)
-            data = group[2]
-            newg.cells = [Symbol(s) for s in data["cells"]]
-            newg.load_extensions = [Symbol(s) for s in data["load"]]
-            newg.directories = [Directory(uri, dirtype = t) for (uri, t) in zip(data["uris"], data["dirs"])]
-            push!(groups, newg)
-        end
-    catch e
-        throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
-        log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
-        with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""", 3)
-    end
-    try
-        source_module!(CORE)
-    catch e
-        throw(StartError(e, "module load", "Failed to source olive home module."))
+    rootname = ""
+    if ~(headless)
+        try
+            read_config(path, wd)
+        catch e
+            throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
             log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
-        with a fresh olive.jl source file.""", 2)
+            with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""", 3)
+        end
+        try
+            source_module!(CORE)
+        catch e
+            throw(StartError(e, "module load", "Failed to source olive home module."))
+            log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
+            with a fresh olive.jl source file.""", 2)
+        end
+        try
+            load_extensions!(CORE)
+        catch e
+            log(ollogger, "olive extensions failed to load.", 3)
+            showerror(stdout, e)
+        end
+    else
+        push!(CORE.data, "root" => "olive user", "wd" => wd, 
+            "groups" => [Group("root")], "headless" => true)
+        source_module!(CORE)
+        push!(CORE.client_data, "olive user" => Dict{String, Any}("group" => "root"))
     end
-    try
-        load_extensions!(CORE)
-    catch e
-        log(ollogger, "olive extensions failed to load.", 3)
-        showerror(stdout, e)
-    end
-    procs = start!(Olive, IP, threads = threads, router_threads = 0:0)
+
+    procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
     if threads > 1
         push!(CORE.data, "threads" => threads)
     end
@@ -644,6 +657,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
             using Dates
             using Olive
         end"""))
+    rootname = CORE.data["root"]
     if rootname != ""
         key::String = ToolipsSession.gen_ref(16)
         push!(CORE.client_keys, key => rootname)
