@@ -1399,6 +1399,10 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     OliveHighlighters.clear!(tm)
 end
 
+function define_function_on(worker::Int, mod::Any, code::String)
+
+end
+
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     window::String = proj.id
@@ -1408,8 +1412,23 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     execcode::String = *("begin\n", cell.source, "\nend")
     ret::Any = ""
     st_trace = nothing
+    olive_mod = proj[:mod]
     try
-        ret = proj[:mod].evalin(Meta.parse(execcode))
+        if :thread in keys(proj.data)
+            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "begin")
+                proj[:mod].evalin(Meta.parse(execcode))
+            end
+            execcode = "evalin(Meta.parse(\"\"\"$execcode\"\"\"))"
+            modstr = Symbol(split(string(olive_mod), ".")[end])
+            ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, proj.data[:thread], quote
+		        Base.include_string($(Expr(:quote, olive_mod)), $execcode)
+	        end)
+       #==     job = new_job(eval_in_mod, string(proj[:mod]), execcode)
+            assigned_w = assign!(c[:procs], proj.data[:thread], job, sync = true)
+            ret = waitfor(c[:procs], assigned_w, sync = true)[1] ==#
+        else
+            ret = proj[:mod].evalin(Meta.parse(execcode))
+        end
     catch e
         ret = e
         st_trace = proj[:mod].catch_backtrace()

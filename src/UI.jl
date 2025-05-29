@@ -603,6 +603,14 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String = p.id)
     end
     modstr::String = olive_module(name, p[:env])
     Main.evalin(Meta.parse(modstr))
+    if haskey(CORE.data, "threads")
+        selected_thread = rand(2:CORE.data["threads"])
+        push!(p.data, :thread => selected_thread)
+        # TODO place this only on one thread?
+        @everywhere include_string(Main, $(modstr))
+    else
+        # TODO: potentially move all `Main` evals to here?
+    end
     mod::Module = getfield(Main, Symbol(name))
     push!(p.data, :mod => mod, :modid => name)
     nothing::Nothing

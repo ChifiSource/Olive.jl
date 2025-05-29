@@ -60,13 +60,13 @@ function build(om::OliveModifier, oe::OliveExtension{:myextension})
     alert!(om, "hello!")
 end
 ```
-- `OliveModifier(c::Connection, cm::ComponentModifier)``
+- `OliveModifier(c::AbstractConnection, cm::ComponentModifier)``
 """
 mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
     rootc::String
     changes::Vector{String}
     data::Dict{String, Any}
-    function OliveModifier(c::Connection, cm::ComponentModifier)
+    function OliveModifier(c::AbstractConnection, cm::ComponentModifier)
         new(cm.rootc, cm.changes, c[:OliveCore].client_data[getname(c)])
     end
     function OliveModifier(s::String)
@@ -79,7 +79,7 @@ setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
 
 """
 ```julia
-load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module) -> ::Nothing
+load_extensions!(c::AbstractConnection, cm::ComponentModifier, olmod::Module) -> ::Nothing
 ```
 Loads `Olive` extensions. This function is called when `Olive` loads the main session. 
 This function is used on the `Olive` backend whenever a client loads the page.
@@ -87,7 +87,7 @@ This function is used on the `Olive` backend whenever a client loads the page.
 
 ```
 """
-function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
+function load_extensions!(c::AbstractConnection, cm::ComponentModifier, olmod::Module)
     mod = OliveModifier(c, cm)
     Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
     OliveExtension{:invoker}())
@@ -102,7 +102,7 @@ function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
 end
 """
 ```julia
-build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Nothing
+build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Nothing
 ```
 This is the base `Olive` extension function, used to create `load` extensions. These are 
     extensions which do something on `Olive's` startup. 
@@ -112,7 +112,7 @@ import Olive: build
 using Olive
 using ToolipsSession: alert!
 
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:hello}) = begin
+build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{:hello}) = begin
     olive_notify!(om, "hello !", color = "darkgreen")
 end
 ```
@@ -123,7 +123,7 @@ using Olive
 using Olive.Toolips
 using Olive.ToolipsSession
 
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
+build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
     explorericon = topbar_icon("docico", "newspaper")
     on(c, explorericon, "click") do cm::ComponentModifier
         mods = [begin 
@@ -148,9 +148,9 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
 end
 ```
 """
-build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
+build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
 
-function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
+function load_keybinds_settings(c::AbstractConnection, om::AbstractComponentModifier)
     # cell bindings
     if ~("keybindings" in keys(c[:OliveCore].client_data[getname(c)]))
         push!(c[:OliveCore].client_data[getname(c)],
@@ -274,7 +274,7 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
     append!(om, "settingsmenu", creatorkeysdropd)
 end
 
-function load_style_settings(c::Connection, om::AbstractComponentModifier)
+function load_style_settings(c::AbstractConnection, om::AbstractComponentModifier)
     setting_keys = keys(c[:OliveCore].client_data[getname(c)])
     if ~("highlighting" in setting_keys)
         tm::Highlighter = OliveHighlighters.Highlighter("")
@@ -425,7 +425,7 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
     div("theme-menu", children = [t_label, t_active, br(), t_selector, set_theme_button])
 end
 
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
+build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
     load_keybinds_settings(c, om)
     load_style_settings(c, om)
     if get_group(c).name == "root"
@@ -591,7 +591,7 @@ Directory{S <: Any}
 ```
 - `uri`::String
 The directory type holds Directory information and file cells on startup. It
-is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds 
+is built with the `Olive.build(c::AbstractConnection, dir::Directory)` method. This holds 
 file cells inside of the project explorer, and is built like most other `Olive` components 
 by using the `build` function.
 - Directory(uri::String; dirtype::String = "olive")
@@ -615,13 +615,13 @@ end
 
 """
 ```julia
-build(c::Connection, dir::Directory{<:Any}) -> ::Component{:div}
+build(c::AbstractConnection, dir::Directory{<:Any}) -> ::Component{:div}
 ```
 The `build` function for an `Olive.Directory`. This function could be extended to create new 
-    direcotry types. `import` `Olive.build` and create a new `build(c::Connection, dir::Directory{:custom})` 
+    direcotry types. `import` `Olive.build` and create a new `build(c::AbstractConnection, dir::Directory{:custom})` 
     binding to do so.
 """
-function build(c::Connection, dir::Directory{<:Any})
+function build(c::AbstractConnection, dir::Directory{<:Any})
     nsplit::Vector{SubString} = split(dir.uri, "/")
     dircell::Cell{:dir} = Cell{:dir}(string(nsplit[length(nsplit)]),
     string(join(nsplit[1:length(nsplit) - 1], "/")))
@@ -676,7 +676,7 @@ function build(c::Connection, dir::Directory{<:Any})
     builtcell::Component{:div}
 end
 #==
-function build(c::Connection, dir::Directory{:saved})
+function build(c::AbstractConnection, dir::Directory{:saved})
     srcbutton = topbar_icon("srchome", "play_arrow")
     style!(srcbutton, "color" => "white", "font-size" => 17pt)
     if "Project.toml" in readdir(dir.uri)
@@ -719,7 +719,7 @@ function build(c::Connection, dir::Directory{:saved})
 end
 ==#
 
-function build(c::Connection, dir::Directory{:home})
+function build(c::AbstractConnection, dir::Directory{:home})
     srcbutton = topbar_icon("srchome", "play_arrow")
     style!(srcbutton, "color" => "white", "font-size" => 17pt)
     on(c, srcbutton, "click") do cm::ComponentModifier
@@ -752,7 +752,7 @@ function build(c::Connection, dir::Directory{:home})
     filecell
 end
 
-function build(c::Connection, dir::Directory{:pwd})
+function build(c::AbstractConnection, dir::Directory{:pwd})
     splits = split(dir.uri, "/")
     path, name = join(splits[1:length(splits) - 1], "/"), splits[length(splits)]
     dircell = Cell{:dir}(dir.uri, name)
@@ -809,7 +809,7 @@ Project{name <: Any}
 - environment::String
 - open::Dict{String, Dict{String, Any}}
 The directory type holds Directory information and file cells on startup. It
-is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds
+is built with the `Olive.build(c::AbstractConnection, dir::Directory)` method. This holds
 cells and directories.
 ```
 ```
@@ -874,7 +874,7 @@ end
 
 """
 ```julia
-build(c::Connection, cm::ComponentModifier, p::Project{<:Any}) -> ::Component{:div}
+build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any}) -> ::Component{:div}
 ```
 The catchall/default `build` function for `Olive` projects. Extend this function to change 
 the way a new `Project` type is built. By default, this makes a simple window with generated cells as 
@@ -885,7 +885,7 @@ using Olive; Olive.start()
 # (click your olive link to instantiate your environment)
 import Olive: build
 
-build(c::Connection, cm::ComponentModifier, p::Project{:newproject}) = begin
+build(c::AbstractConnection, cm::ComponentModifier, p::Project{:newproject}) = begin
     div(p.id, children = [build(c, cm, p, cell) for cell in p[:cells]])
 end
 
@@ -915,7 +915,7 @@ use these methods to change what different projects do with different cell types
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]
     retvs = Vector{Servable}([begin
-       c[:OliveCore].olmod.build(c, cm, cell, p)::Component{<:Any}
+       CORE.olmod.build(c, cm, cell, p)::Component{<:Any}
     end for cell in frstcells])
     div(p.id, children = retvs, class = "projectwindow")::Component{:div}
 end
@@ -1287,14 +1287,14 @@ end
 
 """
 ```julia
-getname(c::Connection) -> ::String
+getname(c::AbstractConnection) -> ::String
 ```
 `getname` is used to grab an `Olive` username for a given client from the `Connection`.
 ```julia
 ```
 - See also: `source_module!`, `OliveCore`, `Olive`, `Environment`
 """
-getname(c::Connection) = c[:OliveCore].names[get_ip(c)]::String
+getname(c::AbstractConnection) = c[:OliveCore].names[get_ip(c)]::String
 
 """
 ```julia
@@ -1342,7 +1342,7 @@ OliveLogger() = Toolips.Logger("🫒 olive> ", Crayon(foreground = :blue), Crayo
 
 """
 ```julia
-save_settings!(c::Connection; core::Bool = false) -> ::Nothing
+save_settings!(c::AbstractConnection; core::Bool = false) -> ::Nothing
 ```
 `save_settings!` saves `OliveCore` settings for the user's `Connection`. Providing `core` 
 will also save `Olive` core settings, as well. Core settings are in 
@@ -1350,7 +1350,7 @@ will also save `Olive` core settings, as well. Core settings are in
 These correspond to the `olive` and `oliveusers` section in the `olive` home 
 `Project.toml`.
 """
-function save_settings!(c::Connection; core::Bool = false)
+function save_settings!(c::AbstractConnection; core::Bool = false)
     homedir::String = c[:OliveCore].data["home"]
     alltoml::String = read("$homedir/Project.toml", String)
     current_toml = TOML.parse(alltoml)

@@ -16,6 +16,7 @@ using Toolips
 using Toolips.Components
 using Toolips: WebServer
 import Toolips.Components: Servable
+using Toolips.ParametricProcesses: @spawnat
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier, AbstractComponentModifier, on_start, Route
 using ToolipsSession
 import ToolipsSession: KeyMap
@@ -506,7 +507,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
      # setup base UI
     bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet)
-    on(c, 10) do cm
+    on(c, 5) do cm
         load_extensions!(c, cm, olmod)
         style!(cm, "olive-loader", "opacity" => 0percent)
         next!(load_projects, c, cm, "olive-loader")
@@ -634,6 +635,9 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         showerror(stdout, e)
     end
     procs = start!(Olive, IP, threads = threads, router_threads = 0:0)
+    if threads > 1
+        push!(CORE.data, "threads" => threads)
+    end
     Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Toolips
             using ToolipsSession
