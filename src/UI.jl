@@ -606,10 +606,7 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String = p.id)
     if haskey(CORE.data, "threads")
         selected_thread = rand(2:CORE.data["threads"])
         push!(p.data, :thread => selected_thread)
-        # TODO place this only on one thread?
         @everywhere include_string(Main, $(modstr))
-    else
-        # TODO: potentially move all `Main` evals to here?
     end
     mod::Module = getfield(Main, Symbol(name))
     push!(p.data, :mod => mod, :modid => name)
@@ -996,6 +993,10 @@ function empty_module!(c::Connection, proj::Project{<:Any})
         return(nothing)
     end
     push!(c[:OliveCore].pool, proj.id)
+    if haskey(proj.data, :thread)
+        modstr::String = olive_module(proj.id, p[:env])
+        @everywhere include_string(Main, $(modstr))
+    end
     mod = proj[:mod]
     re_source!(c, proj)
     Base.GC.gc()

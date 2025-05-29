@@ -1415,7 +1415,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     olive_mod = proj[:mod]
     try
         if :thread in keys(proj.data)
-            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "begin")
+            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin")
                 proj[:mod].evalin(Meta.parse(execcode))
             end
             execcode = "evalin(Meta.parse(\"\"\"$execcode\"\"\"))"
