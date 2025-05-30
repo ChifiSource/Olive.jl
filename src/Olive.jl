@@ -570,7 +570,7 @@ end
 
 CORE::OliveCore = OliveCore("olive")
 
-function read_config(path::String, wd::String)
+function read_config(path::String, wd::String, ollogger::Toolips.Logger)
     config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
     Pkg.activate("$path/olive")
     CORE.data = config["olive"]
@@ -621,7 +621,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     rootname = ""
     if ~(headless)
         try
-            read_config(path, wd)
+            read_config(path, wd, ollogger)
         catch e
             throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
             log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
