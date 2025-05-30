@@ -1211,6 +1211,9 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     tablabel::Component{:a} = a("tablabel$(fname)", text = p.name, class = "tablabel")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
+        if p.id in cm
+            return
+        end
         projects::Vector{Project{<:Any}} = c[:OliveCore].open[getname(c)].projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
