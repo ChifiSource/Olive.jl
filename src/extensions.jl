@@ -269,7 +269,7 @@ function build(c::Connection, cell::Cell{:toml},
         activatebutton = topbar_icon("$(cell.id)act", "bolt")
         style!(activatebutton, "font-size" => 20pt, "color" => "white")
         on(c, activatebutton, "click") do cm::ComponentModifier
-            [begin
+            for proj in c[:OliveCore].open[getname(c)].projects
                 b = button("activate$(proj.id)", text = proj.name)
                 on(c, b, "click") do cm2::ComponentModifier
                     modname = proj.id
@@ -278,12 +278,12 @@ function build(c::Connection, cell::Cell{:toml},
                     proj.data[:mod] = getfield(Main, Symbol(modname))
                     olive_notify!(cm2, "environment $(cell.outputs) activated",
                     color = "blue")
-                        [begin
-                            remove!(cm2, "activate$(proj.id)")
-                        end for k in c[:OliveCore].open[getname(c)].projects]
+                    for k in c[:OliveCore].open[getname(c)].projects
+                        remove!(cm2, "activate$(k.id)")
+                    end
                 end
                 append!(cm, hiddencell, b)
-            end for proj in c[:OliveCore].open[getname(c)].projects]
+            end
         end
         insert!(hiddencell[:children], 2, activatebutton)
     end

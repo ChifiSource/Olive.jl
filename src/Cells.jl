@@ -1399,6 +1399,10 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     OliveHighlighters.clear!(tm)
 end
 
+function define_function_on(worker::Int, mod::Any, code::String)
+
+end
+
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     window::String = proj.id
@@ -1408,8 +1412,23 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     execcode::String = *("begin\n", cell.source, "\nend")
     ret::Any = ""
     st_trace = nothing
+    olive_mod = proj[:mod]
     try
-        ret = proj[:mod].evalin(Meta.parse(execcode))
+        if :thread in keys(proj.data)
+            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin")
+                proj[:mod].evalin(Meta.parse(execcode))
+            end
+            execcode = "evalin(Meta.parse(\"\"\"$execcode\"\"\"))"
+            modstr = Symbol(split(string(olive_mod), ".")[end])
+            ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, proj.data[:thread], quote
+		        Base.include_string($(Expr(:quote, olive_mod)), $execcode)
+	        end)
+       #==     job = new_job(eval_in_mod, string(proj[:mod]), execcode)
+            assigned_w = assign!(c[:procs], proj.data[:thread], job, sync = true)
+            ret = waitfor(c[:procs], assigned_w, sync = true)[1] ==#
+        else
+            ret = proj[:mod].evalin(Meta.parse(execcode))
+        end
     catch e
         ret = e
         st_trace = proj[:mod].catch_backtrace()
@@ -1575,7 +1594,28 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     inp::Component{:div} = interior[:children]["cellinput$(cell.id)"]
     getstarted::Component{:div} = div("getstarted$(cell.id)", contenteditable = true)
     style!(getstarted, "padding" => 3px, "margin-top" => 0px, "overflow" => "visible")
-    runl::Component{:div} = tmd("runl", """- use `shift` + `enter` to use this project""")
+    runl::Component{:div} = tmd("runl", 
+    """- use `shift` `enter` (**evaluate**) to use this project
+    ##### new in 0.1.3
+    - `headless` mode. Provide `headless = true` to `start` to start an `Olive` server without user configurations or an `olive` directory. 
+     (headless may be the future default for `Olive`)
+
+    - `threads` currently limited to one extra thread per user, will be built on in future iterations. Threads are used by providing the 
+    `threads` key-word argument. In the future, extensions (`:olivebase`) will allow for thread assignment on a user-to-user basis.
+
+    - Fixed project activation buttons not disappearing.
+    - Updated load system and loading icon.
+    - Projects now only reload on tab click *if* the project is not already loaded.
+
+    - Updates to replacements in cell highlighting and markdown with `rep_in`, *now* in `Components`.
+    - New updates to IPyCells, mainly small fixes for Pluto and IPython notebooks.
+    - Slight efficiency tweaks for `OliveHighlighters`
+
+    - Upgrade to Session 0.4.3 (with new `0.5` session key system,) planning eventual migration from `OliveCore` 
+    - client_keys to `ToolipsSession.get_session_key`
+
+    enjoy the update!""")
+    
     style!(runl, "padding" => 2px)
     push!(getstarted, runl)
     buttons_box::Component{:div} = div("buttons_box")

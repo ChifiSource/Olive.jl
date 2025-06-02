@@ -16,6 +16,7 @@ using Toolips
 using Toolips.Components
 using Toolips: WebServer
 import Toolips.Components: Servable
+using Toolips.ParametricProcesses: @spawnat
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier, AbstractComponentModifier, on_start, Route
 using ToolipsSession
 import ToolipsSession: KeyMap
@@ -57,7 +58,7 @@ function build end
 global evalin(ex::Any) = begin
     Base.eval(Main, ex)
 end
-
+selected_mod = nothing
 baremodule OliveBase
 import Base
 import Base: names, in, contains, Meta, string, join, eval
@@ -414,11 +415,11 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     pane_container_two::Component{:div} = div("pane_container_two")
     style!(pane_container_two, "width" => 0percent, "overflow" => "hidden", "display" => "inline-block",
     "opacity" => 0percent, "transition" => 1seconds)
-    on(c, pane_container_one, "click") do cm::ComponentModifier
+    on(pane_container_one, "click") do cm::ClientModifier
         cm[olivemain] = "pane" => "1"
     end
     pane_two::Component{:section} = section("pane_two")
-    on(c, pane_container_two, "click") do cm::ComponentModifier
+    on(pane_container_two, "click") do cm::ClientModifier
         cm[olivemain] = "pane" => "2"
     end
     style!(pane_one, "display" => "inline-block", "width" => 100percent, "overflow-y" => "scroll",
@@ -437,7 +438,7 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     style!(olivemain, "overflow-x" => "hidden", "position" => "relative",
     "width" => 100percent, "overflow-y" => "hidden",
     "height" => 90percent, "display" => "inline-flex")
-    bod::Component{:body} = body("mainbody")
+    bod = body("mainbody")
     style!(bod, "overflow" => "hidden")
     push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
     return(bod, loadicondiv, olmod)
@@ -478,7 +479,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
         return
     end
     write!(c, Components.DOCTYPE())
-    uname::String = ""
+    uname = ""
     args = nothing
     if key
         unameargs = verify_client!(c)
@@ -500,51 +501,55 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
     if isnothing(envsearch)
         env::Environment = default(c)
+        push!(c[:OliveCore].open, env)
     else
         env = c[:OliveCore].open[getname(c)]
     end
-    navigate_to = nothing
-    if haskey(args, :heading)
-        navigate_to = args[:heading]
-    end
      # setup base UI
-    bod::Component{:body}, loadicondiv::Component{:div}, olmod::Module = build(c, env, icon = icon, sheet = sheet)
-    on(c, 10) do cm::ComponentModifier
+    bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet)
+    on(c, 5) do cm
         load_extensions!(c, cm, olmod)
-        style!(cm, "loaddiv", "opacity" => 0percent)
-        next!(c, cm, loadicondiv) do cm2::ComponentModifier
-            remove!(cm2, "loaddiv")
-            switch_work_dir!(c, cm2, env.pwd)
-            [begin
-                projpane = proj.data[:pane]
-                append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))
-                if proj.id != env.projects[1].id
-                    style_tab_closed!(cm2, proj)
-                end
-            end for proj in env.projects]
-            if length(env.projects) > 0
-                selected_proj = env.projects[1]
-                window::Component{:div} = olmod.build(c, cm2, env.projects[1])
-                append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
-                if ~(isnothing(navigate_to))
-                    filtered_mds = filter(cell -> typeof(cell) == Cell{:markdown}, selected_proj[:cells])
-                    found = findfirst(cell -> contains(cell.source, "# $navigate_to"), filtered_mds)
-                    if ~(isnothing(found))
-                        cellid = selected_proj[:cells][found]
-                        scroll_to!(cm, "cell$cellid")
-                    end
-                end
-                p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
-                if ~(isnothing(p2i))
-                    style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
-                    append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[p2i]))
-                end
-            else
-                # TODO default project here
-            end
-        end
+        style!(cm, "olive-loader", "opacity" => 0percent)
+        next!(load_projects, c, cm, "olive-loader")
     end
     write!(c, bod)
+    envsearch = nothing
+    bod = nothing
+    loadicondiv = nothing
+    uname = nothing
+end
+
+function load_projects(c::AbstractConnection, cm2::ComponentModifier)
+    remove!(cm2, "loaddiv")
+    env = CORE.open[getname(c)]
+    olmod = CORE.olmod
+    for proj in env.projects
+        projpane = proj.data[:pane]
+        append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))
+        if proj.id != env.projects[1].id
+            style_tab_closed!(cm2, proj)
+        end
+    end
+    if length(env.projects) > 0
+        window::Component{:div} = olmod.build(c, cm2, env.projects[1])
+        append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
+        p2i = findfirst(proj -> proj[:pane] == "two", env.projects)
+        if ~(isnothing(p2i))
+            style!(cm2, "pane_container_two", "width" => 100percent, "opacity" => 100percent)
+            append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[p2i]))
+        end
+    else
+        CORE.open[getname(c)] = default(c)
+        for proj in env.projects
+            projpane = proj.data[:pane]
+            append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))
+            if proj.id != env.projects[1].id
+                style_tab_closed!(cm2, proj)
+            end
+        end
+        window = olmod.build(c, cm2, env.projects[1])
+        append!(cm2, "pane_$(env.projects[1].data[:pane])", window)
+    end
 end
 
 main::Route{Connection} = route(make_session, "/")
@@ -565,6 +570,29 @@ end
 
 CORE::OliveCore = OliveCore("olive")
 
+function read_config(path::String, wd::String, ollogger::Toolips.Logger)
+    config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
+    Pkg.activate("$path/olive")
+    CORE.data = config["olive"]
+    rootname = CORE.data["root"]
+    CORE.client_data = config["oliveusers"]
+    if ~haskey(CORE.data, "home")
+        push!(CORE.data, "home" => path * "/olive")
+    end
+    groups::Vector{Group} = Vector{Group}()
+    push!(CORE.data, "wd" => wd, "groups" => groups)
+    for group in config["groups"]
+        name::String = group[1]
+        log(ollogger, "loading group: $name")
+        newg = Group(name)
+        data = group[2]
+        newg.cells = [Symbol(s) for s in data["cells"]]
+        newg.load_extensions = [Symbol(s) for s in data["load"]]
+        newg.directories = [Directory(uri, dirtype = t) for (uri, t) in zip(data["uris"], data["dirs"])]
+        push!(groups, newg)
+    end
+end
+
 """
 ```julia
 start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd()) -> ::ParametricProcesses.ProcessManager
@@ -579,7 +607,8 @@ olive_server = Olive.start()
 olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
-function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"))
+function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"), 
+    threads::Int64 = 0, headless::Bool = false)
     ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'
@@ -589,52 +618,53 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     if ~(isdir("$path/olive"))
         setup_olive(ollogger, path)
     end
-    try
-        config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
-        Pkg.activate("$path/olive")
-        CORE.data = config["olive"]
-        rootname = CORE.data["root"]
-        CORE.client_data = config["oliveusers"]
-        if ~haskey(CORE.data, "home")
-            push!(CORE.data, "home" => path * "/olive")
-        end
-        groups::Vector{Group} = Vector{Group}()
-        push!(CORE.data, "wd" => wd, "groups" => groups)
-        for group in config["groups"]
-            name::String = group[1]
-            log(ollogger, "loading group: $name")
-            newg = Group(name)
-            data = group[2]
-            newg.cells = [Symbol(s) for s in data["cells"]]
-            newg.load_extensions = [Symbol(s) for s in data["load"]]
-            newg.directories = [Directory(uri, dirtype = t) for (uri, t) in zip(data["uris"], data["dirs"])]
-            push!(groups, newg)
-        end
-    catch e
-        throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
-        log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
-        with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""", 3)
-    end
-    try
-        source_module!(CORE)
-    catch e
-        throw(StartError(e, "module load", "Failed to source olive home module."))
+    rootname = ""
+    if ~(headless)
+        try
+            read_config(path, wd, ollogger)
+        catch e
+            throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
             log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
-        with a fresh olive.jl source file.""", 2)
+            with a fresh Project.toml configuration file. Would you like to recreate your olive configuration file? (y or n)""", 3)
+        end
+        try
+            source_module!(CORE)
+        catch e
+            throw(StartError(e, "module load", "Failed to source olive home module."))
+            log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
+            with a fresh olive.jl source file.""", 2)
+        end
+        try
+            load_extensions!(CORE)
+        catch e
+            log(ollogger, "olive extensions failed to load.", 3)
+            showerror(stdout, e)
+        end
+    else
+        push!(CORE.data, "root" => "olive user", "wd" => wd, 
+            "groups" => [Group("root")], "headless" => true)
+        source_module!(CORE)
+        push!(CORE.client_data, "olive user" => Dict{String, Any}("group" => "root"))
     end
-    try
-        load_extensions!(CORE)
-    catch e
-        log(ollogger, "olive extensions failed to load.", 3)
-        showerror(stdout, e)
+
+    procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
+    if threads > 1
+        push!(CORE.data, "threads" => threads)
     end
-    start!(Olive, IP)
+    Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
+            using Toolips
+            using ToolipsSession
+            using Dates
+            using Olive
+        end"""))
+    rootname = CORE.data["root"]
     if rootname != ""
         key::String = ToolipsSession.gen_ref(16)
         push!(CORE.client_keys, key => rootname)
         log(ollogger,
             "\nlink for $(rootname): http://$(string(IP))/?key=$key", 2)
     end
+    procs
 end
 
 """
