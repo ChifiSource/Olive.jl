@@ -650,8 +650,8 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     if threads > 1
         push!(CORE.data, "threads" => threads)
             Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
-            using Toolips
-            using ToolipsSession
+            using Olive.Toolips
+            using Olive.ToolipsSession
             using Dates
             using Olive
         end"""))
