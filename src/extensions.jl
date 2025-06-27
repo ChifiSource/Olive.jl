@@ -269,7 +269,7 @@ function build(c::Connection, cell::Cell{:toml},
         activatebutton = topbar_icon("$(cell.id)act", "bolt")
         style!(activatebutton, "font-size" => 20pt, "color" => "white")
         on(c, activatebutton, "click") do cm::ComponentModifier
-            [begin
+            for proj in c[:OliveCore].open[getname(c)].projects
                 b = button("activate$(proj.id)", text = proj.name)
                 on(c, b, "click") do cm2::ComponentModifier
                     modname = proj.id
@@ -278,12 +278,12 @@ function build(c::Connection, cell::Cell{:toml},
                     proj.data[:mod] = getfield(Main, Symbol(modname))
                     olive_notify!(cm2, "environment $(cell.outputs) activated",
                     color = "blue")
-                        [begin
-                            remove!(cm2, "activate$(proj.id)")
-                        end for k in c[:OliveCore].open[getname(c)].projects]
+                    for k in c[:OliveCore].open[getname(c)].projects
+                        remove!(cm2, "activate$(k.id)")
+                    end
                 end
                 append!(cm, hiddencell, b)
-            end for proj in c[:OliveCore].open[getname(c)].projects]
+            end
         end
         insert!(hiddencell[:children], 2, activatebutton)
     end
@@ -589,20 +589,44 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     mod = proj[:mod]
-    p = Pipe()
-    err = Pipe()
-    standard_out::String = ""
-    ret = ""
-    redirect_stdio(stdout = p, stderr = err) do
-        try
-            mod.evalin(Meta.parse("Base.run(`$curr`)"))
-        catch e
-            ret = e
+    commands = split(curr, " ")
+    cmd = Symbol(commands[1])
+    aliased_command = cmd == :ls || cmd == :dir
+    out::String = ""
+    ret::Any = ""
+    if ~aliased_command && ~(cmd in names(proj[:mod], all = true))
+        set_text!(cm, "cell$(cell.id)out", "$(commands[1]) is not a recognized command.")
+        set_text!(cm, "cell$(cell.id)", "")
+        return
+    elseif aliased_command
+        if length(commands) == 1
+            ret = mod.readdir()
+        else
+            ret = mod.readdir(commands[2])
         end
+    else
+        args = []
+        if length(commands) > 1
+            args = commands[2:end]
+        end
+        getfield(mod, cmd)(args ...)
     end
-    close(Base.pipe_writer(p))
-    standard_out = replace(read(p, String), "\n" => "<br>")
-    set_text!(cm, "cell$(cell.id)out", standard_out)
+    active_display::OliveDisplay = OliveDisplay()
+    outp = ""
+    if typeof(ret) <: Exception
+        display(active_display, ret, Base.StackTraces.stacktrace(st_trace))
+        outp = replace(String(take!(active_display.io)), "\n" => "</br>")
+    elseif ~(isnothing(ret))
+        display(active_display, MIME"olive"(), ret)
+        outp = outp * "</br>" * String(take!(active_display.io))
+    elseif isnothing(ret)
+        outp = standard_out
+    end
+    out = mod.STDO
+    if cmd == :pwd || cmd == :cd
+        out = mod.WD
+    end
+    set_text!(cm, "cell$(cell.id)out", outp * out)
     set_text!(cm, "cell$(cell.id)", "")
 end
 

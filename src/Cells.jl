@@ -994,10 +994,6 @@ function cell_open!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 end
 
 function get_highlighter(c::Connection, cell::Cell{<:Any})
-    nothing::Nothing
-end
-
-function get_highlighter(c::Connection, cell::Cell{:code})
     c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
 end
 
@@ -1077,10 +1073,12 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         icon = olive_loadicon()
         icon.name = "load$(cell.id)"
         icon["width"] = "16"
+        proj.data[:mod].WD = CORE.open[getname(c)].pwd
         append!(cm2, "cellside$(cell.id)", icon)
         on(c, cm2, 100) do cm::ComponentModifier
             evaluate(c, cm, cell, proj)
             remove!(cm, "load$(cell.id)")
+            CORE.open[getname(c)].pwd = proj.data[:mod].WD
         end
     end
     ToolipsSession.bind(km, keybindings["copy"]) do cm2::ComponentModifier
@@ -1401,6 +1399,10 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     OliveHighlighters.clear!(tm)
 end
 
+function define_function_on(worker::Int, mod::Any, code::String)
+
+end
+
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     window::String = proj.id
@@ -1410,8 +1412,23 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     execcode::String = *("begin\n", cell.source, "\nend")
     ret::Any = ""
     st_trace = nothing
+    olive_mod = proj[:mod]
     try
-        ret = proj[:mod].evalin(Meta.parse(execcode))
+        if :thread in keys(proj.data)
+            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin")
+                proj[:mod].evalin(Meta.parse(execcode))
+            end
+            execcode = "evalin(Meta.parse(\"\"\"$execcode\"\"\"))"
+            modstr = Symbol(split(string(olive_mod), ".")[end])
+            ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, proj.data[:thread], quote
+		        Base.include_string($(Expr(:quote, olive_mod)), $execcode)
+	        end)
+       #==     job = new_job(eval_in_mod, string(proj[:mod]), execcode)
+            assigned_w = assign!(c[:procs], proj.data[:thread], job, sync = true)
+            ret = waitfor(c[:procs], assigned_w, sync = true)[1] ==#
+        else
+            ret = proj[:mod].evalin(Meta.parse(execcode))
+        end
     catch e
         ret = e
         st_trace = proj[:mod].catch_backtrace()
@@ -1577,7 +1594,12 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     inp::Component{:div} = interior[:children]["cellinput$(cell.id)"]
     getstarted::Component{:div} = div("getstarted$(cell.id)", contenteditable = true)
     style!(getstarted, "padding" => 3px, "margin-top" => 0px, "overflow" => "visible")
-    runl::Component{:div} = tmd("runl", """- use `shift` + `enter` to use this project""")
+    runl::Component{:div} = tmd("runl", 
+    """- use `shift` `enter` (**evaluate**) to use this project
+    ##### new in 0.1.4
+    - Patched thread argument and `everywhere` call
+    - Updated Toolips version compatibility for `rep_in`""")
+    
     style!(runl, "padding" => 2px)
     push!(getstarted, runl)
     buttons_box::Component{:div} = div("buttons_box")
@@ -1589,7 +1611,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     doc_button::Component{:button} = button("doc_button", text = "documentation")
     style!(doc_button, "font-weight" => "bold", "cursor" => "pointer")
     on(doc_button, "click") do cl::ClientModifier
-        redirect!(cl, "https://chifidocs.com/olive", new_tab = true)
+        redirect!(cl, "https://chifidocs.com/olive/Olive", new_tab = true)
     end
     push!(buttons_box, issues_button, doc_button)
     dir::Directory{<:Any} = Directory("~/")

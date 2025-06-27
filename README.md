@@ -1,6 +1,10 @@
 <div align = "center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/0.1/olivesave.png" width="250">
-<h6>🩷 0.1 🩷 (! Beta I !)</h6>
+
+ [![version](https://juliahub.com/docs/General/Olive/stable/version.svg)](https://juliahub.com/ui/Packages/General/Olive) **|** [![deps](https://juliahub.com/docs/General/Olive/stable/deps.svg)](https://juliahub.com/ui/Packages/General/Olive?t=2) 
+
+🩷 [documentation](https://chifidocs.com/olive/Olive) 🩷
+
 </div>
 
 Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor built on the back of Julia's **multiple dispatch**. `Olive` is able to load new features by loading new methods for its functions.
@@ -163,7 +167,7 @@ Clicking the `+` icon next to the `pwd` directory will create a new project, fil
    <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/ext.png"></img>
 </div>
 
-Extensions can be added to `Olive` by first clicking the `+` button by your `home` directory in `Olive`, then typing the extension's URL into the name box before pressing *add*
+Extensions can be added to `Olive` by first clicking the `+` button by your `home` directory in `Olive`, then typing the extension's URL into the name box before pressing *add*. This will add the package to your Pkg environment, and add a new `using` entry for the package to your `olive.jl` home file. This could also be done manually. In `0.1.5`**+**, to use extensions with *headless* `Olive` simply load them before loading `Olive`.
 ### deploying olive
    - [`beta` deployment status](#status)
    - [creating an olive server](#creating-a-server)
