@@ -1,10 +1,9 @@
 <div align = "center">
 <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/0.1/olivesave.png" width="250">
-<h6>🩷 0.1.3 🩷 (! Beta I !)</h6>
 
-[![version](https://juliahub.com/docs/General/Olive/stable/version.svg)](https://juliahub.com/ui/Packages/General/Olive) **|** [![deps](https://juliahub.com/docs/General/Olive/stable/deps.svg)](https://juliahub.com/ui/Packages/General/Olive?t=2)
+ [![version](https://juliahub.com/docs/General/Olive/stable/version.svg)](https://juliahub.com/ui/Packages/General/Olive) **|** [![deps](https://juliahub.com/docs/General/Olive/stable/deps.svg)](https://juliahub.com/ui/Packages/General/Olive?t=2) 
 
-[documentation](https://chifidocs.com/olive/Olive)
+🩷 [documentation](https://chifidocs.com/olive/Olive) 🩷
 
 </div>
 

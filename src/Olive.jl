@@ -646,17 +646,16 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         source_module!(CORE)
         push!(CORE.client_data, "olive user" => Dict{String, Any}("group" => "root"))
     end
-
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
     if threads > 1
         push!(CORE.data, "threads" => threads)
-    end
-    Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
-            using Toolips
-            using ToolipsSession
+            Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
+            using Olive.Toolips
+            using Olive.ToolipsSession
             using Dates
             using Olive
         end"""))
+    end
     rootname = CORE.data["root"]
     if rootname != ""
         key::String = ToolipsSession.gen_ref(16)

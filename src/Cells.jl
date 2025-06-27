@@ -1596,25 +1596,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     style!(getstarted, "padding" => 3px, "margin-top" => 0px, "overflow" => "visible")
     runl::Component{:div} = tmd("runl", 
     """- use `shift` `enter` (**evaluate**) to use this project
-    ##### new in 0.1.3
-    - `headless` mode. Provide `headless = true` to `start` to start an `Olive` server without user configurations or an `olive` directory. 
-     (headless may be the future default for `Olive`)
-
-    - `threads` currently limited to one extra thread per user, will be built on in future iterations. Threads are used by providing the 
-    `threads` key-word argument. In the future, extensions (`:olivebase`) will allow for thread assignment on a user-to-user basis.
-
-    - Fixed project activation buttons not disappearing.
-    - Updated load system and loading icon.
-    - Projects now only reload on tab click *if* the project is not already loaded.
-
-    - Updates to replacements in cell highlighting and markdown with `rep_in`, *now* in `Components`.
-    - New updates to IPyCells, mainly small fixes for Pluto and IPython notebooks.
-    - Slight efficiency tweaks for `OliveHighlighters`
-
-    - Upgrade to Session 0.4.3 (with new `0.5` session key system,) planning eventual migration from `OliveCore` 
-    - client_keys to `ToolipsSession.get_session_key`
-
-    enjoy the update!""")
+    ##### new in 0.1.4
+    - Patched thread argument and `everywhere` call
+    - Updated Toolips version compatibility for `rep_in`""")
     
     style!(runl, "padding" => 2px)
     push!(getstarted, runl)
