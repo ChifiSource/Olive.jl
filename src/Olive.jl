@@ -19,7 +19,7 @@ import Toolips.Components: Servable
 using Toolips.ParametricProcesses: @spawnat
 import Toolips: AbstractRoute, AbstractConnection, AbstractComponent, Crayon, write!, Modifier, AbstractComponentModifier, on_start, Route
 using ToolipsSession
-import ToolipsSession: KeyMap
+import ToolipsSession: KeyMap, get_session_key
 using IPyCells
 import IPyCells: Cell
 using Pkg
@@ -224,24 +224,12 @@ the current `GET` arguments. This is called at the beginning of `make_session` a
 have keys.
 """
 function verify_client!(c::Connection)
-    ip::String = get_ip(c)
-    args = get_args(c)
-    if ip in keys(c[:OliveCore].names)
-        return(c[:OliveCore].names[ip], args)
-    end
-    if ~(:key in keys(args))
-        write!(c, build_key_screen(c))
-        return("dead", args)
-    end
-    if ~(args[:key] in keys(c[:OliveCore].client_keys))
+    key = get_session_key(c)
+    if ~(haskey(CORE.names, key))
         write!(c, build_key_screen(c, "bad key"))
-        return("dead", args)
+        return("dead")
     end
-    uname = c[:OliveCore].client_keys[args[:key]]
-    if ~(ip in keys(c[:OliveCore].names))
-        push!(c[:OliveCore].names, ip => uname)
-    end
-    return(uname, args)
+    return(c[:OliveCore].names[key])::String
 end
 
 """
@@ -480,10 +468,8 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
     write!(c, Components.DOCTYPE())
     uname = ""
-    args = nothing
     if key
-        unameargs = verify_client!(c)
-        uname, args = unameargs[1], unameargs[2]
+        uname = verify_client!(c)
         if uname == "dead"
             return
         end
@@ -507,7 +493,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
      # setup base UI
     bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet)
-    on(c, 5) do cm
+    on(c, 100) do cm
         load_extensions!(c, cm, olmod)
         style!(cm, "olive-loader", "opacity" => 0percent)
         next!(load_projects, c, cm, "olive-loader")
@@ -517,6 +503,21 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     bod = nothing
     loadicondiv = nothing
     uname = nothing
+end
+
+key_route = route("/key") do c::AbstractConnection
+    q = get_args(c)
+    if ~(haskey(q, :q))
+        write!(c, "no key provided.")
+        return
+    end
+    q = q[:q]
+    if ~(q in keys(SES.events))
+        write!(c, "invalid key provided")
+        return
+    end
+    respond!(c, "<script>location.href='/'</script>", 
+            [Toolips.Cookie("key", q)])
 end
 
 function load_projects(c::AbstractConnection, cm2::ComponentModifier)
@@ -658,10 +659,11 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     end
     rootname = CORE.data["root"]
     if rootname != ""
-        key::String = ToolipsSession.gen_ref(16)
-        push!(CORE.client_keys, key => rootname)
+        key::String = ToolipsSession.gen_ref(10)
+        push!(CORE.names, key => rootname)
+        push!(SES.events, key => Vector{ToolipsSession.AbstractEvent}())
         log(ollogger,
-            "\nlink for $(rootname): http://$(string(IP))/?key=$key", 2)
+            "\nlink for $(rootname): http://$(string(IP))/key?q=$key", 2)
     end
     procs
 end
@@ -837,6 +839,6 @@ function create(t::Type{OliveExtension}, name::String)
     end
 end
 
-export CORE, olive_routes, SES, build, evalin, LOGGER
+export CORE, olive_routes, SES, build, evalin, LOGGER, key_route
 
 end # - module

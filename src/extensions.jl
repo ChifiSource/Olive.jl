@@ -241,7 +241,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     end
     inclproj = Project{:module}(modname, projdict)
     source_module!(c, inclproj)
-    proj.data[:mod].evalin(Meta.parse("global $modname = nothing"))
+    proj.data[:mod].eval(Meta.parse("$modname = nothing"))
     Main.evalin(Meta.parse("$(proj.data[:modid]).$modname = $(inclproj.data[:modid])"))
     push!(c[:OliveCore].open[getname(c)].projects, inclproj)
     tab = build_tab(c, inclproj)

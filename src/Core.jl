@@ -21,7 +21,7 @@ Core.jl
 OliveExtension{P <: Any}
 ```
 The OliveExtension is a symbolic type that is used by the `build` function in
-order to create extensions using an OliveModifier. This constructor should only
+order to create extensions using an ComponentModifier. This constructor should only
 be called internally. Instead, simply use methods to define your extension.
 ```example
 # this is your olive root file:
@@ -30,7 +30,7 @@ using Olive
 import Olive: build
 
                             # vv the name of your extension ! vv
-function build(om::OliveModifier, oe::OliveExtension{:myextension})
+function build(om::ComponentModifier, oe::OliveExtension{:myextension})
     alert!(om, "hello!")
 end
 ```
@@ -39,43 +39,6 @@ OliveExtension{T <: Any}()
 ```
 """
 mutable struct OliveExtension{P <: Any} end
-
-"""
-```julia
-OliveModifier <: ToolipsSession.AbstractComponentModifier
-```
-- rootc**::Dict{String, AbstractComponent}**
-- changes**::Vector{String}**
-- data**::Dict{String, Any}**
-The OliveModifier is used whenever an extension is loaded with a `build`
-function.
-```
-# this is your olive root file:
-module olive
-using Olive
-import Olive: build
-
-                            # vv the name of your extension ! vv
-function build(om::OliveModifier, oe::OliveExtension{:myextension})
-    alert!(om, "hello!")
-end
-```
-- `OliveModifier(c::AbstractConnection, cm::ComponentModifier)``
-"""
-mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
-    rootc::String
-    changes::Vector{String}
-    data::Dict{String, Any}
-    function OliveModifier(c::AbstractConnection, cm::ComponentModifier)
-        new(cm.rootc, cm.changes, c[:OliveCore].client_data[getname(c)])
-    end
-    function OliveModifier(s::String)
-        new(s, Vector{String}(), Dict{String, Any}())
-    end
-end
-
-getindex(om::OliveModifier, symb::Symbol) = om.data[symb]
-setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
 
 """
 ```julia
@@ -88,8 +51,7 @@ This function is used on the `Olive` backend whenever a client loads the page.
 ```
 """
 function load_extensions!(c::AbstractConnection, cm::ComponentModifier, olmod::Module)
-    mod = OliveModifier(c, cm)
-    Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
+    Base.invokelatest(c[:OliveCore].olmod.build, c, cm,
     OliveExtension{:invoker}())
     signatures = [m.sig.parameters[4] for m in methods(olmod.build,
      [Any, Modifier, OliveExtension])]
@@ -97,12 +59,13 @@ function load_extensions!(c::AbstractConnection, cm::ComponentModifier, olmod::M
         if sig == OliveExtension{<:Any}
             continue
         end
-        c[:OliveCore].olmod.build(c, mod, sig())
+        c[:OliveCore].olmod.build(c, cm, sig())
     end
+    nothing::Nothing
 end
 """
 ```julia
-build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Nothing
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
 ```
 This is the base `Olive` extension function, used to create `load` extensions. These are 
     extensions which do something on `Olive's` startup. 
@@ -112,7 +75,7 @@ import Olive: build
 using Olive
 using ToolipsSession: alert!
 
-build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{:hello}) = begin
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{:hello}) = begin
     olive_notify!(om, "hello !", color = "darkgreen")
 end
 ```
@@ -123,7 +86,7 @@ using Olive
 using Olive.Toolips
 using Olive.ToolipsSession
 
-build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{:docbrowser}) = begin
     explorericon = topbar_icon("docico", "newspaper")
     on(c, explorericon, "click") do cm::ComponentModifier
         mods = [begin 
@@ -148,7 +111,7 @@ build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{:docbrowser})
 end
 ```
 """
-build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{<:Any}) = return
 
 function load_keybinds_settings(c::AbstractConnection, om::AbstractComponentModifier)
     # cell bindings
@@ -425,7 +388,7 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
     div("theme-menu", children = [t_label, t_active, br(), t_selector, set_theme_button])
 end
 
-build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{:olivebase}) = begin
     load_keybinds_settings(c, om)
     load_style_settings(c, om)
     if get_group(c).name == "root"
@@ -433,7 +396,7 @@ build(c::AbstractConnection, om::OliveModifier, oe::OliveExtension{:olivebase}) 
     end
 end
 
-function build_groups_options(c::AbstractConnection, cm::OliveModifier)
+function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
     groups_drop = containersection(c, "groups", fillto = 90)
     group_editors = [begin
             group_b = button("edit$(group.name)", text = group.name)
@@ -513,7 +476,7 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
             new_user_group = cm2["new-usergroup"]["value"]
             key::String = ToolipsSession.gen_ref(16)
             new_data = Dict{String, Any}("group" => new_user_group)
-            push!(CORE.client_keys, key => new_user_name)
+            push!(CORE.names, get_session_key() => new_user_name)
             push!(CORE.client_data, new_user_name => new_data)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
             append!(cm2, "user_previews", build_user_data(c, new_user_name, new_data))
@@ -538,7 +501,6 @@ function build_user_data(c::AbstractConnection, name::String, data::Dict)
     style!(name_indicator, "background-color" => "#574ca1", "color" => "white", "font-weight" => "bold", 
     "padding" => 7px)
     group_button = div("gr$name", text = data["group"])
-    active_key = findfirst(k -> k == name, CORE.client_keys)
     style!(group_button, "background-color" => "#ebe8ff", "padding" => 7px, "cursor" => "pointer", 
     "border-radius" => 0px)
     del_button = div("del$name", text = "remove")
@@ -568,12 +530,13 @@ function build_user_data(c::AbstractConnection, name::String, data::Dict)
     on(c, del_button, "click") do cm2::ComponentModifier
         confirmer = olive_confirm_dialog(c, "delete user $(name)? (this cannot be undone!)") do cm::ComponentModifier
             delete!(CORE.client_data, name)
-            active_key = findfirst(k -> k == name, CORE.client_keys)
-            delete!(CORE.client_keys, active_key)
+            user_key = get_session_key(c)
+            delete!(CORE.names, user_key)
             olive_notify!(cm, "user $name removed (pending settings close to save)", color = "darkred")
         end
         append!(cm2, "mainbody", confirmer)
     end
+    active_key = get_session_key(c)
     link = "http://$(get_host(c))/?key=$active_key"
     key_ind = a("key-ind", text = link, href = link)
     style!(key_ind, "padding" => 7px, "background-color" => "#ffe8fb")
@@ -849,7 +812,7 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         are added.
         ```julia
         import Olive: build
-        build(c::Olive.Connection, om::Olive.OliveModifier, oe::Olive.OliveExtension{:myext}) = begin
+        build(c::Olive.Connection, om::Olive.ComponentModifier, oe::Olive.OliveExtension{:myext}) = begin
             Olive.olive_notify!(om, "welcome to my CUSTOM Olive!", color = "darkblue")
         end
         ```
@@ -1267,7 +1230,6 @@ mutable struct OliveCore <: Toolips.AbstractExtension
     client_data::Dict{String, Dict{String, Any}}
     open::Vector{Environment}
     pool::Vector{String}
-    client_keys::Dict{String, String}
     function OliveCore(mod::String)
         data::Dict{Symbol, Any} = Dict{Symbol, Any}()
         m = eval(Meta.parse("module $mod build = nothing end"))
@@ -1275,9 +1237,8 @@ mutable struct OliveCore <: Toolips.AbstractExtension
         open::Vector{Environment} = Vector{Environment}()
         pool::Vector{String} = Vector{String}()
         client_data = Dict{String, Dict{String, Any}}()
-        client_keys::Dict{String, String} = Dict{String, String}()
         new(m, data, Dict{String, String}(),
-        client_data, open, pool, client_keys)::OliveCore
+        client_data, open, pool)::OliveCore
     end
 end
 
@@ -1294,7 +1255,7 @@ getname(c::AbstractConnection) -> ::String
 ```
 - See also: `source_module!`, `OliveCore`, `Olive`, `Environment`
 """
-getname(c::AbstractConnection) = c[:OliveCore].names[get_ip(c)]::String
+getname(c::AbstractConnection) = c[:OliveCore].names[get_session_key(c)]::String
 
 """
 ```julia
