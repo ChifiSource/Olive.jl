@@ -784,8 +784,7 @@ mutable struct Project{name <: Any}
     id::String
     Project{T}(name::String,
     data::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T <: Any} = begin
-        uuid::String = replace(ToolipsSession.gen_ref(10),
-        [string(dig) => "" for dig in digits(1234567890)] ...)
+        uuid::String = ToolipsSession.gen_ref(6)
         if ~(haskey(data, :pane))
             push!(data, :pane => "one")
         end
@@ -967,7 +966,6 @@ mutable struct Environment{T <: Any}
         Vector{Pair{String, String}}(), 
         Vector{CellOperation}(), "")::Environment{T}
     end
-    Environment(name::String) = Environment("olive", name)::Environment{:olive}
 end
 
 getindex(e::Environment, proj::String) = e.projects[proj]::Project{<:Any}

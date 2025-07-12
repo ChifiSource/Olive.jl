@@ -225,11 +225,12 @@ have keys.
 """
 function verify_client!(c::Connection)
     key = get_session_key(c)
-    if ~(haskey(CORE.names, key))
+    key_reg = findfirst(user -> user.key == key, CORE.users)
+    if isnothing(key_reg)
         write!(c, build_key_screen(c, "bad key"))
         return("dead")
     end
-    return(c[:OliveCore].names[key])::String
+    return(c[:OliveCore].users[key_reg].name)::String
 end
 
 """
@@ -270,7 +271,7 @@ function load_default_project!(c::Connection)
     name::String = getname(c)
     oc::OliveCore = c[:OliveCore]
     cells = Vector{Cell}([Cell("getstarted", "")])
-    env::Environment = Environment(name)
+    env::Environment = Environment("olive")
     env.pwd::String = oc.data["wd"]
     env.directories = copy(get_group(c).directories)
     pwd_direc::Directory{:pwd} = Directory(env.pwd, dirtype = "pwd")
@@ -581,9 +582,9 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger)
     CORE.data = config["olive"]
     rootname = CORE.data["root"]
     CORE.users = Vector{OliveUser}([begin
-        userkey = gen_ref(10)
+        userkey = Toolips.gen_ref(10)
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
-        OliveUser{:olive}(kp[1], userkey, Environment{:olive}(), kp[2])
+        OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
     end for kp in config["oliveusers"]])
     if ~haskey(CORE.data, "home")
         push!(CORE.data, "home" => path * "/olive")
