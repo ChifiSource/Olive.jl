@@ -605,7 +605,7 @@ function build(c::AbstractConnection, dir::Directory{<:Any})
     on(c, rmbutton, "click") do cm::ComponentModifier
         path::String = dir.uri
         group::Group = get_group(c)
-        direcs = c[:OliveCore].open[getname(c)].directories
+        direcs = c[:OliveCore].users[getname(c)].environment.directories
         inalready = findfirst(d -> d.uri == path, direcs)
         in_group = findfirst(d -> d.uri == path, group.directories)
         if isnothing(inalready) && isnothing(in_group)
@@ -987,6 +987,14 @@ mutable struct OliveUser{ENV <: Any}
     data::Dict{String, Any}
 end
 
+function getindex(users::Vector{OliveUser}, name::String)
+    found = findfirst(user::OliveUser -> user.name == name, users)
+    if isnothing(found)
+        throw("user $(name) not in this list of users")
+    end
+    users[found]
+end
+
 """
 ```julia
 mutable struct Group
@@ -1026,7 +1034,7 @@ getindex(e::Vector{Group}, name::String) = begin
 end
 
 function get_group(c)
-    group::String = c[:OliveCore].client_data[getname(c)]["group"]
+    group::String = CORE.users[getname(c)].data["group"]
     c[:OliveCore].data["groups"][group]
 end
 
@@ -1074,7 +1082,7 @@ function build_group_directory(c::AbstractConnection, main_cm::AbstractComponent
                 dirpos = findfirst(d -> d.uri == URI, group.directories)
                 deleteat!(group.directories, dirpos)
                 insert!(group.directories, dirpos, Directory(URI, dirtype = T))
-                CORE.open[getname(c)].directories = copy(group.directories)
+                CORE.users[getname(c)].environment.directories = copy(group.directories)
                 set_text!(cm2, el_id * "-type", T)
                 remove!(cm2, "typeindic")
             end
@@ -1171,7 +1179,7 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
             new_dir = Directory("")
             push!(group.directories, new_dir)
             gr_pr, gr_id = build_group_directory(c, cm, group, new_dir, ret_id = true)
-            env = CORE.open[getname(c)]
+            env = CORE.users[getname(c)].environment
             env.directories = vcat([Directory(env.pwd, dirtype = "pwd")], group.directories)
             append!(cm, "dirsbox", gr_pr)
             focus!(cm, "$(gr_id)-path")
@@ -1239,9 +1247,8 @@ mutable struct OliveCore <: Toolips.AbstractExtension
         m.build = build
         open::Vector{Environment} = Vector{Environment}()
         pool::Vector{String} = Vector{String}()
-        client_data = Dict{String, Dict{String, Any}}()
-        new(m, data, Dict{String, String}(),
-        client_data, open, pool)::OliveCore
+        users = Vector{OliveUser}()
+        new(m, data, users, pool)::OliveCore
     end
 end
 

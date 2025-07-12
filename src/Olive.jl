@@ -285,7 +285,7 @@ function load_default_project!(c::Connection)
     oc.olmod.Olive.source_module!(c, myproj, sourced_path)
     insert!(env.directories, 1, pwd_direc)
     push!(env.projects, myproj)
-    push!(oc.open, env)
+    oc.users[getname(c)].environment = env
     env::Environment
 end
 
@@ -371,12 +371,16 @@ extend `Olive` using a new `Environment` type.
 function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
     themes_enabled::Bool = true)
     selected_sheet = sheet
+    user = c[:OliveCore].users[getname(c)]
     if themes_enabled
-        if haskey(c[:OliveCore].client_data[getname(c)], "theme")
-            theme_name = c[:OliveCore].client_data[getname(c)]["theme"]
+        if haskey(user.data, "theme")
+            theme_name = user.data["theme"]
             theme_dir = CORE.data["home"] * "/themes"
             fpath = theme_dir * "/$(replace(theme_name, " " => "-")).olivestyle"
             selected_sheet = TOML.parse(read(fpath, String))["COMPOSED"]
+            fpath = nothing
+            theme_dir = nothing
+            theme_name = nothing
         end
     end
     write!(c, selected_sheet)
@@ -484,12 +488,11 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
         uname = getname(c)
     end
     # check for environment, if none load.
-    envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
-    if isnothing(envsearch)
+    user = CORE.users[uname]
+    env = user.environment
+    if length(env.projects) == 0 && length(env.directories) == 0
         env::Environment = default(c)
-        push!(c[:OliveCore].open, env)
-    else
-        env = c[:OliveCore].open[getname(c)]
+        user.environment = env
     end
      # setup base UI
     bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet)
@@ -522,8 +525,9 @@ end
 
 function load_projects(c::AbstractConnection, cm2::ComponentModifier)
     remove!(cm2, "loaddiv")
-    env = CORE.open[getname(c)]
-    olmod = CORE.olmod
+    user::OliveUser = CORE.users[getname(c)]
+    env::Environment = user.environment
+    olmod::Module = CORE.olmod
     for proj in env.projects
         projpane = proj.data[:pane]
         append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))
@@ -540,7 +544,7 @@ function load_projects(c::AbstractConnection, cm2::ComponentModifier)
             append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[p2i]))
         end
     else
-        CORE.open[getname(c)] = default(c)
+        user.environment = default(c)
         for proj in env.projects
             projpane = proj.data[:pane]
             append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))
