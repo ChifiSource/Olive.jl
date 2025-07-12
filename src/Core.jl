@@ -954,19 +954,18 @@ example
 - See also: `build`, `Project`, `Directory`, `CellOperation`, `Group`
 """
 mutable struct Environment{T <: Any}
-    name::String
     directories::Vector{Directory}
     projects::Vector{Project}
     cells_selected::Dict{String, String}
     cell_clipboard::Vector{Pair{String, String}}
     cell_ops::Vector{CellOperation}
     pwd::String
-    function Environment(T::String, name::String)
-        nT::Symbol = Symbol(T)
-        new{nT}(name, Vector{Directory}(), 
+    function Environment(T::String)
+        T::Symbol = Symbol(T)
+        new{T}(Vector{Directory}(), 
         Vector{Project}(), Dict{String, String}(), 
         Vector{Pair{String, String}}(), 
-        Vector{CellOperation}(), "")::Environment{nT}
+        Vector{CellOperation}(), "")::Environment{T}
     end
     Environment(name::String) = Environment("olive", name)::Environment{:olive}
 end
@@ -979,6 +978,13 @@ getindex(e::Vector{Environment}, name::String) = begin
         throw(KeyError("Environment $name not found."))
     end
     e[pos]::Environment
+end
+
+mutable struct OliveUser{ENV <: Any}
+    name::String
+    key::String
+    environment::Environment{ENV}
+    data::Dict{String, Any}
 end
 
 """
@@ -1205,7 +1211,6 @@ end
 - `client_data::Dict{String, Dict{String, Any}}`
 - `open::Vector{Environment}`
 - `pool::Vector{String}`
-- `client_keys::Vector{String}`
 
 `OliveCore` is the main server-extension used to run `Olive`; this type keeps track of all `Olive` settings, holds 
 your `olive` home custom `Module`, and all of the currently open environments.
@@ -1226,9 +1231,7 @@ example
 mutable struct OliveCore <: Toolips.AbstractExtension
     olmod::Module
     data::Dict{String, Any}
-    names::Dict{String, String}
-    client_data::Dict{String, Dict{String, Any}}
-    open::Vector{Environment}
+    users::Vector{OliveUser}
     pool::Vector{String}
     function OliveCore(mod::String)
         data::Dict{Symbol, Any} = Dict{Symbol, Any}()
@@ -1255,8 +1258,11 @@ getname(c::AbstractConnection) -> ::String
 ```
 - See also: `source_module!`, `OliveCore`, `Olive`, `Environment`
 """
-getname(c::AbstractConnection) = c[:OliveCore].names[get_session_key(c)]::String
-
+getname(c::AbstractConnection) = begin 
+    ses_key = get_session_key(c)
+    i = findfirst(user -> user.key == ses_key, CORE.users)
+    CORE.users[i].name::String
+end
 """
 ```julia
 source_module!(oc::OliveCore) -> ::Nothing
@@ -1316,7 +1322,7 @@ function save_settings!(c::AbstractConnection; core::Bool = false)
     alltoml::String = read("$homedir/Project.toml", String)
     current_toml = TOML.parse(alltoml)
     name::String = getname(c)
-    client_settings = deepcopy(c[:OliveCore].client_data[name])
+    client_settings = deepcopy(CORE.users[name].data)
     [onsave(client_settings, OliveExtension{m.sig.parameters[3].parameters[1]}()) for m in methods(onsave, [AbstractDict, OliveExtension{<:Any}])]
     current_toml["oliveusers"][name] = client_settings
     toml_datakeys = keys(current_toml["olive"])

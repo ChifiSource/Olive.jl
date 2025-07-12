@@ -576,7 +576,11 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger)
     Pkg.activate("$path/olive")
     CORE.data = config["olive"]
     rootname = CORE.data["root"]
-    CORE.client_data = config["oliveusers"]
+    CORE.users = Vector{OliveUser}([begin
+        userkey = gen_ref(10)
+        push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
+        OliveUser{:olive}(kp[1], userkey, Environment{:olive}(), kp[2])
+    end for kp in config["oliveusers"]])
     if ~haskey(CORE.data, "home")
         push!(CORE.data, "home" => path * "/olive")
     end
@@ -645,6 +649,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(CORE.data, "root" => "olive user", "wd" => wd, 
             "groups" => [Group("root")], "headless" => true)
         source_module!(CORE)
+        # TODO add new `OliveUser`
         push!(CORE.client_data, "olive user" => Dict{String, Any}("group" => "root"))
     end
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
@@ -659,9 +664,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     end
     rootname = CORE.data["root"]
     if rootname != ""
-        key::String = ToolipsSession.gen_ref(10)
-        push!(CORE.names, key => rootname)
-        push!(SES.events, key => Vector{ToolipsSession.AbstractEvent}())
+        key = CORE.users[rootname].key
         log(ollogger,
             "\nlink for $(rootname): http://$(string(IP))/key?q=$key", 2)
     end
