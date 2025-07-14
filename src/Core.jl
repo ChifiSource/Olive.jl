@@ -115,33 +115,11 @@ build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{<:Any}) =
 
 function load_keybinds_settings(c::AbstractConnection, om::AbstractComponentModifier)
     # cell bindings
-    if ~("keybindings" in keys(c[:OliveCore].client_data[getname(c)]))
-        push!(c[:OliveCore].client_data[getname(c)],
-        "keybindings" => Dict{String, Any}(
-        "evaluate" => ["Enter", "shift"],
-        "delete" => ["Delete", "ctrl", "shift"],
-        "up" => ["ArrowUp", "ctrl", "shift"],
-        "down" => ["ArrowDown", "ctrl", "shift"],
-        "copy" => ["C", "ctrl", "shift"],
-        "paste" => ["V", "ctrl", "shift"],
-        "cut" => ["X", "ctrl", "shift"],
-        "select" => ["A", "ctrl", "shift"],
-        "new" => ["Enter", "ctrl", "shift"],
-        "project-new" => ["N", "ctrl", "shift"],
-        "focusup" => ["ArrowUp", "shift"],
-        "focusdown" => ["ArrowDown", "shift"],
-        "save" => ["s", "ctrl"],
-        "saveas" => ["S", "ctrl", "shift"],
-        "open" => ["O", "ctrl"],
-        "find" => ["F", "ctrl"], 
-        "explorer" => ["E", "ctrl"], 
-        "undo" => ["Z", "ctrl", "shift"]
-        ))
-    end
     keybind_drop = containersection(c, "keybindings", fillto = 90)
     keybind_section = keybind_drop[:children][2]
     shftlabel = a("shiftlabel", text = "  shift:    ")
     ctrllabel = a("ctrllabel", text = "  ctrl:   ")
+    userdata = CORE.users[getname(c)].data
     keybind_section[:children] = Vector{Servable}(vcat([h2("setkeyslbl", text = "keybindings")],
     [begin
         newkeymain = div("keybind$(keybinding[1])")
@@ -167,22 +145,16 @@ function load_keybinds_settings(c::AbstractConnection, om::AbstractComponentModi
             if parse(Bool, cm["ctrlk$(keybinding[1])"]["value"])
                 push!(key_vec, "ctrl")
             end
-            c[:OliveCore].client_data[getname(c)]["keybindings"][keybinding[1]] = key_vec
+            userdata["keybindings"][keybinding[1]] = key_vec
             olive_notify!(cm, "binding $(keybinding[1]) saved")
         end
         push!(newkeymain, head, shftlabel, shift_checkbox,
         ctrllabel, ctrl_checkbox, setinput, br(), confirm)
         newkeymain
-    end for keybinding in c[:OliveCore].client_data[getname(c)]["keybindings"]]))
+    end for keybinding in userdata["keybindings"]]))
     append!(om, "settingsmenu", keybind_drop)
     # creator keys
-    if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
-        push!(c[:OliveCore].client_data[getname(c)],
-        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
-        "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
-        "m" => "module"))
-    end
-    creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
+    creatorkeys = userdata["creatorkeys"]
     creatorkeysdropd = containersection(c, "creatorkeys", text = "creator keys")
     creatorkeysmen = creatorkeysdropd[:children][2]
     regkeys = div("regkeyss")
@@ -238,44 +210,9 @@ function load_keybinds_settings(c::AbstractConnection, om::AbstractComponentModi
 end
 
 function load_style_settings(c::AbstractConnection, om::AbstractComponentModifier)
-    setting_keys = keys(c[:OliveCore].client_data[getname(c)])
-    if ~("highlighting" in setting_keys)
-        tm::Highlighter = OliveHighlighters.Highlighter("")
-        OliveHighlighters.style_julia!(tm)
-        tomltm = OliveHighlighters.Highlighter("")
-        OliveHighlighters.style_toml!(tomltm)
-        mdtm = OliveHighlighters.Highlighter("")
-        OliveHighlighters.style_markdown!(mdtm)
-        dic = Dict{String, Dict{<:Any, <:Any}}()
-        push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
-        push!(dic, "julia" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tm.styles),
-            "toml" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tomltm.styles),
-            "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
-    end
-    mdtm = OliveHighlighters.Highlighter("")
-    OliveHighlighters.style_markdown!(mdtm)
-    push!(c[:OliveCore].client_data[getname(c)]["highlighting"], 
-    "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
-    if ~("highlighters" in keys(c[:OliveCore].client_data[getname(c)]))
-        highlighting = c[:OliveCore].client_data[getname(c)]["highlighting"]
-        julia_highlighter = OliveHighlighters.Highlighter("")
-        toml_highlighter = OliveHighlighters.Highlighter("")
-        md_highlighter = OliveHighlighters.Highlighter("")
-        julia_highlighter.styles = Dict(begin
-            Symbol(k[1]) => ["color" => k[2]]
-        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["julia"])
-        toml_highlighter.styles = Dict(begin
-            Symbol(k[1]) => ["color" => k[2]]
-        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["toml"])
-        md_highlighter.styles = Dict(begin
-            Symbol(k[1]) => ["color" => k[2]]
-        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["markdown"])
-        push!(c[:OliveCore].client_data[getname(c)], 
-        "highlighters" => Dict{String, OliveHighlighters.Highlighter}(
-            "julia" => julia_highlighter, "toml" => toml_highlighter, "markdown" => md_highlighter
-        ))
-    end
-    dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
+    user = c[:OliveCore].users[getname(c)]
+    setting_keys = keys(user.data)
+    dic = user.data["highlighting"]
     container = containersection(c, "highlighting", fillto = 80)
     sect = container[:children][2]
     highheader = h3("highlighthead", text = "fonts and highlighting")
@@ -297,16 +234,13 @@ function load_style_settings(c::AbstractConnection, om::AbstractComponentModifie
     updatebutton = button("highupdate", text = "apply")
     on(c, updatebutton, "click") do cm::ComponentModifier
         [begin
-            hl = c[:OliveCore].client_data[getname(c)]["highlighters"][highlighter[1]]
             styles = Dict([k[1] => cm["$(k[1])$(highlighter[1])"]["value"] for k in dic[highlighter[1]]])
-            hl.styles = Dict([Symbol(k[1]) => ["color" => k[2]] for k in styles])
             dic[highlighter[1]] = styles
         end for highlighter in dic]
         olive_notify!(cm, "Your syntax highlighters have been updated", color = "green")
     end
     push!(sect, Component{:sep}("highsep"), updatebutton)
     append!(om, "settingsmenu", container)
-
     container = containersection(c, "themes", fillto = 80)
     if ~("theme" in setting_keys)
         enable_themes = button("theme-enable", text = "enable themes")
@@ -322,7 +256,7 @@ function load_style_settings(c::AbstractConnection, om::AbstractComponentModifie
                     add_default_theme(theme_dir)
                     theme_value = "pastel pride"
                 end
-                push!(c[:OliveCore].client_data[getname(c)], "theme" => theme_value)
+                push!(user.data, "theme" => theme_value)
                 set_children!(cm, "themes", [build_theme_menu(c, theme_value)])
             else
                 confirm_di = olive_confirm_dialog(c, 
@@ -331,14 +265,14 @@ function load_style_settings(c::AbstractConnection, om::AbstractComponentModifie
                     mkdir(theme_dir)
                     add_default_theme(theme_dir)
                     set_children!(cm2, "themes", [build_theme_menu(c, "pastel-pride")])
-                    push!(c[:OliveCore].client_data[getname(c)], "theme" => "pastel pride")
+                    push!(user.data, "theme" => "pastel pride")
                 end
                 append!(cm, "mainbody", confirm_di)
             end
         end
         push!(container[:children][2], enable_themes)
     else
-        push!(container[:children][2], build_theme_menu(c, c[:OliveCore].client_data[getname(c)]["theme"]))
+        push!(container[:children][2], build_theme_menu(c, user.data["theme"]))
     end
     append!(om, "settingsmenu", container)
 end
@@ -382,7 +316,7 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
     set_theme_button = button("set-theme", text = "set theme")
     on(c, set_theme_button, "click") do cm::ComponentModifier
         theme = cm["theme-selector"]["value"]
-        CORE.client_data[getname(c)]["theme"] = theme
+        CORE.users[getname(c)].data["theme"] = theme
         olive_notify!(cm, "set theme: $(theme) (refresh required)")
     end
     div("theme-menu", children = [t_label, t_active, br(), t_selector, set_theme_button])
@@ -451,8 +385,8 @@ function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
     "font-weight" => "bold")
     style!(add_group_button, add_buttons ...)
     previews = [begin
-        build_user_data(c, user[1], user[2])
-    end for user in CORE.client_data]
+        build_user_data(c, user.name, user.data)
+    end for user in CORE.users]
     user_previews = div("user_previews", children = previews)
     user_adder = button("add-user", text = "add new user")
     style!(user_adder, add_buttons ...)
@@ -474,10 +408,11 @@ function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
         on(c, confirm_button, "click") do cm2::ComponentModifier
             new_user_name = cm2["new-username"]["text"]
             new_user_group = cm2["new-usergroup"]["value"]
-            key::String = ToolipsSession.gen_ref(16)
+            key::String = ToolipsSession.gen_ref(10)
             new_data = Dict{String, Any}("group" => new_user_group)
-            push!(CORE.names, get_session_key() => new_user_name)
-            push!(CORE.client_data, new_user_name => new_data)
+            push!(CORE.names, key => new_user_name)
+            push!(SES.events, key => Vector{ToolipsSession.AbstractEvent}())
+            # TODO load new user here
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
             append!(cm2, "user_previews", build_user_data(c, new_user_name, new_data))
             remove!(cm2, "newuser")
@@ -983,6 +918,77 @@ mutable struct OliveUser{ENV <: Any}
     key::String
     environment::Environment{ENV}
     data::Dict{String, Any}
+end
+
+init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) = begin
+
+end
+
+init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}}) = begin
+    if ~(haskey(user.data, "keybindings"))
+        push!(user.data,
+        "keybindings" => Dict{String, Any}(
+        "evaluate" => ["Enter", "shift"],
+        "delete" => ["Delete", "ctrl", "shift"],
+        "up" => ["ArrowUp", "ctrl", "shift"],
+        "down" => ["ArrowDown", "ctrl", "shift"],
+        "copy" => ["C", "ctrl", "shift"],
+        "paste" => ["V", "ctrl", "shift"],
+        "cut" => ["X", "ctrl", "shift"],
+        "select" => ["A", "ctrl", "shift"],
+        "new" => ["Enter", "ctrl", "shift"],
+        "project-new" => ["N", "ctrl", "shift"],
+        "focusup" => ["ArrowUp", "shift"],
+        "focusdown" => ["ArrowDown", "shift"],
+        "save" => ["s", "ctrl"],
+        "saveas" => ["S", "ctrl", "shift"],
+        "open" => ["O", "ctrl"],
+        "find" => ["F", "ctrl"], 
+        "explorer" => ["E", "ctrl"], 
+        "undo" => ["Z", "ctrl", "shift"]))
+    end
+    if ~(haskey(user.data, "creatorkeys"))
+        push!(user.data,
+        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
+        "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
+        "m" => "module"))
+    end
+end
+
+init_user(user::OliveUser, oe::Type{OliveExtension{:highlighting}}) = begin
+    setting_keys = keys(user.data)
+    @info setting_keys
+    if ~("highlighting" in setting_keys)
+        tm::Highlighter = OliveHighlighters.Highlighter("")
+        OliveHighlighters.style_julia!(tm)
+        tomltm = OliveHighlighters.Highlighter("")
+        OliveHighlighters.style_toml!(tomltm)
+        mdtm = OliveHighlighters.Highlighter("")
+        OliveHighlighters.style_markdown!(mdtm)
+        dic = Dict{String, Dict{<:Any, <:Any}}()
+        push!(user.data, "highlighting" => dic)
+        push!(dic, "julia" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tm.styles),
+            "toml" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tomltm.styles),
+            "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
+    end
+    if ~("highlighters" in setting_keys)
+        highlighting = user.data["highlighting"]
+        julia_highlighter = OliveHighlighters.Highlighter("")
+        toml_highlighter = OliveHighlighters.Highlighter("")
+        md_highlighter = OliveHighlighters.Highlighter("")
+        julia_highlighter.styles = Dict(begin
+            Symbol(k[1]) => ["color" => k[2]]
+        end for k in highlighting["julia"])
+        toml_highlighter.styles = Dict(begin
+            Symbol(k[1]) => ["color" => k[2]]
+        end for k in highlighting["toml"])
+        md_highlighter.styles = Dict(begin
+            Symbol(k[1]) => ["color" => k[2]]
+        end for k in highlighting["markdown"])
+        push!(user.data, 
+            "highlighters" => Dict{String, OliveHighlighters.Highlighter}(
+                "julia" => julia_highlighter, "toml" => toml_highlighter, "markdown" => md_highlighter))
+    end
 end
 
 function getindex(users::Vector{OliveUser}, name::String)

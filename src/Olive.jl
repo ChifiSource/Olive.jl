@@ -581,10 +581,17 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger)
     Pkg.activate("$path/olive")
     CORE.data = config["olive"]
     rootname = CORE.data["root"]
+    user_inits = [begin 
+        m.sig.parameters[3].parameters[1]
+    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
     CORE.users = Vector{OliveUser}([begin
         userkey = Toolips.gen_ref(10)
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
-        OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
+        user = OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
+        for call in user_inits
+            init_user(user, call)
+        end
+        user
     end for kp in config["oliveusers"]])
     if ~haskey(CORE.data, "home")
         push!(CORE.data, "home" => path * "/olive")
