@@ -37,7 +37,7 @@ function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
     else
         olive_notify!(cm2, "this cell cannot go up any further!", color = "red")
     end
-    push!(CORE.open[getname(c)].cell_ops, CellOperation{:cellup}(cell, pos))
+    push!(CORE.users[getname(c)].environment.cell_ops, CellOperation{:cellup}(cell, pos))
     nothing::Nothing
 end
 
@@ -70,7 +70,7 @@ function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 		olive_notify!(cm, "this cell cannot go down any further!", color = "red")
 	end
 
-	push!(CORE.open[getname(c)].cell_ops, CellOperation{:celldown}(cell, pos))
+	push!(CORE.users[getname(c)].environment.cell_ops, CellOperation{:celldown}(cell, pos))
 	nothing::Nothing
 end
 
