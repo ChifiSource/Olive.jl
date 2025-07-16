@@ -920,6 +920,12 @@ mutable struct OliveUser{ENV <: Any}
     data::Dict{String, Any}
 end
 
+keys(ou::OliveUser) = keys(ou.data)
+
+getindex(user::OliveUser, str::AbstractString) = getindex(user.data, str)
+
+setindex!(user::OliveUser, val::Any, str::AbstractString) = setindex!(user.data, val, str)
+
 init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) = begin
 
 end

@@ -11,7 +11,7 @@ using Olive; Olive.start()
 ```
 """
 module Olive
-import Base: write, display, getindex, setindex!, string, showerror, push!
+import Base: write, display, getindex, setindex!, string, showerror, push!, keys
 using Toolips
 using Toolips.Components
 using Toolips: WebServer
