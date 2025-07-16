@@ -1,6 +1,6 @@
 name = "Olive"
 uuid = "724ecaf6-c7a0-4c22-b37e-0bb7b4193da8"
-authors = ["emmac <emmettgb@gmail.com>"]
+authors = ["emmac <emmaccode@gmail.com>"]
 version = "0.2.0"
 
 [deps]
