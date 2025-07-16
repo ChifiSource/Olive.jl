@@ -384,7 +384,7 @@ This will also decollapse the **inspector** and open the **project explorer**
 ```
 """
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
-    env::Environment = c[:OliveCore].open[getname(c)]
+    env::Environment = CORE.users[getname(c)].environment
     env.pwd = path
     if isfile(path)
         pathsplit = split(path, "/")
@@ -649,12 +649,13 @@ This is the function `Olive` uses to load files into projects. This function
 function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
+    user = CORE.users[getname(c)]
     all_paths = (begin
         if :path in keys(project.data)
             project[:path]
         end
-    end for project in c[:OliveCore].open[getname(c)].projects)
-    cldata = c[:OliveCore].client_data[getname(c)]
+    end for project in user.environment.projects)
+    cldata = user.data
     if ~("recents" in keys(cldata))
         push!(cldata, "recents" => Vector{String}())
     end
@@ -688,7 +689,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     c[:OliveCore].olmod.Olive.source_module!(c, myproj)
     c[:OliveCore].olmod.Olive.check!(myproj)
-    push!(c[:OliveCore].open[getname(c)].projects, myproj)
+    push!(user.environment.projects, myproj)
     tab::Component{:div} = build_tab(c, myproj)
     open_project(c, cm, myproj, tab)
     myproj::Project{<:Any}
@@ -704,7 +705,7 @@ This is the function `Olive` uses to load a project into its UI.
 ```
 """
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
-    projects = c[:OliveCore].open[getname(c)].projects
+    projects = c[:OliveCore].users[getname(c)].environment.projects
     if  ~(proj in projects)
         push!(projects, proj)
     end
@@ -780,7 +781,7 @@ This function is called on a project whenever its tab is minimized.
 ```
 """
 function switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any})
-    projects::Vector = c[:OliveCore].open[getname(c)].projects
+    projects::Vector = c[:OliveCore].users[getname(c)].environment.projects
     name::String = proj.id
     if proj.data[:pane]::String == "one"
         pane = "two"
@@ -953,7 +954,7 @@ This is the function `Olive` uses to close the project in the UI.
 """
 function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Project{<:Any})
     name::String = proj.id
-    projs::Vector{Project} = c[:OliveCore].open[getname(c)].projects
+    projs::Vector{Project} = c[:OliveCore].users[getname(c)].environment.projects
     n_projects::Int64 = length(projs)
     set_children!(cm2, "pane_$(proj.data[:pane])", Vector{Servable}())
     remove!(cm2, "tab$(name)")
@@ -1214,7 +1215,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         if p.id in cm
             return
         end
-        projects::Vector{Project{<:Any}} = c[:OliveCore].open[getname(c)].projects
+        projects::Vector{Project{<:Any}} = CORE.users[getname(c)].environment.projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 

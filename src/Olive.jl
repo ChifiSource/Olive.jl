@@ -11,7 +11,7 @@ using Olive; Olive.start()
 ```
 """
 module Olive
-import Base: write, display, getindex, setindex!, string, showerror, push!
+import Base: write, display, getindex, setindex!, string, showerror, push!, keys
 using Toolips
 using Toolips.Components
 using Toolips: WebServer
@@ -225,11 +225,12 @@ have keys.
 """
 function verify_client!(c::Connection)
     key = get_session_key(c)
-    if ~(haskey(CORE.names, key))
+    key_reg = findfirst(user -> user.key == key, CORE.users)
+    if isnothing(key_reg)
         write!(c, build_key_screen(c, "bad key"))
         return("dead")
     end
-    return(c[:OliveCore].names[key])::String
+    return(c[:OliveCore].users[key_reg].name)::String
 end
 
 """
@@ -270,7 +271,7 @@ function load_default_project!(c::Connection)
     name::String = getname(c)
     oc::OliveCore = c[:OliveCore]
     cells = Vector{Cell}([Cell("getstarted", "")])
-    env::Environment = Environment(name)
+    env::Environment = Environment("olive")
     env.pwd::String = oc.data["wd"]
     env.directories = copy(get_group(c).directories)
     pwd_direc::Directory{:pwd} = Directory(env.pwd, dirtype = "pwd")
@@ -285,7 +286,7 @@ function load_default_project!(c::Connection)
     oc.olmod.Olive.source_module!(c, myproj, sourced_path)
     insert!(env.directories, 1, pwd_direc)
     push!(env.projects, myproj)
-    push!(oc.open, env)
+    oc.users[getname(c)].environment = env
     env::Environment
 end
 
@@ -371,12 +372,16 @@ extend `Olive` using a new `Environment` type.
 function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
     themes_enabled::Bool = true)
     selected_sheet = sheet
+    user = c[:OliveCore].users[getname(c)]
     if themes_enabled
-        if haskey(c[:OliveCore].client_data[getname(c)], "theme")
-            theme_name = c[:OliveCore].client_data[getname(c)]["theme"]
+        if haskey(user.data, "theme")
+            theme_name = user.data["theme"]
             theme_dir = CORE.data["home"] * "/themes"
             fpath = theme_dir * "/$(replace(theme_name, " " => "-")).olivestyle"
             selected_sheet = TOML.parse(read(fpath, String))["COMPOSED"]
+            fpath = nothing
+            theme_dir = nothing
+            theme_name = nothing
         end
     end
     write!(c, selected_sheet)
@@ -484,12 +489,11 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
         uname = getname(c)
     end
     # check for environment, if none load.
-    envsearch = findfirst(e::Environment -> e.name == uname, c[:OliveCore].open)
-    if isnothing(envsearch)
+    user = CORE.users[uname]
+    env = user.environment
+    if length(env.projects) == 0 && length(env.directories) == 0
         env::Environment = default(c)
-        push!(c[:OliveCore].open, env)
-    else
-        env = c[:OliveCore].open[getname(c)]
+        user.environment = env
     end
      # setup base UI
     bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet)
@@ -522,8 +526,9 @@ end
 
 function load_projects(c::AbstractConnection, cm2::ComponentModifier)
     remove!(cm2, "loaddiv")
-    env = CORE.open[getname(c)]
-    olmod = CORE.olmod
+    user::OliveUser = CORE.users[getname(c)]
+    env::Environment = user.environment
+    olmod::Module = CORE.olmod
     for proj in env.projects
         projpane = proj.data[:pane]
         append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))
@@ -540,7 +545,7 @@ function load_projects(c::AbstractConnection, cm2::ComponentModifier)
             append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[p2i]))
         end
     else
-        CORE.open[getname(c)] = default(c)
+        user.environment = default(c)
         for proj in env.projects
             projpane = proj.data[:pane]
             append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))
@@ -576,7 +581,18 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger)
     Pkg.activate("$path/olive")
     CORE.data = config["olive"]
     rootname = CORE.data["root"]
-    CORE.client_data = config["oliveusers"]
+    user_inits = [begin 
+        m.sig.parameters[3].parameters[1]
+    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
+    CORE.users = Vector{OliveUser}([begin
+        userkey = Toolips.gen_ref(10)
+        push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
+        user = OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
+        for call in user_inits
+            init_user(user, call)
+        end
+        user
+    end for kp in config["oliveusers"]])
     if ~haskey(CORE.data, "home")
         push!(CORE.data, "home" => path * "/olive")
     end
@@ -645,6 +661,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(CORE.data, "root" => "olive user", "wd" => wd, 
             "groups" => [Group("root")], "headless" => true)
         source_module!(CORE)
+        # TODO add new `OliveUser`
         push!(CORE.client_data, "olive user" => Dict{String, Any}("group" => "root"))
     end
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
@@ -659,9 +676,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     end
     rootname = CORE.data["root"]
     if rootname != ""
-        key::String = ToolipsSession.gen_ref(10)
-        push!(CORE.names, key => rootname)
-        push!(SES.events, key => Vector{ToolipsSession.AbstractEvent}())
+        key = CORE.users[rootname].key
         log(ollogger,
             "\nlink for $(rootname): http://$(string(IP))/key?q=$key", 2)
     end
