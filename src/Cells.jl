@@ -1134,6 +1134,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
                 @warn "option 2"
                 curr[begin:last_n] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:end]
             end
+        res = replace(res, " " => "&nbsp;")
         @warn replace(res, "\n" => "!N")
         @warn length(res)
         set_text!(cm, "cell$(cell.id)", res)
