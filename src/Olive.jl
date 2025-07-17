@@ -84,12 +84,13 @@ for name in names(Base)
     end
 end
 
-println(STDO::String = "", x::Any ...) = begin
-    STDO * join(string(x) for x in x) * "</br>"
+println(STDO::String = "", vals::Any ...) = begin
+    @warn join(string(x) for x in vals)
+    STDO * join(string(x) for x in vals) * "</br>"
 end
 
-print(STDO::String = "", x::Any ...) = begin
-    STDO * join(string(x) for x in x)
+print(STDO::String = "", vals::Any ...) = begin
+    STDO * join(string(x) for x in vals)
 end
 
 read(path::AbstractString, wd::AbstractString, args ...; keyargs ...) = Base.read(wd * "/$path", args ...; keyargs ...)
@@ -149,11 +150,12 @@ function olive_module(modname::String, environment::String)
     end
     pwd() = WD
     println(x::Any ...) = begin
-        $modname.STDO = OliveBase.println($modname.STDO, x)
+        $modname.STDO = OliveBase.println($modname.STDO, x ...)
+        @info $modname.STDO
         return(nothing)::Nothing
     end
     print(x::Any ...) = begin
-        $modname.STDO = OliveBase.print($modname.STDO, x)
+        $modname.STDO = OliveBase.print($modname.STDO, x ...)
         return(nothing)::Nothing
     end
     read(path::AbstractString, args ...; keyargs ...) = OliveBase.read(path, $modname.WD, args ...; keyargs ...)

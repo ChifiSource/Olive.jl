@@ -1109,6 +1109,38 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         end for (e, cell_path) in enumerate(env.cell_clipboard)]
         proj.data[:cells] = vcat(proj.data[:cells][1:found_pos], paste_cells, proj.data[:cells][found_pos + 1:end])
     end
+    ToolipsSession.bind(km, "Tab", prevent_default = true) do cm::ComponentModifier
+        callback_comp::Component = cm["cell$(cell.id)"]
+        curr::String = callback_comp["text"]
+        if curr == ""
+            res = "&nbsp;&nbsp;&nbsp;&nbsp;"
+            set_text!(cm, "cell$(cell.id)", res)
+            Components.set_textdiv_cursor!(cm, "cell$(cell.id)", 4)
+            return
+        end
+        last_n::Int64 = parse(Int64, callback_comp["caret"])
+        off = length(findall("\n", curr))
+        last_n += off
+        @warn replace(curr, "\n" => "!N")
+        if length(curr) > 2 && curr[end - 1:end] == "\n\n"
+            curr = curr[begin:end - 1]
+            last_n -= 1
+            off -= 1
+        end
+        res = if last_n == length(curr)
+                @warn "option 1"
+                curr * "&nbsp;&nbsp;&nbsp;&nbsp;"
+            else
+                @warn "option 2"
+                curr[begin:last_n] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:end]
+            end
+        res = replace(res, " " => "&nbsp;")
+        @warn replace(res, "\n" => "!N")
+        @warn length(res)
+        set_text!(cm, "cell$(cell.id)", res)
+        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4 - off)
+        
+    end
     original_class_inp = ""
     original_class_side = ""
     ToolipsSession.bind(km, keybindings["select"]) do cm2::ComponentModifier
