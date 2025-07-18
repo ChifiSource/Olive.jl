@@ -1628,10 +1628,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     getstarted::Component{:div} = div("getstarted$(cell.id)", contenteditable = true)
     style!(getstarted, "padding" => 3px, "margin-top" => 0px, "overflow" => "visible")
     runl::Component{:div} = tmd("runl", 
-    """- use `shift` `enter` (**evaluate**) to use this project
-    ##### new in 0.1.4
-    - Patched thread argument and `everywhere` call
-    - Updated Toolips version compatibility for `rep_in`""")
+    """- use `shift` `enter` (**evaluate**) to use this project""")
     
     style!(runl, "padding" => 2px)
     push!(getstarted, runl)

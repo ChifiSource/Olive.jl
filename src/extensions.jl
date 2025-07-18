@@ -313,7 +313,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     style!(collapsebutt, "color" => "white", "font-size" => 17pt)
     on(c, collapsebutt, "click") do cm2::ComponentModifier
         if cm2[collapsebutt]["col"] == "false"
-            style!(cm2, builtcell, "height" => 3percent,
+            style!(cm2, builtcell,
             "transform" => "scaleY(50%)",
             "overflow" => "hidden", "border-bottom-width" => 2px,
              "border-bottom-style" => "solid",

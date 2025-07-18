@@ -1457,18 +1457,23 @@ end
 function build_base_error_box(err::Exception, traces::Vector{Base.StackTraces.StackFrame}; 
     message::String = "$(typeof(err)) Exception ")
 	# Extract first relevant file and line number
+    messages = Vector{AbstractComponent}()
 	linef = 0
 	for frame in traces
 		if frame.linfo !== nothing
 			linef = frame.line - 1
-			break
 		end
+        frametext = string(frame)
+        if contains(frametext, "evalin")
+            break
+        end
+        push!(messages, div("-", text = frametext))
 	end
 	# Create a header with error type & location
 	exception_header = div("-", text = "$message on line $linef")
 	style!(exception_header, "background-color" => "#8B0000", "font-weight" => "bold",
 		"padding" => 7px, "border-radius" => 2px, "color" => "white")
-	message_box = div("message", text = string(err))
+	message_box = div("message", children = messages)
 	style!(message_box, "padding" => 10px, "background-color" => "#FFB6C1", "color" => "black",
 		"border-radius" => 3px, "white-space" => "pre-wrap")
     return(div("exbox" * Toolips.gen_ref(3), children = [exception_header, message_box]), linef)
@@ -1489,6 +1494,20 @@ function display(d::OliveDisplay, err::UndefVarError, traces::Vector{Base.StackT
     name = string(err.var)
     main_box[:children, "message"][:children] = p("-", text = "$name not defined in this project")
     write(d.io, string(main_box))
+end
+
+function display(d::OliveDisplay, err::MethodError, traces::Vector{Base.StackTraces.StackFrame})
+    main_box, line = build_base_error_box(err, traces)
+    argstr = join(("::" * string(typeof(arg)) for arg in err.args), ", ")
+    error_str = "$(err.f)($(argstr))"
+    main_box[:children]["message"][:children] = [h4(text = "no method matching $error_str")]
+    mnames = [begin
+        box = div("m", text = string(m))
+        style!(box, "padding" => 3px, "background-color" => "#478056", "color" => "white", "border-radius" => 0px)
+        box
+    end for m in methods(err.f)]
+    second_box = div("-", children = [h2(text = "available methods for '$(err.f)':"), mnames ...])
+    write(d.io, string(main_box) * string(second_box))
 end
 
 function display(d::OliveDisplay, m::MIME"image/png", o::Any)
