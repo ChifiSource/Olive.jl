@@ -186,8 +186,8 @@ end
 """
 function olive_motd()
     recent_str::String = """# olive editor
-    ##### $(pkgversion(Olive)) (Beta I)
-    - **thank you for using olive beta I !**
+    ##### $(pkgversion(Olive))
+    - **thank you for using olive beta !**
     """
     tmd("olivemotd", recent_str)::Component{<:Any}
 end
@@ -627,7 +627,7 @@ olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
 function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"), 
-    threads::Int64 = 0, headless::Bool = false)
+    threads::Int64 = 0, headless::Bool = false, user_threads::UnitRange{Int64} = 1:1)
     ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'
@@ -663,9 +663,10 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(CORE.data, "root" => "olive user", "wd" => wd, 
             "groups" => [Group("root")], "headless" => true)
         source_module!(CORE)
-        # TODO add new `OliveUser`
-        push!(CORE.client_data, "olive user" => Dict{String, Any}("group" => "root"))
-    end
+        userkey = Toolips.gen_ref(10)
+        push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
+        user = OliveUser{:olive}("olive user", userkey, Environment("olive"), Dict{String, Any}("group" => "root"))
+        push!(CORE.user, user)
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
     if threads > 1
         push!(CORE.data, "threads" => threads)
