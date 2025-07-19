@@ -26,7 +26,7 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
     "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].open[getname(c)].projects
+        projects = CORE.users[getname(c)].environment.projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
@@ -59,7 +59,7 @@ end
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     cells = proj[:cells]
-    projs = c[:OliveCore].open[getname(c)].projects
+    projs = CORE.users[getname(c)].environment.projects
     if cell.source != ""
         cell.source = replace(cell.source, "include(\"" => "", "\")" => "")
     end
@@ -80,7 +80,7 @@ end
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include}, 
     proj::Project{<:Any})
     path = cm["cell$(cell.id)"]["text"]
-    env = c[:OliveCore].open[getname(c)]
+    env = CORE.users[getname(c)].environment
     current_path::String = env.pwd
     if :path in keys(proj.data)
         fnamesplit = split(proj.data[:path], "/")
@@ -91,7 +91,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
         olive_notify!(cm, "$fullpath is not a file!", color = "red")
     end
     cell.source = path
-    projs = c[:OliveCore].open[getname(c)].projects
+    projs = env.projects
     if isnothing(findfirst(p -> p.id == cell.outputs, projs))
         if isfile(fullpath)
             fnamesplit = split(fullpath, "/")
@@ -143,7 +143,7 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].open[getname(c)].projects
+        projects = c[:OliveCore].users[getname(c)].environment.projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
@@ -224,7 +224,7 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     proj::Project{<:Any})
-    projects = c[:OliveCore].open[getname(c)].projects
+    projects = c[:OliveCore].users[getname(c)].environment.projects
     if length(findall(proj -> proj.id == cell.source, projects)) > 0
         modname = cell.outputs[1]
         proj = projects[modname]
@@ -241,9 +241,9 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     end
     inclproj = Project{:module}(modname, projdict)
     source_module!(c, inclproj)
-    proj.data[:mod].evalin(Meta.parse("global $modname = nothing"))
+    proj.data[:mod].eval(Meta.parse("$modname = nothing"))
     Main.evalin(Meta.parse("$(proj.data[:modid]).$modname = $(inclproj.data[:modid])"))
-    push!(c[:OliveCore].open[getname(c)].projects, inclproj)
+    push!(projects, inclproj)
     tab = build_tab(c, inclproj)
     open_project(c, cm, inclproj, tab)
     olive_notify!(cm, "module $modname added", color = "red")
@@ -269,7 +269,8 @@ function build(c::Connection, cell::Cell{:toml},
         activatebutton = topbar_icon("$(cell.id)act", "bolt")
         style!(activatebutton, "font-size" => 20pt, "color" => "white")
         on(c, activatebutton, "click") do cm::ComponentModifier
-            for proj in c[:OliveCore].open[getname(c)].projects
+            n = getname(c)
+            for proj in c[:OliveCore].users[n].environment.projects
                 b = button("activate$(proj.id)", text = proj.name)
                 on(c, b, "click") do cm2::ComponentModifier
                     modname = proj.id
@@ -278,7 +279,7 @@ function build(c::Connection, cell::Cell{:toml},
                     proj.data[:mod] = getfield(Main, Symbol(modname))
                     olive_notify!(cm2, "environment $(cell.outputs) activated",
                     color = "blue")
-                    for k in c[:OliveCore].open[getname(c)].projects
+                    for k in c[:OliveCore].users[n].environment.projects
                         remove!(cm2, "activate$(k.id)")
                     end
                 end
@@ -295,7 +296,7 @@ toml_string(cell::Cell{:tomlvalues}) = cell.source * "\n"
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     proj::Project{<:Any})
-    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
+    tm = c[:OliveCore].users[getname(c)]["highlighters"]["toml"]
     tm.raw = cell.source
     OliveHighlighters.mark_toml!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
@@ -312,7 +313,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     style!(collapsebutt, "color" => "white", "font-size" => 17pt)
     on(c, collapsebutt, "click") do cm2::ComponentModifier
         if cm2[collapsebutt]["col"] == "false"
-            style!(cm2, builtcell, "height" => 3percent,
+            style!(cm2, builtcell,
             "transform" => "scaleY(50%)",
             "overflow" => "hidden", "border-bottom-width" => 2px,
              "border-bottom-style" => "solid",
@@ -370,7 +371,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:tomlv
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
-    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
+    tm = c[:OliveCore].users[getname(c)]["highlighters"]["toml"]
     tm.raw = cell.source
     OliveHighlighters.mark_toml!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
