@@ -90,10 +90,6 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
     cellid::String = cell.id
     pos = findlast(tempcell::Cell{<:Any} -> tempcell.id == cellid, cells)
-    if isnothing(pos)
-        @info [lcell.id for lcell in cells]
-        @info cell.id
-    end
     if pos == 1
         focus!(cm, "cell$(cells[pos + 1].id)")
     else
@@ -1124,22 +1120,17 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         last_n::Int64 = parse(Int64, callback_comp["caret"])
         off = length(findall("\n", curr))
         last_n += off
-        @warn replace(curr, "\n" => "!N")
         if length(curr) > 2 && curr[end - 1:end] == "\n\n"
             curr = curr[begin:end - 1]
             last_n -= 1
             off -= 1
         end
         res = if last_n == length(curr)
-                @warn "option 1"
                 curr * "&nbsp;&nbsp;&nbsp;&nbsp;"
             else
-                @warn "option 2"
                 curr[begin:last_n] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:end]
             end
         res = replace(res, " " => "&nbsp;")
-        @warn replace(res, "\n" => "!N")
-        @warn length(res)
         set_text!(cm, "cell$(cell.id)", res)
         Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4 - off)
         
@@ -1510,10 +1501,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cell.outputs = outp
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
     if isnothing(pos)
-        @warn "olive cell error:"
-        @info "cell $(pos) $(cell.id)"
-        @info "$(length(cells))"
-        @info join("$(cell.id)|" for cell in cells)
         olive_notify!(cm, "cell error! check the terminal for more details...", color = "red")
         return
     end

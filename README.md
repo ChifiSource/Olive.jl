@@ -37,7 +37,7 @@ Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor buil
 ---
 ### get started
 - this overview corresponds to `Olive` **0.2**
-
+<img src="https://github.com/ChifiSource/image_dump/blob/main/olive/01%20screenshots/Screenshot%20from%202025-07-18%2020-56-20.png?raw=true"></img>
 ###### getting olive
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**, or use the `Pkg.add` `Function` to add `Olive`.
 ```julia
@@ -90,7 +90,7 @@ This is the defining characteristic of `Olive`, and also how the base `Olive` fe
 ### user interface
 Olive's user-interface is relatively straightforward. When starting olive, you will be greeted with a `get started` `Project`. A `Project` in `Olive` is represented by a tab and the project's cells. This consumes the majority of the UI. These projects are contained within two separate panes, the **left pane** and the **right pane** respectively. The left pane **can** be open without the right pane, but the right pane **cannot** be open without the left pane. The project can be switched using the pane switcher button on the top of the project. At the top of the window will be the **topbar**. The **topbar** has two buttons on it, on the left this is a folder with an arrow. Clicking this button will open the **project explorer**. This is the menu to the left of your `Olive` session. The **project explorer** contains a (*green*) working directory, as well as any other saved user directories. Additionally, the project explorer holds a `home` directory if the current user is root.
 <div align="center">
-   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/ui1.png"></img>
+   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/01%20screenshots/Screenshot%20from%202025-07-18%2020-47-55.png"></img>
 </div>
 
 The main window is called **session**. This contains two panes which will be filled with your projects. Projects are denoted by a tab and a window which contains cells. This tab can be double clicked for a range of different project options.
@@ -98,7 +98,7 @@ The main window is called **session**. This contains two panes which will be fil
 **session** is the colloquial name for the central editor which comprises `Olive` -- this being the `Project` and `Cell` combination. Inside of **session** there are two panes, `pane_one` and `pane_two` respectively. These panes houses projects, their tabs being contained within a tab container above them. Clicking these tabs will yield project focus. Double clicking will add the tab's controls to the tab. These are, from left to right, `decollapse controls`, `new cell`, `switch pane`, `re-source`,`step evaluate`, and `close project`. Other than this, the hotkeys in [keybindings](https://github.com/ChifiSource/Olive.jl#keybindings) are the primary method `Olive` uses for input. Files are open from the **project explorer** and then edited inside of this session, before being saved. 
 
 <div align="center">
-   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/ui2.png"></img>
+   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/01%20screenshots/Screenshot%20from%202025-07-18%2020-47-22.png"></img>
 </div>
 
 
@@ -136,7 +136,7 @@ These keybindings can be edited inside of the [settings](https://github.com/Chif
 The final component of the Olive UI we might want to familiarize ourselves with is the **settings** menu. Using [load extensions](#load-extensions), everything in `Olive` becomes a customizable setting. This menu is pretty straightforward, press the cog in the **top bar** to open or close the settings. Settings are organized into different menus by extension. These menus can be collapsed and decollapsed and contain editable settings for `Olive`. Note that in some cases, the page may need to be refreshed for new settings to be applied. There are more nuanced examples to this, as well. For example, changing your highlighter's style will yield no changes until a cell is typed into (or another cell is built.) Changing the key-bindings will only apply to newly built cells. 
 
 <div align="center">
-   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/doc92sc/ui3.png"></img>
+   <img src="https://github.com/ChifiSource/image_dump/blob/main/olive/01%20screenshots/Screenshot%20from%202025-07-18%2020-47-41.png?raw=true"></img>
 </div>
 
 #### project explorer
