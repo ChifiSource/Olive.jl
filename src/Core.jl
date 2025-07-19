@@ -235,8 +235,11 @@ function load_style_settings(c::AbstractConnection, om::AbstractComponentModifie
     on(c, updatebutton, "click") do cm::ComponentModifier
         [begin
             styles = Dict([k[1] => cm["$(k[1])$(highlighter[1])"]["value"] for k in dic[highlighter[1]]])
-            dic[highlighter[1]] = styles
-        end for highlighter in dic]
+            user.data["highlighting"][highlighter[1]] = styles
+        end for highlighter in user.data["highlighting"]]
+        highlighters = create_highlighters(user.data["highlighting"])
+        user.data["highlighters"] = Dict{String, OliveHighlighters.Highlighter}(
+            "julia" => highlighters[1], "toml" => highlighters[2], "markdown" => highlighters[3])
         olive_notify!(cm, "Your syntax highlighters have been updated", color = "green")
     end
     push!(sect, Component{:sep}("highsep"), updatebutton)
@@ -961,6 +964,22 @@ init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}}) = begin
     end
 end
 
+function create_highlighters(highlighting::Dict)
+    julia_highlighter = OliveHighlighters.Highlighter("")
+    toml_highlighter = OliveHighlighters.Highlighter("")
+    md_highlighter = OliveHighlighters.Highlighter("")
+    julia_highlighter.styles = Dict(begin
+        Symbol(k[1]) => ["color" => k[2]]
+    end for k in highlighting["julia"])
+    toml_highlighter.styles = Dict(begin
+        Symbol(k[1]) => ["color" => k[2]]
+    end for k in highlighting["toml"])
+    md_highlighter.styles = Dict(begin
+            Symbol(k[1]) => ["color" => k[2]]
+    end for k in highlighting["markdown"])
+    return(julia_highlighter, toml_highlighter, md_highlighter)
+end
+
 init_user(user::OliveUser, oe::Type{OliveExtension{:highlighting}}) = begin
     setting_keys = keys(user.data)
     @info setting_keys
@@ -979,21 +998,10 @@ init_user(user::OliveUser, oe::Type{OliveExtension{:highlighting}}) = begin
     end
     if ~("highlighters" in setting_keys)
         highlighting = user.data["highlighting"]
-        julia_highlighter = OliveHighlighters.Highlighter("")
-        toml_highlighter = OliveHighlighters.Highlighter("")
-        md_highlighter = OliveHighlighters.Highlighter("")
-        julia_highlighter.styles = Dict(begin
-            Symbol(k[1]) => ["color" => k[2]]
-        end for k in highlighting["julia"])
-        toml_highlighter.styles = Dict(begin
-            Symbol(k[1]) => ["color" => k[2]]
-        end for k in highlighting["toml"])
-        md_highlighter.styles = Dict(begin
-            Symbol(k[1]) => ["color" => k[2]]
-        end for k in highlighting["markdown"])
+        highlighters = create_highlighters(highlighting)
         push!(user.data, 
             "highlighters" => Dict{String, OliveHighlighters.Highlighter}(
-                "julia" => julia_highlighter, "toml" => toml_highlighter, "markdown" => md_highlighter))
+            "julia" => highlighters[1], "toml" => highlighters[2], "markdown" => highlighters[3]))
     end
 end
 

@@ -578,18 +578,23 @@ end
 
 CORE::OliveCore = OliveCore("olive")
 
-function read_config(path::String, wd::String, ollogger::Toolips.Logger)
+function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads::Int64 = 1, user_threads::Int64 = 1)
     config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
     Pkg.activate("$path/olive")
     CORE.data = config["olive"]
     rootname = CORE.data["root"]
+    threads -= 1
     user_inits = [begin 
         m.sig.parameters[3].parameters[1]
     end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
+
     CORE.users = Vector{OliveUser}([begin
         userkey = Toolips.gen_ref(10)
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
         user = OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
+        if user_threads > 1
+            user.data["threads"] = [rand(2:threads) for val in 1:user_threads]
+        end
         for call in user_inits
             init_user(user, call)
         end
@@ -627,7 +632,7 @@ olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
 function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"), 
-    threads::Int64 = 0, headless::Bool = false, user_threads::UnitRange{Int64} = 1:1)
+    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads)
     ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'
@@ -640,7 +645,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     rootname = ""
     if ~(headless)
         try
-            read_config(path, wd, ollogger)
+            read_config(path, wd, ollogger, threads, user_threads)
         catch e
             throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
             log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
@@ -667,10 +672,11 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
         user = OliveUser{:olive}("olive user", userkey, Environment("olive"), Dict{String, Any}("group" => "root"))
         push!(CORE.user, user)
+    end
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
     if threads > 1
         push!(CORE.data, "threads" => threads)
-            Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
+        Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Olive.Toolips
             using Olive.ToolipsSession
             using Dates

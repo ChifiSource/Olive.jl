@@ -1453,7 +1453,8 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             end
             execcode = "evalin(Meta.parse(\"\"\"$execcode\"\"\"))"
             modstr = Symbol(split(string(olive_mod), ".")[end])
-            ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, proj.data[:thread], quote
+            thread_vals = proj.data[:thread]
+            ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, thread_vals[rand(1:length(thread_vals))], quote
 		        Base.include_string($(Expr(:quote, olive_mod)), $execcode)
 	        end)
        #==     job = new_job(eval_in_mod, string(proj[:mod]), execcode)
