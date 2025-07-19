@@ -1445,6 +1445,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     ret::Any = ""
     st_trace = nothing
     olive_mod = proj[:mod]
+    sel_thread = nothing
     try
         if :thread in keys(proj.data)
             if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin")
@@ -1487,6 +1488,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj = projects[projpos]
     outp::String = ""
     standard_out::String = proj[:mod].STDO
+    if ~(isnothing(sel_thread))
+        # TODO currently no multi-threaded printout, as `STDO` only updates on that chosen thread. 
+        # we will need to do an evaluation to get the `STDO` from `sel_thread`
+    end
     active_display::OliveDisplay = OliveDisplay()
     if length(standard_out) > 0
         outp = standard_out
