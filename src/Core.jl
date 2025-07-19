@@ -411,11 +411,18 @@ function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
         on(c, confirm_button, "click") do cm2::ComponentModifier
             new_user_name = cm2["new-username"]["text"]
             new_user_group = cm2["new-usergroup"]["value"]
+            
             key::String = ToolipsSession.gen_ref(10)
             new_data = Dict{String, Any}("group" => new_user_group)
-            push!(CORE.names, key => new_user_name)
             push!(SES.events, key => Vector{ToolipsSession.AbstractEvent}())
-            # TODO load new user here
+            user = OliveUser{:olive}(new_user_name, key, Environment("olive"), new_data)
+            user_inits = [begin 
+                m.sig.parameters[3].parameters[1]
+            end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
+            for call in user_inits
+                init_user(user, call)
+            end
+            push!(CORE.users, user)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
             append!(cm2, "user_previews", build_user_data(c, new_user_name, new_data))
             remove!(cm2, "newuser")
@@ -467,15 +474,13 @@ function build_user_data(c::AbstractConnection, name::String, data::Dict)
     end
     on(c, del_button, "click") do cm2::ComponentModifier
         confirmer = olive_confirm_dialog(c, "delete user $(name)? (this cannot be undone!)") do cm::ComponentModifier
-            delete!(CORE.client_data, name)
-            user_key = get_session_key(c)
-            delete!(CORE.names, user_key)
-            olive_notify!(cm, "user $name removed (pending settings close to save)", color = "darkred")
+            f = findfirst(user -> user.name == name, CORE.users)
+            deleteat!(CORE.users, f)
         end
         append!(cm2, "mainbody", confirmer)
     end
-    active_key = get_session_key(c)
-    link = "http://$(get_host(c))/?key=$active_key"
+    active_key = CORE.users[name].key
+    link = "http://$(get_host(c))/key?q=$active_key"
     key_ind = a("key-ind", text = link, href = link)
     style!(key_ind, "padding" => 7px, "background-color" => "#ffe8fb")
     user_container = div("$name-user", children = [name_indicator, key_ind, group_button, del_button])
@@ -916,6 +921,26 @@ getindex(e::Vector{Environment}, name::String) = begin
     e[pos]::Environment
 end
 
+"""
+```julia
+mutable struct OliveUser{ENV <: Any}
+```
+- name**::String**
+- key**::String**
+- environment**::Environment{ENV}**
+- data**::Dict{String, Any}**
+
+The `OliveUser` is a wrapper for each individual `Olive` client, including 
+    their key, name, entire `Olive` `Environment`, and their client data. Indexing 
+    an `OliveUser` will yield client data of that key.
+```julia
+OliveUser{ENV}(name::String, key::String, environment::Environment{ENV}, data::Dict{String, Any})
+```
+example
+```julia
+```
+- See also: 
+"""
 mutable struct OliveUser{ENV <: Any}
     name::String
     key::String
@@ -929,6 +954,17 @@ getindex(user::OliveUser, str::AbstractString) = getindex(user.data, str)
 
 setindex!(user::OliveUser, val::Any, str::AbstractString) = setindex!(user.data, val, str)
 
+"""
+```julia
+init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) -> ::Nothing
+```
+`init_user` is another extensible function that will provide `Olive` with new 
+    functionality. `init_user` is called when a user is loaded for the first time, and 
+    each existing method will be called. For example, user keybindings are loaded using `init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}})`.
+```julia
+```
+- See also: 
+"""
 init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) = begin
 
 end
@@ -982,7 +1018,6 @@ end
 
 init_user(user::OliveUser, oe::Type{OliveExtension{:highlighting}}) = begin
     setting_keys = keys(user.data)
-    @info setting_keys
     if ~("highlighting" in setting_keys)
         tm::Highlighter = OliveHighlighters.Highlighter("")
         OliveHighlighters.style_julia!(tm)
@@ -1233,9 +1268,7 @@ end
 ```
 - `olmod::Module`
 - `data::Dict{String, Any}`
-- `names::Dict{String, String}`
-- `client_data::Dict{String, Dict{String, Any}}`
-- `open::Vector{Environment}`
+- `users`**::Vector{OliveUser}**
 - `pool::Vector{String}`
 
 `OliveCore` is the main server-extension used to run `Olive`; this type keeps track of all `Olive` settings, holds 

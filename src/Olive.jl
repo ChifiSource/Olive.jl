@@ -228,6 +228,7 @@ have keys.
 function verify_client!(c::Connection)
     key = get_session_key(c)
     key_reg = findfirst(user -> user.key == key, CORE.users)
+    args = get_args(c)
     if isnothing(key_reg)
         write!(c, build_key_screen(c, "bad key"))
         return("dead")
@@ -481,14 +482,15 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
             return
         end
     else
-        if ~(get_ip(c) in keys(c[:OliveCore].names))
+        try
+            uname = getname(c)
+        catch
             throw("""You have an incorrectly configured `Olive` server... `key` is set to false, 
             but there is no loader loading your users into keys. The reason you would have `key` off is to 
             add your own authentication. You will need to setup the client's IP in `OliveCore.names` before calling `make_session`, 
             this is the exact check you failed; `~(get_ip(c) in keys(c[:OliveCore].names))`. If you are going to disable 
             `Olive` authentication, then you need to setup the client's environment in the route above this one.""")
         end
-        uname = getname(c)
     end
     # check for environment, if none load.
     user = CORE.users[uname]
@@ -668,9 +670,15 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(CORE.data, "root" => "olive user", "wd" => wd, 
             "groups" => [Group("root")], "headless" => true)
         source_module!(CORE)
+            user_inits = [begin 
+        m.sig.parameters[3].parameters[1]
+    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
         userkey = Toolips.gen_ref(10)
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
         user = OliveUser{:olive}("olive user", userkey, Environment("olive"), Dict{String, Any}("group" => "root"))
+        for call in user_inits
+            init_user(user, call)
+        end
         push!(CORE.user, user)
     end
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
