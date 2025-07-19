@@ -1071,6 +1071,9 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     end
     ToolipsSession.bind(km, keybindings["evaluate"]) do cm2::ComponentModifier
         cellid::String = cell.id
+        if "load$(cellid)" in cm2
+            return
+        end
         icon = olive_loadicon()
         icon.name = "load$(cell.id)"
         icon["width"] = "16"
@@ -1432,10 +1435,6 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
     OliveHighlighters.clear!(tm)
 end
 
-function define_function_on(worker::Int, mod::Any, code::String)
-
-end
-
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     window::String = proj.id
@@ -1446,6 +1445,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     ret::Any = ""
     st_trace = nothing
     olive_mod = proj[:mod]
+    sel_thread = nothing
     try
         if :thread in keys(proj.data)
             if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin")
@@ -1453,9 +1453,17 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             end
             execcode = "evalin(Meta.parse(\"\"\"$execcode\"\"\"))"
             modstr = Symbol(split(string(olive_mod), ".")[end])
-            ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, proj.data[:thread], quote
+            thread_vals = proj.data[:thread]
+            sel_thread = findfirst(w -> ~(w.active) && w.pid in thread_vals, c[:procs].workers)
+            if isnothing(sel_thread)
+                sel_thread = thread_vals[1]
+            end
+            worker = c[:procs][sel_thread]
+            worker.active = true
+            ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
 		        Base.include_string($(Expr(:quote, olive_mod)), $execcode)
 	        end)
+            worker.active = false
        #==     job = new_job(eval_in_mod, string(proj[:mod]), execcode)
             assigned_w = assign!(c[:procs], proj.data[:thread], job, sync = true)
             ret = waitfor(c[:procs], assigned_w, sync = true)[1] ==#
@@ -1480,6 +1488,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj = projects[projpos]
     outp::String = ""
     standard_out::String = proj[:mod].STDO
+    if ~(isnothing(sel_thread))
+        # TODO currently no multi-threaded printout, as `STDO` only updates on that chosen thread. 
+        # we will need to do an evaluation to get the `STDO` from `sel_thread`
+    end
     active_display::OliveDisplay = OliveDisplay()
     if length(standard_out) > 0
         outp = standard_out

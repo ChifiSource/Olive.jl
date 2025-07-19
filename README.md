@@ -14,7 +14,7 @@ Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor buil
 - **customizable** *everything* (styles, key-bindings, syntax highlighting, environment ...)
 - reading of pluto, julia, olive, **and** ipython notebooks -- saving to `Olive`, raw Julia, and IPython notebooks.
 - a full **file-browser**
-- **deployable**
+- **deployability**
 - and a **two-pane** design.
 
 ###### map
@@ -36,7 +36,7 @@ Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor buil
    - [tech stack](#tech-stack)
 ---
 ### get started
-- this overview corresponds to `Olive` **0.1** (beta)
+- this overview corresponds to `Olive` **0.2**
 
 ###### getting olive
 Getting started with Olive starts by installing this package via Pkg. **Press ] to enter your pkg REPL**, or use the `Pkg.add` `Function` to add `Olive`.
@@ -64,6 +64,9 @@ using Olive; Olive.start("127.0.0.1":9987)
 The following arguments will change the behavior of this start:
 - `path`**::String** = `homedirec()` -- The path
 - `wd`**::String** = `pwd()`
+- `headless`**::Bool** = false
+- `threads`**::Int64** = 1
+- user_threads**::UnitRange{Int64}** = 1:1
 If there is no `olive` setup inside of `path`, `start` will ask us for a root name to create a new `olive` home at that path. Providing `path` allows us to setup multiple `Olive` environments across our filesystem.
 ```julia
 IP = "127.0.0.1" # same as default (see ?(Olive.start))
@@ -73,6 +76,7 @@ using Olive
 
 Olive.start(IP, PORT, path = startpath)
 ```
+Providing `headless` as `true` will create a *headless* `Olive` server, or an `Olive` server without an `olive` directory. `user_threads` is a default range that will be provided in the case of multi-threaded clients. Make sure that this range is within the amount of threads that are provided in the `threads` key-word argument.
 #### docs
 This README includes a brief overview of `Olive`'s basic usage; for more information `Olive` ensures that all doc-strings are easily browse-able. All exports are listed in the doc-string for `Olive`. Alteranatively, you could `push!` `Olive.Toolips.make_docroute(Olive)` to `Olive.olive_routes` or use the `OliveDocBrowser` extension to browse documentation more thoroughly. [chifi](https://github.com/ChifiSource) is also working on a new documentation website, which will eventually have `Olive` documentation here:
 - [chifidocs](https://chifidocs.com/olive/olive)
@@ -125,6 +129,7 @@ Using cells is simple. By default, olive bindings use `ctrl` alone for window fe
   - `ctrl` + `C` **cell copy**
   - `ctrl` + `V` **cell paste**
   - `ctrl` + `X` **cell cut**
+  - `Tab` **indent line**
 
 These keybindings can be edited inside of the [settings](https://github.com/ChifiSource/Olive.jl#settings)
 #### settings
@@ -169,16 +174,14 @@ Clicking the `+` icon next to the `pwd` directory will create a new project, fil
 
 Extensions can be added to `Olive` by first clicking the `+` button by your `home` directory in `Olive`, then typing the extension's URL into the name box before pressing *add*. This will add the package to your Pkg environment, and add a new `using` entry for the package to your `olive.jl` home file. This could also be done manually. In `0.1.5`**+**, to use extensions with *headless* `Olive` simply load them before loading `Olive`.
 ### deploying olive
-   - [`beta` deployment status](#status)
    - [creating an olive server](#creating-a-server)
-#### status
-In its current form, `Olive` *still* needs a few more small things for deployment. Of course, all of this could be added in your own server using extensions, but eventually the base will better support deployment. It is definitely possible to deploy `Olive` publicly in its current state, but it isn't recommended and would likely require some pretty significant modifications to `Olive`.
 #### creating a server
 `Olive` now features the `create` bindings, for creating both a new `Olive`-based server and an `Olive` extension from a template.
 ```julia
 create(t::Type{Toolips.ServerTemplate}, name::String)
 create(t::Type{OliveExtension}, name::String)
 ```
+After calling these bindings, we will get a basic `Olive` server template to begin working from. From here, we will replace `Olive's` `/` with our own `/` that calls the internal function `make_session`
 ### contributing
 Olive is a complicated project, and there is a lot going on from merely Olive itself to the entire ecosystem that supports olive. That being said, community support is essential to improving this project. You may contribute to Olive by
 - simply using olive 🫒
