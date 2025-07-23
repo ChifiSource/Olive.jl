@@ -326,6 +326,9 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
 end
 
 build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{:olivebase}) = begin
+    if ~("settingsmenu" in om)
+        return
+    end
     load_keybinds_settings(c, om)
     load_style_settings(c, om)
     if get_group(c).name == "root"
@@ -416,12 +419,7 @@ function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
             new_data = Dict{String, Any}("group" => new_user_group)
             push!(SES.events, key => Vector{ToolipsSession.AbstractEvent}())
             user = OliveUser{:olive}(new_user_name, key, Environment("olive"), new_data)
-            user_inits = [begin 
-                m.sig.parameters[3].parameters[1]
-            end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
-            for call in user_inits
-                init_user(user, call)
-            end
+            init_user(user)
             push!(CORE.users, user)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
             append!(cm2, "user_previews", build_user_data(c, new_user_name, new_data))
@@ -956,6 +954,7 @@ setindex!(user::OliveUser, val::Any, str::AbstractString) = setindex!(user.data,
 
 """
 ```julia
+init_user(user::OliveUser)
 init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) -> ::Nothing
 ```
 `init_user` is another extensible function that will provide `Olive` with new 
@@ -967,6 +966,15 @@ init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) -> ::Nothing
 """
 init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) = begin
 
+end
+
+init_user(user::OliveUser) = begin
+    user_inits = [begin 
+        m.sig.parameters[3].parameters[1]
+    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
+    for call in user_inits
+        init_user(user, call)
+    end
 end
 
 init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}}) = begin

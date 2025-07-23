@@ -372,8 +372,9 @@ to look at this Function (line 274 of Olive.jl) to get an idea of how it works, 
 extend `Olive` using a new `Environment` type.
 - See also: `Project`, `Environment`, `make_session`, `start`, `getname`
 """
-function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
-    themes_enabled::Bool = true)
+function build(c::Connection, env::Environment{<:Any}, topbar_extras::Component{<:Any} ...; 
+    icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
+    themes_enabled::Bool = true, settings_enabled::Bool = true)
     selected_sheet = sheet
     user = c[:OliveCore].users[getname(c)]
     if themes_enabled
@@ -390,9 +391,17 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     write!(c, selected_sheet)
     olmod::Module = c[:OliveCore].olmod
     notifier::Component{:div} = olive_notific()
-    ui_topbar::Component{:div} = topbar(c)
+    ui_topbar::Component{:div} = if length(topbar_extras) < 1
+        topbar(c, settings_enabled)
+    else
+        topbar(c, settings_enabled, topbar_extras ...)
+    end
     ui_explorer::Component{:div} = projectexplorer()
-    ui_settings::Component{:div} = settings_menu(c)
+    ui_comps = (ui_explorer, ui_topbar)
+    if settings_enabled
+        ui_settings::Component{:div} = settings_menu(c)
+        push!(ui_comps, ui_settings)
+    end
     ui_explorer[:children] = Vector{Servable}([begin
         comp = olmod.build(c, d)
         compress!(comp)
@@ -436,7 +445,7 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     "height" => 90percent, "display" => "inline-flex")
     bod = body("mainbody")
     style!(bod, "overflow" => "hidden")
-    push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
+    push!(bod, notifier,  ui_comps ..., olivemain)
     return(bod, loadicondiv, olmod)
 end
 
@@ -470,7 +479,7 @@ end
 ```
 """
 function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon(), 
-    sheet = DEFAULT_SHEET)
+    sheet::Component = DEFAULT_SHEET, themes_enabled::Bool = true, settings_enabled::Bool = true)
     if get_method(c) == "post"
         return
     end
@@ -500,7 +509,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
         user.environment = env
     end
      # setup base UI
-    bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet)
+    bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet, themes_enabled = themes_enabled, settings_enabled = settings_enabled)
     on(c, 100) do cm
         load_extensions!(c, cm, olmod)
         style!(cm, "olive-loader", "opacity" => 0percent)
@@ -524,6 +533,14 @@ key_route = route("/key") do c::AbstractConnection
         write!(c, "invalid key provided")
         return
     end
+    #==
+    TODO In `Olive` `0.3`, I would much rather keep track of these without mutating session keys. This 
+    will likely mean refactoring this route to accept a different key, which then **sets the session key of 
+    the `OliveUser`** **AND** deletes that key permanently. This could be done in a `Dict` pretty easily, just key => username. 
+    I like the idea of still keeping it in this separate route to diminish overhead, though. I am not sure if that would be considered breaking, but it does 
+    add a new field to CORE... Or perhaps `Olive` itself.
+    ==#
+    Toolips.clear_cookies!(c)
     respond!(c, "<script>location.href='/'</script>", 
             [Toolips.Cookie("key", q)])
 end
@@ -621,10 +638,14 @@ end
 
 """
 ```julia
-start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd()) -> ::ParametricProcesses.ProcessManager
+start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd(), 
+    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads, skip_users::Bool = false) -> ::ParametricProcesses.ProcessManager
 ```
 Starts your `Olive` server! `path` will be the path of the `olive` home -- `Olive` requires this to function in its current state, 
-this is how it loads extensions. `wd` will become the default `:pwd` directory inside of `Olive`.
+this is how it loads extensions. `wd` will become the default `:pwd` directory inside of `Olive`. `threads` will determine the number of threads to spawn. 
+`user_threads` will determine the number of threads **per user** (by default, you could use extensions to change this actively as it is in `client_data`). 
+`headless` will enable 'headless mode'. Headless mode allows `Olive` to run without an `olive` directory or actual users. This is the quickest and easiest way to run `Olive`, 
+and extensions can still be loaded by simply using them in the repl alongside `Olive`. Finally, `skip_users` determines whether or not users should be loaded on startup.
 ```julia
 using Olive
 
@@ -634,7 +655,7 @@ olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
 function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"), 
-    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads)
+    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads, skip_users::Bool = false)
     ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'
@@ -812,7 +833,7 @@ function setup_olive(logger::Toolips.Logger, path::String)
 end
 SES = ToolipsSession.Session()
 LOGGER = OliveLogger()
-olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon])
+olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon, key_route])
 
 """
 ```julia
@@ -871,6 +892,6 @@ function create(t::Type{OliveExtension}, name::String)
     end
 end
 
-export CORE, olive_routes, SES, build, evalin, LOGGER, key_route
+export CORE, olive_routes, SES, build, evalin, LOGGER
 
 end # - module

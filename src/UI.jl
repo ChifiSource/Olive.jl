@@ -537,6 +537,9 @@ function open_settings_menu!(cm::AbstractComponentModifier)
 end
 
 function close_settings_menu!(cm::AbstractComponentModifier)
+    if ~("settingsmenu" in cm)
+        return
+    end
     cm["settingsmenu"] =  "open" => "0"
     style!(cm, "settingicon", "transform" => "rotate(0deg)")
     cm["settingicon"] = "class" => "material-icons topbaricons"
@@ -558,7 +561,7 @@ function settings(c::Connection)
     settingicon::Component{:span}
 end
 
-function topbar(c::Connection)
+function topbar(c::Connection, settings_enabled::Bool = true, extras::Component{<:Any} ...)
     topbar = div("menubar", class = "topbar")
     leftmenu = span("leftmenu", align = "left")
     style!(leftmenu, "display" => "inline-block")
@@ -570,7 +573,7 @@ function topbar(c::Connection)
     if ~(haskey(CORE.data, "noexp"))
         push!(leftmenu, explorer_icon(c))
     end
-    if ~(haskey(CORE.data, "headless"))
+    if ~(haskey(CORE.data, "headless")) && settings_enabled
         push!(rightmenu, settings(c))
     end
     push!(topbar, leftmenu, tabmenu, rightmenu)
