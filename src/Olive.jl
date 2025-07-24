@@ -26,6 +26,20 @@ using Pkg
 using OliveHighlighters
 using TOML
 
+function julia_interpolator(raw::String)
+    tm = JULIA_HIGHLIGHTER
+    set_text!(tm, raw)
+    OliveHighlighters.mark_julia!(tm)
+    ret::String = string(tm)
+    OliveHighlighters.clear!(tm)
+    jl_container = div("jlcont", text = ret)
+    style!(jl_container, "background-color" => "#1e1e1e", "font-size" => 10pt, "padding" => 25px, 
+    "margin" => 25px, "overflow" => "auto", "max-height" => 500px, "border-radius" => 3px)
+    string(jl_container)::String
+end
+
+INTERPOLATORS = ("julia" => julia_interpolator)
+
 """
 ```julia
 build(c::AbstractConnection, ...) -> ::AbstractComponent
@@ -64,7 +78,7 @@ import Base
 import Base: names, in, contains, Meta, string, join, eval
 
 disabled = [:pwd, :println, :print, :read, :cd, :open, :touch, :cp, :rm, 
-:mv, :rmdir]
+:mv, :rmdir, :info, :warn]
 
 for name in names(Base)
     if name in disabled
@@ -516,7 +530,9 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     on(c, 100) do cm
         load_extensions!(c, cm, olmod)
         style!(cm, "olive-loader", "opacity" => 0percent)
-        next!(load_projects, c, cm, "olive-loader")
+        next!(c, cm, "olive-loader") do cm::ComponentModifier
+            load_projects(c, cm, default)
+        end
     end
     write!(c, bod)
     envsearch = nothing
@@ -528,14 +544,14 @@ end
 key_route = route("/key") do c::AbstractConnection
     q = get_args(c)
     if ~(haskey(q, :q))
-        write!(c, "no key provided.")
+        write!(c, build_key_screen(c, "no key provided"))
         return
     end
     q = q[:q]
     if ~(q in keys(CORE.keys))
         @warn q
         @warn keys(CORE.keys)
-        write!(c, "invalid key provided")
+        write!(c, write!(c, build_key_screen(c, "bad key provided")))
         return
     end
     user = CORE.users[CORE.keys[q]]
@@ -544,7 +560,7 @@ key_route = route("/key") do c::AbstractConnection
     respond!(c, "<script>location.href='/'</script>")
 end
 
-function load_projects(c::AbstractConnection, cm2::ComponentModifier)
+function load_projects(c::AbstractConnection, cm2::ComponentModifier, default::Function = load_default_project!)
     remove!(cm2, "loaddiv")
     user::OliveUser = CORE.users[getname(c)]
     env::Environment = user.environment
@@ -565,7 +581,7 @@ function load_projects(c::AbstractConnection, cm2::ComponentModifier)
             append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[p2i]))
         end
     else
-        user.environment = default(c)
+        env = default(c)
         for proj in env.projects
             projpane = proj.data[:pane]
             append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))

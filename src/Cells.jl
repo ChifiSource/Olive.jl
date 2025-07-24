@@ -1598,6 +1598,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     activemd = cm["cell$(cell.id)"]["text"]
     cell.source = replace(activemd, "<br>" => "\n", "<div>" => "")
     newtmd = tmd("cell$(cell.id)tmd", cell.source)
+    ToolipsServables.interpolate!(newtmd, Olive.INTERPOLATORS ...)
     set_children!(cm, "cell$(cell.id)", [newtmd])
     cm["cell$(cell.id)"] = "contenteditable" => "false"
     on(c, cm, 100) do cm2::ComponentModifier

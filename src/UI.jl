@@ -961,7 +961,6 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     set_children!(cm2, "pane_$(proj.data[:pane])", Vector{Servable}())
     remove!(cm2, "tab$(name)")
     if(n_projects == 1)
-        # TODO start screen here
         remove!(cm2, proj.id)
     elseif n_projects == 2
         lastproj = findfirst(pre -> pre.id != proj.id, projs)
