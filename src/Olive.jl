@@ -374,7 +374,7 @@ extend `Olive` using a new `Environment` type.
 """
 function build(c::Connection, env::Environment{<:Any}, topbar_extras::Component{<:Any} ...; 
     icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
-    themes_enabled::Bool = true, settings_enabled::Bool = true)
+    themes_enabled::Bool = true, settings_enabled::Bool = true, topbar_side::Symbol = :right)
     selected_sheet = sheet
     user = c[:OliveCore].users[getname(c)]
     if themes_enabled
@@ -396,8 +396,11 @@ function build(c::Connection, env::Environment{<:Any}, topbar_extras::Component{
     else
         topbar(c, settings_enabled, topbar_extras ...)
     end
+    if length(topbar_extras) > 0
+        push!(ui_topbar["$(topbar_side)menu"], topbar_extras ...)
+    end
     ui_explorer::Component{:div} = projectexplorer()
-    ui_comps = (ui_explorer, ui_topbar)
+    ui_comps = [ui_explorer, ui_topbar]
     if settings_enabled
         ui_settings::Component{:div} = settings_menu(c)
         push!(ui_comps, ui_settings)
@@ -529,20 +532,16 @@ key_route = route("/key") do c::AbstractConnection
         return
     end
     q = q[:q]
-    if ~(q in keys(SES.events))
+    if ~(q in keys(CORE.keys))
+        @warn q
+        @warn keys(CORE.keys)
         write!(c, "invalid key provided")
         return
     end
-    #==
-    TODO In `Olive` `0.3`, I would much rather keep track of these without mutating session keys. This 
-    will likely mean refactoring this route to accept a different key, which then **sets the session key of 
-    the `OliveUser`** **AND** deletes that key permanently. This could be done in a `Dict` pretty easily, just key => username. 
-    I like the idea of still keeping it in this separate route to diminish overhead, though. I am not sure if that would be considered breaking, but it does 
-    add a new field to CORE... Or perhaps `Olive` itself.
-    ==#
-    Toolips.clear_cookies!(c)
-    respond!(c, "<script>location.href='/'</script>", 
-            [Toolips.Cookie("key", q)])
+    user = CORE.users[CORE.keys[q]]
+    user.key = get_session_key(c)
+    delete!(CORE.keys, q)
+    respond!(c, "<script>location.href='/'</script>")
 end
 
 function load_projects(c::AbstractConnection, cm2::ComponentModifier)
@@ -609,8 +608,8 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads
 
     CORE.users = Vector{OliveUser}([begin
         userkey = Toolips.gen_ref(10)
-        push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
         user = OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
+        push!(CORE.keys, userkey => user.name)
         if user_threads > 1
             user.data["threads"] = [rand(2:threads) for val in 1:user_threads]
         end

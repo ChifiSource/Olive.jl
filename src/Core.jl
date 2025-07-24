@@ -414,11 +414,10 @@ function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
         on(c, confirm_button, "click") do cm2::ComponentModifier
             new_user_name = cm2["new-username"]["text"]
             new_user_group = cm2["new-usergroup"]["value"]
-            
             key::String = ToolipsSession.gen_ref(10)
+            push!(CORE.keys, key => new_user_name)
             new_data = Dict{String, Any}("group" => new_user_group)
-            push!(SES.events, key => Vector{ToolipsSession.AbstractEvent}())
-            user = OliveUser{:olive}(new_user_name, key, Environment("olive"), new_data)
+            user = OliveUser{:olive}(new_user_name, "", Environment("olive"), new_data)
             init_user(user)
             push!(CORE.users, user)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
@@ -1299,6 +1298,7 @@ mutable struct OliveCore <: Toolips.AbstractExtension
     olmod::Module
     data::Dict{String, Any}
     users::Vector{OliveUser}
+    keys::Dict{String, String}
     pool::Vector{String}
     function OliveCore(mod::String)
         data::Dict{Symbol, Any} = Dict{Symbol, Any}()
@@ -1307,7 +1307,7 @@ mutable struct OliveCore <: Toolips.AbstractExtension
         open::Vector{Environment} = Vector{Environment}()
         pool::Vector{String} = Vector{String}()
         users = Vector{OliveUser}()
-        new(m, data, users, pool)::OliveCore
+        new(m, data, users, Dict{String, String}(), pool)::OliveCore
     end
 end
 
