@@ -26,6 +26,9 @@ using Pkg
 using OliveHighlighters
 using TOML
 
+JULIA_HIGHLIGHTER = Highlighter()
+OliveHighlighters.style_julia!(JULIA_HIGHLIGHTER)
+style!(JULIA_HIGHLIGHTER, :default, "color" => "white")
 function julia_interpolator(raw::String)
     tm = JULIA_HIGHLIGHTER
     set_text!(tm, raw)
@@ -33,12 +36,12 @@ function julia_interpolator(raw::String)
     ret::String = string(tm)
     OliveHighlighters.clear!(tm)
     jl_container = div("jlcont", text = ret)
-    style!(jl_container, "background-color" => "#1e1e1e", "font-size" => 10pt, "padding" => 25px, 
+    style!(jl_container, "background-color" => "#454545", "font-size" => 10pt, "padding" => 25px, 
     "margin" => 25px, "overflow" => "auto", "max-height" => 500px, "border-radius" => 3px)
     string(jl_container)::String
 end
 
-INTERPOLATORS = ("julia" => julia_interpolator)
+INTERPOLATORS = ["julia" => julia_interpolator]
 
 """
 ```julia

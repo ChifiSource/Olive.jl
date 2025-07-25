@@ -1574,6 +1574,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     if cell.source != ""
         maincell[:contenteditable] = false
         newtmd = tmd("cell$(cell.id)tmd", cell.source)
+        ToolipsServables.interpolate!(newtmd, Olive.INTERPOLATORS ...)
         push!(maincell, newtmd)
     end
     edit_flip = cm::AbstractComponentModifier -> begin
