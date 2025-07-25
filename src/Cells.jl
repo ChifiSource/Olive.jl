@@ -1565,6 +1565,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     km = cell_bind!(c, cell, proj)
     interior = newcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
+    inp[:children, "cell$(cell.id)"][:text] = ""
     sideb = interior[:children]["cellside$(cell.id)"]
     sideb[:class] = "cellside mdside"
     cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
@@ -1596,7 +1597,11 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
-    activemd = cm["cell$(cell.id)"]["text"]
+    active_cell = cm["cell$(cell.id)"]
+    if active_cell["contenteditable"] == "false"
+        return
+    end
+    activemd = active_cell["text"]
     cell.source = replace(activemd, "<br>" => "\n", "<div>" => "")
     newtmd = tmd("cell$(cell.id)tmd", cell.source)
     ToolipsServables.interpolate!(newtmd, Olive.INTERPOLATORS ...)
@@ -1610,7 +1615,11 @@ end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
-    curr = cm["cell$(cell.id)"]["text"]
+    active_cell = cm["cell$(cell.id)"]
+    curr = active_cell["text"]
+    if active_cell["contenteditable"] == "false"
+        return
+    end
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
     tm::Highlighter = CORE.users[getname(c)]["highlighters"]["markdown"]
     tm.raw = cell.source

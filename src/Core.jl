@@ -747,15 +747,17 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         write(o,
         """\"""
         ## welcome to olive!
-        Welcome to the `0.1` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
-        are added.
+        Welcome to your `olive` home file. This `Module` is used to extend `Olive` by loading new 
+        methods for `build`.
         ```julia
+        # try it yourself!
         import Olive: build
         build(c::Olive.Connection, om::Olive.ComponentModifier, oe::Olive.OliveExtension{:myext}) = begin
             Olive.olive_notify!(om, "welcome to my CUSTOM Olive!", color = "darkblue")
         end
         ```
         - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
+        
         \"""
         #==|""" * """||==#
         using Olive

@@ -849,6 +849,7 @@ function setup_olive(logger::Toolips.Logger, path::String)
     Pkg.add("Olive")
     log(logger, "olive setup completed successfully")
 end
+
 SES = ToolipsSession.Session()
 LOGGER = OliveLogger()
 olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon, key_route])
