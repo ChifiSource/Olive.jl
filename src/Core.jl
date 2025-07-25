@@ -326,6 +326,9 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
 end
 
 build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{:olivebase}) = begin
+    if ~("settingsmenu" in om)
+        return
+    end
     load_keybinds_settings(c, om)
     load_style_settings(c, om)
     if get_group(c).name == "root"
@@ -411,17 +414,11 @@ function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
         on(c, confirm_button, "click") do cm2::ComponentModifier
             new_user_name = cm2["new-username"]["text"]
             new_user_group = cm2["new-usergroup"]["value"]
-            
             key::String = ToolipsSession.gen_ref(10)
+            push!(CORE.keys, key => new_user_name)
             new_data = Dict{String, Any}("group" => new_user_group)
-            push!(SES.events, key => Vector{ToolipsSession.AbstractEvent}())
-            user = OliveUser{:olive}(new_user_name, key, Environment("olive"), new_data)
-            user_inits = [begin 
-                m.sig.parameters[3].parameters[1]
-            end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
-            for call in user_inits
-                init_user(user, call)
-            end
+            user = OliveUser{:olive}(new_user_name, "", Environment("olive"), new_data)
+            init_user(user)
             push!(CORE.users, user)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
             append!(cm2, "user_previews", build_user_data(c, new_user_name, new_data))
@@ -750,15 +747,17 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         write(o,
         """\"""
         ## welcome to olive!
-        Welcome to the `0.1` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
-        are added.
+        Welcome to your `olive` home file. This `Module` is used to extend `Olive` by loading new 
+        methods for `build`.
         ```julia
+        # try it yourself!
         import Olive: build
         build(c::Olive.Connection, om::Olive.ComponentModifier, oe::Olive.OliveExtension{:myext}) = begin
             Olive.olive_notify!(om, "welcome to my CUSTOM Olive!", color = "darkblue")
         end
         ```
         - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
+        
         \"""
         #==|""" * """||==#
         using Olive
@@ -956,6 +955,7 @@ setindex!(user::OliveUser, val::Any, str::AbstractString) = setindex!(user.data,
 
 """
 ```julia
+init_user(user::OliveUser)
 init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) -> ::Nothing
 ```
 `init_user` is another extensible function that will provide `Olive` with new 
@@ -967,6 +967,15 @@ init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) -> ::Nothing
 """
 init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) = begin
 
+end
+
+init_user(user::OliveUser) = begin
+    user_inits = [begin 
+        m.sig.parameters[3].parameters[1]
+    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
+    for call in user_inits
+        init_user(user, call)
+    end
 end
 
 init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}}) = begin
@@ -1291,6 +1300,7 @@ mutable struct OliveCore <: Toolips.AbstractExtension
     olmod::Module
     data::Dict{String, Any}
     users::Vector{OliveUser}
+    keys::Dict{String, String}
     pool::Vector{String}
     function OliveCore(mod::String)
         data::Dict{Symbol, Any} = Dict{Symbol, Any}()
@@ -1299,7 +1309,7 @@ mutable struct OliveCore <: Toolips.AbstractExtension
         open::Vector{Environment} = Vector{Environment}()
         pool::Vector{String} = Vector{String}()
         users = Vector{OliveUser}()
-        new(m, data, users, pool)::OliveCore
+        new(m, data, users, Dict{String, String}(), pool)::OliveCore
     end
 end
 
