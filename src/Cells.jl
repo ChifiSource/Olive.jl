@@ -1655,7 +1655,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     end
     push!(buttons_box, issues_button, doc_button)
     dir::Directory{<:Any} = Directory("~/")
-    if "recents" in keys(CORE.users[getname(c)].data)
+    userdata = CORE.users[getname(c)].data
+    if "recents" in keys(userdata) && length(userdata["recents"]) > 0
         recent_box::Component{:section} = section("recents")
         style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow-x" => "visible")
         recent_box[:children]::Vector{AbstractComponent} = [begin

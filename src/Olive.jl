@@ -168,7 +168,6 @@ function olive_module(modname::String, environment::String)
     pwd() = WD
     println(x::Any ...) = begin
         $modname.STDO = OliveBase.println($modname.STDO, x ...)
-        @info $modname.STDO
         return(nothing)::Nothing
     end
     print(x::Any ...) = begin
