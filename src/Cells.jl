@@ -1562,7 +1562,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     keybindings = CORE.users[getname(c)]["keybindings"]
     newcell = build_base_cell(c, cm, cell, proj, highlight = true, sidebox = true)
     windowname::String = proj.id
-    km = cell_bind!(c, cell, proj)
     interior = newcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children, "cell$(cell.id)"][:text] = ""

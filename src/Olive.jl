@@ -76,6 +76,7 @@ global evalin(ex::Any) = begin
     Base.eval(Main, ex)
 end
 selected_mod = nothing
+
 baremodule OliveBase
 import Base
 import Base: names, in, contains, Meta, string, join, eval
@@ -102,7 +103,6 @@ for name in names(Base)
 end
 
 println(STDO::String = "", vals::Any ...) = begin
-    @warn join(string(x) for x in vals)
     STDO * join(string(x) for x in vals) * "</br>"
 end
 
@@ -138,6 +138,7 @@ open(current_path::AbstractString, path::AbstractString, args ...; keyargs ...) 
 
 disabled = nothing
 end
+import Olive: OliveBase
 
 """export evalin
 ```julia
@@ -628,9 +629,7 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads
         userkey = Toolips.gen_ref(10)
         user = OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
         push!(CORE.keys, userkey => user.name)
-        if user_threads > 1
-            user.data["threads"] = [rand(2:threads) for val in 1:user_threads]
-        end
+
         for call in user_inits
             init_user(user, call)
         end
@@ -721,7 +720,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     end
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
     if threads > 1
-        push!(CORE.data, "threads" => threads)
+        push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
         Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Olive.Toolips
             using Olive.ToolipsSession
@@ -849,7 +848,7 @@ function setup_olive(logger::Toolips.Logger, path::String)
     log(logger, "olive setup completed successfully")
 end
 
-SES = ToolipsSession.Session()
+SES = ToolipsSession.Session(["/", "/key"])
 LOGGER = OliveLogger()
 olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon, key_route])
 
