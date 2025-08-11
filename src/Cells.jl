@@ -1118,13 +1118,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             return
         end
         last_n::Int64 = parse(Int64, callback_comp["caret"])
-        off = length(findall("\n", curr))
-        last_n += off
-        if length(curr) > 2 && curr[end - 1:end] == "\n\n"
-            curr = curr[begin:end - 1]
-            last_n -= 1
-            off -= 1
-        end
+        last_n
         res = if last_n == length(curr)
                 curr * "&nbsp;&nbsp;&nbsp;&nbsp;"
             else
@@ -1132,8 +1126,9 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             end
         res = replace(res, " " => "&nbsp;")
         set_text!(cm, "cell$(cell.id)", res)
-        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4 - off)
-        
+        newi = last_n + 4
+        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi - 1)
+        cm["cell$(cell.id)"] = "caret" => string(newi)
     end
     original_class_inp = ""
     original_class_side = ""
