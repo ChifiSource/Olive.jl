@@ -1118,13 +1118,6 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             return
         end
         last_n::Int64 = parse(Int64, callback_comp["caret"])
-        off = length(findall("\n", curr))
-        last_n += off
-        if length(curr) > 2 && curr[end - 1:end] == "\n\n"
-            curr = curr[begin:end - 1]
-            last_n -= 1
-            off -= 1
-        end
         res = if last_n == length(curr)
                 curr * "&nbsp;&nbsp;&nbsp;&nbsp;"
             else
@@ -1132,8 +1125,9 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             end
         res = replace(res, " " => "&nbsp;")
         set_text!(cm, "cell$(cell.id)", res)
-        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4 - off)
-        
+        newi = last_n + 4
+        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi - 1)
+        cm["cell$(cell.id)"] = "caret" => string(newi)
     end
     original_class_inp = ""
     original_class_side = ""
@@ -1562,7 +1556,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     keybindings = CORE.users[getname(c)]["keybindings"]
     newcell = build_base_cell(c, cm, cell, proj, highlight = true, sidebox = true)
     windowname::String = proj.id
-    km = cell_bind!(c, cell, proj)
     interior = newcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
     inp[:children, "cell$(cell.id)"][:text] = ""
@@ -1655,7 +1648,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     end
     push!(buttons_box, issues_button, doc_button)
     dir::Directory{<:Any} = Directory("~/")
-    if "recents" in keys(CORE.users[getname(c)].data)
+    userdata = CORE.users[getname(c)].data
+    if "recents" in keys(userdata) && length(userdata["recents"]) > 0
         recent_box::Component{:section} = section("recents")
         style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow-x" => "visible")
         recent_box[:children]::Vector{AbstractComponent} = [begin

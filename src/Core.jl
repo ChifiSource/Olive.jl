@@ -969,6 +969,13 @@ init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) = begin
 
 end
 
+init_user(user::OliveUser, e::Type{OliveExtension{:threads}}) = begin
+    if haskey(CORE.data, "threads")
+        threads = CORE.data["threads"]
+        user.data["threads"] = [rand(2:threads) for val in 1:CORE.data["userthreads"]]
+    end
+end
+
 init_user(user::OliveUser) = begin
     user_inits = [begin 
         m.sig.parameters[3].parameters[1]
@@ -1304,7 +1311,7 @@ mutable struct OliveCore <: Toolips.AbstractExtension
     pool::Vector{String}
     function OliveCore(mod::String)
         data::Dict{Symbol, Any} = Dict{Symbol, Any}()
-        m = eval(Meta.parse("module $mod build = nothing end"))
+        m = eval(Meta.parse("module $mod global build = nothing end"))
         m.build = build
         open::Vector{Environment} = Vector{Environment}()
         pool::Vector{String} = Vector{String}()

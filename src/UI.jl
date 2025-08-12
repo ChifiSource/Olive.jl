@@ -680,7 +680,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
-        if "home" in keys(c[:OliveCore].data["home"])
+        if "home" in keys(c[:OliveCore].data)
             environment = c[:OliveCore].data["home"]
             if fpath != c[:OliveCore].data["home"]
                 push!(projdict, :path => fpath)
@@ -936,7 +936,7 @@ function step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Proje
     if length(proj.data[:cells]) == 0
         return
     end
-    script!(c, cm, type = "Timeout") do cm2::ComponentModifier
+    on(c, cm, 100) do cm2::ComponentModifier
         evaluate(c, cm2, proj.data[:cells][e], proj)
         if e == length(proj.data[:cells]) - 1
             return

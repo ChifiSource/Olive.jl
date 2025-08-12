@@ -76,6 +76,7 @@ global evalin(ex::Any) = begin
     Base.eval(Main, ex)
 end
 selected_mod = nothing
+
 baremodule OliveBase
 import Base
 import Base: names, in, contains, Meta, string, join, eval
@@ -102,7 +103,6 @@ for name in names(Base)
 end
 
 println(STDO::String = "", vals::Any ...) = begin
-    @warn join(string(x) for x in vals)
     STDO * join(string(x) for x in vals) * "</br>"
 end
 
@@ -138,6 +138,7 @@ open(current_path::AbstractString, path::AbstractString, args ...; keyargs ...) 
 
 disabled = nothing
 end
+import Olive: OliveBase
 
 """export evalin
 ```julia
@@ -168,7 +169,6 @@ function olive_module(modname::String, environment::String)
     pwd() = WD
     println(x::Any ...) = begin
         $modname.STDO = OliveBase.println($modname.STDO, x ...)
-        @info $modname.STDO
         return(nothing)::Nothing
     end
     print(x::Any ...) = begin
@@ -530,7 +530,7 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
     end
      # setup base UI
     bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet, themes_enabled = themes_enabled, settings_enabled = settings_enabled)
-    on(c, 100) do cm
+    on(c, 250) do cm
         load_extensions!(c, cm, olmod)
         style!(cm, "olive-loader", "opacity" => 0percent)
         next!(c, cm, "olive-loader") do cm::ComponentModifier
@@ -615,7 +615,7 @@ end
 
 CORE::OliveCore = OliveCore("olive")
 
-function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads::Int64 = 1, user_threads::Int64 = 1)
+function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads::Int64 = 1, user_threads::Int64 = 1, load_users::Bool = false)
     config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
     Pkg.activate("$path/olive")
     CORE.data = config["olive"]
@@ -624,19 +624,6 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads
     user_inits = [begin 
         m.sig.parameters[3].parameters[1]
     end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
-
-    CORE.users = Vector{OliveUser}([begin
-        userkey = Toolips.gen_ref(10)
-        user = OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
-        push!(CORE.keys, userkey => user.name)
-        if user_threads > 1
-            user.data["threads"] = [rand(2:threads) for val in 1:user_threads]
-        end
-        for call in user_inits
-            init_user(user, call)
-        end
-        user
-    end for kp in config["oliveusers"]])
     if ~haskey(CORE.data, "home")
         push!(CORE.data, "home" => path * "/olive")
     end
@@ -652,18 +639,36 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads
         newg.directories = [Directory(uri, dirtype = t) for (uri, t) in zip(data["uris"], data["dirs"])]
         push!(groups, newg)
     end
+    if ~(load_users)
+        return
+    end
+    CORE.users = Vector{OliveUser}([begin
+        userkey = Toolips.gen_ref(10)
+        user = OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
+        push!(CORE.keys, userkey => user.name)
+
+        for call in user_inits
+            init_user(user, call)
+        end
+        user
+    end for kp in config["oliveusers"]])
 end
 
 """
 ```julia
-start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd(), 
-    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads, skip_users::Bool = false) -> ::ParametricProcesses.ProcessManager
+ start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"), 
+    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads, load_users::Bool = true) -> ::ParametricProcesses.ProcessManager
 ```
 Starts your `Olive` server! `path` will be the path of the `olive` home -- `Olive` requires this to function in its current state, 
 this is how it loads extensions. `wd` will become the default `:pwd` directory inside of `Olive`. `threads` will determine the number of threads to spawn. 
 `user_threads` will determine the number of threads **per user** (by default, you could use extensions to change this actively as it is in `client_data`). 
 `headless` will enable 'headless mode'. Headless mode allows `Olive` to run without an `olive` directory or actual users. This is the quickest and easiest way to run `Olive`, 
-and extensions can still be loaded by simply using them in the repl alongside `Olive`. Finally, `skip_users` determines whether or not users should be loaded on startup.
+and extensions can still be loaded by simply using them in the repl alongside `Olive`. Finally, `load_users` determines whether each `OliveUser` should 
+be loaded and initialized on startup -- meaning each user in the `olive/Project.toml` directory. This argument is nullified by `headless` if it is 
+set to true, as there is no `olive` or `OliveUsers`. This is ideal for server setups, where clients are loaded in and out of the system 
+using a proprietary system. `load_users` is primarily intended for servers. Note that you will currently want to use `user_threads` = 1 , 
+even with multiple threads. You will be able to define values fine but carrying over the functions and structs is more difficult. It can be done, but 
+will require more work to truly realize.
 ```julia
 using Olive
 
@@ -673,7 +678,7 @@ olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
 function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"), 
-    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads, skip_users::Bool = false)
+    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads, load_users::Bool = true)
     ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'
@@ -686,7 +691,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     rootname = ""
     if ~(headless)
         try
-            read_config(path, wd, ollogger, threads, user_threads)
+            read_config(path, wd, ollogger, threads, user_threads, load_users)
         catch e
             throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
             log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
@@ -715,14 +720,13 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         userkey = Toolips.gen_ref(10)
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
         user = OliveUser{:olive}("olive user", userkey, Environment("olive"), Dict{String, Any}("group" => "root"))
-        for call in user_inits
-            init_user(user, call)
-        end
-        push!(CORE.user, user)
+        push!(CORE.keys, userkey => user.name)
+        init_user(user)
+        push!(CORE.users, user)
     end
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
     if threads > 1
-        push!(CORE.data, "threads" => threads)
+        push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
         Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Olive.Toolips
             using Olive.ToolipsSession
@@ -850,7 +854,7 @@ function setup_olive(logger::Toolips.Logger, path::String)
     log(logger, "olive setup completed successfully")
 end
 
-SES = ToolipsSession.Session()
+SES = ToolipsSession.Session(["/", "/key"])
 LOGGER = OliveLogger()
 olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon, key_route])
 
