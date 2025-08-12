@@ -680,7 +680,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
-        if "home" in keys(c[:OliveCore].data["home"])
+        if "home" in keys(c[:OliveCore].data)
             environment = c[:OliveCore].data["home"]
             if fpath != c[:OliveCore].data["home"]
                 push!(projdict, :path => fpath)

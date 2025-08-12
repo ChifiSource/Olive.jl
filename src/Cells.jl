@@ -1118,7 +1118,6 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             return
         end
         last_n::Int64 = parse(Int64, callback_comp["caret"])
-        last_n
         res = if last_n == length(curr)
                 curr * "&nbsp;&nbsp;&nbsp;&nbsp;"
             else
