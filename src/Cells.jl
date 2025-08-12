@@ -90,10 +90,6 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
     cellid::String = cell.id
     pos = findlast(tempcell::Cell{<:Any} -> tempcell.id == cellid, cells)
-    if isnothing(pos)
-        @info [lcell.id for lcell in cells]
-        @info cell.id
-    end
     if pos == 1
         focus!(cm, "cell$(cells[pos + 1].id)")
     else
@@ -1122,27 +1118,16 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             return
         end
         last_n::Int64 = parse(Int64, callback_comp["caret"])
-        off = length(findall("\n", curr))
-        last_n += off
-        @warn replace(curr, "\n" => "!N")
-        if length(curr) > 2 && curr[end - 1:end] == "\n\n"
-            curr = curr[begin:end - 1]
-            last_n -= 1
-            off -= 1
-        end
         res = if last_n == length(curr)
-                @warn "option 1"
                 curr * "&nbsp;&nbsp;&nbsp;&nbsp;"
             else
-                @warn "option 2"
                 curr[begin:last_n] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:end]
             end
         res = replace(res, " " => "&nbsp;")
-        @warn replace(res, "\n" => "!N")
-        @warn length(res)
         set_text!(cm, "cell$(cell.id)", res)
-        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", last_n + 4 - off)
-        
+        newi = last_n + 4
+        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi - 1)
+        cm["cell$(cell.id)"] = "caret" => string(newi)
     end
     original_class_inp = ""
     original_class_side = ""
@@ -1510,10 +1495,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cell.outputs = outp
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
     if isnothing(pos)
-        @warn "olive cell error:"
-        @info "cell $(pos) $(cell.id)"
-        @info "$(length(cells))"
-        @info join("$(cell.id)|" for cell in cells)
         olive_notify!(cm, "cell error! check the terminal for more details...", color = "red")
         return
     end
@@ -1575,9 +1556,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     keybindings = CORE.users[getname(c)]["keybindings"]
     newcell = build_base_cell(c, cm, cell, proj, highlight = true, sidebox = true)
     windowname::String = proj.id
-    km = cell_bind!(c, cell, proj)
     interior = newcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
+    inp[:children, "cell$(cell.id)"][:text] = ""
     sideb = interior[:children]["cellside$(cell.id)"]
     sideb[:class] = "cellside mdside"
     cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
@@ -1587,6 +1568,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     if cell.source != ""
         maincell[:contenteditable] = false
         newtmd = tmd("cell$(cell.id)tmd", cell.source)
+        ToolipsServables.interpolate!(newtmd, Olive.INTERPOLATORS ...)
         push!(maincell, newtmd)
     end
     edit_flip = cm::AbstractComponentModifier -> begin
@@ -1608,9 +1590,14 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
-    activemd = cm["cell$(cell.id)"]["text"]
+    active_cell = cm["cell$(cell.id)"]
+    if active_cell["contenteditable"] == "false"
+        return
+    end
+    activemd = active_cell["text"]
     cell.source = replace(activemd, "<br>" => "\n", "<div>" => "")
     newtmd = tmd("cell$(cell.id)tmd", cell.source)
+    ToolipsServables.interpolate!(newtmd, Olive.INTERPOLATORS ...)
     set_children!(cm, "cell$(cell.id)", [newtmd])
     cm["cell$(cell.id)"] = "contenteditable" => "false"
     on(c, cm, 100) do cm2::ComponentModifier
@@ -1621,7 +1608,11 @@ end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
-    curr = cm["cell$(cell.id)"]["text"]
+    active_cell = cm["cell$(cell.id)"]
+    curr = active_cell["text"]
+    if active_cell["contenteditable"] == "false"
+        return
+    end
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
     tm::Highlighter = CORE.users[getname(c)]["highlighters"]["markdown"]
     tm.raw = cell.source
@@ -1657,7 +1648,8 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     end
     push!(buttons_box, issues_button, doc_button)
     dir::Directory{<:Any} = Directory("~/")
-    if "recents" in keys(CORE.users[getname(c)].data)
+    userdata = CORE.users[getname(c)].data
+    if "recents" in keys(userdata) && length(userdata["recents"]) > 0
         recent_box::Component{:section} = section("recents")
         style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow-x" => "visible")
         recent_box[:children]::Vector{AbstractComponent} = [begin

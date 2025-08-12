@@ -26,6 +26,23 @@ using Pkg
 using OliveHighlighters
 using TOML
 
+JULIA_HIGHLIGHTER = Highlighter()
+OliveHighlighters.style_julia!(JULIA_HIGHLIGHTER)
+style!(JULIA_HIGHLIGHTER, :default, "color" => "white")
+function julia_interpolator(raw::String)
+    tm = JULIA_HIGHLIGHTER
+    set_text!(tm, raw)
+    OliveHighlighters.mark_julia!(tm)
+    ret::String = string(tm)
+    OliveHighlighters.clear!(tm)
+    jl_container = div("jlcont", text = ret)
+    style!(jl_container, "background-color" => "#454545", "font-size" => 10pt, "padding" => 25px, 
+    "margin" => 25px, "overflow" => "auto", "max-height" => 500px, "border-radius" => 3px)
+    string(jl_container)::String
+end
+
+INTERPOLATORS = ["julia" => julia_interpolator]
+
 """
 ```julia
 build(c::AbstractConnection, ...) -> ::AbstractComponent
@@ -59,12 +76,13 @@ global evalin(ex::Any) = begin
     Base.eval(Main, ex)
 end
 selected_mod = nothing
+
 baremodule OliveBase
 import Base
 import Base: names, in, contains, Meta, string, join, eval
 
 disabled = [:pwd, :println, :print, :read, :cd, :open, :touch, :cp, :rm, 
-:mv, :rmdir]
+:mv, :rmdir, :info, :warn]
 
 for name in names(Base)
     if name in disabled
@@ -85,7 +103,6 @@ for name in names(Base)
 end
 
 println(STDO::String = "", vals::Any ...) = begin
-    @warn join(string(x) for x in vals)
     STDO * join(string(x) for x in vals) * "</br>"
 end
 
@@ -121,6 +138,7 @@ open(current_path::AbstractString, path::AbstractString, args ...; keyargs ...) 
 
 disabled = nothing
 end
+import Olive: OliveBase
 
 """export evalin
 ```julia
@@ -151,7 +169,6 @@ function olive_module(modname::String, environment::String)
     pwd() = WD
     println(x::Any ...) = begin
         $modname.STDO = OliveBase.println($modname.STDO, x ...)
-        @info $modname.STDO
         return(nothing)::Nothing
     end
     print(x::Any ...) = begin
@@ -228,6 +245,7 @@ have keys.
 function verify_client!(c::Connection)
     key = get_session_key(c)
     key_reg = findfirst(user -> user.key == key, CORE.users)
+    args = get_args(c)
     if isnothing(key_reg)
         write!(c, build_key_screen(c, "bad key"))
         return("dead")
@@ -371,8 +389,9 @@ to look at this Function (line 274 of Olive.jl) to get an idea of how it works, 
 extend `Olive` using a new `Environment` type.
 - See also: `Project`, `Environment`, `make_session`, `start`, `getname`
 """
-function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
-    themes_enabled::Bool = true)
+function build(c::Connection, env::Environment{<:Any}, topbar_extras::Component{<:Any} ...; 
+    icon::AbstractComponent = olive_loadicon(), sheet::AbstractComponent = DEFAULT_SHEET, 
+    themes_enabled::Bool = true, settings_enabled::Bool = true, topbar_side::Symbol = :right)
     selected_sheet = sheet
     user = c[:OliveCore].users[getname(c)]
     if themes_enabled
@@ -389,9 +408,20 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     write!(c, selected_sheet)
     olmod::Module = c[:OliveCore].olmod
     notifier::Component{:div} = olive_notific()
-    ui_topbar::Component{:div} = topbar(c)
+    ui_topbar::Component{:div} = if length(topbar_extras) < 1
+        topbar(c, settings_enabled)
+    else
+        topbar(c, settings_enabled, topbar_extras ...)
+    end
+    if length(topbar_extras) > 0
+        push!(ui_topbar["$(topbar_side)menu"], topbar_extras ...)
+    end
     ui_explorer::Component{:div} = projectexplorer()
-    ui_settings::Component{:div} = settings_menu(c)
+    ui_comps = [ui_explorer, ui_topbar]
+    if settings_enabled
+        ui_settings::Component{:div} = settings_menu(c)
+        push!(ui_comps, ui_settings)
+    end
     ui_explorer[:children] = Vector{Servable}([begin
         comp = olmod.build(c, d)
         compress!(comp)
@@ -435,7 +465,7 @@ function build(c::Connection, env::Environment{<:Any}; icon::AbstractComponent =
     "height" => 90percent, "display" => "inline-flex")
     bod = body("mainbody")
     style!(bod, "overflow" => "hidden")
-    push!(bod, notifier,  ui_explorer, ui_topbar, ui_settings, olivemain)
+    push!(bod, notifier,  ui_comps ..., olivemain)
     return(bod, loadicondiv, olmod)
 end
 
@@ -469,7 +499,7 @@ end
 ```
 """
 function make_session(c::Connection; key::Bool = true, default::Function = load_default_project!, icon::AbstractComponent = olive_loadicon(), 
-    sheet = DEFAULT_SHEET)
+    sheet::Component = DEFAULT_SHEET, themes_enabled::Bool = true, settings_enabled::Bool = true)
     if get_method(c) == "post"
         return
     end
@@ -481,14 +511,15 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
             return
         end
     else
-        if ~(get_ip(c) in keys(c[:OliveCore].names))
+        try
+            uname = getname(c)
+        catch
             throw("""You have an incorrectly configured `Olive` server... `key` is set to false, 
             but there is no loader loading your users into keys. The reason you would have `key` off is to 
             add your own authentication. You will need to setup the client's IP in `OliveCore.names` before calling `make_session`, 
             this is the exact check you failed; `~(get_ip(c) in keys(c[:OliveCore].names))`. If you are going to disable 
             `Olive` authentication, then you need to setup the client's environment in the route above this one.""")
         end
-        uname = getname(c)
     end
     # check for environment, if none load.
     user = CORE.users[uname]
@@ -498,11 +529,13 @@ function make_session(c::Connection; key::Bool = true, default::Function = load_
         user.environment = env
     end
      # setup base UI
-    bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet)
-    on(c, 100) do cm
+    bod, loadicondiv, olmod::Module = build(c, env, icon = icon, sheet = sheet, themes_enabled = themes_enabled, settings_enabled = settings_enabled)
+    on(c, 250) do cm
         load_extensions!(c, cm, olmod)
         style!(cm, "olive-loader", "opacity" => 0percent)
-        next!(load_projects, c, cm, "olive-loader")
+        next!(c, cm, "olive-loader") do cm::ComponentModifier
+            load_projects(c, cm, default)
+        end
     end
     write!(c, bod)
     envsearch = nothing
@@ -514,19 +547,23 @@ end
 key_route = route("/key") do c::AbstractConnection
     q = get_args(c)
     if ~(haskey(q, :q))
-        write!(c, "no key provided.")
+        write!(c, build_key_screen(c, "no key provided"))
         return
     end
     q = q[:q]
-    if ~(q in keys(SES.events))
-        write!(c, "invalid key provided")
+    if ~(q in keys(CORE.keys))
+        @warn q
+        @warn keys(CORE.keys)
+        write!(c, write!(c, build_key_screen(c, "bad key provided")))
         return
     end
-    respond!(c, "<script>location.href='/'</script>", 
-            [Toolips.Cookie("key", q)])
+    user = CORE.users[CORE.keys[q]]
+    user.key = get_session_key(c)
+    delete!(CORE.keys, q)
+    respond!(c, "<script>location.href='/'</script>")
 end
 
-function load_projects(c::AbstractConnection, cm2::ComponentModifier)
+function load_projects(c::AbstractConnection, cm2::ComponentModifier, default::Function = load_default_project!)
     remove!(cm2, "loaddiv")
     user::OliveUser = CORE.users[getname(c)]
     env::Environment = user.environment
@@ -547,7 +584,7 @@ function load_projects(c::AbstractConnection, cm2::ComponentModifier)
             append!(cm2,"pane_two", olmod.build(c, cm2, env.projects[p2i]))
         end
     else
-        user.environment = default(c)
+        env = default(c)
         for proj in env.projects
             projpane = proj.data[:pane]
             append!(cm2, "pane_$(projpane)_tabs", build_tab(c, proj))
@@ -578,7 +615,7 @@ end
 
 CORE::OliveCore = OliveCore("olive")
 
-function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads::Int64 = 1, user_threads::Int64 = 1)
+function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads::Int64 = 1, user_threads::Int64 = 1, load_users::Bool = false)
     config::Dict{String, <:Any} = TOML.parse(read("$path/olive/Project.toml", String))
     Pkg.activate("$path/olive")
     CORE.data = config["olive"]
@@ -587,19 +624,6 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads
     user_inits = [begin 
         m.sig.parameters[3].parameters[1]
     end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
-
-    CORE.users = Vector{OliveUser}([begin
-        userkey = Toolips.gen_ref(10)
-        push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
-        user = OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
-        if user_threads > 1
-            user.data["threads"] = [rand(2:threads) for val in 1:user_threads]
-        end
-        for call in user_inits
-            init_user(user, call)
-        end
-        user
-    end for kp in config["oliveusers"]])
     if ~haskey(CORE.data, "home")
         push!(CORE.data, "home" => path * "/olive")
     end
@@ -615,14 +639,36 @@ function read_config(path::String, wd::String, ollogger::Toolips.Logger, threads
         newg.directories = [Directory(uri, dirtype = t) for (uri, t) in zip(data["uris"], data["dirs"])]
         push!(groups, newg)
     end
+    if ~(load_users)
+        return
+    end
+    CORE.users = Vector{OliveUser}([begin
+        userkey = Toolips.gen_ref(10)
+        user = OliveUser{:olive}(kp[1], userkey, Environment("olive"), kp[2])
+        push!(CORE.keys, userkey => user.name)
+
+        for call in user_inits
+            init_user(user, call)
+        end
+        user
+    end for kp in config["oliveusers"]])
 end
 
 """
 ```julia
-start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = pwd()) -> ::ParametricProcesses.ProcessManager
+ start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"), 
+    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads, load_users::Bool = true) -> ::ParametricProcesses.ProcessManager
 ```
 Starts your `Olive` server! `path` will be the path of the `olive` home -- `Olive` requires this to function in its current state, 
-this is how it loads extensions. `wd` will become the default `:pwd` directory inside of `Olive`.
+this is how it loads extensions. `wd` will become the default `:pwd` directory inside of `Olive`. `threads` will determine the number of threads to spawn. 
+`user_threads` will determine the number of threads **per user** (by default, you could use extensions to change this actively as it is in `client_data`). 
+`headless` will enable 'headless mode'. Headless mode allows `Olive` to run without an `olive` directory or actual users. This is the quickest and easiest way to run `Olive`, 
+and extensions can still be loaded by simply using them in the repl alongside `Olive`. Finally, `load_users` determines whether each `OliveUser` should 
+be loaded and initialized on startup -- meaning each user in the `olive/Project.toml` directory. This argument is nullified by `headless` if it is 
+set to true, as there is no `olive` or `OliveUsers`. This is ideal for server setups, where clients are loaded in and out of the system 
+using a proprietary system. `load_users` is primarily intended for servers. Note that you will currently want to use `user_threads` = 1 , 
+even with multiple threads. You will be able to define values fine but carrying over the functions and structs is more difficult. It can be done, but 
+will require more work to truly realize.
 ```julia
 using Olive
 
@@ -632,7 +678,7 @@ olive_server = Olive.start("127.0.0.1", 8001, warm = false, path = pwd())
 ```
 """
 function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedir(), "\\" => "/"), wd::String = replace(pwd(), "\\" => "/"), 
-    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads)
+    threads::Int64 = 1, headless::Bool = false, user_threads::Int64 = threads, load_users::Bool = true)
     ollogger::Toolips.Logger = LOGGER
     path = replace(path, "\\" => "/")
     if path[end] == '/'
@@ -645,7 +691,7 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
     rootname = ""
     if ~(headless)
         try
-            read_config(path, wd, ollogger, threads, user_threads)
+            read_config(path, wd, ollogger, threads, user_threads, load_users)
         catch e
             throw(StartError(e, "configuration load", "Failed to load `Project.toml`"))
             log(ollogger, """If you are unsure why this is happening, the best choice is probably just to start 
@@ -668,14 +714,19 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(CORE.data, "root" => "olive user", "wd" => wd, 
             "groups" => [Group("root")], "headless" => true)
         source_module!(CORE)
+            user_inits = [begin 
+        m.sig.parameters[3].parameters[1]
+    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
         userkey = Toolips.gen_ref(10)
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
         user = OliveUser{:olive}("olive user", userkey, Environment("olive"), Dict{String, Any}("group" => "root"))
-        push!(CORE.user, user)
+        push!(CORE.keys, userkey => user.name)
+        init_user(user)
+        push!(CORE.users, user)
     end
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
     if threads > 1
-        push!(CORE.data, "threads" => threads)
+        push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
         Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Olive.Toolips
             using Olive.ToolipsSession
@@ -802,9 +853,10 @@ function setup_olive(logger::Toolips.Logger, path::String)
     Pkg.add("Olive")
     log(logger, "olive setup completed successfully")
 end
-SES = ToolipsSession.Session()
+
+SES = ToolipsSession.Session(["/", "/key"])
 LOGGER = OliveLogger()
-olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon])
+olive_routes = Vector{Toolips.AbstractRoute}([main, icons, mainicon, key_route])
 
 """
 ```julia
@@ -863,6 +915,6 @@ function create(t::Type{OliveExtension}, name::String)
     end
 end
 
-export CORE, olive_routes, SES, build, evalin, LOGGER, key_route
+export CORE, olive_routes, SES, build, evalin, LOGGER
 
 end # - module

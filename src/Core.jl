@@ -326,6 +326,9 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
 end
 
 build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{:olivebase}) = begin
+    if ~("settingsmenu" in om)
+        return
+    end
     load_keybinds_settings(c, om)
     load_style_settings(c, om)
     if get_group(c).name == "root"
@@ -412,10 +415,11 @@ function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
             new_user_name = cm2["new-username"]["text"]
             new_user_group = cm2["new-usergroup"]["value"]
             key::String = ToolipsSession.gen_ref(10)
+            push!(CORE.keys, key => new_user_name)
             new_data = Dict{String, Any}("group" => new_user_group)
-            push!(CORE.names, key => new_user_name)
-            push!(SES.events, key => Vector{ToolipsSession.AbstractEvent}())
-            # TODO load new user here
+            user = OliveUser{:olive}(new_user_name, "", Environment("olive"), new_data)
+            init_user(user)
+            push!(CORE.users, user)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
             append!(cm2, "user_previews", build_user_data(c, new_user_name, new_data))
             remove!(cm2, "newuser")
@@ -467,15 +471,13 @@ function build_user_data(c::AbstractConnection, name::String, data::Dict)
     end
     on(c, del_button, "click") do cm2::ComponentModifier
         confirmer = olive_confirm_dialog(c, "delete user $(name)? (this cannot be undone!)") do cm::ComponentModifier
-            delete!(CORE.client_data, name)
-            user_key = get_session_key(c)
-            delete!(CORE.names, user_key)
-            olive_notify!(cm, "user $name removed (pending settings close to save)", color = "darkred")
+            f = findfirst(user -> user.name == name, CORE.users)
+            deleteat!(CORE.users, f)
         end
         append!(cm2, "mainbody", confirmer)
     end
-    active_key = get_session_key(c)
-    link = "http://$(get_host(c))/?key=$active_key"
+    active_key = CORE.users[name].key
+    link = "http://$(get_host(c))/key?q=$active_key"
     key_ind = a("key-ind", text = link, href = link)
     style!(key_ind, "padding" => 7px, "background-color" => "#ffe8fb")
     user_container = div("$name-user", children = [name_indicator, key_ind, group_button, del_button])
@@ -745,15 +747,17 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         write(o,
         """\"""
         ## welcome to olive!
-        Welcome to the `0.1` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
-        are added.
+        Welcome to your `olive` home file. This `Module` is used to extend `Olive` by loading new 
+        methods for `build`.
         ```julia
+        # try it yourself!
         import Olive: build
         build(c::Olive.Connection, om::Olive.ComponentModifier, oe::Olive.OliveExtension{:myext}) = begin
             Olive.olive_notify!(om, "welcome to my CUSTOM Olive!", color = "darkblue")
         end
         ```
         - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
+        
         \"""
         #==|""" * """||==#
         using Olive
@@ -916,6 +920,26 @@ getindex(e::Vector{Environment}, name::String) = begin
     e[pos]::Environment
 end
 
+"""
+```julia
+mutable struct OliveUser{ENV <: Any}
+```
+- name**::String**
+- key**::String**
+- environment**::Environment{ENV}**
+- data**::Dict{String, Any}**
+
+The `OliveUser` is a wrapper for each individual `Olive` client, including 
+    their key, name, entire `Olive` `Environment`, and their client data. Indexing 
+    an `OliveUser` will yield client data of that key.
+```julia
+OliveUser{ENV}(name::String, key::String, environment::Environment{ENV}, data::Dict{String, Any})
+```
+example
+```julia
+```
+- See also: 
+"""
 mutable struct OliveUser{ENV <: Any}
     name::String
     key::String
@@ -929,8 +953,36 @@ getindex(user::OliveUser, str::AbstractString) = getindex(user.data, str)
 
 setindex!(user::OliveUser, val::Any, str::AbstractString) = setindex!(user.data, val, str)
 
+"""
+```julia
+init_user(user::OliveUser)
+init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) -> ::Nothing
+```
+`init_user` is another extensible function that will provide `Olive` with new 
+    functionality. `init_user` is called when a user is loaded for the first time, and 
+    each existing method will be called. For example, user keybindings are loaded using `init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}})`.
+```julia
+```
+- See also: 
+"""
 init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) = begin
 
+end
+
+init_user(user::OliveUser, e::Type{OliveExtension{:threads}}) = begin
+    if haskey(CORE.data, "threads")
+        threads = CORE.data["threads"]
+        user.data["threads"] = [rand(2:threads) for val in 1:CORE.data["userthreads"]]
+    end
+end
+
+init_user(user::OliveUser) = begin
+    user_inits = [begin 
+        m.sig.parameters[3].parameters[1]
+    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
+    for call in user_inits
+        init_user(user, call)
+    end
 end
 
 init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}}) = begin
@@ -982,7 +1034,6 @@ end
 
 init_user(user::OliveUser, oe::Type{OliveExtension{:highlighting}}) = begin
     setting_keys = keys(user.data)
-    @info setting_keys
     if ~("highlighting" in setting_keys)
         tm::Highlighter = OliveHighlighters.Highlighter("")
         OliveHighlighters.style_julia!(tm)
@@ -1233,9 +1284,7 @@ end
 ```
 - `olmod::Module`
 - `data::Dict{String, Any}`
-- `names::Dict{String, String}`
-- `client_data::Dict{String, Dict{String, Any}}`
-- `open::Vector{Environment}`
+- `users`**::Vector{OliveUser}**
 - `pool::Vector{String}`
 
 `OliveCore` is the main server-extension used to run `Olive`; this type keeps track of all `Olive` settings, holds 
@@ -1258,15 +1307,16 @@ mutable struct OliveCore <: Toolips.AbstractExtension
     olmod::Module
     data::Dict{String, Any}
     users::Vector{OliveUser}
+    keys::Dict{String, String}
     pool::Vector{String}
     function OliveCore(mod::String)
         data::Dict{Symbol, Any} = Dict{Symbol, Any}()
-        m = eval(Meta.parse("module $mod build = nothing end"))
+        m = eval(Meta.parse("module $mod global build = nothing end"))
         m.build = build
         open::Vector{Environment} = Vector{Environment}()
         pool::Vector{String} = Vector{String}()
         users = Vector{OliveUser}()
-        new(m, data, users, pool)::OliveCore
+        new(m, data, users, Dict{String, String}(), pool)::OliveCore
     end
 end
 

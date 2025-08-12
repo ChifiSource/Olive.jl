@@ -537,6 +537,9 @@ function open_settings_menu!(cm::AbstractComponentModifier)
 end
 
 function close_settings_menu!(cm::AbstractComponentModifier)
+    if ~("settingsmenu" in cm)
+        return
+    end
     cm["settingsmenu"] =  "open" => "0"
     style!(cm, "settingicon", "transform" => "rotate(0deg)")
     cm["settingicon"] = "class" => "material-icons topbaricons"
@@ -558,7 +561,7 @@ function settings(c::Connection)
     settingicon::Component{:span}
 end
 
-function topbar(c::Connection)
+function topbar(c::Connection, settings_enabled::Bool = true, extras::Component{<:Any} ...)
     topbar = div("menubar", class = "topbar")
     leftmenu = span("leftmenu", align = "left")
     style!(leftmenu, "display" => "inline-block")
@@ -570,7 +573,7 @@ function topbar(c::Connection)
     if ~(haskey(CORE.data, "noexp"))
         push!(leftmenu, explorer_icon(c))
     end
-    if ~(haskey(CORE.data, "headless"))
+    if ~(haskey(CORE.data, "headless")) && settings_enabled
         push!(rightmenu, settings(c))
     end
     push!(topbar, leftmenu, tabmenu, rightmenu)
@@ -677,7 +680,7 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
-        if "home" in keys(c[:OliveCore].data["home"])
+        if "home" in keys(c[:OliveCore].data)
             environment = c[:OliveCore].data["home"]
             if fpath != c[:OliveCore].data["home"]
                 push!(projdict, :path => fpath)
@@ -933,7 +936,7 @@ function step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Proje
     if length(proj.data[:cells]) == 0
         return
     end
-    script!(c, cm, type = "Timeout") do cm2::ComponentModifier
+    on(c, cm, 100) do cm2::ComponentModifier
         evaluate(c, cm2, proj.data[:cells][e], proj)
         if e == length(proj.data[:cells]) - 1
             return
@@ -958,7 +961,6 @@ function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Proj
     set_children!(cm2, "pane_$(proj.data[:pane])", Vector{Servable}())
     remove!(cm2, "tab$(name)")
     if(n_projects == 1)
-        # TODO start screen here
         remove!(cm2, proj.id)
     elseif n_projects == 2
         lastproj = findfirst(pre -> pre.id != proj.id, projs)
