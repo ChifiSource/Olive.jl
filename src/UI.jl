@@ -208,7 +208,7 @@ function olivesheet()
     container_arrow = Style("span.containerarrow", "cursor" => "pointer",
     "font-size" => 13pt, "color" => "#1e1e1e")
     # cells:
-    output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
+    output_style = style("div.output_cell", "max-height" => 750px, "overflow-y" => "scroll")
     code_side = Style("div.codeside", "background-color" => "pink")
     md_side = Style("div.mdside", "background-color" => "#452b20")
     output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")

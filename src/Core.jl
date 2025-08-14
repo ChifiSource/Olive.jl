@@ -1585,6 +1585,11 @@ function show_img(d::OliveDisplay, o::Any, ftype::String)
     ftype))
 end
 
+function show_img(d::OliveDisplay, o::AbstractString, ftype::String)
+    show(d.io, MIME"text/html"(), base64img("$(ToolipsSession.gen_ref())", o,
+    ftype))
+end
+
 function display(d::OliveDisplay, m::MIME"text/plain", o::Any)
     show(d.io, m, o)
 end
