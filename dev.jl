@@ -1,6 +1,6 @@
 #==
 dev.jl is an environment file. This file loads and starts servers, and
-defines environmental variables.
+defines environmental variables. Use this file to customize your own development case for `Olive`.
 ==#
 using Pkg; Pkg.activate(".")
 using Toolips
@@ -10,10 +10,5 @@ using Olive
 
 IP = "127.0.0.1"
 PORT = 8000
-#==
-Extension description
-Logger -> Logs messages into both a file folder and the terminal.
-Files -> Routes the files from the public directory.
-Session -> ToolipsSession; allows us to make Servables reactive. See ?(on)
-==#
-OliveDevServer = Olive.start()
+
+OliveDevServer = Olive.start(IP:PORT, headless = true)
