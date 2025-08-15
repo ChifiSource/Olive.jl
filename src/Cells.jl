@@ -1116,14 +1116,17 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         last_n::Int64 = parse(Int64, callback_comp["caret"])
         res = if last_n == length(curr)
                 curr * "&nbsp;&nbsp;&nbsp;&nbsp;"
+            elseif last_n == 1 || last_n == 0
+                "&nbsp;&nbsp;&nbsp;&nbsp;" * curr
             else
-                curr[begin:last_n] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:end]
-            end
+                @warn last_n
+                curr[begin:last_n - 1] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n:end]
+        end
         res = replace(res, " " => "&nbsp;")
         set_text!(cm, "cell$(cell.id)", res)
         newi = last_n + 4
-        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi - 1)
         cm["cell$(cell.id)"] = "caret" => string(newi)
+        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi)
     end
     original_class_inp = ""
     original_class_side = ""
@@ -1316,7 +1319,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     sideb = interior[:children]["cellside$(cell.id)"]
     sideb[:class] = "cellside codeside"
     OliveHighlighters.clear!(tm)
-    ToolipsSession.bind(c, cm, maincell, km, on = :down)
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
@@ -1324,6 +1326,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             on_code_build(c, cm, ext, cell, proj, builtcell, km)
         end
     end for m in methods(on_code_build)]
+    ToolipsSession.bind(c, cm, maincell, km, on = :down)
     builtcell::Component{:div}
 end
 
