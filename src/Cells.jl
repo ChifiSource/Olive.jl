@@ -1110,6 +1110,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         if curr == ""
             res = "&nbsp;&nbsp;&nbsp;&nbsp;"
             set_text!(cm, "cell$(cell.id)", res)
+            cm["cell$(cell.id)"] = "caret" => "4"
             Components.set_textdiv_cursor!(cm, "cell$(cell.id)", 4)
             return
         end
@@ -1119,14 +1120,13 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             elseif last_n == 1 || last_n == 0
                 "&nbsp;&nbsp;&nbsp;&nbsp;" * curr
             else
-                @warn last_n
-                curr[begin:last_n - 1] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n:end]
+                curr[begin:last_n] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:end]
         end
         res = replace(res, " " => "&nbsp;")
-        set_text!(cm, "cell$(cell.id)", res)
         newi = last_n + 4
         cm["cell$(cell.id)"] = "caret" => string(newi)
-        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi)
+        set_text!(cm, "cell$(cell.id)", res)
+        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi + 1)
     end
     original_class_inp = ""
     original_class_side = ""

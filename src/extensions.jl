@@ -779,7 +779,7 @@ function build_selector_cell(c::AbstractConnection, cell::Cell{<:Any}, dir::Dire
     builtcell[:children] = builtcell[:children]["cell$(cell.id)label"]
     delete!(builtcell.properties, :ondblclick)
     on(c, builtcell, "click") do cm::ComponentModifier
-        style!(cm, builtcell, "border" => "2px solid pink")
+        style!(cm, builtcell, "border" => "3px solid green")
         set_text!(cm, "selfindic", cell.outputs)
     end
     builtcell::Component{<:Any}
