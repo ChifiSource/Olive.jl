@@ -390,6 +390,10 @@ function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::St
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
+    if ~(contains(env.pwd, CORE.data["HOME"])) && ~(CORE.data["ROOT"] == getname(c))
+        olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
+        return
+    end
     newcells = directory_cells(string(path), pwd = true)
     pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
     if isnothing(pwddi)
@@ -405,6 +409,7 @@ function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::St
     for mcell in newcells])
     set_text!(cm, "selector", string(path))
     set_children!(cm, "pwdbox", childs)
+    nothing::Nothing
 end
 
 function switch_work_dir!(cm::AbstractComponentModifier, path::String)

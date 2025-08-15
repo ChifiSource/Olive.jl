@@ -685,12 +685,10 @@ function build(c::AbstractConnection, dir::Directory{:pwd})
     childbox.name = "pwdbox"
     style!(childbox, "border-left" => "10px solid", "border-color" => "#64bf6a")
     on(c, maincell, "click") do cm::ComponentModifier
-        childs = Vector{Servable}([begin
-            build(c, mcell, dir)
-        end
-        for mcell
-             in directory_cells(dir.uri, pwd = true)])
         if cm[maincell]["ex"] == "0"
+            childs = Vector{Servable}([begin
+                build(c, mcell, dir)
+            end for mcell in directory_cells(dir.uri, wdtype = :switchdir)])
             style!(cm, childbox, "height" => "auto", "opacity" => 100percent, "pointer-events" => "auto")
             set_children!(cm, childbox, childs)
             cm[maincell] = "ex" => "1"
@@ -701,7 +699,7 @@ function build(c::AbstractConnection, dir::Directory{:pwd})
     end
     filecell
 end
-
+    
 """
 ```julia
 Project{name <: Any}

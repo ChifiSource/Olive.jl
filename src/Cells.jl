@@ -558,9 +558,9 @@ directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool
 ```
 - See also: `build_file_cell`, `Cell`, `build_base_cell`
 """
-function directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool = false)
+function directory_cells(dir::String = pwd(), access::Pair{String, String} ...; wdtype::Symbol = :dir)
     files = readdir(dir)
-    return(filter!(e -> ~(isnothing(e)), [build_file_cell(path, dir, pwd = pwd) for path in files]::AbstractVector))
+    return(filter!(e -> ~(isnothing(e)), [build_file_cell(path, dir, wdtype = wdtype) for path in files]::AbstractVector))
 end
 
 """
@@ -572,7 +572,7 @@ Used by `directory_cells` to build individual file cells. This function will bui
 ```
 - See also: `directory_cells`, `Cell`, `build_base_cell`
 """
-function build_file_cell(path::String, dir::String; pwd::Bool = false)
+function build_file_cell(path::String, dir::String; wdtype::Symbol = :dir)
     fpath = dir * "/" * path
     if ~(isdir(fpath))
         if isfile(fpath)
@@ -588,11 +588,7 @@ function build_file_cell(path::String, dir::String; pwd::Bool = false)
             return
         end
     else
-        if pwd
-            Cell("switchdir", path, dir)
-        else
-            Cell("dir", path, dir)
-        end
+        Cell{wdtype}(path, dir)
     end
 end
 

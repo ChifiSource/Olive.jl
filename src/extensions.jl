@@ -731,3 +731,58 @@ function build(c::Connection, cell::Cell{:olivestyle},
     style!(hiddencell, "background-color" => "#F15A60")
     hiddencell
 end
+
+#== File select
+==#
+function make_fselect_dialog(f::Function, c::AbstractConnection, path::String = "")
+    user = c[:OliveCore].users[getname(c)]
+    if path == ""
+        path = user.environment.pwd
+    end
+    dir = Directory(path, dirtype = "selectfile")
+    builtdir = build(c, dir)
+    cancel_button = button(Components.gen_ref(2), text = "cancel")
+    confirm_button = button(Components.gen_ref(2), text = "confirm")
+    file_indicator = a("selfindic", text = "-")
+    conf_div = div("confdiv", children = [file_indicator, cancel_button, confirm_button])
+    on(cancel_button, "click") do cl
+        remove!(cl, "selectorwindow")
+    end
+    on(c, confirm_button, "click") do cm::ComponentModifier
+        f(cm, cm["selfindic"]["text"])
+        remove!(cm, "selectorwindow")
+    end
+    window = section("selectorwindow", children = [builtdir, conf_div])
+    style!(window, "position" => "absolute", "top" => 15percent, 
+        "left" => 30percent, "width" => 28percent, "padding" => 2percent, 
+        "background-color" => "white")
+    window::Component{:section}
+end
+
+function build(c::AbstractConnection, dir::Directory{:selectfile})
+    path_notifier = h3("selectnotify", text = dir.uri)
+    newcells = directory_cells(dir.uri, wdtype = :switchselector)
+    childs = Vector{Servable}([begin
+        build(c, mcell, dir)
+    end for mcell in newcells])
+    selectionbox = div("selectionbox", children = childs)
+    selectionbox
+end
+
+function build(c::Connection, cell::Cell{:switchselector}, d::Directory{<:Any}, bind::Bool = true)
+    filecell::Component{<:Any} = build_base_cell(c, cell, d, binding = false)
+    filecell[:children] = filecell[:children][5:5]
+    on(c, filecell, "click") do cm::ComponentModifier
+        newcells = directory_cells(cell.outputs, wdtype = :switchselector)
+        set_text!(cm, "selectnotify", cell.outputs)
+        childs = Vector{Servable}([begin
+            build(c, mcell, newd)
+        end for mcell in newcells])
+        set_text!(cm, "selectnotify", string(path))
+        set_children!(cm, "selectionbox", childs)
+    end
+    filecell::Component{<:Any}
+end
+
+#== filesave?
+==#
