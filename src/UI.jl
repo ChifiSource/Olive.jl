@@ -385,16 +385,16 @@ This will also decollapse the **inspector** and open the **project explorer**
 """
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
     env::Environment = CORE.users[getname(c)].environment
+    if ~(contains(path, split(env.pwd, "/")[1])) && ~(CORE.data["root"] == getname(c))
+        olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
+        return
+    end
     env.pwd = path
     if isfile(path)
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
-    if ~(contains(env.pwd, CORE.data["HOME"])) && ~(CORE.data["ROOT"] == getname(c))
-        olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
-        return
-    end
-    newcells = directory_cells(string(path), pwd = true)
+    newcells = directory_cells(string(path), wdtype = :switchdir)
     pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
     if isnothing(pwddi)
         return
@@ -417,7 +417,7 @@ function switch_work_dir!(cm::AbstractComponentModifier, path::String)
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
-    newcells = directory_cells(string(path), pwd = true)
+    newcells = directory_cells(string(path), wdtype = :switchdir)
     pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
     if isnothing(pwddi)
         return

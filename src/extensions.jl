@@ -763,22 +763,39 @@ function build(c::AbstractConnection, dir::Directory{:selectfile})
     path_notifier = h3("selectnotify", text = dir.uri)
     newcells = directory_cells(dir.uri, wdtype = :switchselector)
     childs = Vector{Servable}([begin
-        build(c, mcell, dir)
+        build_selector_cell(c, mcell, dir)
     end for mcell in newcells])
     selectionbox = div("selectionbox", children = childs)
-    selectionbox
+    dirbox = div("selectdir", children = [path_notifier, selectionbox])
+    dirbox::Component{:div}
+end
+
+function build_selector_cell(c::AbstractConnection, cell::Cell{:switchselector}, dir::Directory{<:Any})
+    build(c, cell, dir)
+end
+
+function build_selector_cell(c::AbstractConnection, cell::Cell{<:Any}, dir::Directory{<:Any})
+    builtcell = build(c, cell, dir)
+    builtcell[:children] = builtcell[:children]["cell$(cell.id)label"]
+    delete!(builtcell.properties, :ondblclick)
+    on(c, builtcell, "click") do cm::ComponentModifier
+        style!(cm, builtcell, "border" => "2px solid pink")
+        set_text!(cm, "selfindic", cell.outputs)
+    end
+    builtcell::Component{<:Any}
 end
 
 function build(c::Connection, cell::Cell{:switchselector}, d::Directory{<:Any}, bind::Bool = true)
     filecell::Component{<:Any} = build_base_cell(c, cell, d, binding = false)
     filecell[:children] = filecell[:children][5:5]
     on(c, filecell, "click") do cm::ComponentModifier
-        newcells = directory_cells(cell.outputs, wdtype = :switchselector)
-        set_text!(cm, "selectnotify", cell.outputs)
+        path = cell.outputs * "/" * cell.source
+        newcells = directory_cells(path, wdtype = :switchselector)
+        dir = Directory(path)
         childs = Vector{Servable}([begin
-            build(c, mcell, newd)
+            build_selector_cell(c, mcell, dir)
         end for mcell in newcells])
-        set_text!(cm, "selectnotify", string(path))
+        set_text!(cm, "selectnotify", path)
         set_children!(cm, "selectionbox", childs)
     end
     filecell::Component{<:Any}
