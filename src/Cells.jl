@@ -983,7 +983,7 @@ end
 
 function cell_open!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
-    olive_notify!(cm2, "this cell does not have an `open` binding", color = "red")
+    olive_notify!(cm, "this cell does not have an `open` binding", color = "red")
 end
 
 function get_highlighter(c::Connection, cell::Cell{<:Any})
@@ -1022,14 +1022,14 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         cm["olivemain"] = "ex" => "1"
         save_project_as(c, cm, proj)
     end
-    ToolipsSession.bind(km, keybindings["focusup"]) do cm::ComponentModifier
-        focus_up!(c, cm, cell, proj)
-    end
     ToolipsSession.bind(km, keybindings["up"]) do cm2::ComponentModifier
         cell_up!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["down"]) do cm2::ComponentModifier
         cell_down!(c, cm2, cell, proj)
+    end
+    ToolipsSession.bind(km, keybindings["focusup"]) do cm::ComponentModifier
+        focus_up!(c, cm, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["project-new"], prevent_default = true) do cm2::ComponentModifier
         creatorcell::Cell{:creator} = Cell("creator", "", "save")
