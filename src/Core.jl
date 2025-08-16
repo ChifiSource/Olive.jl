@@ -1447,6 +1447,9 @@ function onsave(core::OliveCore, copy::AbstractDict, oe::OliveExtension{:groups}
         load::Vector{String} = [string(ext) for ext in group.load_extensions]
         group.name => Dict("cells" => cells, "uris" => uris, "dirs" => dirs, "load" => load)
     end for group in copy["groups"])
+    if haskey(copy, "threads")
+        delete!(copy, "threads")
+    end
     nothing::Nothing
 end
 

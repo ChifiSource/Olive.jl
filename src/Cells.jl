@@ -1428,14 +1428,13 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     execcode::String = *("begin\n", cell.source, "\nend")
     ret::Any = ""
     st_trace = nothing
-    olive_mod = proj[:mod]
+    olive_mod::Module = proj[:mod]
     sel_thread = nothing
     try
         if :thread in keys(proj.data)
             if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin")
                 proj[:mod].evalin(Meta.parse(execcode))
             end
-            execcode = "evalin(Meta.parse(\"\"\"$execcode\"\"\"))"
             modstr = Symbol(split(string(olive_mod), ".")[end])
             thread_vals = proj.data[:thread]
             sel_thread = findfirst(w -> ~(w.active) && w.pid in thread_vals, c[:procs].workers)
@@ -1444,12 +1443,12 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             end
             worker = c[:procs][sel_thread]
             worker.active = true
+            parsed = Meta.parse(execcode)
             ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
-		        Base.include_string($(Expr(:quote, olive_mod)), $execcode)
+		        $(Expr(:quote, olive_mod)).evalin($parsed)
 	        end)
             worker.active = false
             get_stdo = "evalin(Meta.parse(\"$modstr.STDO\"))"
-            @info get_stdo
             olive_mod.STDO = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
 		        Base.include_string($(Expr(:quote, olive_mod)), $get_stdo)
 	        end)
@@ -1458,10 +1457,17 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         end
     catch e
         # jesus christ, it's FOUR nested errors??!
-        ret = e.captured.ex.error
-        st_trace = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
+        if :captured in fieldnames(typeof(e))
+            ret = e.captured.ex.error
+        else
+            ret = e
+        end
+        st_trace = try Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
 		        $(Expr(:quote, olive_mod)).catch_backtrace()
 	        end)
+        catch
+            catch_backtrace()
+        end
     end
     # output
     for m in methods(on_code_evaluate)

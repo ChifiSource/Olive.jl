@@ -718,7 +718,9 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
         user = OliveUser{:olive}("olive user", userkey, Environment("olive"), Dict{String, Any}("group" => "root"))
         push!(CORE.keys, userkey => user.name)
-        push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
+        if threads > 1
+            push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
+        end
         init_user(user)
         push!(CORE.users, user)
     end
