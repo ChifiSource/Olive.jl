@@ -714,19 +714,19 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(CORE.data, "root" => "olive user", "wd" => wd, 
             "groups" => [Group("root")], "headless" => true)
         source_module!(CORE)
-            user_inits = [begin 
-        m.sig.parameters[3].parameters[1]
-    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
         userkey = Toolips.gen_ref(10)
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
         user = OliveUser{:olive}("olive user", userkey, Environment("olive"), Dict{String, Any}("group" => "root"))
         push!(CORE.keys, userkey => user.name)
+        push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
         init_user(user)
         push!(CORE.users, user)
     end
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
     if threads > 1
-        push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
+        if ~(haskey(CORE.data, "threads"))
+            push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
+        end
         Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Olive.Toolips
             using Olive.ToolipsSession

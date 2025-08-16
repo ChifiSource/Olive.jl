@@ -744,7 +744,7 @@ function make_fselect_dialog(f::Function, c::AbstractConnection, path::String = 
     cancel_button = button(Components.gen_ref(2), text = "cancel")
     confirm_button = button(Components.gen_ref(2), text = "confirm")
     file_indicator = a("selfindic", text = "-")
-    conf_div = div("confdiv", children = [file_indicator, cancel_button, confirm_button])
+    conf_div = div("confdiv", children = [file_indicator, cancel_button, confirm_button], align = "right")
     on(cancel_button, "click") do cl
         remove!(cl, "selectorwindow")
     end

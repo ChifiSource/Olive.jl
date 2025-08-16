@@ -1448,15 +1448,20 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
 		        Base.include_string($(Expr(:quote, olive_mod)), $execcode)
 	        end)
             worker.active = false
-       #==     job = new_job(eval_in_mod, string(proj[:mod]), execcode)
-            assigned_w = assign!(c[:procs], proj.data[:thread], job, sync = true)
-            ret = waitfor(c[:procs], assigned_w, sync = true)[1] ==#
+            get_stdo = "evalin(Meta.parse(\"$modstr.STDO\"))"
+            @info get_stdo
+            olive_mod.STDO = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
+		        Base.include_string($(Expr(:quote, olive_mod)), $get_stdo)
+	        end)
         else
             ret = proj[:mod].evalin(Meta.parse(execcode))
         end
     catch e
-        ret = e
-        st_trace = proj[:mod].catch_backtrace()
+        # jesus christ, it's FOUR nested errors??!
+        ret = e.captured.ex.error
+        st_trace = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
+		        $(Expr(:quote, olive_mod)).catch_backtrace()
+	        end)
     end
     # output
     for m in methods(on_code_evaluate)
