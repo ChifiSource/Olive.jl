@@ -685,12 +685,10 @@ function build(c::AbstractConnection, dir::Directory{:pwd})
     childbox.name = "pwdbox"
     style!(childbox, "border-left" => "10px solid", "border-color" => "#64bf6a")
     on(c, maincell, "click") do cm::ComponentModifier
-        childs = Vector{Servable}([begin
-            build(c, mcell, dir)
-        end
-        for mcell
-             in directory_cells(dir.uri, pwd = true)])
         if cm[maincell]["ex"] == "0"
+            childs = Vector{Servable}([begin
+                build(c, mcell, dir)
+            end for mcell in directory_cells(dir.uri, wdtype = :switchdir)])
             style!(cm, childbox, "height" => "auto", "opacity" => 100percent, "pointer-events" => "auto")
             set_children!(cm, childbox, childs)
             cm[maincell] = "ex" => "1"
@@ -701,7 +699,7 @@ function build(c::AbstractConnection, dir::Directory{:pwd})
     end
     filecell
 end
-
+    
 """
 ```julia
 Project{name <: Any}
@@ -1449,6 +1447,9 @@ function onsave(core::OliveCore, copy::AbstractDict, oe::OliveExtension{:groups}
         load::Vector{String} = [string(ext) for ext in group.load_extensions]
         group.name => Dict("cells" => cells, "uris" => uris, "dirs" => dirs, "load" => load)
     end for group in copy["groups"])
+    if haskey(copy, "threads")
+        delete!(copy, "threads")
+    end
     nothing::Nothing
 end
 
@@ -1581,6 +1582,11 @@ function display(d::OliveDisplay, m::MIME"image/gif", o::Any)
 end
 
 function show_img(d::OliveDisplay, o::Any, ftype::String)
+    show(d.io, MIME"text/html"(), base64img("$(ToolipsSession.gen_ref())", o,
+    ftype))
+end
+
+function show_img(d::OliveDisplay, o::AbstractString, ftype::String)
     show(d.io, MIME"text/html"(), base64img("$(ToolipsSession.gen_ref())", o,
     ftype))
 end
