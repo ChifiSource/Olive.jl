@@ -558,9 +558,9 @@ directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool
 ```
 - See also: `build_file_cell`, `Cell`, `build_base_cell`
 """
-function directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool = false)
+function directory_cells(dir::String = pwd(), access::Pair{String, String} ...; wdtype::Symbol = :dir)
     files = readdir(dir)
-    return(filter!(e -> ~(isnothing(e)), [build_file_cell(path, dir, pwd = pwd) for path in files]::AbstractVector))
+    return(filter!(e -> ~(isnothing(e)), [build_file_cell(path, dir, wdtype = wdtype) for path in files]::AbstractVector))
 end
 
 """
@@ -572,7 +572,7 @@ Used by `directory_cells` to build individual file cells. This function will bui
 ```
 - See also: `directory_cells`, `Cell`, `build_base_cell`
 """
-function build_file_cell(path::String, dir::String; pwd::Bool = false)
+function build_file_cell(path::String, dir::String; wdtype::Symbol = :dir)
     fpath = dir * "/" * path
     if ~(isdir(fpath))
         if isfile(fpath)
@@ -588,11 +588,7 @@ function build_file_cell(path::String, dir::String; pwd::Bool = false)
             return
         end
     else
-        if pwd
-            Cell("switchdir", path, dir)
-        else
-            Cell("dir", path, dir)
-        end
+        Cell{wdtype}(path, dir)
     end
 end
 
@@ -987,7 +983,7 @@ end
 
 function cell_open!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
-    olive_notify!(cm2, "this cell does not have an `open` binding", color = "red")
+    olive_notify!(cm, "this cell does not have an `open` binding", color = "red")
 end
 
 function get_highlighter(c::Connection, cell::Cell{<:Any})
@@ -1026,14 +1022,14 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         cm["olivemain"] = "ex" => "1"
         save_project_as(c, cm, proj)
     end
-    ToolipsSession.bind(km, keybindings["focusup"]) do cm::ComponentModifier
-        focus_up!(c, cm, cell, proj)
-    end
     ToolipsSession.bind(km, keybindings["up"]) do cm2::ComponentModifier
         cell_up!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["down"]) do cm2::ComponentModifier
         cell_down!(c, cm2, cell, proj)
+    end
+    ToolipsSession.bind(km, keybindings["focusup"]) do cm::ComponentModifier
+        focus_up!(c, cm, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["project-new"], prevent_default = true) do cm2::ComponentModifier
         creatorcell::Cell{:creator} = Cell("creator", "", "save")
@@ -1114,20 +1110,23 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         if curr == ""
             res = "&nbsp;&nbsp;&nbsp;&nbsp;"
             set_text!(cm, "cell$(cell.id)", res)
+            cm["cell$(cell.id)"] = "caret" => "4"
             Components.set_textdiv_cursor!(cm, "cell$(cell.id)", 4)
             return
         end
         last_n::Int64 = parse(Int64, callback_comp["caret"])
         res = if last_n == length(curr)
                 curr * "&nbsp;&nbsp;&nbsp;&nbsp;"
+            elseif last_n == 1 || last_n == 0
+                "&nbsp;&nbsp;&nbsp;&nbsp;" * curr
             else
                 curr[begin:last_n] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:end]
-            end
+        end
         res = replace(res, " " => "&nbsp;")
-        set_text!(cm, "cell$(cell.id)", res)
         newi = last_n + 4
-        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi - 1)
         cm["cell$(cell.id)"] = "caret" => string(newi)
+        set_text!(cm, "cell$(cell.id)", res)
+        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi + 1)
     end
     original_class_inp = ""
     original_class_side = ""
@@ -1320,7 +1319,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     sideb = interior[:children]["cellside$(cell.id)"]
     sideb[:class] = "cellside codeside"
     OliveHighlighters.clear!(tm)
-    ToolipsSession.bind(c, cm, maincell, km, on = :down)
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
@@ -1328,6 +1326,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             on_code_build(c, cm, ext, cell, proj, builtcell, km)
         end
     end for m in methods(on_code_build)]
+    ToolipsSession.bind(c, cm, maincell, km, on = :down)
     builtcell::Component{:div}
 end
 
@@ -1425,39 +1424,66 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     window::String = proj.id
     cells::Vector{Cell} = proj[:cells]
     # get code
-    cell.source::String = replace(cm["cell$(cell.id)"]["text"], "&lt;" => "<")
+    cell.source::String = cm["cell$(cell.id)"]["text"]
+    if contains(cell.source, "Base.Base") || contains(cell.source, "getfield(Base, :Base)")
+        olive_notify!(cm, "you may not access `OliveBase.Base`")
+        return
+    end
     execcode::String = *("begin\n", cell.source, "\nend")
     ret::Any = ""
     st_trace = nothing
-    olive_mod = proj[:mod]
+    olive_mod::Module = proj[:mod]
     sel_thread = nothing
     try
         if :thread in keys(proj.data)
-            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin")
-                proj[:mod].evalin(Meta.parse(execcode))
-            end
-            execcode = "evalin(Meta.parse(\"\"\"$execcode\"\"\"))"
             modstr = Symbol(split(string(olive_mod), ".")[end])
             thread_vals = proj.data[:thread]
             sel_thread = findfirst(w -> ~(w.active) && w.pid in thread_vals, c[:procs].workers)
             if isnothing(sel_thread)
                 sel_thread = thread_vals[1]
             end
+            parsed = Meta.parse(execcode)
+            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin") || contains(execcode, "-> begin")
+                proj[:mod].evalin(parsed)
+                if length(thread_vals) > 1
+                    @async begin
+                        for thread_n in thread_vals
+                            if thread_n == sel_thread
+                                continue
+                            end
+                            Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, thread_n, quote
+		                        $(Expr(:quote, olive_mod)).evalin($parsed)
+	                        end)
+                        end
+                    end
+                end
+            end
             worker = c[:procs][sel_thread]
             worker.active = true
             ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
-		        Base.include_string($(Expr(:quote, olive_mod)), $execcode)
+		        $(Expr(:quote, olive_mod)).evalin($parsed)
 	        end)
             worker.active = false
-       #==     job = new_job(eval_in_mod, string(proj[:mod]), execcode)
-            assigned_w = assign!(c[:procs], proj.data[:thread], job, sync = true)
-            ret = waitfor(c[:procs], assigned_w, sync = true)[1] ==#
+            get_stdo = "evalin(Meta.parse(\"$modstr.STDO\"))"
+            olive_mod.STDO = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
+		        Base.include_string($(Expr(:quote, olive_mod)), $get_stdo)
+	        end)
         else
             ret = proj[:mod].evalin(Meta.parse(execcode))
         end
     catch e
-        ret = e
-        st_trace = proj[:mod].catch_backtrace()
+        # jesus christ, it's FOUR nested errors??!
+        if :captured in fieldnames(typeof(e))
+            ret = e.captured.ex.error
+        else
+            ret = e
+        end
+        st_trace = try Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
+		        $(Expr(:quote, olive_mod)).catch_backtrace()
+	        end)
+        catch
+            catch_backtrace()
+        end
     end
     # output
     for m in methods(on_code_evaluate)

@@ -82,7 +82,11 @@ import Base
 import Base: names, in, contains, Meta, string, join, eval
 
 disabled = [:pwd, :println, :print, :read, :cd, :open, :touch, :cp, :rm, 
-:mv, :rmdir, :info, :warn]
+:mv, :rmdir, :info, Symbol("@warn"), :Threads, :Sys, :Sockets, :ENV, 
+:ccall, :llvmcall, :exit, :quit, :atexit, :kill, :run, :pipeline, :Cmd, :spawn, 
+:success, :download, :isfile, :isdir, :stat, :readdir, :readchop, :readline, 
+:mktemp, :mkpath, :symlink, :chmod, :chown, :link, :spawn, :success, :eval, 
+:include, :unsafe_load, :unsafe_store!, :cfunction]
 
 for name in names(Base)
     if name in disabled
@@ -714,19 +718,21 @@ function start(IP::Toolips.IP4 = "127.0.0.1":8000; path::String = replace(homedi
         push!(CORE.data, "root" => "olive user", "wd" => wd, 
             "groups" => [Group("root")], "headless" => true)
         source_module!(CORE)
-            user_inits = [begin 
-        m.sig.parameters[3].parameters[1]
-    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
         userkey = Toolips.gen_ref(10)
         push!(SES.events, userkey => Vector{ToolipsSession.AbstractEvent}())
         user = OliveUser{:olive}("olive user", userkey, Environment("olive"), Dict{String, Any}("group" => "root"))
         push!(CORE.keys, userkey => user.name)
+        if threads > 1
+            push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
+        end
         init_user(user)
         push!(CORE.users, user)
     end
     procs::Toolips.ProcessManager = start!(Olive, IP, threads = threads, router_threads = 0:0)
     if threads > 1
-        push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
+        if ~(haskey(CORE.data, "threads"))
+            push!(CORE.data, "threads" => threads, "userthreads" => user_threads)
+        end
         Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Olive.Toolips
             using Olive.ToolipsSession
