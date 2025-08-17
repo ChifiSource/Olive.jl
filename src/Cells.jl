@@ -1424,7 +1424,11 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     window::String = proj.id
     cells::Vector{Cell} = proj[:cells]
     # get code
-    cell.source::String = replace(cm["cell$(cell.id)"]["text"], "&lt;" => "<")
+    cell.source::String = cm["cell$(cell.id)"]["text"]
+    if contains(cell.source, "Base.Base") || contains(cell.source, "getfield(Base, :Base)")
+        olive_notify!(cm, "you may not access `OliveBase.Base`")
+        return
+    end
     execcode::String = *("begin\n", cell.source, "\nend")
     ret::Any = ""
     st_trace = nothing

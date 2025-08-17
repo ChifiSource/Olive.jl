@@ -82,7 +82,11 @@ import Base
 import Base: names, in, contains, Meta, string, join, eval
 
 disabled = [:pwd, :println, :print, :read, :cd, :open, :touch, :cp, :rm, 
-:mv, :rmdir, :info, :warn]
+:mv, :rmdir, :info, Symbol("@warn"), :Threads, :Sys, :Sockets, :ENV, 
+:ccall, :llvmcall, :exit, :quit, :atexit, :kill, :run, :pipeline, :Cmd, :spawn, 
+:success, :download, :isfile, :isdir, :stat, :readdir, :readchop, :readline, 
+:mktemp, :mkpath, :symlink, :chmod, :chown, :link, :spawn, :success, :eval, 
+:include, :unsafe_load, :unsafe_store!, :cfunction]
 
 for name in names(Base)
     if name in disabled
