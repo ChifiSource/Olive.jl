@@ -1432,18 +1432,30 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     sel_thread = nothing
     try
         if :thread in keys(proj.data)
-            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin")
-                proj[:mod].evalin(Meta.parse(execcode))
-            end
             modstr = Symbol(split(string(olive_mod), ".")[end])
             thread_vals = proj.data[:thread]
             sel_thread = findfirst(w -> ~(w.active) && w.pid in thread_vals, c[:procs].workers)
             if isnothing(sel_thread)
                 sel_thread = thread_vals[1]
             end
+            parsed = Meta.parse(execcode)
+            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin") || contains(execcode, "-> begin")
+                proj[:mod].evalin(parsed)
+                if length(thread_vals) > 1
+                    @async begin
+                        for thread_n in thread_vals
+                            if thread_n == sel_thread
+                                continue
+                            end
+                            Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, thread_n, quote
+		                        $(Expr(:quote, olive_mod)).evalin($parsed)
+	                        end)
+                        end
+                    end
+                end
+            end
             worker = c[:procs][sel_thread]
             worker.active = true
-            parsed = Meta.parse(execcode)
             ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
 		        $(Expr(:quote, olive_mod)).evalin($parsed)
 	        end)
