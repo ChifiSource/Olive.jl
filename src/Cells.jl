@@ -1621,7 +1621,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
         return
     end
     activemd = active_cell["text"]
-    @warn activemd
     newtmd = tmd("cell$(cell.id)tmd", activemd)
     ToolipsServables.interpolate!(newtmd, Olive.INTERPOLATORS ...)
     newtext = replace(newtmd[:text], "`" => "\\`", "\"" => "\\\"", "''" => "\\'")

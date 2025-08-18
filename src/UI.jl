@@ -100,6 +100,25 @@ function default_sectionstyle(;padding::Any = 30px,
     "transition" => 1seconds)::Style
 end
 
+#==
+li {
+	list-style: none;            /* remove default bullets */
+	position: relative;
+	margin: 0.4em 0;
+	padding-left: 1.4em;         /* make space for custom bullet */
+	line-height: 1.6;
+	font-size: 1rem;
+	color: #333;
+}
+
+li::before {
+	content: "•";                /* custom bullet */
+	position: absolute;
+	left: 0;
+	color: #007acc;              /* accent color (blue) */
+	font-weight: bold;
+}
+    ==#
 function sheet(name::String,p::Pair{String, Any} ...;
     textsize::Integer = 14, face_textsize::Integer = 12,
     padding::Integer = 7, face_padding::Integer = 5,
@@ -107,12 +126,16 @@ function sheet(name::String,p::Pair{String, Any} ...;
     transition::Float64 = 0.5,
     args ...)
     msheet = Component{:sheet}(name, p ..., args ...)
+    lis = style("li", "list-style" => "none", "position" => "relative", "margin" => "0.4em 0", 
+        "padding-left" => "1.4em", "line-height" => "1.6", "font-size" => 14pt, "color" => "#333")
+    lis:"before":["content" => "'\\20AA'", "position" => "absolute", "left" => "0", "color" => "#b05885", "font-weight" => "bold"]
     divs = default_divstyle()
     buttons = default_buttonstyle()
     as = default_astyle()
     ps = default_pstyle(textsize = textsize)
     sectionst = default_sectionstyle(padding = padding)
     tabs = default_tabstyle()
+    
     h1s = Style("h1", "color" => "#754679")
     h2s = Style("h2", "color" => "#797ef6")
     h3s = Style("h3", "color" => "#241124")
@@ -121,9 +144,9 @@ function sheet(name::String,p::Pair{String, Any} ...;
     scrollbars = Style("::-webkit-scrollbar", "width" => "5px")
     scrtrack = Style("::-webkit-scrollbar-track", "background" => "transparent")
     scrthumb = Style("::-webkit-scrollbar-thumb", "background" => "#797ef6",
-    "border-radius" => "5px")
+    "border-radius" => "2px")
     push!(msheet, divs, buttons, sectionst, as, ps, h1s,
-    h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb)
+    h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb, lis)
     msheet
 end
 
