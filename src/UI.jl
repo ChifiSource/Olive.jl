@@ -680,8 +680,6 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     fsplit::Vector{SubString} = split(fpath, "/")
     uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
     environment::String = ""
-    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :env => environment, :path => fpath, projpairs ...)
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
@@ -690,8 +688,12 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
             if fpath != c[:OliveCore].data["home"]
                 push!(projdict, :path => fpath)
             end
+        else
+            environment = CORE.data["wd"]
         end
     end
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+    :env => environment, :path => fpath, projpairs ...)
     @async save_settings!(c)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     c[:OliveCore].olmod.Olive.source_module!(c, myproj)
@@ -1119,7 +1121,7 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
                     current_prev = nothing
                 end
             end
-            ToolipsSession.scroll_to!(cm2, "cell$active_cell")
+            Components.scroll_to!(cm2, "cell$active_cell")
             prev_cell = active_cell
             cm2["cell$active_cell"] = "class" => "input_cell inputselected"
         else
@@ -1128,7 +1130,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         set_text!(cm2, "find-position", "$count/$total")
         set_text!(cm2, "find-cell", "$inner_count/$n_active_items")
     end
-    ToolipsSession.bind(find_f, km, "Enter", prevent_default = true)
     ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
         focus!(cm2, "replacebox")
     end
@@ -1144,6 +1145,22 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         prev_cell, inner_count = nothing, nothing
         count, total, selected_text = nothing, nothing, nothing
     end
+    replace_cell_f = cm2::ComponentModifier -> begin
+        if selected_text == ""
+            olive_notify!(cm2, "no found items to replace, use find fist with `Enter`", color = "darkred")
+            return
+        end
+        active_cell = item_keys[active_key]
+        replace_text = cm2["replacebox"]["text"]
+        cell_object::Cell{<:Any} = cells[active_cell]
+        cell_object.source = replace(cell_object.source, selected_text => replace_text)
+        set_text!(cm2, "cell$active_cell", cell_object.source)
+        on(c, cm2, 100) do cm::ComponentModifier
+            cell_highlight!(c, cm, cell_object, proj)
+        end
+        found_items = Dict{String, Vector{UnitRange{Int64}}}()
+    end
+    ToolipsSession.bind(replace_cell_f, km, "A", :ctrl, :shift, prevent_default = true)
     replace_f = cm2::ComponentModifier -> begin
       if selected_text == ""
             olive_notify!(cm2, "No found items to replace, use find first with `Enter`", color = "darkred")
@@ -1162,24 +1179,10 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         found_items = Dict{String, Vector{UnitRange{Int64}}}()
     end
     ToolipsSession.bind(replace_f, km, "Enter", :shift)
-    replace_cell_f = cm2::ComponentModifier -> begin
-        if selected_text == ""
-            olive_notify!(cm2, "no found items to replace, use find fist with `Enter`", color = "darkred")
-            return
-        end
-        active_cell = item_keys[active_key]
-        replace_text = cm2["replacebox"]["text"]
-        cell_object::Cell{<:Any} = cells[active_cell]
-        cell_object.source = replace(cell_object.source, selected_text => replace_text)
-        set_text!(cm2, "cell$active_cell", cell_object.source)
-        on(c, cm2, 100) do cm::ComponentModifier
-            cell_highlight!(c, cm, cell_object, proj)
-        end
-        found_items = Dict{String, Vector{UnitRange{Int64}}}()
-    end
-    ToolipsSession.bind(replace_cell_f, km, "A", :ctrl, :shift, prevent_default = true)
+    ToolipsSession.bind(find_f, km, "Enter", prevent_default = true)
     ToolipsSession.bind(c, cm, find_box, km)
-    delete!(km.keys, "Tab")
+    pos = findfirst(x -> x[1].name == "Tab", km.keys)
+    deleteat!(km.keys, pos)
     ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
         focus!(cm2, "findbox")
     end

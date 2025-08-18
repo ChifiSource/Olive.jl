@@ -1372,7 +1372,7 @@ end
 ```
 """
 function on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
-    cell::Cell{:code}, proj::Project{<:Any}, km::ToolipsSession.KeyMap)
+    cell::Cell{:code}, proj::Project{<:Any})
 
 end
 
@@ -1621,10 +1621,11 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
         return
     end
     activemd = active_cell["text"]
-    cell.source = replace(activemd, "<br>" => "\n", "<div>" => "")
-    newtmd = tmd("cell$(cell.id)tmd", cell.source)
+    @warn activemd
+    newtmd = tmd("cell$(cell.id)tmd", activemd)
     ToolipsServables.interpolate!(newtmd, Olive.INTERPOLATORS ...)
-    set_children!(cm, "cell$(cell.id)", [newtmd])
+    newtext = replace(newtmd[:text], "`" => "\\`", "\"" => "\\\"", "''" => "\\'")
+    push!(cm.changes, "document.getElementById('cell$(cell.id)').innerHTML = `$newtext`;")
     cm["cell$(cell.id)"] = "contenteditable" => "false"
     on(c, cm, 100) do cm2::ComponentModifier
         set_children!(cm2, "cellhighlight$(cell.id)", Vector{AbstractComponent}())
