@@ -21,7 +21,7 @@ Core.jl
 OliveExtension{P <: Any}
 ```
 The OliveExtension is a symbolic type that is used by the `build` function in
-order to create extensions using an OliveModifier. This constructor should only
+order to create extensions using an ComponentModifier. This constructor should only
 be called internally. Instead, simply use methods to define your extension.
 ```example
 # this is your olive root file:
@@ -30,7 +30,7 @@ using Olive
 import Olive: build
 
                             # vv the name of your extension ! vv
-function build(om::OliveModifier, oe::OliveExtension{:myextension})
+function build(om::ComponentModifier, oe::OliveExtension{:myextension})
     alert!(om, "hello!")
 end
 ```
@@ -42,41 +42,7 @@ mutable struct OliveExtension{P <: Any} end
 
 """
 ```julia
-OliveModifier <: ToolipsSession.AbstractComponentModifier
-```
-- rootc**::Dict{String, AbstractComponent}**
-- changes**::Vector{String}**
-- data**::Dict{String, Any}**
-The OliveModifier is used whenever an extension is loaded with a `build`
-function.
-```
-# this is your olive root file:
-module olive
-using Olive
-import Olive: build
-
-                            # vv the name of your extension ! vv
-function build(om::OliveModifier, oe::OliveExtension{:myextension})
-    alert!(om, "hello!")
-end
-```
-- `OliveModifier(c::Connection, cm::ComponentModifier)``
-"""
-mutable struct OliveModifier <: ToolipsSession.AbstractComponentModifier
-    rootc::String
-    changes::Vector{String}
-    data::Dict{String, Any}
-    function OliveModifier(c::Connection, cm::ComponentModifier)
-        new(cm.rootc, cm.changes, c[:OliveCore].client_data[getname(c)])
-    end
-end
-
-getindex(om::OliveModifier, symb::Symbol) = om.data[symb]
-setindex!(om::OliveModifier, o::Any, symb::Symbol) = setindex!(om.data, o, symb)
-
-"""
-```julia
-load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module) -> ::Nothing
+load_extensions!(c::AbstractConnection, cm::ComponentModifier, olmod::Module) -> ::Nothing
 ```
 Loads `Olive` extensions. This function is called when `Olive` loads the main session. 
 This function is used on the `Olive` backend whenever a client loads the page.
@@ -84,9 +50,8 @@ This function is used on the `Olive` backend whenever a client loads the page.
 
 ```
 """
-function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
-    mod = OliveModifier(c, cm)
-    Base.invokelatest(c[:OliveCore].olmod.build, c, mod,
+function load_extensions!(c::AbstractConnection, cm::ComponentModifier, olmod::Module)
+    Base.invokelatest(c[:OliveCore].olmod.build, c, cm,
     OliveExtension{:invoker}())
     signatures = [m.sig.parameters[4] for m in methods(olmod.build,
      [Any, Modifier, OliveExtension])]
@@ -94,12 +59,13 @@ function load_extensions!(c::Connection, cm::ComponentModifier, olmod::Module)
         if sig == OliveExtension{<:Any}
             continue
         end
-        c[:OliveCore].olmod.build(c, mod, sig())
+        c[:OliveCore].olmod.build(c, cm, sig())
     end
+    nothing::Nothing
 end
 """
 ```julia
-build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) -> ::Nothing
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{<:Any}) -> ::Nothing
 ```
 This is the base `Olive` extension function, used to create `load` extensions. These are 
     extensions which do something on `Olive's` startup. 
@@ -109,7 +75,7 @@ import Olive: build
 using Olive
 using ToolipsSession: alert!
 
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:hello}) = begin
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{:hello}) = begin
     olive_notify!(om, "hello !", color = "darkgreen")
 end
 ```
@@ -120,7 +86,7 @@ using Olive
 using Olive.Toolips
 using Olive.ToolipsSession
 
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{:docbrowser}) = begin
     explorericon = topbar_icon("docico", "newspaper")
     on(c, explorericon, "click") do cm::ComponentModifier
         mods = [begin 
@@ -145,37 +111,15 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:docbrowser}) = begin
 end
 ```
 """
-build(c::Connection, om::OliveModifier, oe::OliveExtension{<:Any}) = return
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{<:Any}) = return
 
-function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
+function load_keybinds_settings(c::AbstractConnection, om::AbstractComponentModifier)
     # cell bindings
-    if ~("keybindings" in keys(c[:OliveCore].client_data[getname(c)]))
-        push!(c[:OliveCore].client_data[getname(c)],
-        "keybindings" => Dict{String, Any}(
-        "evaluate" => ["Enter", "shift"],
-        "delete" => ["Delete", "ctrl", "shift"],
-        "up" => ["ArrowUp", "ctrl", "shift"],
-        "down" => ["ArrowDown", "ctrl", "shift"],
-        "copy" => ["C", "ctrl", "shift"],
-        "paste" => ["V", "ctrl", "shift"],
-        "cut" => ["X", "ctrl", "shift"],
-        "select" => ["A", "ctrl", "shift"],
-        "new" => ["Enter", "ctrl", "shift"],
-        "project-new" => ["N", "ctrl", "shift"],
-        "focusup" => ["ArrowUp", "shift"],
-        "focusdown" => ["ArrowDown", "shift"],
-        "save" => ["s", "ctrl"],
-        "saveas" => ["S", "ctrl", "shift"],
-        "open" => ["O", "ctrl"],
-        "find" => ["F", "ctrl"], 
-        "explorer" => ["E", "ctrl"], 
-        "undo" => ["Z", "ctrl", "shift"]
-        ))
-    end
     keybind_drop = containersection(c, "keybindings", fillto = 90)
     keybind_section = keybind_drop[:children][2]
     shftlabel = a("shiftlabel", text = "  shift:    ")
     ctrllabel = a("ctrllabel", text = "  ctrl:   ")
+    userdata = CORE.users[getname(c)].data
     keybind_section[:children] = Vector{Servable}(vcat([h2("setkeyslbl", text = "keybindings")],
     [begin
         newkeymain = div("keybind$(keybinding[1])")
@@ -201,22 +145,16 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
             if parse(Bool, cm["ctrlk$(keybinding[1])"]["value"])
                 push!(key_vec, "ctrl")
             end
-            c[:OliveCore].client_data[getname(c)]["keybindings"][keybinding[1]] = key_vec
+            userdata["keybindings"][keybinding[1]] = key_vec
             olive_notify!(cm, "binding $(keybinding[1]) saved")
         end
         push!(newkeymain, head, shftlabel, shift_checkbox,
         ctrllabel, ctrl_checkbox, setinput, br(), confirm)
         newkeymain
-    end for keybinding in c[:OliveCore].client_data[getname(c)]["keybindings"]]))
+    end for keybinding in userdata["keybindings"]]))
     append!(om, "settingsmenu", keybind_drop)
     # creator keys
-    if ~("creatorkeys" in keys(c[:OliveCore].client_data[getname(c)]))
-        push!(c[:OliveCore].client_data[getname(c)],
-        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
-        "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
-        "m" => "module"))
-    end
-    creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
+    creatorkeys = userdata["creatorkeys"]
     creatorkeysdropd = containersection(c, "creatorkeys", text = "creator keys")
     creatorkeysmen = creatorkeysdropd[:children][2]
     regkeys = div("regkeyss")
@@ -271,45 +209,10 @@ function load_keybinds_settings(c::Connection, om::AbstractComponentModifier)
     append!(om, "settingsmenu", creatorkeysdropd)
 end
 
-function load_style_settings(c::Connection, om::AbstractComponentModifier)
-    setting_keys = keys(c[:OliveCore].client_data[getname(c)])
-    if ~("highlighting" in setting_keys)
-        tm::Highlighter = OliveHighlighters.Highlighter("")
-        OliveHighlighters.style_julia!(tm)
-        tomltm = OliveHighlighters.Highlighter("")
-        OliveHighlighters.style_toml!(tomltm)
-        mdtm = OliveHighlighters.Highlighter("")
-        OliveHighlighters.style_markdown!(mdtm)
-        dic = Dict{String, Dict{<:Any, <:Any}}()
-        push!(c[:OliveCore].client_data[getname(c)], "highlighting" => dic)
-        push!(dic, "julia" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tm.styles),
-            "toml" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tomltm.styles),
-            "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
-    end
-    mdtm = OliveHighlighters.Highlighter("")
-    OliveHighlighters.style_markdown!(mdtm)
-    push!(c[:OliveCore].client_data[getname(c)]["highlighting"], 
-    "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
-    if ~("highlighters" in keys(c[:OliveCore].client_data[getname(c)]))
-        highlighting = c[:OliveCore].client_data[getname(c)]["highlighting"]
-        julia_highlighter = OliveHighlighters.Highlighter("")
-        toml_highlighter = OliveHighlighters.Highlighter("")
-        md_highlighter = OliveHighlighters.Highlighter("")
-        julia_highlighter.styles = Dict(begin
-            Symbol(k[1]) => ["color" => k[2]]
-        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["julia"])
-        toml_highlighter.styles = Dict(begin
-            Symbol(k[1]) => ["color" => k[2]]
-        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["toml"])
-        md_highlighter.styles = Dict(begin
-            Symbol(k[1]) => ["color" => k[2]]
-        end for k in c[:OliveCore].client_data[getname(c)]["highlighting"]["markdown"])
-        push!(c[:OliveCore].client_data[getname(c)], 
-        "highlighters" => Dict{String, OliveHighlighters.Highlighter}(
-            "julia" => julia_highlighter, "toml" => toml_highlighter, "markdown" => md_highlighter
-        ))
-    end
-    dic = c[:OliveCore].client_data[getname(c)]["highlighting"]
+function load_style_settings(c::AbstractConnection, om::AbstractComponentModifier)
+    user = c[:OliveCore].users[getname(c)]
+    setting_keys = keys(user.data)
+    dic = user.data["highlighting"]
     container = containersection(c, "highlighting", fillto = 80)
     sect = container[:children][2]
     highheader = h3("highlighthead", text = "fonts and highlighting")
@@ -331,16 +234,16 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
     updatebutton = button("highupdate", text = "apply")
     on(c, updatebutton, "click") do cm::ComponentModifier
         [begin
-            hl = c[:OliveCore].client_data[getname(c)]["highlighters"][highlighter[1]]
             styles = Dict([k[1] => cm["$(k[1])$(highlighter[1])"]["value"] for k in dic[highlighter[1]]])
-            hl.styles = Dict([Symbol(k[1]) => ["color" => k[2]] for k in styles])
-            dic[highlighter[1]] = styles
-        end for highlighter in dic]
+            user.data["highlighting"][highlighter[1]] = styles
+        end for highlighter in user.data["highlighting"]]
+        highlighters = create_highlighters(user.data["highlighting"])
+        user.data["highlighters"] = Dict{String, OliveHighlighters.Highlighter}(
+            "julia" => highlighters[1], "toml" => highlighters[2], "markdown" => highlighters[3])
         olive_notify!(cm, "Your syntax highlighters have been updated", color = "green")
     end
     push!(sect, Component{:sep}("highsep"), updatebutton)
     append!(om, "settingsmenu", container)
-
     container = containersection(c, "themes", fillto = 80)
     if ~("theme" in setting_keys)
         enable_themes = button("theme-enable", text = "enable themes")
@@ -356,7 +259,7 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
                     add_default_theme(theme_dir)
                     theme_value = "pastel pride"
                 end
-                push!(c[:OliveCore].client_data[getname(c)], "theme" => theme_value)
+                push!(user.data, "theme" => theme_value)
                 set_children!(cm, "themes", [build_theme_menu(c, theme_value)])
             else
                 confirm_di = olive_confirm_dialog(c, 
@@ -365,14 +268,14 @@ function load_style_settings(c::Connection, om::AbstractComponentModifier)
                     mkdir(theme_dir)
                     add_default_theme(theme_dir)
                     set_children!(cm2, "themes", [build_theme_menu(c, "pastel-pride")])
-                    push!(c[:OliveCore].client_data[getname(c)], "theme" => "pastel pride")
+                    push!(user.data, "theme" => "pastel pride")
                 end
                 append!(cm, "mainbody", confirm_di)
             end
         end
         push!(container[:children][2], enable_themes)
     else
-        push!(container[:children][2], build_theme_menu(c, c[:OliveCore].client_data[getname(c)]["theme"]))
+        push!(container[:children][2], build_theme_menu(c, user.data["theme"]))
     end
     append!(om, "settingsmenu", container)
 end
@@ -416,13 +319,16 @@ function build_theme_menu(c::AbstractConnection, selected_theme::String)
     set_theme_button = button("set-theme", text = "set theme")
     on(c, set_theme_button, "click") do cm::ComponentModifier
         theme = cm["theme-selector"]["value"]
-        CORE.client_data[getname(c)]["theme"] = theme
+        CORE.users[getname(c)].data["theme"] = theme
         olive_notify!(cm, "set theme: $(theme) (refresh required)")
     end
     div("theme-menu", children = [t_label, t_active, br(), t_selector, set_theme_button])
 end
 
-build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
+build(c::AbstractConnection, om::ComponentModifier, oe::OliveExtension{:olivebase}) = begin
+    if ~("settingsmenu" in om)
+        return
+    end
     load_keybinds_settings(c, om)
     load_style_settings(c, om)
     if get_group(c).name == "root"
@@ -430,7 +336,7 @@ build(c::Connection, om::OliveModifier, oe::OliveExtension{:olivebase}) = begin
     end
 end
 
-function build_groups_options(c::AbstractConnection, cm::OliveModifier)
+function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
     groups_drop = containersection(c, "groups", fillto = 90)
     group_editors = [begin
             group_b = button("edit$(group.name)", text = group.name)
@@ -461,7 +367,7 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
         on(c, confirm_button, "click") do cm2::ComponentModifier
             new_gr = Group(cm2["grname"]["text"])
             push!(new_gr.load_extensions, :olivebase)
-            push!(new_gr.cells, :shellrepl, :include, :module, :pkgrepl, :NOTE, :TODO)
+            push!(new_gr.cells, :shell, :include, :module, :pkgrepl, :NOTE, :TODO)
             push!(CORE.data["groups"], new_gr)
             save_settings!(c, core = true)
             group_b = button("edit$(new_gr.name)", text = new_gr.name)
@@ -485,8 +391,8 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
     "font-weight" => "bold")
     style!(add_group_button, add_buttons ...)
     previews = [begin
-        build_user_data(c, user[1], user[2])
-    end for user in CORE.client_data]
+        build_user_data(c, user.name, user.data)
+    end for user in CORE.users]
     user_previews = div("user_previews", children = previews)
     user_adder = button("add-user", text = "add new user")
     style!(user_adder, add_buttons ...)
@@ -508,10 +414,12 @@ function build_groups_options(c::AbstractConnection, cm::OliveModifier)
         on(c, confirm_button, "click") do cm2::ComponentModifier
             new_user_name = cm2["new-username"]["text"]
             new_user_group = cm2["new-usergroup"]["value"]
-            key::String = ToolipsSession.gen_ref(16)
+            key::String = ToolipsSession.gen_ref(10)
+            push!(CORE.keys, key => new_user_name)
             new_data = Dict{String, Any}("group" => new_user_group)
-            push!(CORE.client_keys, key => new_user_name)
-            push!(CORE.client_data, new_user_name => new_data)
+            user = OliveUser{:olive}(new_user_name, "", Environment("olive"), new_data)
+            init_user(user)
+            push!(CORE.users, user)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
             append!(cm2, "user_previews", build_user_data(c, new_user_name, new_data))
             remove!(cm2, "newuser")
@@ -535,7 +443,6 @@ function build_user_data(c::AbstractConnection, name::String, data::Dict)
     style!(name_indicator, "background-color" => "#574ca1", "color" => "white", "font-weight" => "bold", 
     "padding" => 7px)
     group_button = div("gr$name", text = data["group"])
-    active_key = findfirst(k -> k == name, CORE.client_keys)
     style!(group_button, "background-color" => "#ebe8ff", "padding" => 7px, "cursor" => "pointer", 
     "border-radius" => 0px)
     del_button = div("del$name", text = "remove")
@@ -564,14 +471,13 @@ function build_user_data(c::AbstractConnection, name::String, data::Dict)
     end
     on(c, del_button, "click") do cm2::ComponentModifier
         confirmer = olive_confirm_dialog(c, "delete user $(name)? (this cannot be undone!)") do cm::ComponentModifier
-            delete!(CORE.client_data, name)
-            active_key = findfirst(k -> k == name, CORE.client_keys)
-            delete!(CORE.client_keys, active_key)
-            olive_notify!(cm, "user $name removed (pending settings close to save)", color = "darkred")
+            f = findfirst(user -> user.name == name, CORE.users)
+            deleteat!(CORE.users, f)
         end
         append!(cm2, "mainbody", confirmer)
     end
-    link = "http://$(get_host(c))/?key=$active_key"
+    active_key = CORE.users[name].key
+    link = "http://$(get_host(c))/key?q=$active_key"
     key_ind = a("key-ind", text = link, href = link)
     style!(key_ind, "padding" => 7px, "background-color" => "#ffe8fb")
     user_container = div("$name-user", children = [name_indicator, key_ind, group_button, del_button])
@@ -588,7 +494,7 @@ Directory{S <: Any}
 ```
 - `uri`::String
 The directory type holds Directory information and file cells on startup. It
-is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds 
+is built with the `Olive.build(c::AbstractConnection, dir::Directory)` method. This holds 
 file cells inside of the project explorer, and is built like most other `Olive` components 
 by using the `build` function.
 - Directory(uri::String; dirtype::String = "olive")
@@ -612,13 +518,13 @@ end
 
 """
 ```julia
-build(c::Connection, dir::Directory{<:Any}) -> ::Component{:div}
+build(c::AbstractConnection, dir::Directory{<:Any}) -> ::Component{:div}
 ```
 The `build` function for an `Olive.Directory`. This function could be extended to create new 
-    direcotry types. `import` `Olive.build` and create a new `build(c::Connection, dir::Directory{:custom})` 
+    direcotry types. `import` `Olive.build` and create a new `build(c::AbstractConnection, dir::Directory{:custom})` 
     binding to do so.
 """
-function build(c::Connection, dir::Directory{<:Any})
+function build(c::AbstractConnection, dir::Directory{<:Any})
     nsplit::Vector{SubString} = split(dir.uri, "/")
     dircell::Cell{:dir} = Cell{:dir}(string(nsplit[length(nsplit)]),
     string(join(nsplit[1:length(nsplit) - 1], "/")))
@@ -639,7 +545,7 @@ function build(c::Connection, dir::Directory{<:Any})
     on(c, rmbutton, "click") do cm::ComponentModifier
         path::String = dir.uri
         group::Group = get_group(c)
-        direcs = c[:OliveCore].open[getname(c)].directories
+        direcs = c[:OliveCore].users[getname(c)].environment.directories
         inalready = findfirst(d -> d.uri == path, direcs)
         in_group = findfirst(d -> d.uri == path, group.directories)
         if isnothing(inalready) && isnothing(in_group)
@@ -673,7 +579,7 @@ function build(c::Connection, dir::Directory{<:Any})
     builtcell::Component{:div}
 end
 #==
-function build(c::Connection, dir::Directory{:saved})
+function build(c::AbstractConnection, dir::Directory{:saved})
     srcbutton = topbar_icon("srchome", "play_arrow")
     style!(srcbutton, "color" => "white", "font-size" => 17pt)
     if "Project.toml" in readdir(dir.uri)
@@ -716,7 +622,7 @@ function build(c::Connection, dir::Directory{:saved})
 end
 ==#
 
-function build(c::Connection, dir::Directory{:home})
+function build(c::AbstractConnection, dir::Directory{:home})
     srcbutton = topbar_icon("srchome", "play_arrow")
     style!(srcbutton, "color" => "white", "font-size" => 17pt)
     on(c, srcbutton, "click") do cm::ComponentModifier
@@ -749,7 +655,7 @@ function build(c::Connection, dir::Directory{:home})
     filecell
 end
 
-function build(c::Connection, dir::Directory{:pwd})
+function build(c::AbstractConnection, dir::Directory{:pwd})
     splits = split(dir.uri, "/")
     path, name = join(splits[1:length(splits) - 1], "/"), splits[length(splits)]
     dircell = Cell{:dir}(dir.uri, name)
@@ -779,12 +685,10 @@ function build(c::Connection, dir::Directory{:pwd})
     childbox.name = "pwdbox"
     style!(childbox, "border-left" => "10px solid", "border-color" => "#64bf6a")
     on(c, maincell, "click") do cm::ComponentModifier
-        childs = Vector{Servable}([begin
-            build(c, mcell, dir)
-        end
-        for mcell
-             in directory_cells(dir.uri, pwd = true)])
         if cm[maincell]["ex"] == "0"
+            childs = Vector{Servable}([begin
+                build(c, mcell, dir)
+            end for mcell in directory_cells(dir.uri, wdtype = :switchdir)])
             style!(cm, childbox, "height" => "auto", "opacity" => 100percent, "pointer-events" => "auto")
             set_children!(cm, childbox, childs)
             cm[maincell] = "ex" => "1"
@@ -795,7 +699,7 @@ function build(c::Connection, dir::Directory{:pwd})
     end
     filecell
 end
-
+    
 """
 ```julia
 Project{name <: Any}
@@ -806,7 +710,7 @@ Project{name <: Any}
 - environment::String
 - open::Dict{String, Dict{String, Any}}
 The directory type holds Directory information and file cells on startup. It
-is built with the `Olive.build(c::Connection, dir::Directory)` method. This holds
+is built with the `Olive.build(c::AbstractConnection, dir::Directory)` method. This holds
 cells and directories.
 ```
 ```
@@ -818,8 +722,7 @@ mutable struct Project{name <: Any}
     id::String
     Project{T}(name::String,
     data::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T <: Any} = begin
-        uuid::String = replace(ToolipsSession.gen_ref(10),
-        [string(dig) => "" for dig in digits(1234567890)] ...)
+        uuid::String = ToolipsSession.gen_ref(6)
         if ~(haskey(data, :pane))
             push!(data, :pane => "one")
         end
@@ -842,15 +745,17 @@ function create_project(homedir::String = homedir(), olivedir::String = "olive")
         write(o,
         """\"""
         ## welcome to olive!
-        Welcome to the `0.1` **pre-release** of `olive`: the multiple dispatch notebook application for Julia. This file is where extensions
-        are added.
+        Welcome to your `olive` home file. This `Module` is used to extend `Olive` by loading new 
+        methods for `build`.
         ```julia
+        # try it yourself!
         import Olive: build
-        build(c::Olive.Connection, om::Olive.OliveModifier, oe::Olive.OliveExtension{:myext}) = begin
+        build(c::Olive.Connection, om::Olive.ComponentModifier, oe::Olive.OliveExtension{:myext}) = begin
             Olive.olive_notify!(om, "welcome to my CUSTOM Olive!", color = "darkblue")
         end
         ```
         - Please report any issues to [our issues page!](https://github.com/ChifiSource/Olive.jl/issues)
+        
         \"""
         #==|""" * """||==#
         using Olive
@@ -871,7 +776,7 @@ end
 
 """
 ```julia
-build(c::Connection, cm::ComponentModifier, p::Project{<:Any}) -> ::Component{:div}
+build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any}) -> ::Component{:div}
 ```
 The catchall/default `build` function for `Olive` projects. Extend this function to change 
 the way a new `Project` type is built. By default, this makes a simple window with generated cells as 
@@ -882,7 +787,7 @@ using Olive; Olive.start()
 # (click your olive link to instantiate your environment)
 import Olive: build
 
-build(c::Connection, cm::ComponentModifier, p::Project{:newproject}) = begin
+build(c::AbstractConnection, cm::ComponentModifier, p::Project{:newproject}) = begin
     div(p.id, children = [build(c, cm, p, cell) for cell in p[:cells]])
 end
 
@@ -912,7 +817,7 @@ use these methods to change what different projects do with different cell types
 function build(c::AbstractConnection, cm::ComponentModifier, p::Project{<:Any})
     frstcells::Vector{Cell} = p[:cells]
     retvs = Vector{Servable}([begin
-       c[:OliveCore].olmod.build(c, cm, cell, p)::Component{<:Any}
+       CORE.olmod.build(c, cm, cell, p)::Component{<:Any}
     end for cell in frstcells])
     div(p.id, children = retvs, class = "projectwindow")::Component{:div}
 end
@@ -988,21 +893,19 @@ example
 - See also: `build`, `Project`, `Directory`, `CellOperation`, `Group`
 """
 mutable struct Environment{T <: Any}
-    name::String
     directories::Vector{Directory}
     projects::Vector{Project}
     cells_selected::Dict{String, String}
     cell_clipboard::Vector{Pair{String, String}}
     cell_ops::Vector{CellOperation}
     pwd::String
-    function Environment(T::String, name::String)
-        nT::Symbol = Symbol(T)
-        new{nT}(name, Vector{Directory}(), 
+    function Environment(T::String)
+        T::Symbol = Symbol(T)
+        new{T}(Vector{Directory}(), 
         Vector{Project}(), Dict{String, String}(), 
         Vector{Pair{String, String}}(), 
-        Vector{CellOperation}(), "")::Environment{nT}
+        Vector{CellOperation}(), "")::Environment{T}
     end
-    Environment(name::String) = Environment("olive", name)::Environment{:olive}
 end
 
 getindex(e::Environment, proj::String) = e.projects[proj]::Project{<:Any}
@@ -1013,6 +916,150 @@ getindex(e::Vector{Environment}, name::String) = begin
         throw(KeyError("Environment $name not found."))
     end
     e[pos]::Environment
+end
+
+"""
+```julia
+mutable struct OliveUser{ENV <: Any}
+```
+- name**::String**
+- key**::String**
+- environment**::Environment{ENV}**
+- data**::Dict{String, Any}**
+
+The `OliveUser` is a wrapper for each individual `Olive` client, including 
+    their key, name, entire `Olive` `Environment`, and their client data. Indexing 
+    an `OliveUser` will yield client data of that key.
+```julia
+OliveUser{ENV}(name::String, key::String, environment::Environment{ENV}, data::Dict{String, Any})
+```
+example
+```julia
+```
+- See also: 
+"""
+mutable struct OliveUser{ENV <: Any}
+    name::String
+    key::String
+    environment::Environment{ENV}
+    data::Dict{String, Any}
+end
+
+keys(ou::OliveUser) = keys(ou.data)
+
+getindex(user::OliveUser, str::AbstractString) = getindex(user.data, str)
+
+setindex!(user::OliveUser, val::Any, str::AbstractString) = setindex!(user.data, val, str)
+
+"""
+```julia
+init_user(user::OliveUser)
+init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) -> ::Nothing
+```
+`init_user` is another extensible function that will provide `Olive` with new 
+    functionality. `init_user` is called when a user is loaded for the first time, and 
+    each existing method will be called. For example, user keybindings are loaded using `init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}})`.
+```julia
+```
+- See also: 
+"""
+init_user(user::OliveUser, oe::Type{OliveExtension{<:Any}}) = begin
+
+end
+
+init_user(user::OliveUser, e::Type{OliveExtension{:threads}}) = begin
+    if haskey(CORE.data, "threads")
+        threads = CORE.data["threads"]
+        user.data["threads"] = [rand(2:threads) for val in 1:CORE.data["userthreads"]]
+    end
+end
+
+init_user(user::OliveUser) = begin
+    user_inits = [begin 
+        m.sig.parameters[3].parameters[1]
+    end for m in filter(m -> m.sig.parameters[3] != OliveExtension{<:Any}, methods(init_user, Any[OliveUser, Type]))]
+    for call in user_inits
+        init_user(user, call)
+    end
+end
+
+init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}}) = begin
+    if ~(haskey(user.data, "keybindings"))
+        push!(user.data,
+        "keybindings" => Dict{String, Any}(
+        "evaluate" => ["Enter", "shift"],
+        "delete" => ["Delete", "ctrl", "shift"],
+        "up" => ["ArrowUp", "ctrl", "shift"],
+        "down" => ["ArrowDown", "ctrl", "shift"],
+        "copy" => ["C", "ctrl", "shift"],
+        "paste" => ["V", "ctrl", "shift"],
+        "cut" => ["X", "ctrl", "shift"],
+        "select" => ["A", "ctrl", "shift"],
+        "new" => ["Enter", "ctrl", "shift"],
+        "project-new" => ["N", "ctrl", "shift"],
+        "focusup" => ["ArrowUp", "shift"],
+        "focusdown" => ["ArrowDown", "shift"],
+        "save" => ["s", "ctrl"],
+        "saveas" => ["S", "ctrl", "shift"],
+        "open" => ["O", "ctrl"],
+        "find" => ["F", "ctrl"], 
+        "explorer" => ["E", "ctrl"], 
+        "undo" => ["Z", "ctrl", "shift"]))
+    end
+    if ~(haskey(user.data, "creatorkeys"))
+        push!(user.data,
+        "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
+        "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
+        "m" => "module"))
+    end
+end
+
+function create_highlighters(highlighting::Dict)
+    julia_highlighter = OliveHighlighters.Highlighter("")
+    toml_highlighter = OliveHighlighters.Highlighter("")
+    md_highlighter = OliveHighlighters.Highlighter("")
+    julia_highlighter.styles = Dict(begin
+        Symbol(k[1]) => ["color" => k[2]]
+    end for k in highlighting["julia"])
+    toml_highlighter.styles = Dict(begin
+        Symbol(k[1]) => ["color" => k[2]]
+    end for k in highlighting["toml"])
+    md_highlighter.styles = Dict(begin
+            Symbol(k[1]) => ["color" => k[2]]
+    end for k in highlighting["markdown"])
+    return(julia_highlighter, toml_highlighter, md_highlighter)
+end
+
+init_user(user::OliveUser, oe::Type{OliveExtension{:highlighting}}) = begin
+    setting_keys = keys(user.data)
+    if ~("highlighting" in setting_keys)
+        tm::Highlighter = OliveHighlighters.Highlighter("")
+        OliveHighlighters.style_julia!(tm)
+        tomltm = OliveHighlighters.Highlighter("")
+        OliveHighlighters.style_toml!(tomltm)
+        mdtm = OliveHighlighters.Highlighter("")
+        OliveHighlighters.style_markdown!(mdtm)
+        dic = Dict{String, Dict{<:Any, <:Any}}()
+        push!(user.data, "highlighting" => dic)
+        push!(dic, "julia" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tm.styles),
+            "toml" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tomltm.styles),
+            "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
+    end
+    if ~("highlighters" in setting_keys)
+        highlighting = user.data["highlighting"]
+        highlighters = create_highlighters(highlighting)
+        push!(user.data, 
+            "highlighters" => Dict{String, OliveHighlighters.Highlighter}(
+            "julia" => highlighters[1], "toml" => highlighters[2], "markdown" => highlighters[3]))
+    end
+end
+
+function getindex(users::Vector{OliveUser}, name::String)
+    found = findfirst(user::OliveUser -> user.name == name, users)
+    if isnothing(found)
+        throw("user $(name) not in this list of users")
+    end
+    users[found]
 end
 
 """
@@ -1054,7 +1101,7 @@ getindex(e::Vector{Group}, name::String) = begin
 end
 
 function get_group(c)
-    group::String = c[:OliveCore].client_data[getname(c)]["group"]
+    group::String = CORE.users[getname(c)].data["group"]
     c[:OliveCore].data["groups"][group]
 end
 
@@ -1102,7 +1149,7 @@ function build_group_directory(c::AbstractConnection, main_cm::AbstractComponent
                 dirpos = findfirst(d -> d.uri == URI, group.directories)
                 deleteat!(group.directories, dirpos)
                 insert!(group.directories, dirpos, Directory(URI, dirtype = T))
-                CORE.open[getname(c)].directories = copy(group.directories)
+                CORE.users[getname(c)].environment.directories = copy(group.directories)
                 set_text!(cm2, el_id * "-type", T)
                 remove!(cm2, "typeindic")
             end
@@ -1199,7 +1246,7 @@ function build_group_dialog(c::AbstractConnection, main_cm::AbstractComponentMod
             new_dir = Directory("")
             push!(group.directories, new_dir)
             gr_pr, gr_id = build_group_directory(c, cm, group, new_dir, ret_id = true)
-            env = CORE.open[getname(c)]
+            env = CORE.users[getname(c)].environment
             env.directories = vcat([Directory(env.pwd, dirtype = "pwd")], group.directories)
             append!(cm, "dirsbox", gr_pr)
             focus!(cm, "$(gr_id)-path")
@@ -1235,11 +1282,8 @@ end
 ```
 - `olmod::Module`
 - `data::Dict{String, Any}`
-- `names::Dict{String, String}`
-- `client_data::Dict{String, Dict{String, Any}}`
-- `open::Vector{Environment}`
+- `users`**::Vector{OliveUser}**
 - `pool::Vector{String}`
-- `client_keys::Vector{String}`
 
 `OliveCore` is the main server-extension used to run `Olive`; this type keeps track of all `Olive` settings, holds 
 your `olive` home custom `Module`, and all of the currently open environments.
@@ -1260,21 +1304,17 @@ example
 mutable struct OliveCore <: Toolips.AbstractExtension
     olmod::Module
     data::Dict{String, Any}
-    names::Dict{String, String}
-    client_data::Dict{String, Dict{String, Any}}
-    open::Vector{Environment}
+    users::Vector{OliveUser}
+    keys::Dict{String, String}
     pool::Vector{String}
-    client_keys::Dict{String, String}
     function OliveCore(mod::String)
         data::Dict{Symbol, Any} = Dict{Symbol, Any}()
-        m = eval(Meta.parse("module $mod build = nothing end"))
+        m = eval(Meta.parse("module $mod global build = nothing end"))
         m.build = build
         open::Vector{Environment} = Vector{Environment}()
         pool::Vector{String} = Vector{String}()
-        client_data = Dict{String, Dict{String, Any}}()
-        client_keys::Dict{String, String} = Dict{String, String}()
-        new(m, data, Dict{String, String}(),
-        client_data, open, pool, client_keys)::OliveCore
+        users = Vector{OliveUser}()
+        new(m, data, users, Dict{String, String}(), pool)::OliveCore
     end
 end
 
@@ -1284,15 +1324,18 @@ end
 
 """
 ```julia
-getname(c::Connection) -> ::String
+getname(c::AbstractConnection) -> ::String
 ```
 `getname` is used to grab an `Olive` username for a given client from the `Connection`.
 ```julia
 ```
 - See also: `source_module!`, `OliveCore`, `Olive`, `Environment`
 """
-getname(c::Connection) = c[:OliveCore].names[get_ip(c)]::String
-
+getname(c::AbstractConnection) = begin 
+    ses_key = get_session_key(c)
+    i = findfirst(user -> user.key == ses_key, CORE.users)
+    CORE.users[i].name::String
+end
 """
 ```julia
 source_module!(oc::OliveCore) -> ::Nothing
@@ -1339,7 +1382,7 @@ OliveLogger() = Toolips.Logger("🫒 olive> ", Crayon(foreground = :blue), Crayo
 
 """
 ```julia
-save_settings!(c::Connection; core::Bool = false) -> ::Nothing
+save_settings!(c::AbstractConnection; core::Bool = false) -> ::Nothing
 ```
 `save_settings!` saves `OliveCore` settings for the user's `Connection`. Providing `core` 
 will also save `Olive` core settings, as well. Core settings are in 
@@ -1347,12 +1390,12 @@ will also save `Olive` core settings, as well. Core settings are in
 These correspond to the `olive` and `oliveusers` section in the `olive` home 
 `Project.toml`.
 """
-function save_settings!(c::Connection; core::Bool = false)
+function save_settings!(c::AbstractConnection; core::Bool = false)
     homedir::String = c[:OliveCore].data["home"]
     alltoml::String = read("$homedir/Project.toml", String)
     current_toml = TOML.parse(alltoml)
     name::String = getname(c)
-    client_settings = deepcopy(c[:OliveCore].client_data[name])
+    client_settings = deepcopy(CORE.users[name].data)
     [onsave(client_settings, OliveExtension{m.sig.parameters[3].parameters[1]}()) for m in methods(onsave, [AbstractDict, OliveExtension{<:Any}])]
     current_toml["oliveusers"][name] = client_settings
     toml_datakeys = keys(current_toml["olive"])
@@ -1404,6 +1447,9 @@ function onsave(core::OliveCore, copy::AbstractDict, oe::OliveExtension{:groups}
         load::Vector{String} = [string(ext) for ext in group.load_extensions]
         group.name => Dict("cells" => cells, "uris" => uris, "dirs" => dirs, "load" => load)
     end for group in copy["groups"])
+    if haskey(copy, "threads")
+        delete!(copy, "threads")
+    end
     nothing::Nothing
 end
 
@@ -1470,18 +1516,23 @@ end
 function build_base_error_box(err::Exception, traces::Vector{Base.StackTraces.StackFrame}; 
     message::String = "$(typeof(err)) Exception ")
 	# Extract first relevant file and line number
+    messages = Vector{AbstractComponent}()
 	linef = 0
 	for frame in traces
 		if frame.linfo !== nothing
 			linef = frame.line - 1
-			break
 		end
+        frametext = string(frame)
+        if contains(frametext, "evalin")
+            break
+        end
+        push!(messages, div("-", text = frametext))
 	end
 	# Create a header with error type & location
 	exception_header = div("-", text = "$message on line $linef")
 	style!(exception_header, "background-color" => "#8B0000", "font-weight" => "bold",
 		"padding" => 7px, "border-radius" => 2px, "color" => "white")
-	message_box = div("message", text = string(err))
+	message_box = div("message", children = messages)
 	style!(message_box, "padding" => 10px, "background-color" => "#FFB6C1", "color" => "black",
 		"border-radius" => 3px, "white-space" => "pre-wrap")
     return(div("exbox" * Toolips.gen_ref(3), children = [exception_header, message_box]), linef)
@@ -1504,6 +1555,20 @@ function display(d::OliveDisplay, err::UndefVarError, traces::Vector{Base.StackT
     write(d.io, string(main_box))
 end
 
+function display(d::OliveDisplay, err::MethodError, traces::Vector{Base.StackTraces.StackFrame})
+    main_box, line = build_base_error_box(err, traces)
+    argstr = join(("::" * string(typeof(arg)) for arg in err.args), ", ")
+    error_str = "$(err.f)($(argstr))"
+    main_box[:children]["message"][:children] = [h4(text = "no method matching $error_str")]
+    mnames = [begin
+        box = div("m", text = string(m))
+        style!(box, "padding" => 3px, "background-color" => "#478056", "color" => "white", "border-radius" => 0px)
+        box
+    end for m in methods(err.f)]
+    second_box = div("-", children = [h2(text = "available methods for '$(err.f)':"), mnames ...])
+    write(d.io, string(main_box) * string(second_box))
+end
+
 function display(d::OliveDisplay, m::MIME"image/png", o::Any)
     show_img(d, o, "png")
 end
@@ -1517,6 +1582,11 @@ function display(d::OliveDisplay, m::MIME"image/gif", o::Any)
 end
 
 function show_img(d::OliveDisplay, o::Any, ftype::String)
+    show(d.io, MIME"text/html"(), base64img("$(ToolipsSession.gen_ref())", o,
+    ftype))
+end
+
+function show_img(d::OliveDisplay, o::AbstractString, ftype::String)
     show(d.io, MIME"text/html"(), base64img("$(ToolipsSession.gen_ref())", o,
     ftype))
 end

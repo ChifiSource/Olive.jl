@@ -37,7 +37,7 @@ function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
     else
         olive_notify!(cm2, "this cell cannot go up any further!", color = "red")
     end
-    push!(CORE.open[getname(c)].cell_ops, CellOperation{:cellup}(cell, pos))
+    push!(CORE.users[getname(c)].environment.cell_ops, CellOperation{:cellup}(cell, pos))
     nothing::Nothing
 end
 
@@ -70,7 +70,7 @@ function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 		olive_notify!(cm, "this cell cannot go down any further!", color = "red")
 	end
 
-	push!(CORE.open[getname(c)].cell_ops, CellOperation{:celldown}(cell, pos))
+	push!(CORE.users[getname(c)].environment.cell_ops, CellOperation{:celldown}(cell, pos))
 	nothing::Nothing
 end
 
@@ -90,17 +90,13 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
     cellid::String = cell.id
     pos = findlast(tempcell::Cell{<:Any} -> tempcell.id == cellid, cells)
-    if isnothing(pos)
-        @info [lcell.id for lcell in cells]
-        @info cell.id
-    end
     if pos == 1
         focus!(cm, "cell$(cells[pos + 1].id)")
     else
         focus!(cm, "cell$(cells[pos - 1].id)")
     end
     remove!(cm, "cellcontainer$(cellid)")
-    push!(CORE.open[getname(c)].cell_ops, CellOperation{:delete}(cell, pos))
+    push!(CORE.users[getname(c)].environment.cell_ops, CellOperation{:delete}(cell, pos))
     deleteat!(cells, pos)
     nothing::Nothing
 end
@@ -562,9 +558,9 @@ directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool
 ```
 - See also: `build_file_cell`, `Cell`, `build_base_cell`
 """
-function directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool = false)
+function directory_cells(dir::String = pwd(), access::Pair{String, String} ...; wdtype::Symbol = :dir)
     files = readdir(dir)
-    return(filter!(e -> ~(isnothing(e)), [build_file_cell(path, dir, pwd = pwd) for path in files]::AbstractVector))
+    return(filter!(e -> ~(isnothing(e)), [build_file_cell(path, dir, wdtype = wdtype) for path in files]::AbstractVector))
 end
 
 """
@@ -576,7 +572,7 @@ Used by `directory_cells` to build individual file cells. This function will bui
 ```
 - See also: `directory_cells`, `Cell`, `build_base_cell`
 """
-function build_file_cell(path::String, dir::String; pwd::Bool = false)
+function build_file_cell(path::String, dir::String; wdtype::Symbol = :dir)
     fpath = dir * "/" * path
     if ~(isdir(fpath))
         if isfile(fpath)
@@ -592,11 +588,7 @@ function build_file_cell(path::String, dir::String; pwd::Bool = false)
             return
         end
     else
-        if pwd
-            Cell("switchdir", path, dir)
-        else
-            Cell("dir", path, dir)
-        end
+        Cell{wdtype}(path, dir)
     end
 end
 
@@ -643,14 +635,15 @@ end
 function build(c::Connection, cell::Cell{:switchdir}, d::Directory{<:Any}, bind::Bool = true)
     filecell::Component{<:Any} = build_base_cell(c, cell, d, binding = false)
     filecell[:children] = filecell[:children][5:5]
-    if getname(c) == c[:OliveCore].data["root"]
+    uname::String= getname(c)
+    if uname == CORE.data["root"]
         cellid::String = cell.id
         addir::Component{:span} = topbar_icon("$(cellid)adddir", "save")
         cdto::Component{:span} = topbar_icon("$(cellid)cd", "file_open")
         style!(cdto, "font-size" => 17pt, "color" => "white")
         style!(addir, "font-size" => 17pt, "color" => "white")
         on(c, addir, "click") do cm::ComponentModifier
-            direcs = c[:OliveCore].open[getname(c)].directories
+            direcs = CORE.users[uname].environment.directories
             path::String = cell.outputs * "/" * cell.source
             inalready = findfirst(d -> d.uri == path, direcs)
             if isnothing(inalready)
@@ -693,7 +686,7 @@ function build(c::Connection, cell::Cell{:retdir}, d::Directory{<:Any}, bind::Bo
 end
 
 function build(f::Function, c::Connection, cell::Cell{:creator}, template::String = "jl")
-    d = Directory(c[:OliveCore].open[getname(c)].pwd)
+    d = Directory(CORE.users[getname(c)].environment.pwd)
     maincell::Component{:div} = build_base_cell(c, cell, d, binding = false)
     style!(maincell, "display" => "flex", "background-color" => "#64bf6a")
     namebox = Components.textdiv("new_namebox", text = cell.source)
@@ -723,7 +716,7 @@ function build(f::Function, c::Connection, cell::Cell{:creator}, template::Strin
 end
 
 function build(c::Connection, cell::Cell{:creator}, p::Project{<:Any}, cm::ComponentModifier, template::String = "jl")
-    projpath = c[:OliveCore].open[getname(c)].pwd
+    projpath = CORE.users[getname(c)].environment.pwd
     if :path in keys(p.data)
         projpath::String = p[:path]
     end
@@ -775,7 +768,7 @@ function build(c::Connection, cell::Cell{:creator}, d::Directory{:home})
     maincell = build_base_cell(c, cell, d, binding = false)
     addheading = a("addheading", text = "add extension")
     style!(addheading, "color" => "white", "font-weight" => "bold")
-    nameenter = Components.textdiv("extensionn", text = "OliveDefaults")
+    nameenter = Components.textdiv("extensionn", text = "OliveDocBrowser")
     addbutt = button("addextb", text = "add")
     style!(maincell, "display" => "flex", "background-color" => "#D90166")
     cancelbutton = button("cancel_new", text = "cancel")
@@ -793,7 +786,7 @@ function build(c::Connection, cell::Cell{:creator}, d::Directory{:home})
             else
                 Pkg.add(packg)
             end
-            srcp = c[:OliveCore].data["home"] * "/src/olive.jl"
+            srcp = CORE.data["home"] * "/src/olive.jl"
             current = read(srcp, String)
             curr = current * "#==|||==#\nusing $packg\n#==output[code]\n==#\n"
             open(srcp, "w") do o::IO
@@ -990,23 +983,19 @@ end
 
 function cell_open!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     proj::Project{<:Any})
-    olive_notify!(cm2, "this cell does not have an `open` binding", color = "red")
+    olive_notify!(cm, "this cell does not have an `open` binding", color = "red")
 end
 
 function get_highlighter(c::Connection, cell::Cell{<:Any})
-    nothing::Nothing
-end
-
-function get_highlighter(c::Connection, cell::Cell{:code})
-    c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
+    CORE.users[getname(c)].data["highlighters"]["julia"]
 end
 
 function get_highlighter(c::Connection, cell::Cell{:markdown})
-    c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
+    CORE.users[getname(c)].data["highlighters"]["markdown"]
 end
 
 function get_highlighter(c::Connection, cell::Cell{:tomlvalues})
-    c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
+    CORE.users[getname(c)].data["highlighters"]["toml"]
 end
 
 """
@@ -1020,7 +1009,7 @@ Binds default cell controls, returns keymap to bind to your cell's input.
 ```
 """
 function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::ToolipsSession.KeyMap = ToolipsSession.KeyMap())
-    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
+    keybindings = CORE.users[getname(c)].data["keybindings"]
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     ToolipsSession.bind(km, keybindings["save"], prevent_default = true) do cm::ComponentModifier
         save_project(c, cm, proj)
@@ -1033,14 +1022,14 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         cm["olivemain"] = "ex" => "1"
         save_project_as(c, cm, proj)
     end
-    ToolipsSession.bind(km, keybindings["focusup"]) do cm::ComponentModifier
-        focus_up!(c, cm, cell, proj)
-    end
     ToolipsSession.bind(km, keybindings["up"]) do cm2::ComponentModifier
         cell_up!(c, cm2, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["down"]) do cm2::ComponentModifier
         cell_down!(c, cm2, cell, proj)
+    end
+    ToolipsSession.bind(km, keybindings["focusup"]) do cm::ComponentModifier
+        focus_up!(c, cm, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["project-new"], prevent_default = true) do cm2::ComponentModifier
         creatorcell::Cell{:creator} = Cell("creator", "", "save")
@@ -1074,17 +1063,22 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
     end
     ToolipsSession.bind(km, keybindings["evaluate"]) do cm2::ComponentModifier
         cellid::String = cell.id
+        if "load$(cellid)" in cm2
+            return
+        end
         icon = olive_loadicon()
         icon.name = "load$(cell.id)"
         icon["width"] = "16"
+        proj.data[:mod].WD = CORE.users[getname(c)].environment.pwd
         append!(cm2, "cellside$(cell.id)", icon)
         on(c, cm2, 100) do cm::ComponentModifier
             evaluate(c, cm, cell, proj)
             remove!(cm, "load$(cell.id)")
+            CORE.users[getname(c)].environment.pwd = proj.data[:mod].WD
         end
     end
     ToolipsSession.bind(km, keybindings["copy"]) do cm2::ComponentModifier
-        env = c[:OliveCore].open[getname(c)]
+        env = CORE.users[getname(c)].environment
         if length(env.cells_selected) == 0
             env.cell_clipboard = [cell.id => proj.id]
             olive_notify!(cm2, "Cell added to clipboard")
@@ -1098,7 +1092,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         olive_notify!(cm2, "$message added to clipboard")
     end
     ToolipsSession.bind(km, keybindings["paste"]) do cm2::ComponentModifier
-        env = c[:OliveCore].open[getname(c)]
+        env = CORE.users[getname(c)].environment
         found_pos = findfirst(lcell -> lcell.id == cell.id, proj.data[:cells])
         paste_cells = [begin
             old_cell = env[cell_path[2]].data[:cells][cell_path[1]]
@@ -1110,10 +1104,34 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         end for (e, cell_path) in enumerate(env.cell_clipboard)]
         proj.data[:cells] = vcat(proj.data[:cells][1:found_pos], paste_cells, proj.data[:cells][found_pos + 1:end])
     end
+    ToolipsSession.bind(km, "Tab", prevent_default = true) do cm::ComponentModifier
+        callback_comp::Component = cm["cell$(cell.id)"]
+        curr::String = callback_comp["text"]
+        if curr == ""
+            res = "&nbsp;&nbsp;&nbsp;&nbsp;"
+            set_text!(cm, "cell$(cell.id)", res)
+            cm["cell$(cell.id)"] = "caret" => "4"
+            Components.set_textdiv_cursor!(cm, "cell$(cell.id)", 4)
+            return
+        end
+        last_n::Int64 = parse(Int64, callback_comp["caret"])
+        res = if last_n == length(curr)
+                curr * "&nbsp;&nbsp;&nbsp;&nbsp;"
+            elseif last_n == 1 || last_n == 0
+                "&nbsp;&nbsp;&nbsp;&nbsp;" * curr
+            else
+                curr[begin:last_n] * "&nbsp;&nbsp;&nbsp;&nbsp;" * curr[last_n + 1:end]
+        end
+        res = replace(res, " " => "&nbsp;")
+        newi = last_n + 4
+        cm["cell$(cell.id)"] = "caret" => string(newi)
+        set_text!(cm, "cell$(cell.id)", res)
+        Components.set_textdiv_cursor!(cm, "cell$(cell.id)", newi + 1)
+    end
     original_class_inp = ""
     original_class_side = ""
     ToolipsSession.bind(km, keybindings["select"]) do cm2::ComponentModifier
-        env::Environment = CORE.open[getname(c)]
+        env::Environment = CORE.users[getname(c)].environment
         cellid::String = cell.id
         if cellid in keys(env.cells_selected)
             delete!(env.cells_selected, cellid)
@@ -1146,7 +1164,7 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
         focus_down!(c, cm, cell, proj)
     end
     ToolipsSession.bind(km, keybindings["undo"], prevent_default = true) do cm::ComponentModifier
-        ops::Vector{CellOperation{<:Any, <:Any}} = CORE.open[getname(c)].cell_ops
+        ops::Vector{CellOperation{<:Any, <:Any}} = CORE.users[getname(c)].environment.cell_ops
         n = length(ops)
         if n < 1
             olive_notify!(cm, "there is no operation to undo.")
@@ -1257,7 +1275,7 @@ function build_base_cell(c::Connection, cm::ComponentModifier, cell::Cell{<:Any}
         original_class_side = ""
         original_class_inp = ""
         on(c, cell_drag, "click") do cm2::ComponentModifier
-            env::Environment = CORE.open[getname(c)]
+            env::Environment = CORE.users[getname(c)].environment
             if cellid in keys(env.cells_selected)
                 delete!(env.cells_selected, cellid)
                 cm2["cellside$(cellid)"] = "class" => original_class_side
@@ -1287,7 +1305,7 @@ end
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
     windowname::String = proj.id
-    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
+    tm = CORE.users[getname(c)].data["highlighters"]["julia"]
     tm.raw = cell.source
     OliveHighlighters.mark_julia!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
@@ -1301,7 +1319,6 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     sideb = interior[:children]["cellside$(cell.id)"]
     sideb[:class] = "cellside codeside"
     OliveHighlighters.clear!(tm)
-    ToolipsSession.bind(c, cm, maincell, km, on = :down)
     [begin
         xtname = m.sig.parameters[4]
         if xtname != OliveExtension{<:Any}
@@ -1309,6 +1326,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             on_code_build(c, cm, ext, cell, proj, builtcell, km)
         end
     end for m in methods(on_code_build)]
+    ToolipsSession.bind(c, cm, maincell, km, on = :down)
     builtcell::Component{:div}
 end
 
@@ -1354,7 +1372,7 @@ end
 ```
 """
 function on_code_highlight(c::Connection, cm::ComponentModifier, oe::OliveExtension{<:Any}, 
-    cell::Cell{:code}, proj::Project{<:Any}, km::ToolipsSession.KeyMap)
+    cell::Cell{:code}, proj::Project{<:Any})
 
 end
 
@@ -1394,7 +1412,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:code}
         nothing
     end for m in methods(on_code_highlight)]::Vector{Nothing}
     cell.source = replace(curr, "<div>" => "", "<br>" => "\n", "&nbsp;" => " ")
-    tm::Highlighter = c[:OliveCore].client_data[getname(c)]["highlighters"]["julia"]
+    tm::Highlighter = CORE.users[getname(c)]["highlighters"]["julia"]
     tm.raw = cell.source
     OliveHighlighters.mark_julia!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
@@ -1406,15 +1424,66 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     window::String = proj.id
     cells::Vector{Cell} = proj[:cells]
     # get code
-    cell.source::String = replace(cm["cell$(cell.id)"]["text"], "&lt;" => "<")
+    cell.source::String = cm["cell$(cell.id)"]["text"]
+    if contains(cell.source, "Base.Base") || contains(cell.source, "getfield(Base, :Base)")
+        olive_notify!(cm, "you may not access `OliveBase.Base`")
+        return
+    end
     execcode::String = *("begin\n", cell.source, "\nend")
     ret::Any = ""
     st_trace = nothing
+    olive_mod::Module = proj[:mod]
+    sel_thread = nothing
     try
-        ret = proj[:mod].evalin(Meta.parse(execcode))
+        if :thread in keys(proj.data)
+            modstr = Symbol(split(string(olive_mod), ".")[end])
+            thread_vals = proj.data[:thread]
+            sel_thread = findfirst(w -> ~(w.active) && w.pid in thread_vals, c[:procs].workers)
+            if isnothing(sel_thread)
+                sel_thread = thread_vals[1]
+            end
+            parsed = Meta.parse(execcode)
+            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin") || contains(execcode, "-> begin")
+                proj[:mod].evalin(parsed)
+                if length(thread_vals) > 1
+                    @async begin
+                        for thread_n in thread_vals
+                            if thread_n == sel_thread
+                                continue
+                            end
+                            Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, thread_n, quote
+		                        $(Expr(:quote, olive_mod)).evalin($parsed)
+	                        end)
+                        end
+                    end
+                end
+            end
+            worker = c[:procs][sel_thread]
+            worker.active = true
+            ret = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
+		        $(Expr(:quote, olive_mod)).evalin($parsed)
+	        end)
+            worker.active = false
+            get_stdo = "evalin(Meta.parse(\"$modstr.STDO\"))"
+            olive_mod.STDO = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
+		        Base.include_string($(Expr(:quote, olive_mod)), $get_stdo)
+	        end)
+        else
+            ret = proj[:mod].evalin(Meta.parse(execcode))
+        end
     catch e
-        ret = e
-        st_trace = proj[:mod].catch_backtrace()
+        # jesus christ, it's FOUR nested errors??!
+        if :captured in fieldnames(typeof(e))
+            ret = e.captured.ex.error
+        else
+            ret = e
+        end
+        st_trace = try Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
+		        $(Expr(:quote, olive_mod)).catch_backtrace()
+	        end)
+        catch
+            catch_backtrace()
+        end
     end
     # output
     for m in methods(on_code_evaluate)
@@ -1425,11 +1494,15 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
         end
     end
     # we do this again, in case a code cell extension changes the output
-    projects = c[:OliveCore].open[getname(c)].projects
+    projects = CORE.users[getname(c)].environment.projects
     projpos = findfirst(p -> p.id == window, projects)
     proj = projects[projpos]
     outp::String = ""
     standard_out::String = proj[:mod].STDO
+    if ~(isnothing(sel_thread))
+        # TODO currently no multi-threaded printout, as `STDO` only updates on that chosen thread. 
+        # we will need to do an evaluation to get the `STDO` from `sel_thread`
+    end
     active_display::OliveDisplay = OliveDisplay()
     if length(standard_out) > 0
         outp = standard_out
@@ -1448,10 +1521,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     cell.outputs = outp
     pos = findfirst(lcell -> lcell.id == cell.id, cells)
     if isnothing(pos)
-        @warn "olive cell error:"
-        @info "cell $(pos) $(cell.id)"
-        @info "$(length(cells))"
-        @info join("$(cell.id)|" for cell in cells)
         olive_notify!(cm, "cell error! check the terminal for more details...", color = "red")
         return
     end
@@ -1510,12 +1579,12 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
-    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
+    keybindings = CORE.users[getname(c)]["keybindings"]
     newcell = build_base_cell(c, cm, cell, proj, highlight = true, sidebox = true)
     windowname::String = proj.id
-    km = cell_bind!(c, cell, proj)
     interior = newcell[:children]["cellinterior$(cell.id)"]
     inp = interior[:children]["cellinput$(cell.id)"]
+    inp[:children, "cell$(cell.id)"][:text] = ""
     sideb = interior[:children]["cellside$(cell.id)"]
     sideb[:class] = "cellside mdside"
     cell_edit = topbar_icon("cell$(cell.id)drag", "edit")
@@ -1525,13 +1594,14 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     if cell.source != ""
         maincell[:contenteditable] = false
         newtmd = tmd("cell$(cell.id)tmd", cell.source)
+        ToolipsServables.interpolate!(newtmd, Olive.INTERPOLATORS ...)
         push!(maincell, newtmd)
     end
     edit_flip = cm::AbstractComponentModifier -> begin
         cm["cell$(cell.id)"] = "contenteditable" => "true"
         set_children!(cm, "cell$(cell.id)", Vector{AbstractComponent}())
         set_text!(cm, "cell$(cell.id)", replace(cell.source, "\n" => "<br>"))
-        tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
+        tm = CORE.users[getname(c)]["highlighters"]["markdown"]
         tm.raw = cell.source
         OliveHighlighters.mark_markdown!(tm)
         set_text!(cm, "cellhighlight$(cell.id)", string(tm))
@@ -1546,10 +1616,15 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
-    activemd = cm["cell$(cell.id)"]["text"]
-    cell.source = replace(activemd, "<br>" => "\n", "<div>" => "")
-    newtmd = tmd("cell$(cell.id)tmd", cell.source)
-    set_children!(cm, "cell$(cell.id)", [newtmd])
+    active_cell = cm["cell$(cell.id)"]
+    if active_cell["contenteditable"] == "false"
+        return
+    end
+    activemd = active_cell["text"]
+    newtmd = tmd("cell$(cell.id)tmd", activemd)
+    ToolipsServables.interpolate!(newtmd, Olive.INTERPOLATORS ...)
+    newtext = replace(newtmd[:text], "`" => "\\`", "\"" => "\\\"", "''" => "\\'")
+    push!(cm.changes, "document.getElementById('cell$(cell.id)').innerHTML = `$newtext`;")
     cm["cell$(cell.id)"] = "contenteditable" => "false"
     on(c, cm, 100) do cm2::ComponentModifier
         set_children!(cm2, "cellhighlight$(cell.id)", Vector{AbstractComponent}())
@@ -1559,9 +1634,13 @@ end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     proj::Project{<:Any})
-    curr = cm["cell$(cell.id)"]["text"]
+    active_cell = cm["cell$(cell.id)"]
+    curr = active_cell["text"]
+    if active_cell["contenteditable"] == "false"
+        return
+    end
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
-    tm::Highlighter = c[:OliveCore].client_data[getname(c)]["highlighters"]["markdown"]
+    tm::Highlighter = CORE.users[getname(c)]["highlighters"]["markdown"]
     tm.raw = cell.source
     OliveHighlighters.mark_markdown!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
@@ -1577,7 +1656,9 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     inp::Component{:div} = interior[:children]["cellinput$(cell.id)"]
     getstarted::Component{:div} = div("getstarted$(cell.id)", contenteditable = true)
     style!(getstarted, "padding" => 3px, "margin-top" => 0px, "overflow" => "visible")
-    runl::Component{:div} = tmd("runl", """- use `shift` + `enter` to use this project""")
+    runl::Component{:div} = tmd("runl", 
+    """- use `shift` `enter` (**evaluate**) to use this project""")
+    
     style!(runl, "padding" => 2px)
     push!(getstarted, runl)
     buttons_box::Component{:div} = div("buttons_box")
@@ -1589,11 +1670,12 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     doc_button::Component{:button} = button("doc_button", text = "documentation")
     style!(doc_button, "font-weight" => "bold", "cursor" => "pointer")
     on(doc_button, "click") do cl::ClientModifier
-        redirect!(cl, "https://chifidocs.com/olive", new_tab = true)
+        redirect!(cl, "https://chifidocs.com/olive/Olive", new_tab = true)
     end
     push!(buttons_box, issues_button, doc_button)
     dir::Directory{<:Any} = Directory("~/")
-    if "recents" in keys(c[:OliveCore].client_data[getname(c)])
+    userdata = CORE.users[getname(c)].data
+    if "recents" in keys(userdata) && length(userdata["recents"]) > 0
         recent_box::Component{:section} = section("recents")
         style!(recent_box, "padding" => 0px, "border-radius" => 0px, "overflow-x" => "visible")
         recent_box[:children]::Vector{AbstractComponent} = [begin
@@ -1604,7 +1686,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
             else
                 build(c, Cell{:none}(string(ftypesplit[1]), recent_p), dir)
             end
-        end for recent_p in c[:OliveCore].client_data[getname(c)]["recents"]::Vector{String}]
+        end for recent_p in CORE.users[getname(c)]["recents"]::Vector{String}]
         push!(getstarted, h4("recentl", text = "recent files"), recent_box)
     end
     ToolipsSession.bind(c, cm, inp[:children]["cell$(cell.id)"], km)
@@ -1617,7 +1699,7 @@ end
 
 
 function cell_bind!(c::Connection, cell::Cell{:getstarted}, proj::Project{<:Any})
-    keybindings = c[:OliveCore].client_data[getname(c)]["keybindings"]
+    keybindings = CORE.users[getname(c)]["keybindings"]
     km::ToolipsSession.KeyMap = ToolipsSession.KeyMap()
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     projid::String = proj.id
@@ -1641,7 +1723,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     proj::Project{<:Any})
     cells = proj[:cells]
     windowname::String = proj.id
-    creatorkeys = c[:OliveCore].client_data[getname(c)]["creatorkeys"]
+    creatorkeys = CORE.users[getname(c)]["creatorkeys"]
     cbox = Components.textdiv("cell$(cell.id)", text = "")
     style!(cbox, "outline" => "transparent", "color" => "white")
     on(c, cbox, "input") do cm2::ComponentModifier
@@ -1662,7 +1744,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     end
     km = cell_bind!(c, cell, proj)
     ToolipsSession.bind(c, cm, cbox, km)
-    olmod = c[:OliveCore].olmod
+    olmod = CORE.olmod
     signatures = [m.sig.parameters[4] for m in methods(Olive.build,
     [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
     Project{<:Any}])]

@@ -20,9 +20,10 @@ function cellside_style()
 end
 
 function spin_forever()
-    load = keyframes("spin_forever",  duration = 1s, iterations = 0)
-    keyframes!(load, 0percent, "transform" => "rotate(0deg)")
-    keyframes!(load, 100percent, "transform" => "rotate(360deg)")
+    load = keyframes("spin_forever",  duration = 600ms, iterations = 0)
+    keyframes!(load, 0percent, "transform" => "scale(.9)")
+    keyframes!(load, 50percent, "transform" => "scale(1)")
+    keyframes!(load, 100percent, "transform" => "scale(.9)")
     load
 end
 
@@ -99,6 +100,25 @@ function default_sectionstyle(;padding::Any = 30px,
     "transition" => 1seconds)::Style
 end
 
+#==
+li {
+	list-style: none;            /* remove default bullets */
+	position: relative;
+	margin: 0.4em 0;
+	padding-left: 1.4em;         /* make space for custom bullet */
+	line-height: 1.6;
+	font-size: 1rem;
+	color: #333;
+}
+
+li::before {
+	content: "•";                /* custom bullet */
+	position: absolute;
+	left: 0;
+	color: #007acc;              /* accent color (blue) */
+	font-weight: bold;
+}
+    ==#
 function sheet(name::String,p::Pair{String, Any} ...;
     textsize::Integer = 14, face_textsize::Integer = 12,
     padding::Integer = 7, face_padding::Integer = 5,
@@ -106,12 +126,16 @@ function sheet(name::String,p::Pair{String, Any} ...;
     transition::Float64 = 0.5,
     args ...)
     msheet = Component{:sheet}(name, p ..., args ...)
+    lis = style("li", "list-style" => "none", "position" => "relative", "margin" => "0.4em 0", 
+        "padding-left" => "1.4em", "line-height" => "1.6", "font-size" => 14pt, "color" => "#333")
+    lis:"before":["content" => "'\\20AA'", "position" => "absolute", "left" => "0", "color" => "#b05885", "font-weight" => "bold"]
     divs = default_divstyle()
     buttons = default_buttonstyle()
     as = default_astyle()
     ps = default_pstyle(textsize = textsize)
     sectionst = default_sectionstyle(padding = padding)
     tabs = default_tabstyle()
+    
     h1s = Style("h1", "color" => "#754679")
     h2s = Style("h2", "color" => "#797ef6")
     h3s = Style("h3", "color" => "#241124")
@@ -120,9 +144,9 @@ function sheet(name::String,p::Pair{String, Any} ...;
     scrollbars = Style("::-webkit-scrollbar", "width" => "5px")
     scrtrack = Style("::-webkit-scrollbar-track", "background" => "transparent")
     scrthumb = Style("::-webkit-scrollbar-thumb", "background" => "#797ef6",
-    "border-radius" => "5px")
+    "border-radius" => "2px")
     push!(msheet, divs, buttons, sectionst, as, ps, h1s,
-    h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb)
+    h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb, lis)
     msheet
 end
 
@@ -157,9 +181,9 @@ function olivesheet()
     #tabs:
     tabclosed_style = style("div.tabclosed", "border-width" => 2px, "border-color" => "#333333",
         "border-style" => "solid", "background-color" => "gray", "border-width" => 2px, "border-color" => "#333333", 
-        "border-bottom" => 0px, "border-style" => "solid", "background-color" => "lightgray", "border-bottom-right-radius" => 0px, 
+        "border-bottom-width" => 0px, "border-style" => "solid", "background-color" => "lightgray", "border-bottom-right-radius" => 0px, 
         "border-bottom-left-radius" => 0px, "display" => "inline-block", "margin-bottom" => "0px", "cursor" => "pointer", 
-        "margin-left" => 0px, "transition" => 1seconds, "border-bottom" => "0px solid white", 
+        "margin-left" => 0px, "transition" => 1seconds, 
         "animation-name" => "fadeup", "animation-duration" => 700ms)
     tabopen_style = style("div.tabopen", 
         "border-width" => 2px, "border-color" => "#333333", "border-bottom" => "0px solid white",
@@ -207,7 +231,7 @@ function olivesheet()
     container_arrow = Style("span.containerarrow", "cursor" => "pointer",
     "font-size" => 13pt, "color" => "#1e1e1e")
     # cells:
-    output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
+    output_style = style("div.output_cell", "max-height" => 750px, "overflow-y" => "scroll")
     code_side = Style("div.codeside", "background-color" => "pink")
     md_side = Style("div.mdside", "background-color" => "#452b20")
     output_style = style("div.output_cell", "max-height" => 200px, "overflow-y" => "scroll")
@@ -291,7 +315,9 @@ Opens the project explorer by changing its class. The inverse of `close_project_
 - See also: `close_project_explorer!`, `Olive`, `projectexplorer`, `explorer_icon`, `olivesheet`
 """
 function open_project_explorer!(cm::AbstractComponentModifier)
-    close_settings_menu!(cm)
+    if ~(haskey(CORE.data, "headless") || haskey(CORE.data, "noset"))
+        close_settings_menu!(cm)
+    end
     cm["projectexplorer"] = "class" => "pexplorer pexplorer-open"
     style!(cm, "olivemain", "margin-left" => "500px")
     cm["explorerico"] = "class" => "material-icons topbaricons material-icons-selected"
@@ -381,13 +407,40 @@ This will also decollapse the **inspector** and open the **project explorer**
 ```
 """
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
-    env::Environment = c[:OliveCore].open[getname(c)]
+    env::Environment = CORE.users[getname(c)].environment
+    if ~(contains(path, split(env.pwd, "/")[1])) && ~(CORE.data["root"] == getname(c))
+        olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
+        return
+    end
     env.pwd = path
     if isfile(path)
         pathsplit = split(path, "/")
         path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
     end
-    newcells = directory_cells(string(path), pwd = true)
+    newcells = directory_cells(string(path), wdtype = :switchdir)
+    pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
+    if isnothing(pwddi)
+        return
+    end
+    if path != env.directories[pwddi].uri
+        newcells = vcat([Cell("retdir", "")], newcells)
+    end
+    newd = Directory(path)
+    childs = Vector{Servable}([begin
+        build(c, mcell, newd)
+    end
+    for mcell in newcells])
+    set_text!(cm, "selector", string(path))
+    set_children!(cm, "pwdbox", childs)
+    nothing::Nothing
+end
+
+function switch_work_dir!(cm::AbstractComponentModifier, path::String)
+    if isfile(path)
+        pathsplit = split(path, "/")
+        path = string(join(pathsplit[1:length(pathsplit) - 1], "/"))
+    end
+    newcells = directory_cells(string(path), wdtype = :switchdir)
     pwddi = findfirst(d -> typeof(d) == Directory{:pwd}, env.directories)
     if isnothing(pwddi)
         return
@@ -512,6 +565,9 @@ function open_settings_menu!(cm::AbstractComponentModifier)
 end
 
 function close_settings_menu!(cm::AbstractComponentModifier)
+    if ~("settingsmenu" in cm)
+        return
+    end
     cm["settingsmenu"] =  "open" => "0"
     style!(cm, "settingicon", "transform" => "rotate(0deg)")
     cm["settingicon"] = "class" => "material-icons topbaricons"
@@ -533,7 +589,7 @@ function settings(c::Connection)
     settingicon::Component{:span}
 end
 
-function topbar(c::Connection)
+function topbar(c::Connection, settings_enabled::Bool = true, extras::Component{<:Any} ...)
     topbar = div("menubar", class = "topbar")
     leftmenu = span("leftmenu", align = "left")
     style!(leftmenu, "display" => "inline-block")
@@ -542,8 +598,12 @@ function topbar(c::Connection)
     style!(topbar, "overflow" =>  "hidden", "position" => "sticky", "z-index" => "7")
     tabmenu = div("tabmenu", align = "center")
     style!(tabmenu, "display" => "inline-block")
-    push!(leftmenu, explorer_icon(c))
-    push!(rightmenu, settings(c))
+    if ~(haskey(CORE.data, "noexp"))
+        push!(leftmenu, explorer_icon(c))
+    end
+    if ~(haskey(CORE.data, "headless")) && settings_enabled
+        push!(rightmenu, settings(c))
+    end
     push!(topbar, leftmenu, tabmenu, rightmenu)
     topbar::Component{:div}
 end
@@ -580,6 +640,10 @@ function source_module!(c::Connection, p::Project{<:Any}, name::String = p.id)
     end
     modstr::String = olive_module(name, p[:env])
     Main.evalin(Meta.parse(modstr))
+    if haskey(CORE.data, "threads")
+        push!(p.data, :thread => CORE.users[getname(c)]["threads"])
+        @everywhere include_string(Main, $(modstr))
+    end
     mod::Module = getfield(Main, Symbol(name))
     push!(p.data, :mod => mod, :modid => name)
     nothing::Nothing
@@ -615,12 +679,13 @@ This is the function `Olive` uses to load files into projects. This function
 function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     cm::ComponentModifier, source::String, fpath::String, projpairs::Pair{Symbol, <:Any} ...;
     type::String = "olive")
+    user = CORE.users[getname(c)]
     all_paths = (begin
         if :path in keys(project.data)
             project[:path]
         end
-    end for project in c[:OliveCore].open[getname(c)].projects)
-    cldata = c[:OliveCore].client_data[getname(c)]
+    end for project in user.environment.projects)
+    cldata = user.data
     if ~("recents" in keys(cldata))
         push!(cldata, "recents" => Vector{String}())
     end
@@ -638,23 +703,25 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     fsplit::Vector{SubString} = split(fpath, "/")
     uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
     environment::String = ""
-    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :env => environment, :path => fpath, projpairs ...)
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
-        if "home" in keys(c[:OliveCore].data["home"])
+        if "home" in keys(c[:OliveCore].data)
             environment = c[:OliveCore].data["home"]
             if fpath != c[:OliveCore].data["home"]
                 push!(projdict, :path => fpath)
             end
+        else
+            environment = CORE.data["wd"]
         end
     end
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+    :env => environment, :path => fpath, projpairs ...)
     @async save_settings!(c)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     c[:OliveCore].olmod.Olive.source_module!(c, myproj)
     c[:OliveCore].olmod.Olive.check!(myproj)
-    push!(c[:OliveCore].open[getname(c)].projects, myproj)
+    push!(user.environment.projects, myproj)
     tab::Component{:div} = build_tab(c, myproj)
     open_project(c, cm, myproj, tab)
     myproj::Project{<:Any}
@@ -670,7 +737,7 @@ This is the function `Olive` uses to load a project into its UI.
 ```
 """
 function open_project(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any}, tab::Component{:div})
-    projects = c[:OliveCore].open[getname(c)].projects
+    projects = c[:OliveCore].users[getname(c)].environment.projects
     if  ~(proj in projects)
         push!(projects, proj)
     end
@@ -746,7 +813,7 @@ This function is called on a project whenever its tab is minimized.
 ```
 """
 function switch_pane!(c::Connection, cm::AbstractComponentModifier, proj::Project{<:Any})
-    projects::Vector = c[:OliveCore].open[getname(c)].projects
+    projects::Vector = c[:OliveCore].users[getname(c)].environment.projects
     name::String = proj.id
     if proj.data[:pane]::String == "one"
         pane = "two"
@@ -899,7 +966,7 @@ function step_evaluate(c::Connection, cm::AbstractComponentModifier, proj::Proje
     if length(proj.data[:cells]) == 0
         return
     end
-    script!(c, cm, type = "Timeout") do cm2::ComponentModifier
+    on(c, cm, 100) do cm2::ComponentModifier
         evaluate(c, cm2, proj.data[:cells][e], proj)
         if e == length(proj.data[:cells]) - 1
             return
@@ -919,12 +986,11 @@ This is the function `Olive` uses to close the project in the UI.
 """
 function close_project(c::Connection, cm2::AbstractComponentModifier, proj::Project{<:Any})
     name::String = proj.id
-    projs::Vector{Project} = c[:OliveCore].open[getname(c)].projects
+    projs::Vector{Project} = c[:OliveCore].users[getname(c)].environment.projects
     n_projects::Int64 = length(projs)
     set_children!(cm2, "pane_$(proj.data[:pane])", Vector{Servable}())
     remove!(cm2, "tab$(name)")
     if(n_projects == 1)
-        # TODO start screen here
         remove!(cm2, proj.id)
     elseif n_projects == 2
         lastproj = findfirst(pre -> pre.id != proj.id, projs)
@@ -961,7 +1027,14 @@ Completely removes a `Module` from a project, adding it back to the `OliveCore` 
 ```
 """
 function empty_module!(c::Connection, proj::Project{<:Any})
+    if ~(haskey(proj.data, :mod))
+        return(nothing)
+    end
     push!(c[:OliveCore].pool, proj.id)
+    if haskey(proj.data, :thread)
+        modstr::String = olive_module(proj.id, p[:env])
+        @everywhere include_string(Main, $(modstr))
+    end
     mod = proj[:mod]
     re_source!(c, proj)
     Base.GC.gc()
@@ -1051,7 +1124,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
             hl = get_highlighter(c, cells[active_cell])
             style!(hl, :found, "color" => "white", "font-weight" => "bold", "background-color" => "#D90166", "border-radius" => 1px)
             style!(hl, :founds, "color" => "black", "background-color" => "lightpink", "border-radius" => 1px)
-    
             # Override "pfounds" in the selected cell for better visibility
             push!(hl, position => :found)
             for pos in filter(p -> p != position, active_cell_items)
@@ -1072,7 +1144,7 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
                     current_prev = nothing
                 end
             end
-            ToolipsSession.scroll_to!(cm2, "cell$active_cell")
+            Components.scroll_to!(cm2, "cell$active_cell")
             prev_cell = active_cell
             cm2["cell$active_cell"] = "class" => "input_cell inputselected"
         else
@@ -1081,7 +1153,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         set_text!(cm2, "find-position", "$count/$total")
         set_text!(cm2, "find-cell", "$inner_count/$n_active_items")
     end
-    ToolipsSession.bind(find_f, km, "Enter", prevent_default = true)
     ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
         focus!(cm2, "replacebox")
     end
@@ -1097,25 +1168,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         prev_cell, inner_count = nothing, nothing
         count, total, selected_text = nothing, nothing, nothing
     end
-    replace_f = cm2::ComponentModifier -> begin
-      if selected_text == ""
-            olive_notify!(cm2, "No found items to replace, use find first with `Enter`", color = "darkred")
-            return
-        end
-        replace_text = cm2["replacebox"]["text"]
-        for (cell_key, _) in found_items
-            cell_object::Cell{<:Any} = cells[cell_key]
-            cell_object.source = replace(cell_object.source, selected_text => replace_text)
-            set_text!(cm2, "cell$cell_key", cell_object.source)
-            
-            on(c, cm2, 100) do cm::ComponentModifier
-                cell_highlight!(c, cm, cell_object, proj)
-            end
-        end
-        olive_notify!(cm2, "Replaced all occurrences of '$selected_text' across found items", color = "darkgreen")
-        found_items = Dict{String, Vector{UnitRange{Int64}}}()
-    end
-    ToolipsSession.bind(replace_f, km, "Enter", :shift)
     replace_cell_f = cm2::ComponentModifier -> begin
         if selected_text == ""
             olive_notify!(cm2, "no found items to replace, use find fist with `Enter`", color = "darkred")
@@ -1132,8 +1184,28 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         found_items = Dict{String, Vector{UnitRange{Int64}}}()
     end
     ToolipsSession.bind(replace_cell_f, km, "A", :ctrl, :shift, prevent_default = true)
+    replace_f = cm2::ComponentModifier -> begin
+      if selected_text == ""
+            olive_notify!(cm2, "No found items to replace, use find first with `Enter`", color = "darkred")
+            return
+        end
+        replace_text = cm2["replacebox"]["text"]
+        for (cell_key, _) in found_items
+            cell_object::Cell{<:Any} = cells[cell_key]
+            cell_object.source = replace(cell_object.source, selected_text => replace_text)
+            set_text!(cm2, "cell$cell_key", cell_object.source)
+            on(c, cm2, 100) do cm::ComponentModifier
+                cell_highlight!(c, cm, cell_object, proj)
+            end
+        end
+        olive_notify!(cm2, "Replaced all occurrences of '$selected_text' across found items", color = "darkgreen")
+        found_items = Dict{String, Vector{UnitRange{Int64}}}()
+    end
+    ToolipsSession.bind(replace_f, km, "Enter", :shift)
+    ToolipsSession.bind(find_f, km, "Enter", prevent_default = true)
     ToolipsSession.bind(c, cm, find_box, km)
-    delete!(km.keys, "Tab")
+    pos = findfirst(x -> x[1].name == "Tab", km.keys)
+    deleteat!(km.keys, pos)
     ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
         focus!(cm2, "findbox")
     end
@@ -1172,7 +1244,10 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     tablabel::Component{:a} = a("tablabel$(fname)", text = p.name, class = "tablabel")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
-        projects::Vector{Project{<:Any}} = c[:OliveCore].open[getname(c)].projects
+        if p.id in cm
+            return
+        end
+        projects::Vector{Project{<:Any}} = CORE.users[getname(c)].environment.projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
@@ -1198,7 +1273,7 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
             remove!(cm2, "$(fname)restart")
             remove!(cm2, "$(fname)run")
             remove!(cm2, "$(fname)switch")
-            remove!(cm2, decollapse_button)
+            remove!(cm2, "$(fname)dec")
         end
         style!(decollapse_button, "color" => "blue")
         controls::Vector{<:AbstractComponent} = tab_controls(c, p)
@@ -1257,10 +1332,11 @@ function save_project_as(c::Connection, cm::AbstractComponentModifier, p::Projec
 end
 
 function olive_loadicon()
-    srcdir = @__DIR__
-    iconb64 = read(srcdir * "/images/loadicon.png", String)
-    myimg = img("olive-loader", src = iconb64, class = "loadicon")
-    style!(myimg, spin_forever())
+    circ = Component{:circle}("circloader", r = 7, cx = 10, cy = 10)
+    style!(circ, "fill" => "#ef6292")
+    myimg = svg("olive-loader", width = 20, height = 20, children = [circ], 
+    style = "transition:600ms;")
+    style!(circ, spin_forever())
     myimg
 end
 

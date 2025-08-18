@@ -26,7 +26,7 @@ function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
     "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].open[getname(c)].projects
+        projects = CORE.users[getname(c)].environment.projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
@@ -59,7 +59,7 @@ end
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:include},
     proj::Project{<:Any})
     cells = proj[:cells]
-    projs = c[:OliveCore].open[getname(c)].projects
+    projs = CORE.users[getname(c)].environment.projects
     if cell.source != ""
         cell.source = replace(cell.source, "include(\"" => "", "\")" => "")
     end
@@ -80,7 +80,7 @@ end
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include}, 
     proj::Project{<:Any})
     path = cm["cell$(cell.id)"]["text"]
-    env = c[:OliveCore].open[getname(c)]
+    env = CORE.users[getname(c)].environment
     current_path::String = env.pwd
     if :path in keys(proj.data)
         fnamesplit = split(proj.data[:path], "/")
@@ -91,7 +91,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:include},
         olive_notify!(cm, "$fullpath is not a file!", color = "red")
     end
     cell.source = path
-    projs = c[:OliveCore].open[getname(c)].projects
+    projs = env.projects
     if isnothing(findfirst(p -> p.id == cell.outputs, projs))
         if isfile(fullpath)
             fnamesplit = split(fullpath, "/")
@@ -143,7 +143,7 @@ function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     "font-size"  => 13pt, "color" => "white")
     push!(tabbody, tablabel)
     on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].open[getname(c)].projects
+        projects = c[:OliveCore].users[getname(c)].environment.projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
         [begin
             if projects[e].id != p.id 
@@ -224,7 +224,7 @@ end
 
 function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module}, 
     proj::Project{<:Any})
-    projects = c[:OliveCore].open[getname(c)].projects
+    projects = c[:OliveCore].users[getname(c)].environment.projects
     if length(findall(proj -> proj.id == cell.source, projects)) > 0
         modname = cell.outputs[1]
         proj = projects[modname]
@@ -241,9 +241,9 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:module},
     end
     inclproj = Project{:module}(modname, projdict)
     source_module!(c, inclproj)
-    proj.data[:mod].evalin(Meta.parse("global $modname = nothing"))
+    proj.data[:mod].eval(Meta.parse("$modname = nothing"))
     Main.evalin(Meta.parse("$(proj.data[:modid]).$modname = $(inclproj.data[:modid])"))
-    push!(c[:OliveCore].open[getname(c)].projects, inclproj)
+    push!(projects, inclproj)
     tab = build_tab(c, inclproj)
     open_project(c, cm, inclproj, tab)
     olive_notify!(cm, "module $modname added", color = "red")
@@ -269,7 +269,8 @@ function build(c::Connection, cell::Cell{:toml},
         activatebutton = topbar_icon("$(cell.id)act", "bolt")
         style!(activatebutton, "font-size" => 20pt, "color" => "white")
         on(c, activatebutton, "click") do cm::ComponentModifier
-            [begin
+            n = getname(c)
+            for proj in c[:OliveCore].users[n].environment.projects
                 b = button("activate$(proj.id)", text = proj.name)
                 on(c, b, "click") do cm2::ComponentModifier
                     modname = proj.id
@@ -278,12 +279,12 @@ function build(c::Connection, cell::Cell{:toml},
                     proj.data[:mod] = getfield(Main, Symbol(modname))
                     olive_notify!(cm2, "environment $(cell.outputs) activated",
                     color = "blue")
-                        [begin
-                            remove!(cm2, "activate$(proj.id)")
-                        end for k in c[:OliveCore].open[getname(c)].projects]
+                    for k in c[:OliveCore].users[n].environment.projects
+                        remove!(cm2, "activate$(k.id)")
+                    end
                 end
                 append!(cm, hiddencell, b)
-            end for proj in c[:OliveCore].open[getname(c)].projects]
+            end
         end
         insert!(hiddencell[:children], 2, activatebutton)
     end
@@ -295,7 +296,7 @@ toml_string(cell::Cell{:tomlvalues}) = cell.source * "\n"
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     proj::Project{<:Any})
-    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
+    tm = c[:OliveCore].users[getname(c)]["highlighters"]["toml"]
     tm.raw = cell.source
     OliveHighlighters.mark_toml!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
@@ -312,7 +313,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:tomlvalues},
     style!(collapsebutt, "color" => "white", "font-size" => 17pt)
     on(c, collapsebutt, "click") do cm2::ComponentModifier
         if cm2[collapsebutt]["col"] == "false"
-            style!(cm2, builtcell, "height" => 3percent,
+            style!(cm2, builtcell,
             "transform" => "scaleY(50%)",
             "overflow" => "hidden", "border-bottom-width" => 2px,
              "border-bottom-style" => "solid",
@@ -370,7 +371,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:tomlv
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     cell.source = replace(curr, "<br>" => "\n", "<div>" => "")
-    tm = c[:OliveCore].client_data[getname(c)]["highlighters"]["toml"]
+    tm = c[:OliveCore].users[getname(c)]["highlighters"]["toml"]
     tm.raw = cell.source
     OliveHighlighters.mark_toml!(tm)
     set_text!(cm, "cellhighlight$(cell.id)", string(tm))
@@ -589,20 +590,44 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:shell},
     proj::Project{<:Any})
     curr = cm["cell$(cell.id)"]["text"]
     mod = proj[:mod]
-    p = Pipe()
-    err = Pipe()
-    standard_out::String = ""
-    ret = ""
-    redirect_stdio(stdout = p, stderr = err) do
-        try
-            mod.evalin(Meta.parse("Base.run(`$curr`)"))
-        catch e
-            ret = e
+    commands = split(curr, " ")
+    cmd = Symbol(commands[1])
+    aliased_command = cmd == :ls || cmd == :dir
+    out::String = ""
+    ret::Any = ""
+    if ~aliased_command && ~(cmd in names(proj[:mod], all = true))
+        set_text!(cm, "cell$(cell.id)out", "$(commands[1]) is not a recognized command.")
+        set_text!(cm, "cell$(cell.id)", "")
+        return
+    elseif aliased_command
+        if length(commands) == 1
+            ret = mod.readdir()
+        else
+            ret = mod.readdir(commands[2])
         end
+    else
+        args = []
+        if length(commands) > 1
+            args = commands[2:end]
+        end
+        getfield(mod, cmd)(args ...)
     end
-    close(Base.pipe_writer(p))
-    standard_out = replace(read(p, String), "\n" => "<br>")
-    set_text!(cm, "cell$(cell.id)out", standard_out)
+    active_display::OliveDisplay = OliveDisplay()
+    outp = ""
+    if typeof(ret) <: Exception
+        display(active_display, ret, Base.StackTraces.stacktrace(st_trace))
+        outp = replace(String(take!(active_display.io)), "\n" => "</br>")
+    elseif ~(isnothing(ret))
+        display(active_display, MIME"olive"(), ret)
+        outp = outp * "</br>" * String(take!(active_display.io))
+    elseif isnothing(ret)
+        outp = standard_out
+    end
+    out = mod.STDO
+    if cmd == :pwd || cmd == :cd
+        out = mod.WD
+    end
+    set_text!(cm, "cell$(cell.id)out", outp * out)
     set_text!(cm, "cell$(cell.id)", "")
 end
 
@@ -706,3 +731,75 @@ function build(c::Connection, cell::Cell{:olivestyle},
     style!(hiddencell, "background-color" => "#F15A60")
     hiddencell
 end
+
+#== File select
+==#
+function make_fselect_dialog(f::Function, c::AbstractConnection, path::String = "")
+    user = c[:OliveCore].users[getname(c)]
+    if path == ""
+        path = user.environment.pwd
+    end
+    dir = Directory(path, dirtype = "selectfile")
+    builtdir = build(c, dir)
+    cancel_button = button(Components.gen_ref(2), text = "cancel")
+    confirm_button = button(Components.gen_ref(2), text = "confirm")
+    file_indicator = a("selfindic", text = "-")
+    conf_div = div("confdiv", children = [file_indicator, cancel_button, confirm_button], align = "right")
+    on(cancel_button, "click") do cl
+        remove!(cl, "selectorwindow")
+    end
+    on(c, confirm_button, "click") do cm::ComponentModifier
+        f(cm, cm["selfindic"]["text"])
+        remove!(cm, "selectorwindow")
+    end
+    window = section("selectorwindow", children = [builtdir, conf_div])
+    style!(window, "position" => "absolute", "top" => 15percent, 
+        "left" => 30percent, "width" => 28percent, "padding" => 2percent, 
+        "background-color" => "white")
+    window::Component{:section}
+end
+
+function build(c::AbstractConnection, dir::Directory{:selectfile})
+    path_notifier = h3("selectnotify", text = dir.uri)
+    newcells = directory_cells(dir.uri, wdtype = :switchselector)
+    childs = Vector{Servable}([begin
+        build_selector_cell(c, mcell, dir)
+    end for mcell in newcells])
+    selectionbox = div("selectionbox", children = childs)
+    dirbox = div("selectdir", children = [path_notifier, selectionbox])
+    dirbox::Component{:div}
+end
+
+function build_selector_cell(c::AbstractConnection, cell::Cell{:switchselector}, dir::Directory{<:Any})
+    build(c, cell, dir)
+end
+
+function build_selector_cell(c::AbstractConnection, cell::Cell{<:Any}, dir::Directory{<:Any})
+    builtcell = build(c, cell, dir)
+    builtcell[:children] = builtcell[:children]["cell$(cell.id)label"]
+    delete!(builtcell.properties, :ondblclick)
+    on(c, builtcell, "click") do cm::ComponentModifier
+        style!(cm, builtcell, "border" => "3px solid green")
+        set_text!(cm, "selfindic", cell.outputs)
+    end
+    builtcell::Component{<:Any}
+end
+
+function build(c::Connection, cell::Cell{:switchselector}, d::Directory{<:Any}, bind::Bool = true)
+    filecell::Component{<:Any} = build_base_cell(c, cell, d, binding = false)
+    filecell[:children] = filecell[:children][5:5]
+    on(c, filecell, "click") do cm::ComponentModifier
+        path = cell.outputs * "/" * cell.source
+        newcells = directory_cells(path, wdtype = :switchselector)
+        dir = Directory(path)
+        childs = Vector{Servable}([begin
+            build_selector_cell(c, mcell, dir)
+        end for mcell in newcells])
+        set_text!(cm, "selectnotify", path)
+        set_children!(cm, "selectionbox", childs)
+    end
+    filecell::Component{<:Any}
+end
+
+#== filesave?
+==#
