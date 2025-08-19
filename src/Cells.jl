@@ -1443,7 +1443,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
                 sel_thread = thread_vals[1]
             end
             parsed = Meta.parse(execcode)
-            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin") || contains(execcode, "-> begin")
+            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin") || contains(execcode, "-> begin") || contains(execcode, "using") || contains(execcode, "import")
                 proj[:mod].evalin(parsed)
                 if length(thread_vals) > 1
                     @async begin
@@ -1474,7 +1474,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     catch e
         # jesus christ, it's FOUR nested errors??!
         if :captured in fieldnames(typeof(e))
-            ret = e.captured.ex.error
+            ret = e.captured.ex
+            if :error in fieldnames(typeof(ret))
+                ret = ret.error
+            end
         else
             ret = e
         end
