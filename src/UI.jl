@@ -408,9 +408,13 @@ This will also decollapse the **inspector** and open the **project explorer**
 """
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
     env::Environment = CORE.users[getname(c)].environment
-    if ~(contains(path, split(env.pwd, "/")[1])) && ~(CORE.data["root"] == getname(c))
-        olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
-        return
+    if ~(contains(path, split(env.pwd, "/")[1]))
+        if CORE.data["root"] == getname(c)
+            @warn "allowing root to browse above pwd"
+        else
+            olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
+            return
+        end
     end
     env.pwd = path
     if isfile(path)
@@ -717,7 +721,6 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     end
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
     :env => environment, :path => fpath, projpairs ...)
-    @async save_settings!(c)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     c[:OliveCore].olmod.Olive.source_module!(c, myproj)
     c[:OliveCore].olmod.Olive.check!(myproj)

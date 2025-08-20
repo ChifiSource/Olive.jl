@@ -679,7 +679,7 @@ function build(c::AbstractConnection, dir::Directory{:pwd})
     end
     maincell[:children] = [maincell[:children][3], addbutton]
     slctor = maincell[:children][1]
-    style!(slctor, "font-size" => 11pt)
+    style!(slctor, "font-size" => 13pt)
     filecell.name = "pwdmain"
     slctor.name = "selector"
     childbox.name = "pwdbox"
