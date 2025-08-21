@@ -100,6 +100,25 @@ function default_sectionstyle(;padding::Any = 30px,
     "transition" => 1seconds)::Style
 end
 
+#==
+li {
+	list-style: none;            /* remove default bullets */
+	position: relative;
+	margin: 0.4em 0;
+	padding-left: 1.4em;         /* make space for custom bullet */
+	line-height: 1.6;
+	font-size: 1rem;
+	color: #333;
+}
+
+li::before {
+	content: "•";                /* custom bullet */
+	position: absolute;
+	left: 0;
+	color: #007acc;              /* accent color (blue) */
+	font-weight: bold;
+}
+    ==#
 function sheet(name::String,p::Pair{String, Any} ...;
     textsize::Integer = 14, face_textsize::Integer = 12,
     padding::Integer = 7, face_padding::Integer = 5,
@@ -107,12 +126,20 @@ function sheet(name::String,p::Pair{String, Any} ...;
     transition::Float64 = 0.5,
     args ...)
     msheet = Component{:sheet}(name, p ..., args ...)
+    lis = style("li", "list-style" => "none", "position" => "relative", "margin" => "0.4em 0", 
+        "padding-left" => "1.4em", "line-height" => "1.6", "font-size" => 14pt, "color" => "#333")
+        # \\20AA
+    lis:"before":["content" => "'\\2764'", "position" => "absolute", "left" => "0", "color" => "#b05885", "font-weight" => "bold"]
     divs = default_divstyle()
+    codestyle = style("code", "background-color" => "#1e1e1e", "color" => "white", "padding" => 1px, 
+        "border-radius" => .5px, "display" => "inline-block")
+    prestyle = style("pre", "background-color" => "#1e1e1e", "color" => "white", "padding" => .5percent, "border-radius" => 2px)
     buttons = default_buttonstyle()
     as = default_astyle()
     ps = default_pstyle(textsize = textsize)
     sectionst = default_sectionstyle(padding = padding)
     tabs = default_tabstyle()
+    
     h1s = Style("h1", "color" => "#754679")
     h2s = Style("h2", "color" => "#797ef6")
     h3s = Style("h3", "color" => "#241124")
@@ -121,9 +148,9 @@ function sheet(name::String,p::Pair{String, Any} ...;
     scrollbars = Style("::-webkit-scrollbar", "width" => "5px")
     scrtrack = Style("::-webkit-scrollbar-track", "background" => "transparent")
     scrthumb = Style("::-webkit-scrollbar-thumb", "background" => "#797ef6",
-    "border-radius" => "5px")
+    "border-radius" => "2px")
     push!(msheet, divs, buttons, sectionst, as, ps, h1s,
-    h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb)
+    h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb, lis, codestyle, prestyle)
     msheet
 end
 
@@ -145,7 +172,6 @@ end
 function olivesheet()
     st = sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
-    pr = Style("pre", "background" => "transparent")
     # fadeup:
     fade_upanim = keyframes("fadeup")
     keyframes!(fade_upanim, 0percent, "opacity" => 0percent, "transform" => translateY(5percent))
@@ -233,7 +259,7 @@ function olivesheet()
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
-    inputcell_style(), bdy, cellside_style(), filec_style(), pr, cell_style(),
+    inputcell_style(), bdy, cellside_style(), filec_style(), cell_style(),
     Style("::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
@@ -385,9 +411,13 @@ This will also decollapse the **inspector** and open the **project explorer**
 """
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
     env::Environment = CORE.users[getname(c)].environment
-    if ~(contains(path, split(env.pwd, "/")[1])) && ~(CORE.data["root"] == getname(c))
-        olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
-        return
+    if ~(contains(path, split(env.pwd, "/")[1]))
+        if CORE.data["root"] == getname(c)
+            @warn "allowing root to browse above pwd"
+        else
+            olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
+            return
+        end
     end
     env.pwd = path
     if isfile(path)
@@ -680,8 +710,6 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     fsplit::Vector{SubString} = split(fpath, "/")
     uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
     environment::String = ""
-    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :env => environment, :path => fpath, projpairs ...)
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
@@ -690,9 +718,12 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
             if fpath != c[:OliveCore].data["home"]
                 push!(projdict, :path => fpath)
             end
+        else
+            environment = CORE.data["wd"]
         end
     end
-    @async save_settings!(c)
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+    :env => environment, :path => fpath, projpairs ...)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     c[:OliveCore].olmod.Olive.source_module!(c, myproj)
     c[:OliveCore].olmod.Olive.check!(myproj)
@@ -1119,7 +1150,7 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
                     current_prev = nothing
                 end
             end
-            ToolipsSession.scroll_to!(cm2, "cell$active_cell")
+            Components.scroll_to!(cm2, "cell$active_cell")
             prev_cell = active_cell
             cm2["cell$active_cell"] = "class" => "input_cell inputselected"
         else
@@ -1128,7 +1159,6 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         set_text!(cm2, "find-position", "$count/$total")
         set_text!(cm2, "find-cell", "$inner_count/$n_active_items")
     end
-    ToolipsSession.bind(find_f, km, "Enter", prevent_default = true)
     ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
         focus!(cm2, "replacebox")
     end
@@ -1144,6 +1174,22 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         prev_cell, inner_count = nothing, nothing
         count, total, selected_text = nothing, nothing, nothing
     end
+    replace_cell_f = cm2::ComponentModifier -> begin
+        if selected_text == ""
+            olive_notify!(cm2, "no found items to replace, use find fist with `Enter`", color = "darkred")
+            return
+        end
+        active_cell = item_keys[active_key]
+        replace_text = cm2["replacebox"]["text"]
+        cell_object::Cell{<:Any} = cells[active_cell]
+        cell_object.source = replace(cell_object.source, selected_text => replace_text)
+        set_text!(cm2, "cell$active_cell", cell_object.source)
+        on(c, cm2, 100) do cm::ComponentModifier
+            cell_highlight!(c, cm, cell_object, proj)
+        end
+        found_items = Dict{String, Vector{UnitRange{Int64}}}()
+    end
+    ToolipsSession.bind(replace_cell_f, km, "A", :ctrl, :shift, prevent_default = true)
     replace_f = cm2::ComponentModifier -> begin
       if selected_text == ""
             olive_notify!(cm2, "No found items to replace, use find first with `Enter`", color = "darkred")
@@ -1162,24 +1208,10 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
         found_items = Dict{String, Vector{UnitRange{Int64}}}()
     end
     ToolipsSession.bind(replace_f, km, "Enter", :shift)
-    replace_cell_f = cm2::ComponentModifier -> begin
-        if selected_text == ""
-            olive_notify!(cm2, "no found items to replace, use find fist with `Enter`", color = "darkred")
-            return
-        end
-        active_cell = item_keys[active_key]
-        replace_text = cm2["replacebox"]["text"]
-        cell_object::Cell{<:Any} = cells[active_cell]
-        cell_object.source = replace(cell_object.source, selected_text => replace_text)
-        set_text!(cm2, "cell$active_cell", cell_object.source)
-        on(c, cm2, 100) do cm::ComponentModifier
-            cell_highlight!(c, cm, cell_object, proj)
-        end
-        found_items = Dict{String, Vector{UnitRange{Int64}}}()
-    end
-    ToolipsSession.bind(replace_cell_f, km, "A", :ctrl, :shift, prevent_default = true)
+    ToolipsSession.bind(find_f, km, "Enter", prevent_default = true)
     ToolipsSession.bind(c, cm, find_box, km)
-    delete!(km.keys, "Tab")
+    pos = findfirst(x -> x[1].name == "Tab", km.keys)
+    deleteat!(km.keys, pos)
     ToolipsSession.bind(km, "Tab") do cm2::ComponentModifier
         focus!(cm2, "findbox")
     end
