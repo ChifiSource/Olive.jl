@@ -90,6 +90,9 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
     cellid::String = cell.id
     pos = findlast(tempcell::Cell{<:Any} -> tempcell.id == cellid, cells)
+    if isnothing(pos)
+        return
+    end
     if pos == 1
         focus!(cm, "cell$(cells[pos + 1].id)")
     else
@@ -254,6 +257,10 @@ end
 function ToolipsSession.bind(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
 
 end
+
+is_jlcell(cell::Type{<:IPyCells.AbstractCell}) = true::Bool
+is_jlcell(cell::Type{Cell{:creator}}) = false::Bool
+is_jlcell(cell::Type{Cell{:getstarted}}) = false::Bool
 
 """
 ```julia
@@ -1726,7 +1733,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     style!(inp[:children]["cell$(cell.id)"], "color" => "black", "border-left" => "6px solid pink", 
     "border-top-left-radius" => 8px, "border-bottom-left-radius" => 8px, "margin-bottom" => 0px)
     inp[:children]["cell$(cell.id)"][:text]::String = ""
-    inp[:children]["cell$(cell.id)"][:children]::Vector{<:AbstractComponent} = [olive_motd(), buttons_box, getstarted]
+    inp[:children]["cell$(cell.id)"][:children]::Vector{<:AbstractComponent} = [olive_motd(), getstarted, buttons_box]
     builtcell::Component{:div}
 end
 
@@ -1778,16 +1785,17 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     km = cell_bind!(c, cell, proj)
     ToolipsSession.bind(c, cm, cbox, km)
     olmod = CORE.olmod
-    signatures = [m.sig.parameters[4] for m in methods(Olive.build,
-    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
-    Project{<:Any}])]
      buttonbox = div("cellcontainer$(cell.id)")
      push!(buttonbox, cbox)
      push!(buttonbox, h3("spawn$(cell.id)", text = "new cell"))
      group_excluded_sigs = get_group(c).cells
-     for sig in signatures
-         if sig in (Cell{:creator}, Cell{<:Any}, Cell{:getstarted})
+     for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell, Project{<:Any}])
+        sig = m.sig.parameters[4]
+         if sig == Cell{<:Any}
              continue
+         end
+         if ~(is_jlcell(sig))
+            continue
          end
          signature::Symbol = sig.parameters[1]
          if sig in group_excluded_sigs
