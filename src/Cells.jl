@@ -90,6 +90,9 @@ function cell_delete!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
     cells::Vector{Cell{<:Any}})
     cellid::String = cell.id
     pos = findlast(tempcell::Cell{<:Any} -> tempcell.id == cellid, cells)
+    if isnothing(pos)
+        return
+    end
     if pos == 1
         focus!(cm, "cell$(cells[pos + 1].id)")
     else
@@ -254,6 +257,10 @@ end
 function ToolipsSession.bind(c::Connection, cell::Cell{<:Any}, d::Directory{<:Any})
 
 end
+
+is_jlcell(cell::Type{<:IPyCells.AbstractCell}) = true::Bool
+is_jlcell(cell::Type{Cell{:creator}}) = false::Bool
+is_jlcell(cell::Type{Cell{:getstarted}}) = false::Bool
 
 """
 ```julia
@@ -558,7 +565,7 @@ directory_cells(dir::String = pwd(), access::Pair{String, String} ...; pwd::Bool
 ```
 - See also: `build_file_cell`, `Cell`, `build_base_cell`
 """
-function directory_cells(dir::String = pwd(), access::Pair{String, String} ...; wdtype::Symbol = :dir)
+function directory_cells(dir::AbstractString = pwd(), access::Pair{String, String} ...; wdtype::Symbol = :dir)
     files = readdir(dir)
     return(filter!(e -> ~(isnothing(e)), [build_file_cell(path, dir, wdtype = wdtype) for path in files]::AbstractVector))
 end
@@ -572,7 +579,7 @@ Used by `directory_cells` to build individual file cells. This function will bui
 ```
 - See also: `directory_cells`, `Cell`, `build_base_cell`
 """
-function build_file_cell(path::String, dir::String; wdtype::Symbol = :dir)
+function build_file_cell(path::String, dir::AbstractString; wdtype::Symbol = :dir)
     fpath = dir * "/" * path
     if ~(isdir(fpath))
         if isfile(fpath)
@@ -832,7 +839,7 @@ function read_toml(path::String)
     concat::String = ""
     file::String = read(path, String)
     lines = split(file, "\n")
-    filter!(cell -> ~(isnothing(cell)), [begin
+    Vector{Cell}(filter!(cell -> ~(isnothing(cell)), [begin
         n = length(line)
         if e == length(lines)
             concat = concat * line
@@ -850,7 +857,7 @@ function read_toml(path::String)
             concat = concat * line * "\n"
             nothing
         end
-    end for (e, line) in enumerate(lines)])
+    end for (e, line) in enumerate(lines)]))
 end
 
 string(cell::Cell{:tomlvalues}) = ""
@@ -1304,8 +1311,7 @@ end
 
 function build(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     proj::Project{<:Any})
-    windowname::String = proj.id
-    tm = CORE.users[getname(c)].data["highlighters"]["julia"]
+    tm::Highlighter = CORE.users[getname(c)].data["highlighters"]["julia"]
     tm.raw = cell.source
     OliveHighlighters.mark_julia!(tm)
     builtcell::Component{:div} = build_base_cell(c, cm, cell,
@@ -1443,7 +1449,9 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
                 sel_thread = thread_vals[1]
             end
             parsed = Meta.parse(execcode)
-            if contains(execcode, "function") || contains(execcode, "module") || contains(execcode, "struct") || contains(execcode, "= begin") || contains(execcode, "-> begin")
+            reint_defs = ("import", "function", "module", "using", "= begin", "-> begin", "struct")
+            reintdefs = findfirst(x -> contains(cell.source, x), reint_defs)
+            if ~(isnothing(reintdefs))
                 proj[:mod].evalin(parsed)
                 if length(thread_vals) > 1
                     @async begin
@@ -1464,7 +1472,7 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
 		        $(Expr(:quote, olive_mod)).evalin($parsed)
 	        end)
             worker.active = false
-            get_stdo = "evalin(Meta.parse(\"$modstr.STDO\"))"
+            get_stdo = "evalin(Meta.parse(\"src = $modstr.STDO; $modstr.STDO = \\\"\\\"; src\"))"
             olive_mod.STDO = Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
 		        Base.include_string($(Expr(:quote, olive_mod)), $get_stdo)
 	        end)
@@ -1474,7 +1482,10 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     catch e
         # jesus christ, it's FOUR nested errors??!
         if :captured in fieldnames(typeof(e))
-            ret = e.captured.ex.error
+            ret = e.captured.ex
+            if :error in fieldnames(typeof(ret))
+                ret = ret.error
+            end
         else
             ret = e
         end
@@ -1547,6 +1558,35 @@ function build_returner(c::Connection, path::String)
     returner_div::Component{:div}
 end
 
+function build_any_returner(f::Function, c::Connection, path::AbstractString, id::AbstractString, source::String, wdtype::Symbol = :switchselector)
+    returner_div::Component{:div} = div("returner$id", class = "file-cell")
+    style!(returner_div, "background-color" => "darkred", "cursor" => "pointer")
+    push!(returner_div, a(text = "..."))
+    add = if contains(source, "!;")
+        splts = split(source, "!;")
+        join((splts[1:end - 1]), "!;")
+    else 
+        nothing
+    end
+    on(c, returner_div, "click") do cm::ComponentModifier
+        paths = split(path, "/")
+        path = join(paths[1:length(paths) - 1], "/")
+        if isnothing(add)
+            dir = Directory(path)
+        else
+            dir = Directory(add * "!;" * path)
+        end
+        childs = Vector{Servable}([begin
+            f(c, mcell, dir)
+        end for mcell in directory_cells(path, wdtype = wdtype)])
+        if path != source && contains(path, source)
+            insert!(childs, build_any_returner(f, c, path, id, source), 1)
+        end
+        set_children!(cm, id, childs)
+    end
+    returner_div::Component{:div}
+end
+
 function build_comp(c::Connection, path::String, dir::String)
     if isdir(path * "/" * dir)
         maincomp = div("$dir")
@@ -1556,7 +1596,7 @@ function build_comp(c::Connection, path::String, dir::String)
             path = path * "/" * dir
             set_text!(cm, "selector", path)
             children = Vector{AbstractComponent}([build_comp(c, path, f) for f in readdir(path)])::Vector{AbstractComponent}
-            set_children!(cm, "filebox", vcat(Vector{AbstractComponent}([build_returner(c, path)]), children))
+            set_children!(cm, "filebox", vcat(Vector{AbstractComponent}([build_returner(c, path, dir.uri)]), children))
         end
         return(maincomp)::Component{:div}
     end
@@ -1693,7 +1733,7 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:getstarted},
     style!(inp[:children]["cell$(cell.id)"], "color" => "black", "border-left" => "6px solid pink", 
     "border-top-left-radius" => 8px, "border-bottom-left-radius" => 8px, "margin-bottom" => 0px)
     inp[:children]["cell$(cell.id)"][:text]::String = ""
-    inp[:children]["cell$(cell.id)"][:children]::Vector{<:AbstractComponent} = [olive_motd(), buttons_box, getstarted]
+    inp[:children]["cell$(cell.id)"][:children]::Vector{<:AbstractComponent} = [olive_motd(), getstarted, buttons_box]
     builtcell::Component{:div}
 end
 
@@ -1745,16 +1785,17 @@ function build(c::Connection, cm::ComponentModifier, cell::Cell{:creator},
     km = cell_bind!(c, cell, proj)
     ToolipsSession.bind(c, cm, cbox, km)
     olmod = CORE.olmod
-    signatures = [m.sig.parameters[4] for m in methods(Olive.build,
-    [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell,
-    Project{<:Any}])]
      buttonbox = div("cellcontainer$(cell.id)")
      push!(buttonbox, cbox)
      push!(buttonbox, h3("spawn$(cell.id)", text = "new cell"))
      group_excluded_sigs = get_group(c).cells
-     for sig in signatures
-         if sig in (Cell{:creator}, Cell{<:Any}, Cell{:getstarted})
+     for m in methods(Olive.build, [Toolips.AbstractConnection, Toolips.Modifier, IPyCells.AbstractCell, Project{<:Any}])
+        sig = m.sig.parameters[4]
+         if sig == Cell{<:Any}
              continue
+         end
+         if ~(is_jlcell(sig))
+            continue
          end
          signature::Symbol = sig.parameters[1]
          if sig in group_excluded_sigs

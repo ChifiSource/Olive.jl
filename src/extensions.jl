@@ -774,10 +774,13 @@ function build_selector_cell(c::AbstractConnection, cell::Cell{:switchselector},
     build(c, cell, dir)
 end
 
-function build_selector_cell(c::AbstractConnection, cell::Cell{<:Any}, dir::Directory{<:Any})
+function build_selector_cell(c::AbstractConnection, cell::Cell{<:Any}, dir::Directory{<:Any}, bind::Bool = true)
     builtcell = build(c, cell, dir)
     builtcell[:children] = builtcell[:children]["cell$(cell.id)label"]
     delete!(builtcell.properties, :ondblclick)
+    if ~(bind)
+        return(builtcell)
+    end
     on(c, builtcell, "click") do cm::ComponentModifier
         style!(cm, builtcell, "border" => "3px solid green")
         set_text!(cm, "selfindic", cell.outputs)
@@ -787,7 +790,7 @@ end
 
 function build(c::Connection, cell::Cell{:switchselector}, d::Directory{<:Any}, bind::Bool = true)
     filecell::Component{<:Any} = build_base_cell(c, cell, d, binding = false)
-    filecell[:children] = filecell[:children][5:5]
+    filecell[:children] = filecell[:children]["cell$(cell.id)label"]
     on(c, filecell, "click") do cm::ComponentModifier
         path = cell.outputs * "/" * cell.source
         newcells = directory_cells(path, wdtype = :switchselector)

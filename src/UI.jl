@@ -128,8 +128,12 @@ function sheet(name::String,p::Pair{String, Any} ...;
     msheet = Component{:sheet}(name, p ..., args ...)
     lis = style("li", "list-style" => "none", "position" => "relative", "margin" => "0.4em 0", 
         "padding-left" => "1.4em", "line-height" => "1.6", "font-size" => 14pt, "color" => "#333")
-    lis:"before":["content" => "'\\20AA'", "position" => "absolute", "left" => "0", "color" => "#b05885", "font-weight" => "bold"]
+        # \\20AA
+    lis:"before":["content" => "'\\2764'", "position" => "absolute", "left" => "0", "color" => "#b05885", "font-weight" => "bold"]
     divs = default_divstyle()
+    codestyle = style("code", "background-color" => "#1e1e1e", "color" => "white", "padding" => 1px, 
+        "border-radius" => .5px, "display" => "inline-block")
+    prestyle = style("pre", "background-color" => "#1e1e1e", "color" => "white", "padding" => .5percent, "border-radius" => 2px)
     buttons = default_buttonstyle()
     as = default_astyle()
     ps = default_pstyle(textsize = textsize)
@@ -146,7 +150,7 @@ function sheet(name::String,p::Pair{String, Any} ...;
     scrthumb = Style("::-webkit-scrollbar-thumb", "background" => "#797ef6",
     "border-radius" => "2px")
     push!(msheet, divs, buttons, sectionst, as, ps, h1s,
-    h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb, lis)
+    h2s, h3s, h4s, h5s, scrollbars, scrtrack, scrthumb, lis, codestyle, prestyle)
     msheet
 end
 
@@ -168,7 +172,6 @@ end
 function olivesheet()
     st = sheet("olivestyle", dark = false)
     bdy = Style("body", "background-color" => "white", "overflow-x" => "hidden")
-    pr = Style("pre", "background" => "transparent")
     # fadeup:
     fade_upanim = keyframes("fadeup")
     keyframes!(fade_upanim, 0percent, "opacity" => 0percent, "transform" => translateY(5percent))
@@ -256,7 +259,7 @@ function olivesheet()
     push!(st, olive_icons_font(), load_spinner(), spin_forever(),
     iconstyle(), hdeps_style(), Component{:link}("oliveicon", rel = "icon",
     href = "/favicon.ico", type = "image/x-icon"), title("olivetitle", text = "olive !"),
-    inputcell_style(), bdy, cellside_style(), filec_style(), pr, cell_style(),
+    inputcell_style(), bdy, cellside_style(), filec_style(), cell_style(),
     Style("::-webkit-progress-value", "background" => "pink", "transition" => 2seconds),
     Style("::-webkit-progress-bar", "background-color" => "whitesmoke"), 
     Style("progress", "-webkit-appearance" => "none"), topbar_style, tabclosed_style, 
@@ -408,9 +411,13 @@ This will also decollapse the **inspector** and open the **project explorer**
 """
 function switch_work_dir!(c::Connection, cm::AbstractComponentModifier, path::String)
     env::Environment = CORE.users[getname(c)].environment
-    if ~(contains(path, split(env.pwd, "/")[1])) && ~(CORE.data["root"] == getname(c))
-        olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
-        return
+    if ~(contains(path, split(env.pwd, "/")[1]))
+        if CORE.data["root"] == getname(c)
+            @warn "allowing root to browse above pwd"
+        else
+            olive_notify!(cm, "you do not have permission to access this directory!", color = "red")
+            return
+        end
     end
     env.pwd = path
     if isfile(path)
@@ -717,7 +724,6 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     end
     projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
     :env => environment, :path => fpath, projpairs ...)
-    @async save_settings!(c)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     c[:OliveCore].olmod.Olive.source_module!(c, myproj)
     c[:OliveCore].olmod.Olive.check!(myproj)

@@ -679,7 +679,7 @@ function build(c::AbstractConnection, dir::Directory{:pwd})
     end
     maincell[:children] = [maincell[:children][3], addbutton]
     slctor = maincell[:children][1]
-    style!(slctor, "font-size" => 11pt)
+    style!(slctor, "font-size" => 13pt)
     filecell.name = "pwdmain"
     slctor.name = "selector"
     childbox.name = "pwdbox"
@@ -1045,6 +1045,16 @@ init_user(user::OliveUser, oe::Type{OliveExtension{:highlighting}}) = begin
             "toml" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in tomltm.styles),
             "markdown" => Dict{String, String}(string(k) => string(v[1][2]) for (k, v) in mdtm.styles))
     end
+    #== 0.2-0.3 outdated highlighter mark+
+    ==#
+    if ~(haskey(user.data["highlighting"]["markdown"], "julia"))
+        md_dct = user.data["highlighting"]["markdown"]
+        jl_dct = user.data["highlighting"]["julia"]
+        push!(md_dct, "julia" => "#b52157")
+        push!(jl_dct, "symbol" => "#a154bf")
+        push!(md_dct, pairs(jl_dct) ...)
+    end
+    
     if ~("highlighters" in setting_keys)
         highlighting = user.data["highlighting"]
         highlighters = create_highlighters(highlighting)
