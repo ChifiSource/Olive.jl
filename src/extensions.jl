@@ -776,7 +776,11 @@ end
 
 function build_selector_cell(c::AbstractConnection, cell::Cell{<:Any}, dir::Directory{<:Any}, bind::Bool = true)
     builtcell = build(c, cell, dir)
-    builtcell[:children] = builtcell[:children]["cell$(cell.id)label"]
+    if ~(typeof(builtcell[:children]) <: AbstractVector) || ~("cell$(cell.id)label" in builtcell[:children])
+        builtcell[:children] = Vector{AbstractComponent}()
+    else
+        builtcell[:children] = [builtcell[:children]["cell$(cell.id)label"]]
+    end
     delete!(builtcell.properties, :ondblclick)
     if ~(bind)
         return(builtcell)
