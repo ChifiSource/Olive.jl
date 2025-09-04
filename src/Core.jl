@@ -418,6 +418,7 @@ function build_groups_options(c::AbstractConnection, cm::ComponentModifier)
             push!(CORE.keys, key => new_user_name)
             new_data = Dict{String, Any}("group" => new_user_group)
             user = OliveUser{:olive}(new_user_name, "", Environment("olive"), new_data)
+            user.key = key
             init_user(user)
             push!(CORE.users, user)
             olive_notify!(cm2, "new user $(new_user_name) created! (close settings to save, refresh to cancel)")
@@ -1010,7 +1011,7 @@ init_user(user::OliveUser, oe::Type{OliveExtension{:keybindings}}) = begin
         push!(user.data,
         "creatorkeys" => Dict{String, String}("c" => "code", "v" => "markdown", 
         "/" => "helprepl", "]" => "pkgrepl", ";" => "shellrepl", "i" => "include", 
-        "m" => "module"))
+        "m" => "module", "t" => "tomlvalues"))
     end
 end
 

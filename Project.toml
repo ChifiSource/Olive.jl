@@ -1,7 +1,7 @@
 name = "Olive"
 uuid = "724ecaf6-c7a0-4c22-b37e-0bb7b4193da8"
 authors = ["emmac <emmaccode@gmail.com>"]
-version = "0.2.4"
+version = "0.2.5"
 
 [deps]
 IPyCells = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
@@ -14,10 +14,10 @@ ToolipsSession = "2fe55384-55bc-4df3-9d59-c817d405cd05"
 
 [compat]
 IPyCells = "0.2.4"
-OliveHighlighters = "0.1.4"
+OliveHighlighters = "0.1.5"
 Revise = "3.7"
 Toolips = "0.3.14"
-ToolipsSession = "0.5.2"
+ToolipsSession = "0.5.3"
 julia = "1.5"
 Pkg = "1.0"
 

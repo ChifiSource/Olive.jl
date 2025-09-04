@@ -541,10 +541,13 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:helprepl},
     if length(splitcmd) == 1
         sec = section("$(splitcmd[1])")
         exp = Meta.parse("""t = eval(Meta.parse("$(splitcmd[1])")); @doc(t)""")
-        docs = proj[:mod].evalin(exp)
-        push!(sec, tmd("docmd$(splitcmd[1])", string(docs)))
-        set_children!(cm, "opbox$(cell.id)", 
-        [sec])
+        try
+            docs = proj[:mod].evalin(exp)
+            push!(sec, tmd("docmd$(splitcmd[1])", string(docs)))
+        catch
+            push!(sec, h3(text = "$(splitcmd[1]) not defined in project"))
+        end
+        set_children!(cm, "opbox$(cell.id)", [sec])
     elseif length(splitcmd) == 2
         if string(splitcmd[1]) == "pin"
             if splitcmd[2] != ""
@@ -776,7 +779,11 @@ end
 
 function build_selector_cell(c::AbstractConnection, cell::Cell{<:Any}, dir::Directory{<:Any}, bind::Bool = true)
     builtcell = build(c, cell, dir)
-    builtcell[:children] = builtcell[:children]["cell$(cell.id)label"]
+    if ~(typeof(builtcell[:children]) <: AbstractVector) || ~("cell$(cell.id)label" in builtcell[:children])
+        builtcell[:children] = Vector{AbstractComponent}()
+    else
+        builtcell[:children] = [builtcell[:children]["cell$(cell.id)label"]]
+    end
     delete!(builtcell.properties, :ondblclick)
     if ~(bind)
         return(builtcell)
