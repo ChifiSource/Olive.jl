@@ -20,20 +20,19 @@ This function is used to move a cell up, usually bound to `ctrl` + `shift` + `UP
 - See also: `cell_down!`, `build`, `focus!`, `cell_delete!`, `focus_up!`, `Cell`, `CellOperation`
 """
 function cell_up!(c::Connection, cm2::ComponentModifier, cell::Cell{<:Any},
-    proj::Project{<:Any})
+    proj::Project{<:Any}, focus::Bool = true)
     windowname::String = proj.id
     cells::Vector{Cell{<:Any}} = proj.data[:cells]
     cellid::String = cell.id
     pos = findfirst(lcell -> lcell.id == cellid, cells)
     if pos != 1
+        move!(cm2, "cellcontainer$cellid" => proj.id, pos - 1)
         switchcell = cells[pos - 1]
-        remove!(cm2, "cellcontainer$(switchcell.id)")
-        remove!(cm2, "cellcontainer$cellid")
-        ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, switchcell, proj))
-        ToolipsSession.insert!(cm2, windowname, pos - 1, build(c, cm2, cell, proj))
-        focus!(cm2, "cell$cellid")
         cells[pos] = switchcell
         cells[pos - 1] = cell
+        if focus
+            focus!(cm2, "cell$cellid")
+        end
     else
         olive_notify!(cm2, "this cell cannot go up any further!", color = "red")
     end
@@ -52,7 +51,7 @@ This function is used to move a cell down, usually bound to `ctrl` + `shift` + `
 - See also: `cell_up!`, `build`, `focus!`, `cell_delete!`, `focus_up!`, `Cell`, `CellOperation`
 """
 function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
-	proj::Project{<:Any})
+	proj::Project{<:Any}, focus::Bool = true)
 	windowname::String = proj.id
 	cells::Vector{Cell{<:Any}} = proj.data[:cells]
 	cellid::String = cell.id
@@ -60,12 +59,11 @@ function cell_down!(c::Connection, cm::ComponentModifier, cell::Cell{<:Any},
 
 	if pos !== nothing && pos < length(cells)
 		switchcell = cells[pos + 1]
-		remove!(cm, "cellcontainer$(switchcell.id)")
-		remove!(cm, "cellcontainer$(cellid)")
-		cells[pos], cells[pos + 1] = cells[pos + 1], cells[pos]
-		ToolipsSession.insert!(cm, windowname, pos, build(c, cm, cells[pos], proj))
-		ToolipsSession.insert!(cm, windowname, pos + 1, build(c, cm, cells[pos + 1], proj))
-		focus!(cm, "cell$(cellid)")
+		cells[pos], cells[pos + 1] = (switchcell, cell)
+		move!(cm, "cellcontainer$cellid" => proj.id, pos + 2)
+        if focus
+		    focus!(cm, "cell$(cellid)")
+        end
 	else
 		olive_notify!(cm, "this cell cannot go down any further!", color = "red")
 	end
@@ -1082,6 +1080,11 @@ function cell_bind!(c::Connection, cell::Cell{<:Any}, proj::Project{<:Any}, km::
             evaluate(c, cm, cell, proj)
             remove!(cm, "load$(cell.id)")
             CORE.users[getname(c)].environment.pwd = proj.data[:mod].WD
+            pos = findfirst(lcell -> lcell.id == cell.id, cells)
+            if pos != length(cells)
+                return
+            end
+            cell_new!(c, cm, cell, proj, type = string(typeof(cell).parameters[1]))
         end
     end
     ToolipsSession.bind(km, keybindings["copy"]) do cm2::ComponentModifier
@@ -1440,8 +1443,9 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     st_trace = nothing
     olive_mod::Module = proj[:mod]
     sel_thread = nothing
+    is_threaded = :thread in keys(proj.data)
     try
-        if :thread in keys(proj.data)
+        if is_threaded
             modstr = Symbol(split(string(olive_mod), ".")[end])
             thread_vals = proj.data[:thread]
             sel_thread = findfirst(w -> ~(w.active) && w.pid in thread_vals, c[:procs].workers)
@@ -1480,19 +1484,25 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
             ret = proj[:mod].evalin(Meta.parse(execcode))
         end
     catch e
-        # jesus christ, it's FOUR nested errors??!
-        if :captured in fieldnames(typeof(e))
-            ret = e.captured.ex
-            if :error in fieldnames(typeof(ret))
-                ret = ret.error
+        st_trace = if is_threaded
+            # jesus christ, it's FOUR nested errors??!
+            if :captured in fieldnames(typeof(e))
+                ret = e.captured.ex
+                if :error in fieldnames(typeof(ret))
+                    ret = ret.error
+                end
+            else
+                ret = e
             end
+            st_trace = try Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
+		            $(Expr(:quote, olive_mod)).catch_backtrace()
+	            end)
+            catch
+                catch_backtrace()
+            end
+            st_trace
         else
             ret = e
-        end
-        st_trace = try Olive.Toolips.ParametricProcesses.Distributed.remotecall_eval(olive_mod, sel_thread, quote
-		        $(Expr(:quote, olive_mod)).catch_backtrace()
-	        end)
-        catch
             catch_backtrace()
         end
     end
@@ -1534,12 +1544,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:code},
     if isnothing(pos)
         olive_notify!(cm, "cell error! check the terminal for more details...", color = "red")
         return
-    end
-    if pos == length(cells)
-        new_cell::Cell{:code} = Cell("code", "", id = ToolipsSession.gen_ref(4))
-        push!(cells, new_cell)
-        append!(cm, window, build(c, cm, new_cell, proj))
-        focus!(cm, "cell$(new_cell.id)")
     end
 end
 
@@ -1669,7 +1673,6 @@ function evaluate(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},
     on(c, cm, 100) do cm2::ComponentModifier
         set_children!(cm2, "cellhighlight$(cell.id)", Vector{AbstractComponent}())
     end
-    cell_new!(c, cm, cell, proj, type = "code")
 end
 
 function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:markdown},

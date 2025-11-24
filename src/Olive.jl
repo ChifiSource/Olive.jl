@@ -26,6 +26,10 @@ using Pkg
 using OliveHighlighters
 using TOML
 
+server = nothing
+routes = nothing
+data = nothing
+
 JULIA_HIGHLIGHTER = Highlighter()
 OliveHighlighters.style_julia!(JULIA_HIGHLIGHTER)
 style!(JULIA_HIGHLIGHTER, :default, "color" => "white")
@@ -225,7 +229,7 @@ function build_key_screen(c::AbstractConnection, message::String = "welcome to o
     key_input = Components.textdiv("keyinp", text = "")
     ToolipsSession.bind(c, key_input, "Enter", prevent_default = true) do cm::ComponentModifier
         txt = cm["keyinp"]["text"]
-        redirect!(cm, "/?key=$txt")
+        redirect!(cm, "/key?q=$txt")
     end
     style!(key_input, "color" => "#1e1e1e", "border" => "1px solid #1e1e1e", "padding" => 5px, 
     "background-color" => "white", "font-size" => 16pt, "border-radius" => 3px)
@@ -558,8 +562,15 @@ key_route = route("/key") do c::AbstractConnection
     end
     q = q[:q]
     if ~(q in keys(CORE.keys))
-        @warn q
-        @warn keys(CORE.keys)
+        users = c[:OliveCore].users
+        session_key = get_session_key(c)
+        found = findfirst(user -> user.key == session_key, users)
+        if ~(isnothing(found))
+            on(c, 50) do cm
+                redirect!(cm, "/")
+            end
+            return
+        end
         write!(c, write!(c, build_key_screen(c, "bad key provided")))
         return
     end
