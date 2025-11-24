@@ -26,6 +26,10 @@ using Pkg
 using OliveHighlighters
 using TOML
 
+server = nothing
+routes = nothing
+data = nothing
+
 JULIA_HIGHLIGHTER = Highlighter()
 OliveHighlighters.style_julia!(JULIA_HIGHLIGHTER)
 style!(JULIA_HIGHLIGHTER, :default, "color" => "white")

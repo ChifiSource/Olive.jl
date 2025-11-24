@@ -1320,8 +1320,8 @@ mutable struct OliveCore <: Toolips.AbstractExtension
     pool::Vector{String}
     function OliveCore(mod::String)
         data::Dict{Symbol, Any} = Dict{Symbol, Any}()
-        m = eval(Meta.parse("module $mod global build = nothing end"))
-        m.build = build
+        m = eval(Meta.parse("module $mod import Olive: build end"))
+      #  m.build = build
         open::Vector{Environment} = Vector{Environment}()
         pool::Vector{String} = Vector{String}()
         users = Vector{OliveUser}()
@@ -1361,7 +1361,7 @@ function source_module!(oc::OliveCore)
     using Olive
     end"""
     pmod = Meta.parse(homemod)
-    olmod::Module = Main.evalin(pmod)
+    olmod::Module = Main.eval(pmod)
     oc.olmod = olmod
     nothing::Nothing
 end
@@ -1384,7 +1384,7 @@ function load_extensions!(oc::OliveCore)
     modstr = "begin\n" * join(
         [cell.source for cell in olive_cells], "\n") * "\nend"
     olmod = oc.olmod
-    olmod.evalin(Meta.parse(modstr))
+    Base.eval(olmod, Meta.parse(modstr))
     nothing::Nothing
 end
 
