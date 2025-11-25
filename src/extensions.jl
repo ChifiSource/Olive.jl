@@ -3,55 +3,21 @@ extensions.jl
 ---
 This file contains extensions for `Olive`; Cells, projects, and file-types that are considered an 
     addition on top of the base notebook format -- which includes only `Cell{<:Any}` `Cell{:code}` 
-    `Cell{:creator}` and `Cell{:markdown}`
+    `Cell{:creator}` and `Cell{:markdown}` alongside the base `Olive` directories and projects.
 ==#
-
 #==
-include/module
+include/module cells
 ==#
 
 function build_tab(c::Connection, p::Project{:include}; hidden::Bool = false)
     fname = p.id
-    tabbody = div("tab$(fname)")
-    style!(tabbody, "border-bottom-right-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "green")
-    if(hidden)
-        style!(tabbody, "background-color" => "gray")
-    end
-    tablabel = a("tablabel$(fname)", text = p.name)
-    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "white")
-    push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
-        projects = CORE.users[getname(c)].environment.projects
-        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
-        [begin
-            if projects[e].id != p.id 
-                style_tab_closed!(cm, projects[e])
-            end
-        end  for e in inpane]
-        projbuild = build(c, cm, p)
-        set_children!(cm, "pane_$(p[:pane])", [projbuild])
-        style!(cm, tabbody, "background-color" => "green")
-    end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
-        if ~("$(fname)close" in keys(cm.rootc))
-            decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
-                remove!(cm2, "$(fname)close")
-                remove!(cm2, "$(fname)add")
-                remove!(cm2, "$(fname)run")
-                remove!(cm2, "$(fname)switch")
-                remove!(cm2, decollapse_button)
-            end
-            style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
-            controls = tab_controls(c, p)
-            insert!(controls, 1, decollapse_button)
-            [append!(cm, tabbody, serv) for serv in controls]
-        end
+    tabbody = build_base_tab(c, p, hidden)
+    if hidden
+        style!(tabbody, "background-color" => "#728c77")
+        style!(tabbody[:children][1], "color" => "#1e1e1e")
+    else
+        style!(tabbody, "background-color" => "#32a84c")
+        style!(tabbody[:children][1], "color" => "white")
     end
     tabbody::Component{:div}
 end
@@ -111,7 +77,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:inclu
     proj::Project{<:Any})
     txt = cm["cell$(cell.id)"]["text"]
     new_a = a(text = txt)
-    style!(new_a, "color" => "#fffdd0")
+    style!(new_a, "color" => "#4f8c51")
     set_text!(cm, "cellhighlight$(cell.id)", string(new_a))
 end
 
@@ -123,52 +89,15 @@ function string(cell::Cell{:include})
     ""::String
 end
 
-#==output[code]
-inputcell_style (generic function with 1 method)
-==#
-#==|||==#
 function build_tab(c::Connection, p::Project{:module}; hidden::Bool = false)
     fname = p.id
-    tabbody = div("tab$(fname)")
-    style!(tabbody, "border-bottom-right-radius" => 0px,
-    "border-bottom-left-radius" => 0px, "display" => "inline-block",
-    "border-width" => 2px, "border-color" => "#333333", "border-bottom" => 0px,
-    "border-style" => "solid", "margin-bottom" => "0px", "cursor" => "pointer",
-    "margin-left" => 0px, "transition" => 1seconds, "background-color" => "#FF6C5C")
-    if(hidden)
+    tabbody = build_base_tab(c, p, hidden)
+    if hidden
         style!(tabbody, "background-color" => "gray")
-    end
-    tablabel = a("tablabel$(fname)", text = p.name)
-    style!(tablabel, "font-weight" => "bold", "margin-right" => 5px,
-    "font-size"  => 13pt, "color" => "white")
-    push!(tabbody, tablabel)
-    on(c, tabbody, "click") do cm::ComponentModifier
-        projects = c[:OliveCore].users[getname(c)].environment.projects
-        inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
-        [begin
-            if projects[e].id != p.id 
-                style_tab_closed!(cm, projects[e])
-            end
-        end  for e in inpane]
-        projbuild = build(c, cm, p)
-        set_children!(cm, "pane_$(p[:pane])", [projbuild])
-        style!(cm, tabbody, "background-color" => "#FF6C5C")
-    end
-    on(c, tabbody, "dblclick") do cm::ComponentModifier
-        if ~("$(fname)close" in keys(cm.rootc))
-            decollapse_button = topbar_icon("$(fname)dec", "arrow_left")
-            on(c, decollapse_button, "click") do cm2::ComponentModifier
-                remove!(cm2, "$(fname)close")
-                remove!(cm2, "$(fname)add")
-                remove!(cm2, "$(fname)run")
-                remove!(cm2, "$(fname)switch")
-                remove!(cm2, decollapse_button)
-            end
-            style!(decollapse_button, "font-size"  => 17pt, "color" => "blue")
-            controls = tab_controls(c, p)
-            insert!(controls, 1, decollapse_button)
-            [append!(cm, tabbody, serv) for serv in controls]
-        end
+        style!(tabbody[:children][1], "color" => "#1e1e1e")
+    else
+        style!(tabbody, "background-color" => "#a8326b")
+        style!(tabbody[:children][1], "color" => "white")
     end
     tabbody::Component{:div}
 end
@@ -810,6 +739,3 @@ function build(c::Connection, cell::Cell{:switchselector}, d::Directory{<:Any}, 
     end
     filecell::Component{<:Any}
 end
-
-#== filesave?
-==#

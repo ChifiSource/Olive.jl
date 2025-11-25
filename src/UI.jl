@@ -861,6 +861,54 @@ re_source!(c::Connection, p::Project{<:Any})::Nothing = begin
     source_module!(c, p)
 end
 
+function build_base_tab_controls(c::Connection, p::Project{<:Any}; close::Bool = true, restart::Bool = true, add::Bool = true, 
+    runall::Bool = true, switch::Bool = true)
+    fname::String = p.id
+    controls::Vector{AbstractComponent} = Vector{AbstractComponent}()
+    closebutton::Component{:span} = span("$(fname)close", text = "close", class = "tablabel")
+    if close
+        on(c, closebutton, "click") do cm2::ComponentModifier
+            close_project(c, cm2, p)
+        end
+        style!(closebutton, "font-size"  => 17pt, "color" => "red")
+        push!(controls, closebutton)
+    end
+    if restart
+        restartbutton::Component{:span} = span("$(fname)restart", text = "restart_alt", class = "tablabel")
+        on(c, restartbutton, "click") do cm2::ComponentModifier
+            re_source!(c, p)
+            olive_notify!(cm2, "module for $(fname) re-sourced")
+        end
+        push!(controls, restartbutton)
+    end
+    if add
+        add_button::Component{:span} = span("$(fname)add", text = "add_circle", class = "tablabel")
+        on(c, add_button, "click") do cm2::ComponentModifier
+            cells = p[:cells]
+            new_cell = Cell("creator", "")
+            push!(cells, new_cell)
+            append!(cm2, fname, build(c, cm2, new_cell, p))
+            focus!(cm2, "cell$(new_cell.id)")
+        end
+        push!(controls, add_button)
+    end
+    if runall
+        runall_button::Component{:span} = span("$(fname)run", text = "start", class = "tablabel")
+        on(c, runall_button, "click") do cm2::ComponentModifier
+            step_evaluate(c, cm2, p)
+        end
+        push!(controls, runall_button)
+    end
+    if switch
+        switchpane_button::Component{:span} = span("$(fname)switch", text = "compare_arrows", class = "tablabel")
+        on(c, switchpane_button, "click") do cm2::ComponentModifier
+            switch_pane!(c, cm2, p)
+        end
+        push!(controls, switchpane_button)
+    end
+    return([add_button, switchpane_button, restartbutton, runall_button, closebutton])::Vector{<:AbstractComponent}
+end
+
 """
 ```julia
 tab_controls(c::Connection, p::Project{<:Any}) -> ::Component{:div}
@@ -870,90 +918,7 @@ Returns the default set of tab controls for a `Project`.
 ```
 """
 function tab_controls(c::Connection, p::Project{<:Any})
-    fname::String = p.id
-    closebutton::Component{:span} = span("$(fname)close", text = "close", class = "tablabel")
-    on(c, closebutton, "click") do cm2::ComponentModifier
-        close_project(c, cm2, p)
-    end
-    restartbutton::Component{:span} = span("$(fname)restart", text = "restart_alt", class = "tablabel")
-    on(c, restartbutton, "click") do cm2::ComponentModifier
-        re_source!(c, p)
-        olive_notify!(cm2, "module for $(fname) re-sourced")
-    end
-    add_button::Component{:span} = span("$(fname)add", text = "add_circle", class = "tablabel")
-    on(c, add_button, "click") do cm2::ComponentModifier
-        cells = p[:cells]
-        new_cell = Cell("creator", "")
-        push!(cells, new_cell)
-        append!(cm2, fname, build(c, cm2, new_cell, p))
-        focus!(cm2, "cell$(new_cell.id)")
-    end
-    runall_button::Component{:span} = span("$(fname)run", text = "start", class = "tablabel")
-    on(c, runall_button, "click") do cm2::ComponentModifier
-        step_evaluate(c, cm2, p)
-    end
-    switchpane_button::Component{:span} = span("$(fname)switch", text = "compare_arrows", class = "tablabel")
-    on(c, switchpane_button, "click") do cm2::ComponentModifier
-        switch_pane!(c, cm2, p)
-    end
-    style!(closebutton, "font-size"  => 17pt, "color" => "red")
-    return([add_button, switchpane_button, restartbutton, runall_button, closebutton])::Vector{<:AbstractComponent}
-end
-
-function tab_controls(c::Connection, p::Project{:include})
-    fname = p.id
-    closebutton = topbar_icon("$(fname)close", "close")
-    on(c, closebutton, "click") do cm2::ComponentModifier
-        close_project(c, cm2, p)
-    end
-    add_button = topbar_icon("$(fname)add", "add_circle")
-    on(c, add_button, "click") do cm2::ComponentModifier
-        cells = p[:cells]
-        new_cell = Cell("creator", "")
-        push!(cells, new_cell)
-        append!(cm2, fname, build(c, cm2, new_cell, p))
-    end
-    runall_button = topbar_icon("$(fname)run", "start")
-    on(c, runall_button, "click") do cm2::ComponentModifier
-        step_evaluate(c, cm2, p)
-    end
-    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
-    on(c, switchpane_button, "click") do cm2::ComponentModifier
-        switch_pane!(c, cm2, p)
-    end
-    style!(closebutton, "font-size"  => 17pt, "color" => "red")
-    style!(switchpane_button, "font-size"  => 17pt, "color" => "white")
-    style!(add_button, "font-size"  => 17pt, "color" => "white")
-    style!(runall_button, "font-size"  => 17pt, "color" => "white")
-    [add_button, switchpane_button, runall_button, closebutton]
-end
-
-function tab_controls(c::Connection, p::Project{:module})
-    fname = p.id
-    closebutton = topbar_icon("$(fname)close", "close")
-    on(c, closebutton, "click") do cm2::ComponentModifier
-        close_project(c, cm2, p)
-    end
-    add_button = topbar_icon("$(fname)add", "add_circle")
-    on(c, add_button, "click") do cm2::ComponentModifier
-        cells = p[:cells]
-        new_cell = Cell("creator", "")
-        push!(cells, new_cell)
-        append!(cm2, fname, build(c, cm2, new_cell, p))
-    end
-    runall_button = topbar_icon("$(fname)run", "start")
-    on(c, runall_button, "click") do cm2::ComponentModifier
-        step_evaluate(c, cm2, p)
-    end
-    switchpane_button = topbar_icon("$(fname)switch", "compare_arrows")
-    on(c, switchpane_button, "click") do cm2::ComponentModifier
-        switch_pane!(c, cm2, p)
-    end
-    style!(closebutton, "font-size"  => 17pt, "color" => "red")
-    style!(switchpane_button, "font-size"  => 17pt, "color" => "white")
-    style!(add_button, "font-size"  => 17pt, "color" => "white")
-    style!(runall_button, "font-size"  => 17pt, "color" => "white")
-    [add_button, switchpane_button, runall_button, closebutton]
+    build_base_tab_controls(c, p)
 end
 
 """
@@ -1230,17 +1195,7 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     mainbar
 end
 
-"""
-```julia
-build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false) -> ::Component{:div}
-```
-Creates a tab for the project, including its controls. These tabs are then provided 
-    to `open_project`.
-```
-
-```
-"""
-function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
+function build_base_tab(c::Connection, p::Project{<:Any}, hidden::Bool = false, bind::Bool = true)
     fname::String = p.id
     tabbody::Component{:div} = div("tab$(fname)", class = "tabopen")
     if(hidden)
@@ -1248,18 +1203,22 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     end
     tablabel::Component{:a} = a("tablabel$(fname)", text = p.name, class = "tablabel")
     push!(tabbody, tablabel)
+    if ~(bind)
+        # early exit if bind is false
+        return(tabbody)::Component{:div}
+    end
     on(c, tabbody, "click") do cm::ComponentModifier
         if p.id in cm
             return
         end
         projects::Vector{Project{<:Any}} = CORE.users[getname(c)].environment.projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
-        [begin
+        for e in inpane
             if projects[e].id != p.id 
                 style_tab_closed!(cm, projects[e])
             end
             nothing
-        end  for e in inpane]
+        end
         projbuild::Component{:div} = build(c, cm, p)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         cm["tab$(fname)"] = :class => "tabopen"
@@ -1286,6 +1245,20 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         [begin append!(cm, tabbody, serv); nothing end for serv in controls]
     end
     tabbody::Component{:div}
+end
+
+"""
+```julia
+build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false) -> ::Component{:div}
+```
+Creates a tab for the project, including its controls. These tabs are then provided 
+    to `open_project`.
+```
+
+```
+"""
+function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
+    build_base_tab(c, p, hidden)
 end
 
 """
