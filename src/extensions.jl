@@ -77,7 +77,7 @@ function cell_highlight!(c::Connection, cm::ComponentModifier, cell::Cell{:inclu
     proj::Project{<:Any})
     txt = cm["cell$(cell.id)"]["text"]
     new_a = a(text = txt)
-    style!(new_a, "color" => "#fffdd0")
+    style!(new_a, "color" => "#4f8c51")
     set_text!(cm, "cellhighlight$(cell.id)", string(new_a))
 end
 
