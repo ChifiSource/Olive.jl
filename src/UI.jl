@@ -1230,17 +1230,7 @@ function build_findbar(c::AbstractConnection, cm::AbstractComponentModifier, cel
     mainbar
 end
 
-"""
-```julia
-build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false) -> ::Component{:div}
-```
-Creates a tab for the project, including its controls. These tabs are then provided 
-    to `open_project`.
-```
-
-```
-"""
-function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
+function build_base_tab(c::Connection, p::Project{<:Any}, hidden::Bool = false, bind::Bool = true)
     fname::String = p.id
     tabbody::Component{:div} = div("tab$(fname)", class = "tabopen")
     if(hidden)
@@ -1248,18 +1238,22 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
     end
     tablabel::Component{:a} = a("tablabel$(fname)", text = p.name, class = "tablabel")
     push!(tabbody, tablabel)
+    if ~(bind)
+        # early exit if bind is false
+        return(tabbody)::Component{:div}
+    end
     on(c, tabbody, "click") do cm::ComponentModifier
         if p.id in cm
             return
         end
         projects::Vector{Project{<:Any}} = CORE.users[getname(c)].environment.projects
         inpane = findall(proj::Project{<:Any} -> proj[:pane] == p[:pane], projects)
-        [begin
+        for e in inpane
             if projects[e].id != p.id 
                 style_tab_closed!(cm, projects[e])
             end
             nothing
-        end  for e in inpane]
+        end
         projbuild::Component{:div} = build(c, cm, p)
         set_children!(cm, "pane_$(p[:pane])", [projbuild])
         cm["tab$(fname)"] = :class => "tabopen"
@@ -1286,6 +1280,20 @@ function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
         [begin append!(cm, tabbody, serv); nothing end for serv in controls]
     end
     tabbody::Component{:div}
+end
+
+"""
+```julia
+build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false) -> ::Component{:div}
+```
+Creates a tab for the project, including its controls. These tabs are then provided 
+    to `open_project`.
+```
+
+```
+"""
+function build_tab(c::Connection, p::Project{<:Any}; hidden::Bool = false)
+    build_base_tab(c, p, hidden)
 end
 
 """
