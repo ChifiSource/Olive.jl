@@ -208,9 +208,9 @@ function olivesheet()
     p_explorer = style("div.pexplorer", "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
         "height" => "90%", "left" => "8", "padding" => 0px,
         "transition" => 800ms, "margin-top" => 85px, "border-radius" => 0px, 
-        "overflow-y" => "visible")
+        "overflow-y" => "visible", "overflow-x" => "hidden")
     p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
-        "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
+        "opacity" => 100percent, "overflow-y" => "scroll", "overflow-x" => "hidden", "pointer-events" => "auto")
     p_explorer_closed = style("div.pexplorer-closed", "opacity" => 0percent, 
         "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
         "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
