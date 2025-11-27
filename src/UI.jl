@@ -709,6 +709,8 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     fsplit::Vector{SubString} = split(fpath, "/")
     uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
     environment::String = ""
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+        :env => environment, :path => fpath, projpairs ...)
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
@@ -721,8 +723,6 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
             environment = CORE.data["wd"]
         end
     end
-    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :env => environment, :path => fpath, projpairs ...)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     c[:OliveCore].olmod.Olive.source_module!(c, myproj)
     c[:OliveCore].olmod.Olive.check!(myproj)
