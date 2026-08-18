@@ -208,12 +208,12 @@ function olivesheet()
     p_explorer = style("div.pexplorer", "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
         "height" => "90%", "left" => "8", "padding" => 0px,
         "transition" => 800ms, "margin-top" => 85px, "border-radius" => 0px, 
-        "overflow-y" => "visible")
+        "overflow-y" => "visible", "overflow-x" => "hidden")
     p_explorer_open = style("div.pexplorer-open", "width" => "500px", 
-        "opacity" => 100percent, "overflow-y" => "scroll", "pointer-events" => "auto")
+        "opacity" => 100percent, "overflow-y" => "scroll", "overflow-x" => "hidden", "pointer-events" => "auto")
     p_explorer_closed = style("div.pexplorer-closed", "opacity" => 0percent, 
         "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
-        "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
+        "width" => "0%", "pointer-events" => "none", "height" => "90%", "left" => "8", "padding" => 0px,
         "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px, 
         "overflow-y" => "visible", "pointer-events" => "none", "padding" => 5px)
     icon_selected = style(".material-icons-selected", "color" => "lightblue", "overflow-x" => "hidden")
@@ -709,6 +709,8 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
     fsplit::Vector{SubString} = split(fpath, "/")
     uriabove::String = join(fsplit[1:length(fsplit) - 1], "/")
     environment::String = ""
+    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
+        :env => environment, :path => fpath, projpairs ...)
     if "Project.toml" in readdir(uriabove)
         environment = uriabove
     else
@@ -721,8 +723,6 @@ function add_to_session(c::Connection, cs::Vector{<:IPyCells.AbstractCell},
             environment = CORE.data["wd"]
         end
     end
-    projdict::Dict{Symbol, Any} = Dict{Symbol, Any}(:cells => cs,
-    :env => environment, :path => fpath, projpairs ...)
     myproj::Project{<:Any} = Project{Symbol(type)}(source, projdict)
     c[:OliveCore].olmod.Olive.source_module!(c, myproj)
     c[:OliveCore].olmod.Olive.check!(myproj)
