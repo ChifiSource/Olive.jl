@@ -29,6 +29,7 @@ Welcome to olive! Olive is a **pure julia**, **parametric** notebook editor buil
    - [settings](#settings)
 - [extensions](#extensions)
    - [installing extensions](#installing-extensions)
+   - [recommended extensions](#recommended-extensions)
 - [deploying olive](#deploying-olive)
    - [creating an olive server](#creating-a-server)
 - [contributing](#contributing)
@@ -173,6 +174,12 @@ Clicking the `+` icon next to the `pwd` directory will create a new project, fil
 </div>
 
 Extensions can be added to `Olive` by first clicking the `+` button by your `home` directory in `Olive`, then typing the extension's URL into the name box before pressing *add*. This will add the package to your Pkg environment, and add a new `using` entry for the package to your `olive.jl` home file. This could also be done manually. In `0.1.5`**+**, to use extensions with *headless* `Olive` simply load them before loading `Olive`.
+
+#### recommended extensions
+As of this moment, there are currently 8 `Olive` extensions available. To get started with `Olive` extensions, the `Olive` team recommends the following extensions:
+- [OliveDocBrowser](https://github.com/ChifiSource/OliveDocBrowser.jl)
+- [OliveMarkdown](https://github.com/ChifiSource/OliveMarkdown.jl)
+- and [OlivePython]() with the caveat that you must have `PyCall` working in Julia.
 ### deploying olive
    - [creating an olive server](#creating-a-server)
 #### creating a server
