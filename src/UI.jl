@@ -213,7 +213,7 @@ function olivesheet()
         "opacity" => 100percent, "overflow-y" => "scroll", "overflow-x" => "hidden", "pointer-events" => "auto")
     p_explorer_closed = style("div.pexplorer-closed", "opacity" => 0percent, 
         "position" => "absolute", "z-index" => "1", "top" => "0", "overflow" => "visible",
-        "width" => "0", "height" => "90%", "left" => "8", "padding" => 0px,
+        "width" => "0%", "pointer-events" => "none", "height" => "90%", "left" => "8", "padding" => 0px,
         "transition" => "0.8s", "margin-top" => 85px, "border-radius" => 0px, 
         "overflow-y" => "visible", "pointer-events" => "none", "padding" => 5px)
     icon_selected = style(".material-icons-selected", "color" => "lightblue", "overflow-x" => "hidden")

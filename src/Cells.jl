@@ -495,22 +495,22 @@ olive_save(cells, filecell) # saves `cells` to "myfolder/myjl.jl"
 """
 function olive_save(p::Project{<:Any}, pe::ProjectExport{<:Any})
     IPyCells.save(p.data[:cells], p.data[:path])
-    nothing
+    nothing::Nothing
 end
 
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:jl})
     IPyCells.save(p.data[:cells], p.data[:path])
-    nothing
+    nothing::Nothing
 end
 
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:raw})
     IPyCells.save(p.data[:cells], p.data[:path], raw = true)
-    nothing
+    nothing::Nothing
 end
 
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:ipynb})
     IPyCells.save_ipynb(p.data[:cells], p.data[:path])
-    nothing
+    nothing::Nothing
 end
 
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:toml})
@@ -524,7 +524,7 @@ function olive_save(p::Project{<:Any}, pe::ProjectExport{:toml})
     open(p[:path], "w") do io
         TOML.print(io, ret)
     end
-    nothing
+    nothing::Nothing
 end
 
 function olive_save(p::Project{<:Any}, pe::ProjectExport{:olivestyle})
@@ -549,7 +549,7 @@ function olive_save(p::Project{<:Any}, pe::ProjectExport{:olivestyle})
     open(p[:path], "w") do io
         TOML.print(io, ret)
     end
-    nothing
+    nothing::Nothing
 end
 
 """
